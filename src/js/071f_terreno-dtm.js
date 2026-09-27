@@ -366,6 +366,8 @@
                 stato.innerHTML = html;
                 document.getElementById('lblCaricaDtm').textContent = dtm ? 'Carica un altro DTM' : 'Carica un DTM';
                 document.getElementById('btnTogliDtm').style.display = dtm ? '' : 'none';
+                document.getElementById('btnApriVista3d').disabled = !dtm;
+                document.getElementById('btnApriVista3d').title = dtm ? '' : 'Serve un DTM: caricalo qui sotto';
             }
 
             function apriTerreno() {

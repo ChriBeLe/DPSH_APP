@@ -80,6 +80,7 @@ inventario in `docs/INVENTARIO_EDITOR_TEMPLATE.md`.
 4. Le cose «non fatte, e perché» negli esiti delle fasi 4, 5, 7, 8, se servono.
 5. Prototipo PC (`docs/PROTOTIPO_PC.md`, tela https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg):
    approvato e realizzato (6 passi); cosa manca è in fondo a quel documento.
+6. Terreno e sezioni (`docs/TERRENO_DTM.md`): DTM, quote, sezione 2D, vista 3D fatti; WMS/WCS aspettano gli indirizzi dei servizi.
 
 Parti chiedendomi se ho provato l'app sul telefono e cosa ho notato. Poi proponimi il prossimo pezzo con il suo peso.
 
