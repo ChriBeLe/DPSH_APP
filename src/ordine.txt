@@ -52,6 +52,7 @@ markup/42_drawer.html
 markup/43_modalPortaERicevi.html
 markup/44_modalPalette.html
 markup/45_modalTerreno.html
+markup/46_modalSezione.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/05_tra-motore-e-app.html
@@ -141,5 +142,6 @@ js/071c_palette-e-scorciatoie.js
 js/071d_contatore-sul-pc.js
 js/071e_guida-rapida-pc.js
 js/071f_terreno-dtm.js
+js/071g_sezione.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

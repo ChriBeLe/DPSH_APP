@@ -1,0 +1,16 @@
+    <!-- SEZIONE TRA LE PROVE: colonne stratigrafiche alle distanze vere (GPS) e alle quote del DTM,
+         col profilo del terreno; gli strati con lo stesso nome si uniscono tra prove vicine.
+         La riempie il pezzo 071g. -->
+    <div class="modal-overlay" id="modalSezioneOverlay"></div>
+    <div class="modal sezione" id="modalSezione" role="dialog" aria-labelledby="titoloSezione">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span id="titoloSezione">Sezione tra le prove</span>
+            <button type="button" class="chiudi-x" id="btnChiudiSezione" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="pillole" id="proveSezione" aria-label="Prove nella sezione"></div>
+        <p class="t-didascalia" id="notaSezione"></p>
+        <div id="graficoSezione"></div>
+        <div class="terreno-comandi">
+            <button type="button" class="bt" id="btnScaricaSezione"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>
+        </div>
+    </div>

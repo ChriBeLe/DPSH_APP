@@ -24,6 +24,8 @@
                     ['Progetto', 'Strati e parametri', '', openStratiModal, conProgetto],
                     ['Progetto', 'Note del progetto', '', () => apriNoteProgetto(state.currentProjectId), conProgetto],
                     ['Progetto', 'Nuova prova', '', openNewSurveyModal, conProgetto],
+                    ['Progetto', 'Terreno e sezioni (DTM)', '', apriTerreno, conProgetto],
+                    ['Progetto', 'Sezione tra le prove', '', apriSezione, conProgetto],
                     ['Prova', 'Aggiungi intervalli', 'Ctrl I', openBulkImportModal, inProva],
                     ['Prova', 'Falda', 'F', openQuickFaldaModal, inProva],
                     ['Prova', 'Foto della prova', '', clicSu('btnOpenSurveyPhotosModal'), inProva],
