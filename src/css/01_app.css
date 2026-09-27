@@ -198,7 +198,7 @@
         }
         [data-hue="granito"][data-theme="light"] {
             --bg-main: #f1eeee; --bg-card: #fbfafa; --bg-card-hover: #e6e0e0; --bg-sunken: #ece8e8;
-            --text-main: #262323; --text-muted: #7d7676;
+            --text-main: #262323; --text-muted: #6f6969;
             --accent: #a8636a; --accent-hover: #8b4d54; --accent-ink: #6b3238;
             --accent-soft: #ecdcde;
             --border: #e0dada; --border-strong: #a69595;
@@ -222,7 +222,7 @@
         }
         [data-hue="arenaria"][data-theme="light"] {
             --bg-main: #f6f1e8; --bg-card: #ffffff; --bg-card-hover: #efe8d8; --bg-sunken: #f3ede1;
-            --text-main: #2e2618; --text-muted: #7d715c;
+            --text-main: #2e2618; --text-muted: #776b57;
             --accent: #b98a4e; --accent-hover: #98703c; --accent-ink: #6b4d24;
             --accent-soft: #ecdfc4;
             --border: #e5dcc9; --border-strong: #bca473;
@@ -246,7 +246,7 @@
         }
         [data-hue="ardesia"][data-theme="light"] {
             --bg-main: #eef1f3; --bg-card: #ffffff; --bg-card-hover: #e7ebee; --bg-sunken: #e8ecef;
-            --text-main: #1e262b; --text-muted: #64727c;
+            --text-main: #1e262b; --text-muted: #606d77;
             --accent: #4d6a85; --accent-hover: #3a5065; --accent-ink: #2c3f52;
             --accent-soft: #dbe4ea;
             --border: #dde3e7; --border-strong: #92a5b2;
@@ -271,7 +271,7 @@
         }
         [data-hue="rame"][data-theme="light"] {
             --bg-main: #f5ede6; --bg-card: #fffaf6; --bg-card-hover: #ecdccf; --bg-sunken: #f2e8df;
-            --text-main: #35201a; --text-muted: #8a7267;
+            --text-main: #35201a; --text-muted: #7b655c;
             --accent: #a8503a; --accent-hover: #823e2d; --accent-ink: #5c2a18;
             --accent-soft: #edd9cd;
             --border: #e6d4c7; --border-strong: #bf906f;
@@ -295,7 +295,7 @@
         }
         [data-hue="giada"][data-theme="light"] {
             --bg-main: #eef4f0; --bg-card: #ffffff; --bg-card-hover: #e6eee9; --bg-sunken: #e8f0eb;
-            --text-main: #1c2b22; --text-muted: #62766a;
+            --text-main: #1c2b22; --text-muted: #5f7267;
             --accent: #4f8a6c; --accent-hover: #3c6a53; --accent-ink: #2a4c3a;
             --accent-soft: #dbece2;
             --border: #dbe6de; --border-strong: #90b299;
