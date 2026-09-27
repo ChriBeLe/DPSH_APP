@@ -202,3 +202,15 @@
         /* ---- La scheda della prova (Fase 4) ---- */
         .scheda-prova-rapidi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-3); }
         .scheda-prova-gruppo { font-weight: 800; text-transform: uppercase; letter-spacing: .4px; margin: var(--sp-2) 0; }
+
+        /* ---- Il PC, per la post-produzione (Fase 7, da 1024 px) ----
+           Niente contatore né schede Conta | Registro: il Registro e, nella vista «Grafico», tabella e
+           grafico affiancati. Gli !important vincono sugli stili scritti dallo script. */
+        @media (min-width: 1024px) {
+            #viewField { flex-direction: row !important; flex-wrap: wrap; align-items: flex-start; }
+            #viewField > * { flex: 1 1 100%; }
+            #viewField > #cardLogsTable, #viewField > #cardChart { flex: 1 1 calc(50% - 8px); min-width: 0; }
+            #viewField > .schede-prova, #cardCounterDashboard, #cardUltimiIntervalli { display: none !important; }
+            #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
+            main { max-width: 1200px; }
+        }

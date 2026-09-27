@@ -292,7 +292,9 @@ inverte solo nell'elenco «Intervalli», la falda è passata dalle spie al ⋯ d
    dietro una «?».
 5. Note rapide su più righe, senza scorrimento orizzontale.
 
-### Fase 7 — Il PC, per la post-produzione
+### Fase 7 — Il PC, per la post-produzione ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_7_ESITO.md`. Versione minima; il resto dopo l'uso.
+
 Da 1024 px in su (decisione I):
 1. **Layout a colonne:** progetti e prove a sinistra, al centro il Registro con il grafico
    affiancato, a destra la scheda prova oppure gli strati. Tra 761 e 1023 px, due colonne.

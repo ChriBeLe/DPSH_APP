@@ -374,6 +374,9 @@ ${bodyConBgcolor}
             // «Registro» (il registro intero). Non si ricorda: entrando in una prova dalla Home si
             // riparte sempre dal contatore (vedi switchView).
             let vistaProva = 'conta';
+            // Sul PC (Fase 7, decisione I) niente contatore: si lavora sul Registro, si inserisce con
+            // «Aggiungi» e si corregge da tastiera.
+            const suPc = () => window.matchMedia('(min-width: 1024px)').matches;
             function mostraVistaProva(vista) {
                 vistaProva = vista;
                 updateUI();
@@ -614,7 +617,7 @@ ${bodyConBgcolor}
                 }
 
                 // Vista Conta | Registro (Fase 6).
-                const inConta = vistaProva === 'conta';
+                const inConta = vistaProva === 'conta' && !suPc();
                 {
                     const btnConta = document.getElementById('btnVistaConta');
                     const btnRegistro = document.getElementById('btnVistaRegistro');
@@ -1070,7 +1073,7 @@ ${bodyConBgcolor}
                     if (Math.abs(diffX) >= 10 || Math.abs(diffY) >= 10) return;
                     const eraAperta = wrapperEl.classList.contains('azioni-aperte');
                     chiudiRigheAperte();
-                    if (!eraAperta) openEditModal(idx, { senzaTastiera: true });
+                    if (!eraAperta) openEditModal(idx, { senzaTastiera: !suPc() });
                 });
                 wrapperEl.querySelector('.riga-azione-modifica').addEventListener('click', () => { chiudiRigheAperte(); openEditModal(idx); });
                 wrapperEl.querySelector('.riga-azione-elimina').addEventListener('click', () => { chiudiRigheAperte(); deleteLogStep(idx); });
@@ -1307,7 +1310,7 @@ ${bodyConBgcolor}
                 svgChart.querySelectorAll('.chart-bar-group').forEach(group => {
                     group.addEventListener('click', (e) => {
                         const idx = parseInt(group.getAttribute('data-index'));
-                        openEditModal(idx, { senzaTastiera: true });
+                        openEditModal(idx, { senzaTastiera: !suPc() });
                     });
                 });
 
