@@ -382,6 +382,18 @@ ${bodyConBgcolor}
             document.getElementById('btnVistaConta').addEventListener('click', () => mostraVistaProva('conta'));
             document.getElementById('btnVistaRegistro').addEventListener('click', () => mostraVistaProva('registro'));
             document.getElementById('btnVaiAlRegistro').addEventListener('click', () => mostraVistaProva('registro'));
+            // I gesti della prova, spiegati in un posto solo dietro la «?» (Fase 6, punto 4): prima erano
+            // scritte fisse sotto −1, sotto Registra e sopra il Registro.
+            const AIUTO_PROVA = 'Contatore\n'
+                + '• +1 aggiunge un colpo; tenuto premuto registra l\'intervallo.\n'
+                + '• −1 toglie un colpo; tenuto premuto annulla l\'ultimo intervallo.\n'
+                + '• Dopo aver registrato, «Annulla» nel messaggio in basso toglie proprio quell\'intervallo.\n\n'
+                + 'Registro\n'
+                + '• Tocca una riga per correggerla.\n'
+                + '• Scorri una riga a sinistra per Modifica ed Elimina.\n'
+                + '• «Mostra tutte le righe» apre il registro per intero.';
+            document.querySelectorAll('.btn-aiuto-prova').forEach(b => b.addEventListener('click', () => appDialog(AIUTO_PROVA, { title: 'Come si usa' })));
+
             // Preferenze dell'app (004e), non del progetto: cambiarle non lo segna come modificato.
             document.getElementById('btnOrdineIntervalli').addEventListener('click', () => {
                 if (state.settings.intervalliRecentiInCima === true) delete state.settings.intervalliRecentiInCima; else state.settings.intervalliRecentiInCima = true;

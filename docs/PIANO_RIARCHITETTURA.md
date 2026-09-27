@@ -273,7 +273,11 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
    - *Info e versione*;
    - *Sperimentali*.
 
-### Fase 6 — Il campo, sul telefono
+### Fase 6 — Il campo, sul telefono ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_6_ESITO.md`. 48/48 suite. Corretta dalle osservazioni dell'utente sul telefono:
+il Registro scorre in un riquadro con «Mostra tutte le righe» (invece di niente riquadro), l'ordine si
+inverte solo nell'elenco «Intervalli», la falda è passata dalle spie al ⋯ della prova.
+
 1. La prova ha due viste, **Conta | Registro**. Sotto il contatore si vedono gli ultimi 3
    intervalli. Il lucchetto e le barre doppie spariscono (una sola soluzione).
 2. Il Registro non ha più uno scorrimento dentro lo scorrimento. **L'ordine resta quello di

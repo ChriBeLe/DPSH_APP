@@ -158,6 +158,21 @@ async function apriPrimaProva(app) {
   await attesa(60);
   t('e toglie proprio quell\'intervallo', app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare));
 
+  console.log('--- Le spiegazioni dietro la «?» ---');
+  t('niente più scritte fisse sui gesti (sotto −1, sotto Registra, sopra il Registro)',
+    !/tieni premuto: annulla|Oppure tieni premuto|scorri a sinistra/.test($(app, 'cardCounterDashboard').textContent + $(app, 'cardIntegratedRegister').textContent + $(app, 'cardLogsTable').textContent));
+  const aiuti = [$(app, 'directActionButtonsRow'), $(app, 'cardIntegratedRegister'), $(app, 'cardLogsTable')].map(r => r.querySelector('.btn-aiuto-prova'));
+  t('una «?» sotto Registra e una in ciascun registro', aiuti.every(Boolean));
+  for (const [k, b] of aiuti.entries()) {
+    clic(app, b);
+    await attesa(30);
+    const d = app.dialogo();
+    t(`la «?» ${k + 1} apre «Come si usa» con i gesti del contatore e del registro`, !!d && d.titolo === 'Come si usa'
+      && /tenuto premuto registra/.test(d.testo) && /tenuto premuto annulla/.test(d.testo) && /Scorri una riga a sinistra/.test(d.testo));
+    if (d) clic(app, d.ok);
+    await attesa(30);
+  }
+
   console.log('--- Home e ritorno ---');
   clic(app, $(app, 'btnHomeView'));
   await attesa(50);

@@ -48,6 +48,16 @@ Prototipo approvato (lavagna): https://claude.ai/artifact/4wQitcFLA5y6gWHj4fThJY
   - il nome del progetto si modifica dall'«Intestazione Cantiere» (commit 2329a78);
   - «Strumento e impostazioni della prova» si apre dal ⋯ della prova (commit d3a8db4).
 - Test: 47/47 verdi a fine Fase 3.
+- ✅ **Fase 6** (27/09/2026, sessione cloud, ramo `claude/epic-davinci-19p1z9`, da unire in `main`):
+  - due viste Conta | Registro;
+  - righe del Registro: tocco = scheda modificabile, scorri a sinistra = Modifica/Elimina;
+  - registro compatto con «Mostra tutte le righe»;
+  - finestre come fogli dal basso;
+  - falda nel ⋯ della prova.
+
+  Esito in `docs/fasi/FASE_6_ESITO.md`. Test: 48/48.
+- Inventario della schermata di acquisizione in `docs/INVENTARIO_ACQUISIZIONE.md`: aspetta le mie
+  scelte riga per riga.
 
 
 **Le mie decisioni:**
@@ -60,7 +70,9 @@ Prototipo approvato (lavagna): https://claude.ai/artifact/4wQitcFLA5y6gWHj4fThJY
 - Niente «Condividi», niente cloud, niente service worker.
 
 **Cosa resta, in ordine di utilità:**
-1. **Fase 6, Conta | Registro:** due viste sulla prova, per ridare spazio al Registro. Peso medio.
+1. **Editor dei template** (fase nuova, chiesta il 27/09/2026): storture, uso poco scorrevole,
+   mancano i menù per eliminare, spostare ecc. i blocchi. Si parte da un inventario e dai miei
+   screenshot.
 2. **Fase 4, Scheda prova unica** (Dati · Strumento · Falda · GPS · Foto): peso grande. Da fare solo se dopo l'uso serve ancora.
 3. **Fase 5:** schermata Progetto, Consegna unica, Impostazioni riordinate.
 4. **Fase 7:** layout a colonne per il PC.

@@ -97,7 +97,7 @@ async function apriPrimaProva(app) {
   t('il tasto Registra si vede', visibile(app, 'btnConfirmStepAction') && !visibile(app, 'rigaRegistraNascosto'));
   t('e dice cosa registra: «Registra da–a m»', $(app, 'btnConfirmStepAction').textContent.trim() === 'Registra ' + atteso(d0, d0 + passo));
   t('l\'intervallo del contatore è lo stesso, in mono', $(app, 'lblDepthRange').textContent === atteso(d0, d0 + passo));
-  t('sotto: «Oppure tieni premuto +1» e «Nascondi questo tasto»', /Oppure tieni premuto \+1/.test($(app, 'directActionButtonsRow').textContent) && $(app, 'btnNascondiRegistra').textContent === 'Nascondi questo tasto');
+  t('sotto: la «?» e «Nascondi questo tasto»', !!$(app, 'directActionButtonsRow').querySelector('.btn-aiuto-prova') && $(app, 'btnNascondiRegistra').textContent === 'Nascondi questo tasto');
   const n0 = app.E('state.logs.length');
   for (let i = 0; i < 14; i++) clic(app, $(app, 'btnPlus'));
   clic(app, $(app, 'btnConfirmStepAction'));

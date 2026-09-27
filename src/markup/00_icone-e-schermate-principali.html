@@ -236,7 +236,6 @@
                 <div class="controls-grid">
                     <button type="button" class="btn-touch btn-minus" id="btnMinus" aria-label="Togli un colpo; tieni premuto per annullare l'ultimo intervallo" title="−1 colpo (tieni premuto: annulla l'ultimo intervallo)">
                         <span class="btn-touch-cifra">−1</span>
-                        <span class="btn-touch-aiuto">tieni premuto: annulla ultimo</span>
                     </button>
                     <button type="button" class="btn-touch btn-plus" id="btnPlus" aria-label="Aggiungi un colpo; tieni premuto per registrare l'intervallo" title="+1 colpo (tieni premuto: registra l'intervallo)">
                         <span class="btn-touch-cifra">+1</span>
@@ -251,7 +250,8 @@
                 <div class="registra-blocco" id="directActionButtonsRow">
                     <button type="button" class="bt bt-successo bt-campo bt-registra" id="btnConfirmStepAction"><svg class="ico"><use href="#i-check"/></svg><span id="lblRegistraIntervallo">Registra 0,00–0,20 m</span></button>
                     <div class="registra-sotto">
-                        <span class="t-didascalia">Oppure tieni premuto +1</span>
+                        <!-- Le spiegazioni dei gesti stanno dietro la «?» (Fase 6, punto 4). -->
+                        <button type="button" class="bt-aiuto btn-aiuto-prova" aria-label="Come si usa" title="Come si usa">?</button>
                         <button type="button" class="bt-link" id="btnNascondiRegistra">Nascondi questo tasto</button>
                     </div>
                 </div>
@@ -302,10 +302,10 @@
                             </div>
                         </div>
                         <button type="button" class="bt bt-tenue" id="btnAutoStratiIntegrated"><svg class="ico"><use href="#i-sparkles"/></svg>Riconosci strati</button>
+                        <button type="button" class="bt-aiuto btn-aiuto-prova" aria-label="Come si usa" title="Come si usa">?</button>
                     </div>
                 </div>
 
-                <div class="registro-aiuto">Tocca una riga per correggerla · scorri a sinistra per eliminarla</div>
 
                 <!-- LEGENDA STRATI RAPIDA NEL REGISTRO INTEGRATO -->
                 <div id="integratedLegendContainer" class="registro-legenda">
@@ -341,9 +341,9 @@
                             </div>
                         </div>
                         <button type="button" class="bt bt-tenue" id="btnAutoStratiChart"><svg class="ico"><use href="#i-sparkles"/></svg>Riconosci strati</button>
+                        <button type="button" class="bt-aiuto btn-aiuto-prova" aria-label="Come si usa" title="Come si usa">?</button>
                     </div>
                 </div>
-                <div class="registro-aiuto">Tocca una riga per correggerla · scorri a sinistra per eliminarla</div>
                 <div class="logs-table-wrapper">
                     <table class="logs-table">
                         <thead>
