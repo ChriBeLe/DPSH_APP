@@ -43,5 +43,4 @@ Ogni passo: peso dichiarato prima, test del pezzo, suite completa alla fine.
 - **Contatore spostabile:** sta fisso a sinistra del Registro; spostarlo non aggiungeva niente.
 - **Strati a righe con i candidati affiancati** (tavola «Strati»): è il riordino della procedura guidata dei parametri, un lavoro a sé.
 - **Menu del tasto destro sugli strati:** c'è su righe del Registro, barre del grafico, progetti (Home e barra laterale) e prove (barra laterale e Progetto).
-- **Consegna di «alcune prove»** oltre al PDF: resta come nella Fase 5.
 - **Ctrl Z** fuori dall'editor dei template: l'annullamento resta nel toast dopo l'azione.
