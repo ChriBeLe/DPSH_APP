@@ -10,13 +10,24 @@ Dal Progetto, «Terreno e sezioni» (anche con Ctrl K).
 
 ## Cosa se ne ricava
 - **Quota di ogni prova:** interpolata tra le quattro celle vicine. Si vede nella finestra, nel GPS della prova e nel segnaposto del report «Quota del piano campagna».
-- **Sezione tra le prove:** prove col GPS in fila lungo la direzione principale, alle distanze vere.
+- **Sezione tra le prove:** prove col GPS in fila lungo la direzione principale, alle distanze vere, con nomi «DPSH N».
   - Col DTM ogni colonna parte dalla sua quota, e tra le prove c'è il profilo del terreno.
-  - Gli strati con lo stesso nome si uniscono tra prove vicine, senza incroci; quelli che mancano si chiudono a metà. La falda si unisce se c'è in entrambe.
-  - L'esagerazione verticale è scritta nella figura; c'è la legenda; si scarica in SVG.
-- **Vista 3D:** il terreno attorno alle prove, ombreggiato e colorato per quota, con le colonne dentro il suolo.
-  - Si gira trascinando o con le frecce; la rotella e i tasti + − avvicinano.
-  - L'esagerazione è regolabile; si scarica in SVG.
+  - Gli strati con lo stesso nome si collegano tra la prova e la successiva che li ha, anche sotto le prove in mezzo, e seguono il terreno (si interpola la profondità).
+  - Se una prova in mezzo li ha attraversati senza trovarli, il collegamento è tratteggiato e più chiaro, e il suggerimento dice quale prova. Senza seguito, si chiudono a metà. La falda si unisce se c'è in entrambe.
+  - Si regolano l'esagerazione verticale (automatica o scelta) e la scala orizzontale.
+  - Si spengono: correlazioni, etichette lungo i profili, scala di ogni prova, grafico dei colpi accanto alla colonna.
+  - Legenda; si scarica in SVG.
+- **Fumetto della prova:** clic su una colonna, nella sezione e nel 3D.
+  - Mostra il grafico dei colpi, gli strati, la quota, la profondità, la falda e il GPS.
+  - Il lucchetto lo tiene aperto e lo fa spostare.
+- **Vista 3D (canvas, fluida anche mentre gira):**
+  - terreno ombreggiato;
+  - colonne dentro il suolo;
+  - pannelli di correlazione tra prove vicine (triangolazione di Delaunay);
+  - superfici di contatto: tetto degli strati comuni a tre prove, piano per tre punti, con la giacitura reale (immersione/inclinazione);
+  - misure: quote e distanze.
+  - Ogni livello si spegne. Solo le prove eseguite davvero.
+  - Si scarica in SVG e come **modello 3D OBJ + MTL** (metri veri, Y in alto, origine scritta nel file) per Blender, MeshLab, QGIS.
 
 ## Da fare
 - **WMS/WCS dei portali (Geoportale Nazionale, SIT regionali):** da provare con gli indirizzi veri, prima di scrivere codice. Con la WMS si vede soltanto un'immagine (utile come sfondo della mappa). Le quote arrivano solo dalla WCS o dal GetFeatureInfo, se il servizio le espone e accetta richieste dall'app.

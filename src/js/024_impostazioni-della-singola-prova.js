@@ -150,10 +150,12 @@
             // (che la richiama in continuazione, es. ad ogni colpo battuto) — altrimenti la barra
             // scatterebbe al centro mentre l'utente sta provando a scorrerla per sbirciare altro.
             let lastSurveySwitcherScrollId = null;
+            // La barra si ricostruisce solo se cambia qualcosa che mostra: updateUI la chiama a ogni
+            // colpo del contatore, e ricostruirla (e misurarla) ogni volta faceva scattare il +1.
+            let firmaBarraProve = '';
 
             function renderSurveySwitcherBar() {
                 if (!surveySwitcherBar) return;
-                surveySwitcherBar.innerHTML = '';
 
                 // BUG STORICO: questa funzione mostrava la barra Prova1/Prova2/+Nuova Prova ogni
                 // volta che veniva chiamata (es. da updateUI() dopo QUALSIASI cambio impostazione),
@@ -170,6 +172,10 @@
                 surveySwitcherBar.style.display = 'flex';
                 const proj = state.projects[state.currentProjectId];
                 const surveys = proj.surveys || {};
+                const firma = JSON.stringify([state.currentProjectId, state.currentSurveyId, Object.keys(surveys).map(id => id + ':' + ((surveys[id].header || {}).provaNr || ''))]);
+                if (firma === firmaBarraProve && surveySwitcherBar.childElementCount) return;
+                firmaBarraProve = firma;
+                surveySwitcherBar.innerHTML = '';
                 // Ordinate per numero prova crescente (non per ordine di creazione): assegnare o
                 // modificare il N° di una prova la sposta subito al suo posto nella barra.
                 const keys = Object.keys(surveys).sort((a, b) => {
@@ -283,7 +289,9 @@
                     });
                 }
 
-                updateSurveySwitcherFade();
+                // Al fotogramma dopo: misurare adesso costringerebbe a reimpaginare la pagina a metà
+                // del cambio di vista (era il costo maggiore nell'aprire un progetto).
+                requestAnimationFrame(updateSurveySwitcherFade);
             }
 
             /** Accende/spegne le dissolvenze ai bordi della barra prove in base allo scroll REALE

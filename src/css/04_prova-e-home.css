@@ -331,3 +331,16 @@
         .fumetto-strati span { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
         @media (max-width: 420px) { .fumetto-corpo { flex-direction: column; } }
         #graficoVista3d canvas { display: block; touch-action: none; cursor: grab; }
+
+        /* ---- Fluidità: le finestre chiuse fuori dall'impaginazione ----
+           Sono quasi due terzi degli elementi della pagina e, chiuse, sono solo trasparenti: ogni
+           cambio di vista le reimpaginava tutte (misurato: aprire un progetto 72 → 28 ms).
+           content-visibility le salta finché sono chiuse; con allow-discrete il contenuto resta
+           fino alla fine della dissolvenza di chiusura. Fuori le finestre che misurano il proprio
+           contenuto prima di aprirsi (editor dei template, note, disegno, mappa, ritaglio, foto, GPS)
+           e il cassetto, che si apre scorrendo: impaginarlo all'apertura ne frenava il primo passo. */
+        .modal:not(.open):not(#modalTemplateEditor):not(#modalTplTextEditor):not(#modalAnteprimaStampaReale):not(#modalIndicePersonalizza):not(#modalProjectNotes):not(#modalComposizioneMappa):not(#modalNoteDraw):not(#modalStileTesto):not(#modalRitaglio):not(#modalPhoto):not(#modalGpsSettings) { content-visibility: hidden; }
+        .modal { transition: opacity var(--mov-medio) var(--ease-entra), transform var(--mov-medio) var(--ease-entra), content-visibility var(--mov-medio) allow-discrete; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+        }

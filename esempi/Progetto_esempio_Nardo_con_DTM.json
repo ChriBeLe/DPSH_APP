@@ -6,7 +6,7 @@
   "localita": "Area parcheggio",
   "operator": "",
   "date": "2026-09-14",
-  "updatedAt": 1790551773953,
+  "updatedAt": 1790553152069,
   "surveys": {
     "SURV_1_1790450327664": {
       "id": "SURV_1_1790450327664",
@@ -703,7 +703,7 @@
       ],
       "reportTemplateId": null,
       "templateImages": {},
-      "updatedAt": 1790551773953
+      "updatedAt": 1790553152069
     }
   },
   "strati": [
@@ -772,7 +772,7 @@
       "tipo": "utm",
       "zona": 33
     },
-    "caricatoIl": "2026-09-27T23:29:33.953Z",
+    "caricatoIl": "2026-09-27T23:52:32.069Z",
     "celleOriginali": 2,
     "x0": 754538,
     "y0": 4454114,
@@ -786,7 +786,7 @@
     "proveDentro": 4,
     "proveConGps": 4
   },
-  "modificatoIl": "2026-09-27T23:29:33.954Z",
+  "modificatoIl": "2026-09-27T23:52:32.070Z",
   "versioneSchema": 3,
   "librerie": {
     "reportTemplates": {
