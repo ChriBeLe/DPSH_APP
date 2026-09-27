@@ -57,6 +57,46 @@ const clic = (app, el) => el && el.dispatchEvent(new app.w.MouseEvent('click', {
     if (provati >= 2) break;
   }
   t('provati almeno due blocchi con le schede', provati >= 2);
+
+  console.log('--- Aprire il menu: tasto destro e tocco prolungato (27/09/2026) ---');
+  const menuDi = id => { const m = app.d.getElementById('templateEditorBlockMenu'); return !!m && m.dataset.blockId === id; };
+  // I gesti stanno sul corpo del blocco (.tpl-editor-block-body), che porta il suo id.
+  const corpo = () => app.d.querySelectorAll('#templateEditorCanvas .tpl-editor-block-body')[1];
+  const idDi = el => el.dataset.blockId;
+  const puntatore = (el, tipo) => el.dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: 50, clientY: 50 }));
+  app.E('chiudiMenuBloccoEditor(); deselezionaBloccoEditor()');
+  await attesa(40);
+  let el = corpo(); let id = idDi(el);
+  const destro = new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+  el.dispatchEvent(destro);
+  await attesa(40);
+  t('il tasto destro apre il menu del blocco, senza il menu del browser', menuDi(id) && destro.defaultPrevented);
+  app.E('chiudiMenuBloccoEditor(); deselezionaBloccoEditor()');
+  await attesa(40);
+  el = corpo(); id = idDi(el);
+  puntatore(el, 'pointerdown'); await attesa(300); puntatore(el, 'pointerup'); await attesa(40);
+  t('un tocco breve non lo apre', !menuDi(id));
+  el = corpo();
+  puntatore(el, 'pointerdown'); await attesa(650);
+  t('un tocco prolungato lo apre', menuDi(id));
+  puntatore(el, 'pointerup'); await attesa(40);
+  t('e rilasciando resta aperto', menuDi(id));
+
+  console.log('--- Rimuovi blocco: «Annulla» nel messaggio ---');
+  const nBlocchi = () => app.d.querySelectorAll('#templateEditorCanvas .tpl-editor-block').length;
+  const prima = nBlocchi();
+  clic(app, app.d.querySelector('#templateEditorBlockMenu .tpl-editor-menu-remove'));
+  await attesa(120);
+  const toastEl = app.d.getElementById('toastApp');
+  t('il blocco sparisce e il messaggio dice «Blocco eliminato» con «Annulla»', nBlocchi() === prima - 1 && !!toastEl && toastEl.classList.contains('visibile')
+    && app.d.getElementById('toastAppTesto').textContent === 'Blocco eliminato' && app.d.getElementById('toastAppAzione').textContent === 'Annulla');
+  clic(app, app.d.getElementById('toastAppAzione'));
+  await attesa(120);
+  t('«Annulla» lo rimette', nBlocchi() === prima && !!app.d.querySelector(`#templateEditorCanvas [data-block-id="${id}"]`));
+
+  console.log('--- Correzioni minori ---');
+  t('il titolo è il nome del template, non «Modifica "…"»', app.d.getElementById('lblTemplateEditorTitle').textContent === 'Classico');
+  t('niente emoji nei bottoni dell\'editor', !/🧹|⚖️/.test(app.d.getElementById('modalTemplateEditor').innerHTML));
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

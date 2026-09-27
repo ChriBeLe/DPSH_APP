@@ -2134,6 +2134,14 @@
                desktop), che altrimenti vincerebbero su questa regola pur avendo lo stesso selettore
                #id — l'inline style ha sempre priorità su un normale selettore da foglio di stile. */
             #templateEditorZoomBar { right: 10px !important; left: auto !important; top: 10px !important; bottom: auto !important; }
+            /* Sul telefono lo zoom si fa col pizzico: il cursore copriva il foglio, restano % e «Adatta». */
+            #templateEditorZoomBar > .ico, #rangeTemplateEditorZoom { display: none; }
+            /* «Anteprima con i dati di»: via l'etichetta, le due tendine prendono lo spazio e si leggono;
+               l'avviso va a capo per intero invece di essere troncato. */
+            #templateEditorPreviewSurveyBar { flex-wrap: wrap; }
+            #templateEditorPreviewSurveyBar .tpl-anteprima-etichetta { display: none; }
+            #templateEditorPreviewSurveyBar select { max-width: none !important; }
+            #lblTemplateEditorPreviewWarning { flex-basis: 100%; white-space: normal !important; }
 
             /* Cassetto pagine: resta quasi tutto fuori schermo dietro la maniglia sempre visibile,
                si apre toccandola/trascinandola verso l'alto invece di occupare permanentemente

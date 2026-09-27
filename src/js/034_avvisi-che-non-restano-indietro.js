@@ -868,7 +868,7 @@
                         icona: 'pin',
                         titolo: 'Marca questo blocco come riferimento immutabile: "Bilancia riga" dividerà lo spazio restante fra gli altri'
                     })}
-                    <button type="button" class="tpl-editor-menu-btn" data-action="bilancia-riga" style="width:100%; margin-top:4px; font-weight:700; padding:6px;" title="Divide lo spazio restante di questa riga in parti uguali tra i blocchi non fissati">⚖️ Bilancia riga (${vociRigaCorrente} blocchi)</button>
+                    <button type="button" class="tpl-editor-menu-btn" data-action="bilancia-riga" style="width:100%; margin-top:4px; font-weight:700; padding:6px;" title="Divide lo spazio restante di questa riga in parti uguali tra i blocchi non fissati"><svg class="ico"><use href="#i-compress-h"/></svg> Bilancia riga (${vociRigaCorrente} blocchi)</button>
                     ` : ''}
                     <!-- Prima restava appeso in coda alla sezione precedente (Allineamento/Scala),
                          senza una sua etichetta: bastava una checkbox o uno slider qualunque dopo di
@@ -2485,6 +2485,12 @@
                         rimuoviBloccoDaPagina(page2, blockId);
                         renderTemplateEditorCanvas();
                         renderTemplateEditorPalette();
+                        // Annulla solo se nel frattempo non è cambiato altro: toglierebbe un'altra modifica.
+                        const profondita = templateEditorState.undoStack.length;
+                        mostraToast('Blocco eliminato', { azione: { etichetta: 'Annulla', fn: () => {
+                            if (templateEditorState.undoStack.length === profondita) undoTemplateEditor();
+                            else mostraToastTemplateEditor('Nel frattempo hai fatto altre modifiche: usa ↶ in alto');
+                        } } });
                     });
                 });
 

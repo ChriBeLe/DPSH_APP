@@ -484,7 +484,7 @@
                 if (paletteElReset) { paletteElReset.style.opacity = ''; paletteElReset.style.pointerEvents = ''; }
 
                 const lbl = document.getElementById('lblTemplateEditorTitle');
-                if (lbl) lbl.textContent = `Modifica "${tpl.name}"`;
+                if (lbl) lbl.textContent = tpl.name;
 
                 renderTemplateEditorPreviewProjectSelector();
                 renderTemplateEditorPreviewSurveySelector();
@@ -624,7 +624,7 @@
                 templateEditorState.templateId = newId;
                 templateEditorState.savedSnapshot = istantaneaTemplate();
                 const lbl = document.getElementById('lblTemplateEditorTitle');
-                if (lbl) lbl.textContent = `Modifica "${nome}"`;
+                if (lbl) lbl.textContent = nome;
                 renderReportTemplatesList();
             }
 

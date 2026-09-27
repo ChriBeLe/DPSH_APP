@@ -87,7 +87,7 @@
              stessa pagina" valga per TUTTE le prove che useranno questo template. -->
         <div id="templateEditorPreviewSurveyBar" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 6px 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); flex-shrink: 0;">
             <svg class="ico" style="width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0;"><use href="#i-eye"/></svg>
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">Anteprima con i dati di</span>
+            <span class="tpl-anteprima-etichetta" style="font-size: 11px; font-weight: 700; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">Anteprima con i dati di</span>
             <select id="selTemplateEditorPreviewProject" class="form-control" style="padding: 4px 6px; font-size: 11.5px; flex: 1; min-width: 0; max-width: 200px;"></select>
             <select id="selTemplateEditorPreviewSurvey" class="form-control" style="padding: 4px 6px; font-size: 11.5px; flex: 1; min-width: 0; max-width: 280px;"></select>
             <span id="lblTemplateEditorPreviewWarning" style="font-size: 10.5px; font-weight: 700; color: #b45309; display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
@@ -209,7 +209,7 @@
                      larghezze, quello è compito di "Bilancia riga" nel menu del blocco (vedi
                      riordinaAutomaticoPagina). Annullabile come ogni altra modifica. -->
                 <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Sistema la pagina</div>
-                <button type="button" class="btn-action" id="btnRiordinaPagina" style="width: 100%; font-size: 11px; padding: 6px 8px;" title="Rimuove righe vuote e segnaposto di rowSpan orfani rimasti da spostamenti precedenti — non tocca le larghezze dei blocchi">🧹 Riordina pagina</button>
+                <button type="button" class="btn-action" id="btnRiordinaPagina" style="width: 100%; font-size: 11px; padding: 6px 8px;" title="Rimuove righe vuote e segnaposto di rowSpan orfani rimasti da spostamenti precedenti — non tocca le larghezze dei blocchi"><svg class="ico"><use href="#i-reset"/></svg> Riordina pagina</button>
 
                 <!-- Layout aurei (richiesto esplicitamente): coppie di blocchi ricorrenti rilevate
                      sulla pagina attiva (vedi rilevaPatternLayoutPagina/renderSuggerimentiLayoutEditor)
