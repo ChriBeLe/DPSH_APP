@@ -209,6 +209,7 @@
                 // I parametri avanzati si calcolano sul progetto aperto (elencoProveProgetto).
                 document.getElementById('consegnaParametri').style.display = targetType === 'project' && projIdControllo === state.currentProjectId ? '' : 'none';
                 document.getElementById('btnOptConfrontoProve').style.display = targetType === 'project' ? '' : 'none';
+                renderProveConsegna();
                 if (lblExportModalTitle) lblExportModalTitle.textContent = 'Consegna';
 
                 if (targetType === 'project') {
@@ -232,6 +233,33 @@
                 if (modalExportOverlay) modalExportOverlay.classList.add('open');
                 if (modalExportFormats) modalExportFormats.classList.add('open');
             }
+
+            // Le prove della consegna del progetto: tutte accese di partenza; soloProve è null quando
+            // sono tutte, così gli export fanno come sempre.
+            function renderProveConsegna() {
+                const box = document.getElementById('sceltaProveConsegna');
+                const proj = exportModalContext.type === 'project' && state.projects[exportModalContext.id];
+                const prove = proj ? Object.values(proj.surveys || {}).sort((a, b) => String((a.header || {}).provaNr).localeCompare(String((b.header || {}).provaNr), 'it', { numeric: true })) : [];
+                box.style.display = prove.length > 1 ? '' : 'none';
+                if (prove.length < 2) { exportModalContext.soloProve = null; return; }
+                const scelte = exportModalContext.soloProve || new Set(prove.map(s => s.id));
+                document.getElementById('pilloleProveConsegna').innerHTML = prove.map(s => `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${scelte.has(s.id)}">Prova ${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}</button>`).join('');
+                const n = prove.filter(s => scelte.has(s.id)).length;
+                document.getElementById('lblProveConsegna').textContent = n === prove.length
+                    ? 'Tutte le prove. Tocca una prova per toglierla da Excel, KML e foto.'
+                    : n === 0 ? 'Scegli almeno una prova.'
+                    : `${n} prove su ${prove.length} per Excel, KML e foto. Il PDF le fa scegliere nel passo dopo; backup e parametri restano di tutto il progetto.`;
+                ['btnOptExportExcel', 'btnOptExportKML', 'btnOptExportPhotos'].forEach(id => document.getElementById(id).classList.toggle('spenta', n === 0));
+            }
+            document.getElementById('pilloleProveConsegna').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-prova]');
+                if (!b) return;
+                const proj = state.projects[exportModalContext.id];
+                const scelte = exportModalContext.soloProve || new Set(Object.keys(proj.surveys || {}));
+                if (scelte.has(b.dataset.prova)) scelte.delete(b.dataset.prova); else scelte.add(b.dataset.prova);
+                exportModalContext.soloProve = scelte.size === Object.keys(proj.surveys || {}).length ? null : scelte;
+                renderProveConsegna();
+            });
 
             function closeExportModal() {
                 if (modalExportOverlay) modalExportOverlay.classList.remove('open');

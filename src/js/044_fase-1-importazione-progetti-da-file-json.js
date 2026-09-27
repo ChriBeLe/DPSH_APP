@@ -238,9 +238,10 @@
 
             if (btnOptExportExcel) {
                 btnOptExportExcel.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     if (exportModalContext.type === 'project') {
-                        exportProjectExcel(exportModalContext.id);
+                        exportProjectExcel(exportModalContext.id, exportModalContext.soloProve);
                     } else {
                         // NOTA: la logica di export Excel della singola prova vive nel listener del
                         // bottone (ora nascosto) btnExportExcel; qui lo si attiva così invece di
@@ -277,9 +278,10 @@
 
             if (btnOptExportKML) {
                 btnOptExportKML.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     if (exportModalContext.type === 'project') {
-                        exportProjectKML(exportModalContext.id);
+                        exportProjectKML(exportModalContext.id, exportModalContext.soloProve);
                     } else {
                         // Bug preesistente: chiamava "exportSingleKml", funzione mai esistita
                         // (il nome vero è exportSingleSurveyKML). Anche questa opzione, per una
@@ -291,9 +293,10 @@
 
             if (btnOptExportPhotos) {
                 btnOptExportPhotos.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     if (exportModalContext.type === 'project') {
-                        exportProjectPhotos(exportModalContext.id);
+                        exportProjectPhotos(exportModalContext.id, exportModalContext.soloProve);
                     } else {
                         // Bug preesistente: chiamava "downloadPhotosAsJpg", funzione mai esistita
                         // (il nome vero è downloadAllSurveyPhotosJpg).

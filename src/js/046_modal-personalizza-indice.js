@@ -1020,12 +1020,13 @@
             if (btnNewSurveyConfirm) btnNewSurveyConfirm.addEventListener('click', confirmNewSurvey);
 
             // MOTORE ESPORTAZIONE KML MULTI-PROVA CON FOTO IN MAPPA (QGIS / GOOGLE EARTH)
-            async function exportProjectKML(projId) {
+            // soloProve: Set degli id delle prove da consegnare (null = tutte).
+            async function exportProjectKML(projId, soloProve) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) return;
 
-                    const surveys = Object.values(proj.surveys || {});
+                    const surveys = Object.values(proj.surveys || {}).filter(s => !soloProve || soloProve.has(s.id));
                     let placemarksXml = '';
 
                     for (let surv of surveys) {
@@ -1175,7 +1176,7 @@
             }
 
             // MOTORE ESPORTAZIONE EXCEL MULTI-FOGLIO (.xlsx) VIA SHEETJS CON FOTO AD ALTA RISOLUZIONE INTEGRALI (0% COMPRESSIONE)
-            async function exportProjectExcel(projId) {
+            async function exportProjectExcel(projId, soloProve) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
@@ -1202,7 +1203,7 @@
                         ["N° Prova", "Profondità Max (m)", "Totale Colpi N", "Quota Falda (m)", "N° Foto Allegate", "Latitudine", "Longitudine", "Accuratezza GPS (m)", "Data Prova"]
                     ];
 
-                    const surveys = Object.values(proj.surveys || {});
+                    const surveys = Object.values(proj.surveys || {}).filter(s => !soloProve || soloProve.has(s.id));
                     surveys.forEach(surv => {
                         const h = surv.header || {};
                         const logs = surv.logs || [];

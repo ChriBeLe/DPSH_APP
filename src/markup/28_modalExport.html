@@ -21,6 +21,12 @@
             <button type="button" role="tab" id="btnPerimetroProva">Questa prova</button>
             <button type="button" role="tab" id="btnPerimetroProgetto">Tutto il progetto</button>
         </div>
+        <!-- ALCUNE PROVE: nella consegna del progetto si possono togliere delle prove. Valgono per Excel,
+             KML e foto; il PDF le fa scegliere nel passo dopo; backup e parametri restano del progetto. -->
+        <div id="sceltaProveConsegna" style="display: none; margin-bottom: 12px;">
+            <div class="pillole" id="pilloleProveConsegna" aria-label="Prove da consegnare"></div>
+            <div class="t-didascalia" id="lblProveConsegna" style="margin-top: 6px;"></div>
+        </div>
         <!-- CONTROLLO DEI DATI (Fase 1): anomalie vere (intervalli con buchi, colpi non validi, foto o
              strati che non esistono più). Nascosto se non c'è niente; non blocca. Lo riempie
              renderIntegritaPrimaExport. -->

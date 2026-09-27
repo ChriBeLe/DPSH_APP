@@ -351,9 +351,10 @@
             // funzione mai esistita in tutto il file (ReferenceError in console) — non aveva MAI
             // funzionato. Riusa lo stesso meccanismo "una foto alla volta" già collaudato in
             // exportProjectZip, per non tenere mai tutte le foto del progetto in memoria assieme.
-            async function exportProjectPhotos(projId) {
+            async function exportProjectPhotos(projId, soloProve) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = cloneProjectMetaSenzaFoto(state.projects[projId]);
+                if (soloProve) proj.surveys = Object.fromEntries(Object.entries(proj.surveys || {}).filter(([id]) => soloProve.has(id)));
                 const numFotoTotali = Object.values(proj.surveys || {}).reduce((n, s) => n + ((s.photos || []).length), 0);
                 if (numFotoTotali === 0) {
                     alert('Nessuna foto presente in questo progetto.');
