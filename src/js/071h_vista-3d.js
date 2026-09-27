@@ -43,8 +43,8 @@
                 };
             }
 
-            function svgVista3d(d) {
-                const W = 1000, H = 600;
+            function svgVista3d(d, larghezza) {
+                const W = Math.max(320, Math.round(larghezza || 1000)), H = Math.round(Math.max(300, Math.min(600, W * 0.62)));
                 const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), ce = Math.cos(vista3d.el), se = Math.sin(vista3d.el);
                 const zRif = (d.zMin + d.zMax) / 2, ex = vista3d.ex;
                 // Scala fissa (dal raggio della scena), così girando la figura non cambia grandezza.
@@ -96,7 +96,10 @@
                 const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
                 const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
                 s += `<g class="vista3d-nord" transform="translate(${W - 50} ${H - 50})"><circle r="24" fill="none" stroke="currentColor" stroke-opacity="0.3"/><line x1="${(-ax * 16).toFixed(1)}" y1="${(-ay * 16).toFixed(1)}" x2="${(ax * 16).toFixed(1)}" y2="${(ay * 16).toFixed(1)}" stroke="currentColor" stroke-width="2"/><text x="${(ax * 34).toFixed(1)}" y="${(ay * 34 + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">N</text></g>`;
-                s += `<text x="16" y="${H - 14}" font-size="12" fill="currentColor">quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m. · esagerazione verticale ×${ex}</text>`;
+                const quote = `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}`;
+                s += W < 700 // sul telefono su due righe, a sinistra della bussola
+                    ? `<text x="16" y="${H - 30}" font-size="12" fill="currentColor">${quote}</text><text x="16" y="${H - 14}" font-size="12" fill="currentColor">${esagTesto}</text>`
+                    : `<text x="16" y="${H - 14}" font-size="12" fill="currentColor">${quote} · ${esagTesto}</text>`;
                 return s + '</svg>';
             }
 
@@ -107,7 +110,7 @@
                     box.innerHTML = '<div class="palette-vuota">Per la vista 3D serve un DTM: caricalo in «Terreno e sezioni».</div>';
                     return;
                 }
-                box.innerHTML = svgVista3d(datiVista3dCorrenti);
+                box.innerHTML = svgVista3d(datiVista3dCorrenti, box.clientWidth);
                 document.getElementById('lblEsag3d').textContent = '×' + vista3d.ex;
             }
 
@@ -137,18 +140,30 @@
                 attesaDisegno3d = true;
                 requestAnimationFrame(() => { attesaDisegno3d = false; renderVista3d(); });
             }
+            // Un dito o il mouse girano; due dita avvicinano e allontanano.
+            const dita3d = new Map();
+            const distanzaDita = () => { const [a, b] = [...dita3d.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
             box3d.addEventListener('pointerdown', (e) => {
-                vista3d.trascina = { x: e.clientX, y: e.clientY };
+                dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY } : null;
+                vista3d.pizzico = dita3d.size === 2 ? distanzaDita() : null;
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
             });
             box3d.addEventListener('pointermove', (e) => {
+                if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (vista3d.pizzico && dita3d.size === 2) {
+                    const d = distanzaDita();
+                    zoom3d(d / vista3d.pizzico);
+                    vista3d.pizzico = d;
+                    return;
+                }
                 if (!vista3d.trascina) return;
                 vista3d.az += (e.clientX - vista3d.trascina.x) * 0.008;
                 vista3d.el = Math.max(0.12, Math.min(1.5, vista3d.el + (e.clientY - vista3d.trascina.y) * 0.006));
                 vista3d.trascina = { x: e.clientX, y: e.clientY };
                 ridisegna3d();
             });
-            ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, () => { vista3d.trascina = null; }));
+            ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, (e) => { dita3d.delete(e.pointerId); vista3d.trascina = null; vista3d.pizzico = null; }));
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }
                 const mosse = { ArrowLeft: [-0.15, 0], ArrowRight: [0.15, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[e.key];

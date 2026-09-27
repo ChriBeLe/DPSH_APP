@@ -693,19 +693,19 @@ finestre: `#modalVista3d`
 `utmDaGeo`, `puntoNelCrs`, `crsDaEpsg`, `leggiAsciiGrid`, `tagTiff`, `lzwTiff`, `inflateZlib`, `leggiGeoTiff`, `proveConCoordinate`, `ritaglioDtmPerProgetto`, `quoteDtm`, `quotaDtm`, `quotaDellaProva`, `formattaMetri`, `renderTerreno`, `apriTerreno`
 
 ### `src/js/071g_sezione.js`
-183 righe · in `dist/DPSH.html` dalla riga 44655
+195 righe · in `dist/DPSH.html` dalla riga 44655
 
 `proveDellaSezione`, `datiSezione`, `unioniFasce`, `svgSezione`, `renderSezione`, `apriSezione`
 
 ### `src/js/071h_vista-3d.js`
-172 righe · in `dist/DPSH.html` dalla riga 44838
+187 righe · in `dist/DPSH.html` dalla riga 44850
 
-`datiVista3d`, `svgVista3d`, `renderVista3d`, `apriVista3d`, `ridisegna3d`, `zoom3d`
+`datiVista3d`, `svgVista3d`, `renderVista3d`, `apriVista3d`, `ridisegna3d`, `distanzaDita`, `zoom3d`
 
 ### `src/js/072_fase-3-modal-fallback-gps-foto.js`
-932 righe · in `dist/DPSH.html` dalla riga 45010
+932 righe · in `dist/DPSH.html` dalla riga 45037
 
 `ensureLeafletLoaded`, `showPhotoGpsFallbackStep`, `openPhotoGpsFallbackModal`, `closePhotoGpsFallbackModal`, `applyGpsToFallbackPhoto`, `openPhotoGpsMapPicker`, `scriviDatoProgettoCorrente`, `aggiornaPannelloBetaT`, `openDrawer`, `closeDrawer`, `openCantiereInfoModal`, `closeCantiereInfoModal`, `chiudiMenuAzioni`, `impostaTastoRegistraVisibile`, `linearScrollBy`, `animateViewSwap`, `exportGlobalJSONBackup`, `importGlobalJSONBackup`, `importGlobalZipBackup`, `renderThemeHuePicker`, `exportCsvFallback`
 
 ### `src/shell/06_fine.html`
-3 righe · in `dist/DPSH.html` dalla riga 45942
+3 righe · in `dist/DPSH.html` dalla riga 45969

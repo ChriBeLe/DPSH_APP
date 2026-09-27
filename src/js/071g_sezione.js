@@ -67,9 +67,24 @@
                 return { coppie, soloA: A.map((_, i) => i).filter(i => !usateA.has(i)), soloB: B.map((_, k) => k).filter(k => !usateB.has(k)) };
             }
 
-            function svgSezione(dati) {
-                const W = 1000, H = 570, mL = 70, mR = 30, mT = 48, mB = 74, lc = 16;
+            // larghezza: quella del riquadro in pixel, così i testi hanno la stessa grandezza su ogni
+            // schermo (sul telefono la figura è più bassa, non più piccola).
+            function svgSezione(dati, larghezza) {
+                const W = Math.max(320, Math.round(larghezza || 1000)), mL = 70, mR = 30, mT = 48, lc = 16;
                 const { pt, terreno, lunghezza } = dati;
+                // Legenda in righe che stanno nella larghezza.
+                const visti = new Map();
+                pt.forEach(p => p.fasce.forEach(f => { if (!visti.has(f.nome)) visti.set(f.nome, f.colore); }));
+                const voci = [];
+                let lx = mL, riga = 0;
+                visti.forEach((colore, nome) => {
+                    const largo = 30 + nome.length * 7.2;
+                    if (lx > mL && lx + largo > W - mR) { lx = mL; riga++; }
+                    voci.push({ nome, colore, x: lx, riga });
+                    lx += largo;
+                });
+                const mB = 60 + (riga + 1) * 18;
+                const H = (W < 700 ? 400 : 560) + riga * 18;
                 const fondo = Math.min(...pt.map(p => p.z - Math.max(0, ...p.fasce.map(f => f.a))));
                 const cima = Math.max(...pt.map(p => p.z), ...terreno.map(t => t.z));
                 const pad = Math.max(0.5, (cima - fondo) * 0.06);
@@ -92,14 +107,11 @@
                     s += `<line x1="${X(d)}" y1="${H - mB}" x2="${X(d)}" y2="${H - mB + 5}" stroke="currentColor"/>`;
                     s += `<text x="${X(d)}" y="${H - mB + 20}" text-anchor="middle" font-size="12" fill="currentColor">${numeroConVirgola(d, 0)}</text>`;
                 }
-                s += `<text x="${mL}" y="${H - mB + 38}" font-size="12" fill="currentColor">distanza (m) · esagerazione verticale ×${numeroConVirgola(esag, esag < 10 ? 1 : 0)}</text>`;
+                s += `<text x="${mL}" y="${H - mB + 38}" font-size="12" fill="currentColor">distanza (m) · ${W < 700 ? 'esag.' : 'esagerazione'} verticale ×${numeroConVirgola(esag, esag < 9.95 ? 1 : 0)}</text>`;
                 // Legenda degli strati che compaiono, in fondo: serve anche nel file scaricato.
-                const visti = new Map();
-                pt.forEach(p => p.fasce.forEach(f => { if (!visti.has(f.nome)) visti.set(f.nome, f.colore); }));
-                let lx = mL;
-                visti.forEach((colore, nome) => {
-                    s += `<rect x="${lx}" y="${H - 20}" width="12" height="12" fill="${colore}"/><text x="${lx + 17}" y="${H - 10}" font-size="12" fill="currentColor">${escapeHtmlDidascalia(nome)}</text>`;
-                    lx += 30 + nome.length * 7.2;
+                voci.forEach(v => {
+                    const y = H - mB + 50 + v.riga * 18;
+                    s += `<rect x="${v.x}" y="${y}" width="12" height="12" fill="${v.colore}"/><text x="${v.x + 17}" y="${y + 10}" font-size="12" fill="currentColor">${escapeHtmlDidascalia(v.nome)}</text>`;
                 });
                 s += `<text transform="translate(16 ${(mT + H - mB) / 2}) rotate(-90)" text-anchor="middle" font-size="12" fill="currentColor">${dati.conDtm ? 'quota (m s.l.m.)' : 'm dal piano campagna'}</text>`;
 
@@ -147,7 +159,7 @@
                     const dati = datiSezione(proj, scelte);
                     if (!dati.conDtm) note.push('Senza DTM le prove partono tutte dal piano campagna: carica un DTM in «Terreno e sezioni» per le quote vere.');
                     else if (dati.pt.some(p => !p.quotaVera)) note.push('Qualche prova è fuori dal DTM: parte da quota 0.');
-                    grafico.innerHTML = svgSezione(dati);
+                    grafico.innerHTML = svgSezione(dati, grafico.clientWidth);
                     document.getElementById('btnScaricaSezione').disabled = false;
                 }
                 document.getElementById('notaSezione').textContent = note.join(' ');
