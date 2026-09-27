@@ -244,7 +244,9 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
    `syncStateToProject` / `syncProjectToActiveState`. Due copie sono una fonte classica di dati
    che si contraddicono: proponi se e come arrivare a una copia sola.
 
-### Fase 5 — Gerarchia e navigazione
+### Fase 5 — Gerarchia e navigazione ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_5_ESITO.md`. 52/52 suite.
+
 1. **Schermata Progetto:**
    - testata con nome e stato;
    - lista delle prove con N°, profondità raggiunta, n° intervalli, spie GPS/foto/falda e
