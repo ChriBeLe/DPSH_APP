@@ -1,0 +1,33 @@
+
+    <!-- MODAL NUOVO PROGETTO CANTIERE -->
+    <div class="modal-overlay" id="modalNewProjectOverlay"></div>
+    <div class="modal" id="modalNewProject">
+        <div class="modal-title"><svg class="ico"><use href="#i-folder"/></svg> Nuovo Progetto Cantiere</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Crea un nuovo contenitore cantiere che raccoglierà le tue prove penetrometriche. Il campo <strong style="color:var(--danger);">Comune</strong> è obbligatorio.</p>
+
+        <div class="form-group" style="margin-bottom: 8px;">
+            <label>Nome Progetto / Cantiere</label>
+            <input type="text" id="txtProjName" class="form-control" placeholder="es. Roma - Parco degli Acquedotti">
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px;">
+            <div class="form-group">
+                <label style="color: var(--danger); font-weight: 700;">Comune *</label>
+                <input type="text" id="txtProjComune" class="form-control" placeholder="es. Roma" style="border-color: var(--danger);">
+            </div>
+            <div class="form-group">
+                <label>Cliente / Committente</label>
+                <input type="text" id="txtProjCommittente" class="form-control" placeholder="es. Mario Rossi">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+            <label>Data Progetto</label>
+            <input type="date" id="txtProjDate" class="form-control">
+        </div>
+
+        <div class="modal-actions" style="justify-content: flex-end; gap: 8px;">
+            <button class="btn-action" id="btnCancelNewProject">Annulla</button>
+            <button class="btn-action" id="btnConfirmNewProject" style="background: var(--success); color: #fff; border: none; font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Crea Progetto & Inizia Prova 1</button>
+        </div>
+    </div>

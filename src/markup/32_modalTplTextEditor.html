@@ -1,0 +1,147 @@
+
+    <!-- MODAL "MODIFICA TESTO" per i blocchi Titolo/Testo del template editor (richiesti
+         esplicitamente, blocchi di libertà d'impaginazione): un contentEditable con una barra
+         degli strumenti ridotta rispetto a quella delle Note di progetto (niente immagini/
+         tabelle/link/checklist, che restano un caso d'uso delle Note) — riusa le stesse classi
+         .note-toolbar/.note-tb-btn/.note-editor-body definite sopra, stesso motore
+         execCommand-based già collaudato. z-index tier-editor-top (341, sopra tier-editor 321 e
+         sopra il menu blocco 330): si apre SOPRA il template editor a schermo intero, da cui viene
+         sempre invocato (vedi apriTplTextEditor) — tier-editor da solo non bastava, a parità di
+         z-index con l'editor template finiva sotto per ordine nel DOM (segnalato esplicitamente
+         come finestra "in underlay", coperta dall'interfaccia). -->
+    <div class="modal-overlay tier-editor-top" id="modalTplTextEditorOverlay"></div>
+    <div class="modal tier-editor-top" id="modalTplTextEditor" style="max-height: 92vh; overflow-y: auto; max-width: 560px; display:flex; flex-direction:column;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-edit"/></svg> <span id="lblTplTextEditorTitle">Modifica testo</span></span>
+            <button class="btn-icon" id="btnCloseTplTextEditorX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <!-- LA STESSA BARRA DELLE NOTE, non una piu' povera.
+             Segnalato: "nell'editor del testo sono sparite alcune formattazioni che servivano
+             per i titoli". Vero, e la causa era che qui c'era una SECONDA barra, nata quando
+             questo campo era ancora un contenteditable con execCommand: aveva grassetto,
+             corsivo e allineamenti e basta. Ritirato il blocco Titolo, i livelli H1/H2/H3 si
+             scrivono solo da qui — e da qui non c'erano.
+             Due barre per lo stesso motore erano due elenchi da tenere allineati a mano, cioe'
+             un elenco che prima o poi resta indietro. Ora e' una sola, generata dal medesimo
+             modello, e i comandi vanno all'editor che ha il fuoco. -->
+        <div class="note-toolbar" id="tplTextToolbar">
+            <!-- SEI FAMIGLIE, NON UN MURO. Il primo gruppo ne conteneva quindici: tipo di
+                 riga, formule, tag, interruzioni, elenchi e allineamento tutti insieme. Su uno
+                 schermo stretto non ci stavano, e siccome un gruppo non andava a capo, la coda
+                 usciva dalla finestra: l'allineamento e la lista di controllo c'erano ma erano
+                 IRRAGGIUNGIBILI. Segnalato come "non sembrano esserci gli allineamenti" — ed e'
+                 esattamente cosi' che si presenta un comando fuori dallo schermo. -->
+            <!-- 1. CHE COS'E' QUESTA RIGA (i quattro modi si escludono a vicenda) -->
+            <div class="note-tb-group" role="group" aria-label="Tipo di riga">
+                <button type="button" class="note-tb-btn" data-format-tag="P" title="Testo normale" aria-label="Testo normale"><svg class="ico" style="width:15px;height:15px;"><use href="#i-pilcrow"/></svg></button>
+                <!-- Tre livelli, non due: l'indice del documento ha tre gerarchie, e finche' H3
+                     non si poteva scrivere qui il terzo livello era raggiungibile solo dal
+                     vecchio blocco Titolo. Ritirato quello, doveva esserci qui. -->
+                <button type="button" class="note-tb-btn" data-format-tag="H1" title="Titolo 1">H1</button>
+                <button type="button" class="note-tb-btn" data-format-tag="H2" title="Titolo 2">H2</button>
+                <button type="button" class="note-tb-btn" data-format-tag="H3" title="Titolo 3">H3</button>
+            </div>
+
+            <!-- 2. COME SI COMPORTA IL PARAGRAFO: la sua forma sulla pagina. Elenchi,
+                 citazione e allineamento stanno qui insieme alle regole di impaginazione
+                 perche' rispondono tutti alla stessa domanda — "questo blocco di testo come
+                 si dispone?" — mentre H1/H2/H3 rispondono a "che cosa e'". -->
+            <div class="note-tb-group" role="group" aria-label="Paragrafo">
+                <button type="button" class="note-tb-btn" data-format-tag="UL" title="Elenco puntato" aria-label="Elenco puntato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-list"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnTplInsertChecklist" data-format-tag="CHECKLIST" title="Lista di controllo" aria-label="Lista di controllo"><svg class="ico" style="width:15px;height:15px;"><use href="#i-checklist"/></svg></button>
+                <button type="button" class="note-tb-btn" data-format-tag="BLOCKQUOTE" title="Citazione" aria-label="Citazione"><svg class="ico" style="width:15px;height:15px;"><use href="#i-quote"/></svg></button>
+                <!-- ALLINEAMENTO. Un pulsante solo invece di quattro in fila: l'icona mostra
+                     l'allineamento attuale della riga, e il tocco apre le quattro scelte —
+                     giustificato compreso. Cosi' la barra non cresce e il pulsante dice anche
+                     in che stato sei. -->
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnTplAllinea" data-comando-nota="allineamento" title="Allineamento del testo: sinistra, centro, destra, giustificato" aria-label="Allineamento"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left" id="usoTplIconaAllinea"/></svg></button>
+                    <div class="note-shape-popover" id="tplAllineaPopover" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:3px;">
+                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quello che l'autore decide non e' DOVE si taglia — quello dipende da corpo e
+                     larghezza e cambia da solo — ma quali paragrafi non si possono tagliare. E' il
+                     modello di Word, e funziona perche' e' la domanda a cui un autore sa rispondere. -->
+                <select class="note-tb-select" data-comando-nota="regola-pagina" aria-label="Fine pagina: cosa fa questo paragrafo" title="FINE PAGINA — cosa succede a QUESTO paragrafo quando la pagina finisce sopra di lui. Non sposta niente adesso: e' una regola che vale in stampa.">
+                    <option value="">Fine pagina: si spezza</option>
+                    <option value="non-spezzare">Fine pagina: non spezzarlo</option>
+                    <option value="con-successivo">Fine pagina: tienilo col dopo</option>
+                    <option value="pagina-nuova">Fine pagina: comincia in una nuova</option>
+                </select>
+                <button type="button" class="note-tb-btn" data-comando-nota="interruzione" title="Interruzione di pagina (Ctrl+Invio): da qui in poi si va alla pagina nuova" aria-label="Interruzione di pagina"><svg class="ico" style="width:15px;height:15px;"><use href="#i-scissors"/></svg></button>
+            </div>
+
+            <!-- 3. LE FORMULE. Verificato: senza pedice e apice lo schema buttava via <sub> e
+                 <sup> in silenzio, e "R(pd)" diventava "Rpd" — la formula perdeva significato
+                 senza nessun avviso. Non e' un vezzo tipografico, e' conservare il dato. -->
+            <div class="note-tb-group" role="group" aria-label="Formule">
+                <button type="button" class="note-tb-btn" data-comando-nota="pedice" title="Pedice (R con pd sotto)">x<sub>2</sub></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="apice" title="Apice (cm quadri)">x<sup>2</sup></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="formula" title="Carattere matematico: le lettere con grazie si distinguono meglio quando diventano simboli">&fnof;<i>x</i></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="simboli" title="Simboli matematici">&radic;&pi;</button>
+            </div>
+
+            <!-- 4. COME APPARE IL TESTO SELEZIONATO -->
+            <div class="note-tb-group" role="group" aria-label="Aspetto del testo">
+                <button type="button" class="note-tb-btn" data-note-cmd="bold" title="Grassetto"><b>B</b></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="italic" title="Corsivo"><i>I</i></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="underline" title="Sottolineato" aria-label="Sottolineato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-underline"/></svg></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="strikeThrough" title="Barrato" aria-label="Barrato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-strikethrough"/></svg></button>
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnTplHighlight" data-comando-nota="evidenzia" title="Evidenzia (ripremi lo stesso colore per togliere)" aria-label="Evidenzia"><svg class="ico" style="width:15px;height:15px;"><use href="#i-highlighter"/></svg></button>
+                    <div class="note-shape-popover" id="tplHighlightPopover" style="display:none;">
+                        <div id="tplHighlightColors" data-colori-evidenziatore="1" style="display:flex; align-items:center; gap:5px;"></div>
+                        <button type="button" class="note-tb-btn" id="btnTplHighlightNone" data-comando-nota="evidenzia-nessuna" title="Togli l'evidenziazione" style="margin-top:8px; width:100%;">Nessuna</button>
+                    </div>
+                </div>
+                <button type="button" class="note-tb-btn" id="btnTplInsertLink" data-comando-nota="link" title="Link (ripremi su un link per toglierlo)" aria-label="Link"><svg class="ico" style="width:15px;height:15px;"><use href="#i-link"/></svg></button>
+            </div>
+
+            <!-- 5. COSA INSERISCO. Il tasto @ sta qui e non in un gruppo suo: inserire un dato
+                 del cantiere e' inserire, come una foto o una tabella. Segnalato: "e' utile
+                 segnalare all'utente che si puo' fare e che non deve un giorno per caso premere
+                 @ e vedere che gli compare" — una funzione che esiste solo per chi indovina la
+                 scorciatoia, per la maggior parte delle persone non esiste. -->
+            <div class="note-tb-group" role="group" aria-label="Inserisci">
+                <button type="button" class="note-tb-btn" data-comando-nota="inserisci-tag" title="Inserisci un dato del cantiere (o scrivi @)" style="font-weight:800;">@</button>
+                <button type="button" class="note-tb-btn" id="btnTplInsertImage" data-comando-nota="immagine" title="Carica un'immagine da un file" aria-label="Carica immagine da file"><svg class="ico" style="width:15px;height:15px;"><use href="#i-upload"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnTplInsertTable" data-comando-nota="tabella" title="Inserisci tabella" aria-label="Tabella"><svg class="ico" style="width:15px;height:15px;"><use href="#i-table"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnTplInsertHr" data-comando-nota="riga-divisoria" title="Linea divisoria" aria-label="Linea divisoria"><svg class="ico" style="width:15px;height:15px;"><use href="#i-divider"/></svg></button>
+            </div>
+
+            <!-- 6. AZIONI SUL TESTO INTERO -->
+            <!-- LO STILE DEL DOCUMENTO, RAGGIUNGIBILE DA QUI. Segnalato: «proprio non trovo il
+                 modo di cambiare il font, nemmeno l'interlinea». C'erano: nel pannello «Stile del
+                 testo», dietro un'icona nella barra dell'editor del template — cioe' non dove si
+                 scrive. Un comando che vive lontano dal gesto che lo fa venire in mente, per chi
+                 lo cerca non esiste. -->
+            <div class="note-tb-group" role="group" aria-label="Stile del documento">
+                <button type="button" class="note-tb-btn" data-comando-nota="stile-documento" title="Carattere, corpo, interlinea, allineamento: valgono per tutto il documento" style="gap:5px; padding:0 9px;"><svg class="ico" style="width:15px;height:15px;"><use href="#i-type"/></svg><span style="font-size:10.5px; font-weight:700;">Carattere</span></button>
+                <!-- IL TASTO CHE SALVA LA GIORNATA. Toglie le ECCEZIONI — corpo diverso, colore,
+                     allineamento, evidenziazione, rientri messi a mano — e riporta il testo allo
+                     stile del template. NON tocca la struttura: grassetti, corsivi, titoli,
+                     elenchi e tag restano, perche' sono contenuto, non impaginazione. E' la
+                     differenza fra «annulla i miei pasticci» e «cancella il mio lavoro». -->
+                <button type="button" class="note-tb-btn" data-comando-nota="riporta-stile" title="Riporta allo stile del template: toglie corpo, colori, allineamenti e rientri messi a mano. Grassetti, corsivi e titoli restano." style="gap:5px; padding:0 9px;"><svg class="ico" style="width:15px;height:15px;"><use href="#i-undo"/></svg><span style="font-size:10.5px; font-weight:700;">Stile del template</span></button>
+            </div>
+
+            <div class="note-tb-group" role="group" aria-label="Azioni">
+                <button type="button" class="note-tb-btn" id="btnTplUndo" data-comando-nota="annulla" title="Annulla" aria-label="Annulla"><svg class="ico" style="width:15px;height:15px;"><use href="#i-undo"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnTplRedo" data-comando-nota="ripeti" title="Ripeti" aria-label="Ripeti"><svg class="ico" style="width:15px;height:15px;"><use href="#i-redo"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnTplClearFormat" data-comando-nota="pulisci" title="Togli la formattazione e torna a testo normale" aria-label="Pulisci formattazione"><svg class="ico" style="width:15px;height:15px;"><use href="#i-eraser"/></svg></button>
+            </div>
+        </div>
+        <!-- Anche qui il contenteditable diretto lascia il posto al motore: il testo generato
+             del capitolo introduttivo contiene una tabella, e execCommand non sa gestirla. -->
+        <div id="tplTextEditorBody" class="note-editor-body" data-placeholder="Scrivi qui il testo..." style="min-height:140px; max-height:40vh;"></div>
+        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap: 8px; padding-top:12px;">
+            <button class="btn-action" id="btnTplTextEditorAnnulla" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 600;">Annulla</button>
+            <button class="btn-action" id="btnTplTextEditorSalva" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700;">Salva</button>
+        </div>
+    </div>

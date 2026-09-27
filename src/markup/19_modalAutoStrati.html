@@ -1,0 +1,28 @@
+
+    <!-- MODAL PARAMETRI RICONOSCIMENTO AUTOMATICO STRATI -->
+    <div class="modal-overlay" id="modalAutoStratiOverlay"></div>
+    <div class="modal" id="modalAutoStrati">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-search"/></svg> Riconoscimento Automatico Strati</span>
+            <button class="btn-icon" id="btnCloseAutoStratiX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+            Viene rilevato un nuovo strato quando la differenza di colpi tra due intervalli consecutivi (in aumento o in diminuzione) supera la soglia impostata. Gli strati troppo sottili vengono uniti a quello adiacente.
+        </p>
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>Differenza minima di colpi tra intervalli</label>
+            <input type="number" id="numAutoStratiDeltaColpi" class="form-control" min="1" step="1" value="5">
+        </div>
+        <div class="form-group" style="margin-bottom: 6px;">
+            <label>Spessore minimo dello strato (m)</label>
+            <input type="number" id="numAutoStratiMinThickness" class="form-control" min="0.20" step="0.20" value="0.40">
+        </div>
+        <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Es. uno strato spesso 0.20m viene ignorato ed unito allo strato adiacente se questo valore è impostato a 0.40m o più.
+        </div>
+        <div id="lblAutoStratiPreview" style="font-size: 11.5px; font-weight: 600; color: var(--accent); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 14px; display: none;"></div>
+        <div class="modal-actions" style="justify-content: space-between;">
+            <button class="btn-action" id="btnCancelAutoStrati">Annulla</button>
+            <button class="btn-action" id="btnRunAutoStrati" style="background: var(--purple); color: #fff; border: none; font-weight: 800;"><svg class="ico"><use href="#i-search"/></svg> Rileva Ora</button>
+        </div>
+    </div>

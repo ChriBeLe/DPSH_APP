@@ -1,0 +1,143 @@
+
+    <!-- Impostazioni della SINGOLA prova (penetrometro, passo, geometria strumento): si apre
+         tenendo premuto sulla sua "pillola" nella barra prove di Vista Prova. Prima questi campi
+         vivevano nel drawer Impostazioni generale, che però è per preferenze dell'app — mescolare
+         i due creava confusione su cosa fosse globale e cosa specifico della prova aperta. -->
+    <div class="modal-overlay" id="modalSurveySettingsOverlay"></div>
+    <div class="modal" id="modalSurveySettings" style="max-width: 420px; max-height: 85vh; overflow-y: auto;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-settings"/></svg>
+                </span>
+                <span id="lblSurveySettingsTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Impostazioni Prova</span>
+            </span>
+            <button class="btn-icon" id="btnCloseSurveySettingsX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Penetrometro e geometria strumento usati per QUESTA prova. Ogni prova può avere i suoi, indipendentemente dalle altre — non influenzano il resto del progetto.
+        </div>
+
+        <div class="form-group">
+            <label>Tipo Penetrometro</label>
+            <select id="selPenetrometer" class="form-control">
+                <option value="DPSH (63.5kg)">DPSH - Super Pesante (63.5 kg)</option>
+                <option value="DPM (30kg)">DPM - Medio (30.0 kg)</option>
+                <option value="DPL (10kg)">DPL - Leggero (10.0 kg)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Passo di Misura (Intervallo)</label>
+            <select id="selStepCm" class="form-control">
+                <option value="20">20 cm (Standard N20)</option>
+                <option value="10">10 cm (Standard N10)</option>
+            </select>
+        </div>
+
+        <div style="font-weight: 700; font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px;">Masse & Geometria:</div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Peso Massa (kg)</label>
+                <input type="number" id="numPesoMassa" class="form-control" value="63.50" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Peso Asta (kg)</label>
+                <input type="number" id="numPesoAsta" class="form-control" value="6.30" step="0.1">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Lungh. Asta (m)</label>
+                <input type="number" id="numLunghAsta" class="form-control" value="1.00" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Cambio Asta (m)</label>
+                <input type="number" id="numCambioAsta" class="form-control" value="1.00" step="0.1">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Peso Sistema (kg)</label>
+                <input type="number" id="numPesoSistema" class="form-control" value="8.00" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Volata H (m)</label>
+                <input type="number" id="numVolata" class="form-control" value="0.75" step="0.05">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Area Punta (cm²)</label>
+                <input type="number" id="numAreaPunta" class="form-control" value="20">
+            </div>
+            <div class="form-group">
+                <label>Angolo Punta (°)</label>
+                <input type="number" id="numAngoloPunta" class="form-control" value="90">
+            </div>
+        </div>
+
+        <!-- Due dati che non servono ai calcoli ma FINISCONO STAMPATI nella relazione, e che
+             finora si riscrivevano a mano ogni volta. Stanno sullo strumento perche' del
+             penetrometro sono, non del cantiere. -->
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Nome del penetrometro</label>
+                <input type="text" id="txtNomePenetrometro" class="form-control" placeholder="es. GEO DEEP DRILL">
+            </div>
+            <div class="form-group">
+                <label>Rivestimento / fanghi</label>
+                <input type="text" id="txtRivestimentoFanghi" class="form-control" placeholder="es. No">
+            </div>
+        </div>
+
+        <!-- IL COEFFICIENTE DI CORRELAZIONE. Fino a ora esisteva solo dentro i calcoli: si poteva
+             cambiare soltanto alla cieca, muovendo i parametri qui sopra e sperando. Ed e' il
+             numero che finisce STAMPATO nella relazione, accanto a quegli stessi parametri: se i
+             due non corrispondono, l'errore si trascina in ogni documento consegnato. -->
+        <div style="margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-sunken);">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:12px; font-weight:800; color:var(--text-main);">Coeff. di correlazione &beta;<sub>t</sub></span>
+                <span id="lblBetaTCalcolato" style="font-size:17px; font-weight:800; color:var(--accent-ink); font-variant-numeric:tabular-nums;">—</span>
+            </div>
+            <div style="font-size:10.5px; color:var(--text-muted); margin-top:5px; line-height:1.5;">
+                &beta;<sub>t</sub> = M²·H / (A · passo · (M + peso asta) · 7,2) — converte i colpi DPSH in N<sub>SPT</sub> equivalenti.
+                Si aggiorna da solo quando cambi i parametri qui sopra.
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; font-weight:700; color:var(--text-main); cursor:pointer;">
+                <input type="checkbox" id="chkBetaTForzato" style="margin:0;">
+                Imponi un valore diverso
+            </label>
+            <div id="rigaBetaTForzato" style="display:none; margin-top:8px;">
+                <input type="number" id="numBetaTForzato" class="form-control" step="0.001" min="0.1" max="10" placeholder="es. 1,504">
+                <!-- A CHE LIVELLO. Il valore scritto qui vale per la prova aperta. Quasi sempre
+                     pero' vale per tutto il cantiere: il secondo tasto lo dice una volta sola,
+                     invece di farlo riscrivere su ogni verticale. -->
+                <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+                    <button type="button" class="note-tb-btn" id="btnBetaTSoloProva" style="flex:1; min-width:120px; justify-content:center;">Solo questa prova</button>
+                    <button type="button" class="note-tb-btn" id="btnBetaTTuttoProgetto" style="flex:1; min-width:120px; justify-content:center;">Tutto il progetto</button>
+                </div>
+                <div id="lblBetaTLivello" style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.5;"></div>
+                <div style="font-size:10.5px; color:var(--danger); margin-top:6px; line-height:1.5;">
+                    Con un valore imposto, N<sub>SPT</sub> e tutti i parametri che ne derivano NON corrispondono
+                    piu' ai parametri dello strumento scritti qui sopra. Usalo solo se una specifica o un
+                    laboratorio te lo impone, e sappi che nella relazione i due numeri divergeranno.
+                </div>
+            </div>
+        </div>
+
+        <!-- DUPLICA COME INTERPRETAZIONE: una seconda versione della stessa prova, per interpretare
+             la stratigrafia in un altro modo. È la stessa verticale, non una prova in più: si chiama
+             «3B», ricorda di quale prova è variante (header.interpretazioneDi), non conta nel numero
+             di prove del testo introduttivo e non aggiunge una pin all'inquadramento. -->
+        <button class="btn-action" id="btnSurveySettingsDuplica" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--bg-card-hover); border: 1px solid var(--border); color: var(--text-main); font-weight: 700; padding: 10px 12px;">
+            <svg class="ico"><use href="#i-duplica"/></svg> Duplica come interpretazione alternativa
+        </button>
+        <button class="btn-action" id="btnSurveySettingsDelete" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); font-weight: 700; padding: 10px 12px;">
+            <svg class="ico"><use href="#i-trash"/></svg> Elimina questa prova
+        </button>
+    </div>

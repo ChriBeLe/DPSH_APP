@@ -1,0 +1,134 @@
+
+    <!-- MODAL FINESTRA FLUTTUANTE RILEVAMENTO / MODIFICA GPS -->
+    <div class="modal-overlay" id="modalGpsOverlay"></div>
+    <div class="modal" id="modalGpsSettings" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+        <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><svg class="ico"><use href="#i-pin"/></svg> Posizione GPS Cantiere</span>
+            <button class="btn-action" id="btnCloseGpsModalX" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:${padV} 6px;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <!-- STATO SEMPRE VISIBILE: qualunque metodo venga usato qui sotto, questo badge resta
+             l'unico punto in cui si vede cosa è effettivamente impostato in questo momento. -->
+        <div id="lblModalGpsStatus" style="font-size: 11px; color: var(--accent); font-weight:600; background: var(--bg-card-hover); padding: 8px; border-radius: var(--radius-sm); margin-bottom: 12px; text-align: center; border: 1px solid var(--border);">
+            GPS: Non acquisito
+        </div>
+
+        <!-- APRI IN MAPPE — PROVA SUL TELEFONO (Piano_Menu_e_Funzioni.md, voce 8, passo 0).
+             Dentro l'APK window.open() non apre niente, e non si sa ancora quale di questi modi l'APK
+             lascia passare al sistema. Restano tutti e tre finché non si prova sul telefono; poi si
+             tiene quello che funziona e si tolgono gli altri. "Copia coordinate" resta comunque,
+             perché funziona ovunque. Visibile solo con coordinate salvate e valide. -->
+        <div id="boxApriInMappe" style="display: none; margin: -4px 0 12px; padding: 8px; border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.45;">
+                <strong style="color: var(--text-main);">Apri in Mappe · prova</strong> — quale dei tre apre le mappe su questo telefono? Se il 2 si apre dentro l'app, torna indietro col tasto Indietro.
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <a id="lnkMappeGeo" href="#" class="btn-action" style="justify-content: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">1 · App mappe</a>
+                <a id="lnkMappeWeb" href="#" target="_blank" rel="noopener" class="btn-action" style="justify-content: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">2 · Google Maps</a>
+                <button type="button" id="btnMappeCondividi" class="btn-action" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">3 · Scegli app</button>
+                <button type="button" id="btnCopiaCoordinate" class="btn-action" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-copy"/></svg> Copia coordinate</button>
+            </div>
+        </div>
+
+        <div class="form-group" style="text-align: center; margin-bottom: 14px;">
+            <button class="btn-action" id="btnGetGpsModal" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; width: 100%; padding: 10px; font-size: 13px;">
+                <svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS
+            </button>
+        </div>
+
+        <!-- METODI ALTERNATIVI: barra a schede segmentate (una sola riga invece di tre), scelta
+             singola — selezionarne una chiude le altre. "Coordinate manuali" e "Mappa" restano
+             unite in una sola scheda perché la mappa è solo un aiuto visivo per compilare gli
+             stessi due campi Lat/Lng. -->
+        <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">
+            Oppure imposta manualmente
+        </div>
+        <div class="gps-method-tabs">
+            <button type="button" class="gps-accordion-toggle gps-tab-btn" id="btnGpsAccKml" data-key="Kml">
+                <svg class="ico"><use href="#i-upload"/></svg>
+                <span>File</span>
+            </button>
+            <button type="button" class="gps-accordion-toggle gps-tab-btn" id="btnGpsAccPaste" data-key="Paste">
+                <svg class="ico"><use href="#i-list"/></svg>
+                <span>Incolla</span>
+            </button>
+            <button type="button" class="gps-accordion-toggle gps-tab-btn" id="btnGpsAccManual" data-key="Manual">
+                <svg class="ico"><use href="#i-edit"/></svg>
+                <span>Manuale</span>
+            </button>
+        </div>
+        <div class="gps-method-panel">
+            <div class="gps-accordion-body expand-region" id="gpsAccBodyKml">
+                <div class="gps-accordion-body-inner">
+                    <button class="btn-action" id="btnImportGpsKml" style="width:100%; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 700; font-size: 12px;">
+                        <svg class="ico"><use href="#i-upload"/></svg> Scegli File KML / GPX
+                    </button>
+                    <input type="file" id="fileImportGpsKml" accept=".kml,.gpx,.xml,text/xml,application/xml,application/vnd.google-earth.kml+xml" style="display:none;">
+                    <div id="gpsKmlImportResults" style="display:none; max-height:150px; overflow-y:auto; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); margin-top:8px;"></div>
+                </div>
+            </div>
+            <div class="gps-accordion-body expand-region" id="gpsAccBodyPaste">
+                <div class="gps-accordion-body-inner">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="txtPasteCoords" class="form-control" placeholder="es. 41.845912, 12.562424" style="flex: 1;">
+                        <button class="btn-action" id="btnApplyPastedCoords" style="background: var(--info); color: #fff; border: none; font-weight: 700; font-size: 12px; white-space: nowrap; flex: 0 0 auto; padding: 10px 12px;">
+                            <svg class="ico"><use href="#i-check"/></svg> Applica
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="gps-accordion-body expand-region" id="gpsAccBodyManual">
+                <div class="gps-accordion-body-inner">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 11px;">Latitudine (°)</label>
+                            <input type="number" step="0.000001" id="numModalGpsLat" class="form-control" placeholder="es. 41.845912">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 11px;">Longitudine (°)</label>
+                            <input type="number" step="0.000001" id="numModalGpsLng" class="form-control" placeholder="es. 12.562424">
+                        </div>
+                    </div>
+
+                    <!-- Visualizzazione mappa: Strada / Satellite / Ibrida -->
+                    <div class="gps-map-layer-switch">
+                        <button type="button" class="gps-map-layer-btn active" data-layer="street">Strada</button>
+                        <button type="button" class="gps-map-layer-btn" data-layer="satellite">Satellite</button>
+                        <button type="button" class="gps-map-layer-btn" data-layer="hybrid">Ibrida</button>
+                    </div>
+
+                    <div style="display:flex; gap:6px; margin-bottom:6px;">
+                        <input type="text" id="txtGpsMapSearch" class="form-control" placeholder="Cerca località, via, comune..." style="flex:1; font-size:12px;">
+                        <button class="btn-action" id="btnGpsMapSearch" style="background: var(--info); color:#fff; border:none; font-weight:700; font-size:12px; white-space:nowrap; padding:10px 12px; flex:0 0 auto;">Cerca</button>
+                    </div>
+                    <div id="gpsMapSearchResults" style="display:none; max-height:130px; overflow-y:auto; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); margin-bottom:6px;"></div>
+                    <div id="gpsMapModalEl" style="width:100%; height:220px; border-radius: var(--radius-md); border:1px solid var(--border); background:var(--bg-sunken);"></div>
+                    <button class="btn-action" id="btnGpsMapGoToMe" style="width:100%; margin-top:6px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-weight: 700; font-size: 12px;">
+                        <svg class="ico"><use href="#i-satellite"/></svg> Vai alla Mia Posizione
+                    </button>
+                    <div style="font-size:10.5px; color:var(--text-muted); margin:6px 0;">
+                        <svg class="ico"><use href="#i-note"/></svg> Come ultima spiaggia se il GPS del dispositivo non risponde: cerca la località qui sopra (o centra la mappa a mano) e tocca il punto esatto per posizionare il marker.
+                    </div>
+                    <button class="btn-action" id="btnUseGpsMapPin" style="width:100%; background: var(--accent); color:var(--on-accent); border:none; font-weight:700;">
+                        <svg class="ico"><use href="#i-check"/></svg> Usa la Posizione del Pin
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gpsDebugToolsWrapper" style="display:none;">
+            <button class="btn-action" id="btnRunGpsDiagnostics" style="width:100%; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 700; font-size: 12px; margin-bottom: 10px;">
+                <svg class="ico"><use href="#i-bug"/></svg> Diagnostica GPS (perché non funziona?)
+            </button>
+            <div id="gpsDiagnosticsBox" style="display:none; font-size:11px; line-height:1.5; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; margin-bottom:12px; font-family: var(--font-mono); word-break: break-word;"></div>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 8px;">
+            <button class="btn-action" id="btnClearGpsModal" style="background: var(--bg-card-hover); color: var(--danger); border: 1px solid var(--border); font-size: 12px;">
+                <svg class="ico"><use href="#i-trash"/></svg> Elimina GPS
+            </button>
+            <button class="btn-action" id="btnSaveGpsModal" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; font-size: 12px;">
+                <svg class="ico"><use href="#i-check"/></svg> Salva Coordinate
+            </button>
+        </div>
+    </div>

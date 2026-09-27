@@ -1,0 +1,3 @@
+# I file restano esattamente come sono (a capo LF): la build concatena byte per byte
+# e deve poter riprodurre l'originale identico. Niente conversioni automatiche.
+* -text

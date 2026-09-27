@@ -1,0 +1,42 @@
+
+    <!-- MODAL "ANTEPRIMA DI STAMPA REALE" (Fase B del piano di riscrittura layout/export, vedi
+         Piano_Riscrittura_Layout_Export.md — richiesta esplicitamente: "permettimi di avere una
+         reale e concreta anteprima della stampa partendo dal layout"). Non è una seconda
+         simulazione: l'iframe qui dentro riceve l'HTML prodotto chiamando DAVVERO
+         costruisciPagineTemplateUnificato pagina per pagina (vedi apriAnteprimaStampaReale),
+         la stessa identica funzione che l'export PDF vero chiama da buildSurveyReportHtml — se
+         una pagina risulta bianca o quasi vuota QUI, sarà bianca o quasi vuota anche nel PDF
+         finale, e viceversa: nessuna seconda fonte di verità. tier-editor-top (341) per lo stesso
+         motivo di modalTplTextEditor sopra: si apre da dentro l'editor template a schermo intero
+         (tier-editor, 321) e deve restare sempre sopra, mai finire "in underlay". -->
+    <div class="modal-overlay tier-editor-top" id="modalAnteprimaStampaRealeOverlay"></div>
+    <div class="modal tier-editor-top" id="modalAnteprimaStampaReale">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg-card);">
+            <span style="display:flex; align-items:center; gap:9px; min-width:0;">
+                <span style="width:30px; height:30px; border-radius:10px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg class="ico" style="color:var(--accent-ink);"><use href="#i-print"/></svg>
+                </span>
+                <span style="min-width:0;">
+                    <span style="display:block; font-weight:800; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Anteprima di stampa reale</span>
+                    <span style="display:block; font-size:10.5px; color:var(--text-muted);">Generata dallo stesso motore del PDF — pagina fisica per pagina fisica</span>
+                </span>
+            </span>
+            <span style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                <!-- Il bottone "PDF da immagine" è stato RIMOSSO insieme alla funzione che lo
+                     serviva. Era la via di fuga per quando la stampa produceva pagine sbagliate:
+                     catturava le pagine come immagini invece di stamparle. Risolto il
+                     disallineamento alla radice (fogli rigidi) e sistemata la stampa nella WebView
+                     dell'APK, non serviva più a niente — e portava con sé due librerie esterne
+                     (html2canvas e jsPDF) scaricate ad ogni avvio, oltre a un PDF con il testo non
+                     selezionabile. Tenere una seconda strada che nessuno percorre significa solo
+                     avere due cose da mantenere allineate invece di una. -->
+                <button type="button" class="btn-icon" id="btnAnteprimaStampaRealeRicarica" title="Ricalcola l'anteprima (se hai modificato il layout da quando l'hai aperta)"><svg class="ico"><use href="#i-reset"/></svg></button>
+                <button type="button" class="btn-icon" id="btnCloseAnteprimaStampaRealeX" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            </span>
+        </div>
+        <div id="anteprimaStampaRealeStatus" style="display:none; align-items:center; gap:10px; padding:10px 16px; font-size:11.5px; color:var(--text-muted); flex-shrink:0;">
+            <span style="width:14px; height:14px; border-radius:50%; border:2px solid var(--border); border-top-color:var(--accent); animation:esportaPdfSpin 0.8s linear infinite; flex-shrink:0;"></span>
+            <span>Generazione dell'anteprima in corso...</span>
+        </div>
+        <iframe id="iframeAnteprimaStampaReale" title="Anteprima di stampa reale" style="flex:1 1 auto; width:100%; border:none; background:#64748b;"></iframe>
+    </div>

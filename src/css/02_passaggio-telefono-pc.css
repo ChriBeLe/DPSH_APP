@@ -1,0 +1,66 @@
+
+        /* ============ PASSAGGIO TELEFONO ↔ PC (Fase 2) ============
+           Le due finestre «Porta su un altro dispositivo» e «Ricevi un progetto», come nel prototipo
+           approvato: sul telefono un foglio dal basso, sul PC una finestra centrata. Solo variabili
+           del tema; testo mai sotto i 12 px; bottoni di 44 px (56 per l'azione principale in campo). */
+        .modal.passaggio { max-width: 460px; padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 16px; max-height: 92vh; overflow-y: auto; }
+        .modal.passaggio.ricevi { max-width: 640px; padding: 24px 28px; gap: 18px; }
+        .passaggio .maniglia { align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--border-strong); display: none; }
+        .passaggio .testata { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .passaggio .testata h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-main); }
+        .passaggio.ricevi .testata h2 { font-size: 22px; }
+        .passaggio .sottotitolo { font-size: 14px; color: var(--text-muted); margin-top: 4px; overflow-wrap: anywhere; }
+        .passaggio .sottotitolo.file { font-family: var(--font-mono); font-size: 13px; }
+        .passaggio .chiudi { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border: none; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .passaggio .chiudi .ico { width: 20px; height: 20px; }
+        .passaggio .numeri { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .passaggio .numero { background: var(--bg-sunken); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+        .passaggio .numero b { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--text-main); }
+        .passaggio .numero span { font-size: 13px; color: var(--text-muted); }
+        .passaggio .spunte { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .passaggio .spunta { display: flex; gap: 10px; font-size: 14px; line-height: 1.45; color: var(--text-main); }
+        .passaggio .spunta .ico { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: var(--success); stroke-width: 2.4; }
+        .passaggio .spunta.no .ico { color: var(--danger); }
+        .passaggio .spunta.attenzione .ico { color: var(--warning); }
+        .passaggio .riga-dispositivo { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sunken); border-radius: var(--radius-md); padding: 0 4px 0 12px; font-size: 14px; color: var(--text-muted); }
+        .passaggio .riga-dispositivo strong { color: var(--text-main); }
+        .passaggio .link { height: 44px; padding: 0 12px; background: transparent; border: none; color: var(--accent-ink); font-size: 14px; font-weight: 700; cursor: pointer; }
+        .passaggio .principale { height: 56px; background: var(--accent); border: none; border-radius: var(--radius-lg); color: var(--on-accent); font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .passaggio .principale:disabled { opacity: .55; cursor: default; }
+        .passaggio .principale .ico { width: 20px; height: 20px; stroke-width: 2.4; }
+        .passaggio .nota { font-size: 12px; color: var(--text-muted); text-align: center; line-height: 1.45; }
+        .passaggio .riquadro { display: flex; gap: 10px; align-items: flex-start; border-radius: var(--radius-md); padding: 12px 14px; font-size: 14px; line-height: 1.5; color: var(--text-main); background: var(--bg-sunken); border: 1px solid var(--border); }
+        .passaggio .riquadro > .ico { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; color: var(--accent-ink); }
+        .passaggio .riquadro.avviso { background: var(--warning-soft); border-color: var(--warning); }
+        .passaggio .riquadro.avviso > .ico { color: var(--warning); }
+        .passaggio .riquadro.errore { background: var(--danger-soft); border-color: var(--danger); }
+        .passaggio .riquadro.errore > .ico { color: var(--danger); }
+        .passaggio .colonne { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .passaggio .colonna { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--text-main); min-width: 0; }
+        .passaggio .colonna .titoletto { font-size: 13px; font-weight: 800; color: var(--text-muted); }
+        .passaggio .colonna .tenue { color: var(--text-muted); }
+        .passaggio .colonna .tenue strong { color: var(--text-main); }
+        .passaggio .scelte { display: flex; flex-direction: column; gap: 8px; }
+        .passaggio .scelta { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--bg-sunken); border: 1px solid var(--border); color: var(--text-main); text-align: left; cursor: pointer; font-family: inherit; min-height: 44px; }
+        .passaggio .scelta[aria-checked="true"] { border: 2px solid var(--accent); padding: 11px 13px; }
+        .passaggio .scelta .pallino { flex-shrink: 0; margin-top: 2px; width: 18px; height: 18px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--border-strong); }
+        .passaggio .scelta[aria-checked="true"] .pallino { border: 6px solid var(--accent); }
+        .passaggio .scelta .titolo { display: block; font-size: 15px; font-weight: 800; }
+        .passaggio .scelta .testo { display: block; font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-top: 2px; }
+        .passaggio .bottoni { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+        .passaggio .bottoni button { height: 44px; padding: 0 18px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .passaggio .bottoni .secondario { background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main); }
+        .passaggio .bottoni .primario { background: var(--accent); border: none; color: var(--on-accent); font-weight: 800; }
+        .passaggio .bottoni .primario:disabled { opacity: .55; cursor: default; }
+        .passaggio .in-corso { font-size: 14px; color: var(--text-muted); padding: 8px 0; }
+        @media (max-width: 760px) {
+            /* Sul telefono: foglio dal basso, a tutta larghezza. */
+            .modal.passaggio, .modal.passaggio.ricevi {
+                top: auto !important; bottom: 0; left: 0; width: 100%; max-width: none; border-radius: 20px 20px 0 0; border-bottom: none;
+                transform: translateY(100%); padding: 8px 16px 24px; gap: 16px;
+            }
+            .modal.passaggio.open { transform: translateY(0); }
+            .passaggio .maniglia { display: block; }
+            .passaggio .colonne { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+            .passaggio .bottoni button { flex: 1; min-width: 0; padding: 0 10px; }
+        }

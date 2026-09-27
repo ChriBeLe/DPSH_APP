@@ -1,0 +1,4 @@
+{
+  "nota": "Suite già rosse, quindi non regressioni. Il 26/09/2026 (Fase 0) erano 10, tutte test rimasti indietro rispetto all'app: la Fase 1 le ha aggiornate e la lista è vuota. Da qui ogni suite rossa è una regressione.",
+  "giaRosse": []
+}

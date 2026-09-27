@@ -1,0 +1,27 @@
+{
+  "DPSH_PhotoStorageDB": {
+    "version": 2,
+    "stores": {
+      "photos": [
+        {
+          "id": "photo_1790450332990",
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAkCAIAAABAJy5dAAAAjElEQVR4nO3WwQkAIRBDUfuxjO3CMrYNy9hGF0EYlJGcJDkE5pjDOw2/9FbT+94nvdv7IqXprSYgoiYBcTU7iK5ZQAqaAIloJkhHM0BSmiOIpRmPUUqTgLiaHUTXLCAFTYBENBOkoznmh3so9u4htHcPob17CO3dQ2jvHkJ79xDau4fQ3j2E9u4htP8BujIfebdaZ38AAAAASUVORK5CYII="
+        },
+        {
+          "id": "photo_1790450333301",
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAkCAIAAABAJy5dAAAAi0lEQVR4nO3WwQkAIRBDUTuyjK3AKmSr2MYXQRiUkZwkOQTmmMM7Db+0XtN7vye92/sipWm9JiCiJgFxNTuIrllACpoAiWgmSEczQFKaI4ilGY9RSpOAuJodRNcsIAVNgEQ0E6SjOeaHeyj27iG0dw+hvXsI7d1DaO8eQnv3ENq7h9DePYT27iG0/wGsA0CqO5xzPgAAAABJRU5ErkJggg=="
+        },
+        {
+          "id": "photo_1790450354252",
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAkCAIAAABAJy5dAAAAi0lEQVR4nO3WsQkAIRBEUSuxjAss4xqwjGv/EIRFWZlIZoKBDSd40fJLbT295/3Su70vUpraegIiahIQV7OD6JoFpKAJkIhmgnQ0AySlOYJYmvEYpTQJiKvZQXTNAlLQBEhEM0E6mmN+uIdi7x5Ce/cQ2ruH0N49hPbuIbR3D6G9ewjt3UNo7x5C+x8+xMaMbYqWmgAAAABJRU5ErkJggg=="
+        }
+      ],
+      "noteImages": [
+        {
+          "id": "nimg_1790450355305_4fms7",
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAAcklEQVR4nO3VMQoAIQwFUQ+3V9jO2s4reHYRBFG+nZk0gZSB12gmfX+Rk2uT82o/uai5NgEDqoAZ9YQxdYNJdcGwOmFeHbCLeoWt1XFAXFQBM+oJY+oGk+qCYXXCvHrNYvTY4B1Ejxk1eoyp0ePoseVP610/VcSnvvvXAAAAAElFTkSuQmCC"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+    <div class="modal-overlay" id="appDialogOverlay"></div>
+    <div class="modal" id="appDialog" style="max-width: 380px;">
+        <div class="modal-title" id="appDialogTitle" style="gap: 9px;">
+            <span id="appDialogIcon" style="display:inline-flex;"></span>
+            <span id="appDialogTitleText">Avviso</span>
+        </div>
+        <div id="appDialogMessage" style="font-size: 13px; line-height: 1.55; color: var(--text-main); margin-bottom: 18px; white-space: pre-line; max-height: 52vh; overflow-y: auto;"></div>
+        <!-- Area campi: vuota e nascosta per tutti i dialoghi di sola conferma/avviso (quindi il
+             comportamento di appAlert/appConfirm resta identico a prima), popolata da appDialog
+             quando riceve l'opzione "fields" — è ciò che rende possibile appPrompt, cioè un
+             sostituto del prompt() nativo che vive DENTRO la pagina. Vantaggio non ovvio: un
+             dialogo interno non fa perdere la selezione del testo nell'editor Note, cosa che il
+             prompt() nativo faceva (vedi restoreNoteSelectionIfNeeded, la pezza che serviva a
+             rimediare). Più campi nello stesso dialogo evitano inoltre le sequenze di due prompt
+             consecutivi (righe+colonne di una tabella, indirizzo+testo di un link). -->
+        <div id="appDialogFields" style="display:none; flex-direction:column; gap:10px; margin-bottom:18px;"></div>
+        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-action" id="appDialogCancel" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 600; display:none;">Annulla</button>
+            <!-- Quarto bottone opzionale (nascosto di default, stesso schema di appDialogExtra):
+                 usato dai pochi dialoghi a 4 vie, es. "il blocco non entra nella pagina" che vuole
+                 anche un'uscita esplicita "Annulla piazzamento" oltre alle altre tre — vedi
+                 appDialog({extra2Label}). -->
+            <button class="btn-action" id="appDialogExtra2" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 600; display:none;"></button>
+            <!-- Terzo bottone opzionale (nascosto di default): usato dai pochi dialoghi a 3 vie,
+                 es. "Salva ed esci / Esci senza salvare / Continua a modificare" quando si chiude
+                 l'editor del template con modifiche non salvate — vedi appDialog({extraLabel}). -->
+            <button class="btn-action" id="appDialogExtra" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 600; display:none;"></button>
+            <button class="btn-action" id="appDialogOk" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700;">OK</button>
+        </div>
+    </div>

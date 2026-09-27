@@ -1,0 +1,22 @@
+
+    <!-- MODAL SCELTA INIZIALE RICONOSCIMENTO STRATI (mostrato solo se è configurato un solo strato) -->
+    <div class="modal-overlay" id="modalStratiChoiceOverlay"></div>
+    <div class="modal" id="modalStratiChoice">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-layers"/></svg> Nessuno Strato Configurato</span>
+            <button class="btn-icon" id="btnCloseStratiChoiceX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-main); margin-bottom: 16px; line-height: 1.5;">
+            Prima di riconoscere automaticamente gli strati serve almeno una base di partenza. Come vuoi procedere?
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn-action" id="btnStratiChoiceManual" style="padding: 12px 14px; font-size: 13px; font-weight: 700; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); text-align: left;">
+                <svg class="ico"><use href="#i-stack"/></svg> Configura Manualmente gli Strati
+                <div style="font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 2px;">Apri la finestra di gestione strati e definiscili tu stesso.</div>
+            </button>
+            <button class="btn-action" id="btnStratiChoiceAuto" style="padding: 12px 14px; font-size: 13px; font-weight: 700; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); text-align: left;">
+                <svg class="ico"><use href="#i-search"/></svg> Rileva Automaticamente
+                <div style="font-size: 11px; font-weight: 500; color: var(--purple); margin-top: 2px;">Analizza i colpi registrati e propone gli strati per te.</div>
+            </button>
+        </div>
+    </div>

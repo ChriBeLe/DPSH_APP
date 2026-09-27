@@ -1,0 +1,48 @@
+
+    <!-- MODAL IMPORTAZIONE MASSIVA COLPI -->
+    <div class="modal-overlay" id="modalBulkImportOverlay"></div>
+    <div class="modal" id="modalBulkImport">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span><svg class="ico"><use href="#i-list"/></svg> Importa Intervalli Multipli</span>
+            <button class="btn-icon" id="btnCloseBulkImportX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+            Incolla qui una sequenza di colpi (es: <code>5 8 12 15 20</code> oppure separati da virgole o a capo). Verranno generati automaticamente gli intervalli consecutivi.
+        </p>
+
+        <div style="margin-bottom: 10px;">
+            <textarea id="txtBulkImportData" class="form-control" rows="5" placeholder="Es. incolla qui:&#10;5 8 12 15&#10;18, 22, 25..." style="font-family: var(--font-mono); font-size: 14px; line-height: 1.4; padding: 10px; resize: vertical; min-height: 100px; width: 100%; box-sizing: border-box;"></textarea>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Conteggio Rilevato:</span>
+                <span id="lblBulkImportCount" style="font-size: 12px; font-weight: 800; color: var(--accent);">0 colpi trovati</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Profondità Raggiunta:</span>
+                <span id="lblBulkImportDepth" style="font-size: 12px; font-weight: 800; color: var(--accent);">0.00m</span>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: block;">Modalità Inserimento:</label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    <input type="radio" name="optImportMode" value="append" checked style="width: 16px; height: 16px; accent-color: var(--accent);">
+                    <svg class="ico"><use href="#i-check"/></svg> Aggiungi in coda agli intervalli esistenti
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    <input type="radio" name="optImportMode" value="replace" style="width: 16px; height: 16px; accent-color: var(--danger);">
+                    <svg class="ico"><use href="#i-alert"/></svg> Sostituisci tutti gli intervalli della prova
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-action" id="btnCancelBulkImport">Annulla</button>
+            <button class="btn-action" id="btnConfirmBulkImport" style="background: var(--success); color: #ffffff; border: none; font-weight: 800; padding: 8px 16px;">
+                <svg class="ico"><use href="#i-list"/></svg> Conferma Importazione
+            </button>
+        </div>
+    </div>

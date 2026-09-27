@@ -1,0 +1,171 @@
+        /* ================== REGOLE DI STILE COMUNI (Fase 3, punto 0) ==================
+           Valgono per ogni schermata nuova o toccata dalla Fase 3 in poi; le vecchie si allineano
+           una alla volta (Fase 8). Stanno SOPRA il tema: i colori di temi e palette restano quelli
+           di 01_app.css, qui si dà loro un significato solo. La tavola di riferimento è «Regole di
+           stile comuni» del prototipo approvato.
+
+           Caratteri: 12 didascalie (mai sotto), 14 testo, 16 bottoni e testo in campo, 20 titoli di
+           sezione, 28 titolo di schermata, 96 mono il contatore.
+           Bottoni: 36 solo PC col mouse, 44 standard (il minimo al tocco), 56 azione principale in
+           campo. Spaziature a passi di 4.
+           Colori: accento = azione principale e selezione; successo = registrato, verificato;
+           avviso = da controllare; pericolo = elimina ed errori veri, MAI per dire «vuoto»; neutro
+           col tratteggio grigio = «non ancora».
+           Scrittura: maiuscola solo all'inizio delle etichette, date gg/mm/aaaa, decimali con la
+           virgola, «intervallo» per ciò che registra il contatore e «strato» solo per la litologia,
+           niente emoji (icone #i-…). */
+        :root {
+            --fs-didascalia: 12px;
+            --fs-testo: 14px;
+            --fs-campo: 16px;
+            --fs-sezione: 20px;
+            --fs-schermata: 28px;
+            --fs-contatore: 96px;
+
+            --h-bottone-pc: 36px;
+            --h-bottone: 44px;
+            --h-bottone-campo: 56px;
+
+            --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px; --sp-8: 32px;
+
+            /* Il testo sopra i fondi tenui: sul tema scuro un tono chiaro, sul chiaro uno scuro,
+               perché il colore pieno su fondo tenue non si legge al sole. */
+            --successo-testo: #6ee7b7;
+            --avviso-testo: #facc15;
+            --pericolo-testo: #fca5a5;
+            --successo-bordo: rgba(16, 185, 129, 0.45);
+            --avviso-bordo: rgba(234, 179, 8, 0.55);
+            --neutro-tratteggio: var(--border-strong);
+            /* Il toast è l'unico elemento «al contrario» (chiaro sul tema scuro): si stacca da tutto
+               senza bisogno di un colore di stato. */
+            --toast-sfondo: var(--text-main);
+            --toast-testo: var(--bg-main);
+        }
+        :root[data-theme="light"] {
+            --successo-testo: #047857;
+            --avviso-testo: #854d0e;
+            --pericolo-testo: #b91c1c;
+            --successo-bordo: rgba(4, 120, 87, 0.45);
+            --avviso-bordo: rgba(161, 98, 7, 0.55);
+        }
+
+        /* ---- Testo ---- */
+        .t-didascalia { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .t-testo { font-size: var(--fs-testo); }
+        .t-sezione { font-size: var(--fs-sezione); font-weight: 800; margin: 0; }
+        .t-schermata { font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; margin: 0; }
+        .t-mono { font-family: var(--font-mono); }
+
+        /* ---- Bottoni ----
+           .bt è il bottone standard (44). Le varianti cambiano peso e colore, non l'altezza, tranne
+           .bt-campo (56, l'azione principale in campo) e .bt-pc (36, solo dove si usa il mouse). */
+        .bt {
+            box-sizing: border-box; min-height: var(--h-bottone); padding: 0 var(--sp-3);
+            display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+            border-radius: var(--radius-md); border: 1px solid var(--border);
+            background: var(--bg-main); color: var(--text-main);
+            font-family: inherit; font-size: var(--fs-testo); font-weight: 700; line-height: 1.2;
+            cursor: pointer; text-align: center;
+        }
+        .bt .ico { width: 18px; height: 18px; vertical-align: 0; }
+        .bt-principale { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; font-size: var(--fs-campo); }
+        .bt-tenue { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+        .bt-successo { background: var(--success); border-color: var(--success); color: #062b20; font-weight: 800; }
+        .bt-campo { min-height: var(--h-bottone-campo); font-size: var(--fs-campo); border-radius: var(--radius-lg); }
+        .bt-campo .ico { width: 22px; height: 22px; stroke-width: 3; }
+        .bt-pc { min-height: var(--h-bottone-pc); }
+        .bt-pericolo { color: var(--danger); }
+        .bt[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+        /* Bottone con la sola icona: quadrato di 44, trasparente; il nome sta in aria-label. */
+        .bt-icona {
+            box-sizing: border-box; width: var(--h-bottone); height: var(--h-bottone); flex-shrink: 0; padding: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: transparent; border: none; border-radius: var(--radius-md); color: var(--text-main); cursor: pointer;
+        }
+        .bt-icona .ico { width: 22px; height: 22px; vertical-align: 0; }
+        .bt-icona.bordato { background: var(--bg-card); border: 1px solid var(--border); }
+        /* Collegamento testuale che resta un bersaglio da 44. */
+        .bt-link {
+            min-height: var(--h-bottone); padding: 0 var(--sp-1); background: transparent; border: none;
+            color: var(--text-muted); font-family: inherit; font-size: var(--fs-testo); font-weight: 600;
+            text-decoration: underline; cursor: pointer;
+        }
+        .bt-link.accento { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+
+        /* ---- Pillole (filtri, note rapide): 44 di altezza, vanno a capo ---- */
+        .pillole { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+        .pillola {
+            box-sizing: border-box; min-height: var(--h-bottone); padding: 0 var(--sp-3);
+            display: inline-flex; align-items: center; gap: 6px;
+            border-radius: 22px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);
+            font-family: inherit; font-size: var(--fs-testo); font-weight: 700; cursor: pointer; white-space: nowrap;
+        }
+        .pillola[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        .pillola.accento { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+
+        /* ---- Spie di stato: 44 di altezza, tre stati ----
+           fatto = fondo successo tenue e spunta; quantità = neutra piena; non ancora = tratteggio grigio.
+           Mai rosso: «vuoto» non è un errore. */
+        .spia {
+            box-sizing: border-box; min-width: 0; height: var(--h-bottone); padding: 0 6px;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main);
+            font-family: inherit; font-size: var(--fs-testo); font-weight: 700; cursor: pointer; position: relative;
+        }
+        .spia > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .spia .ico { width: 16px; height: 16px; flex-shrink: 0; vertical-align: 0; }
+        .spia.fatto { background: var(--success-soft); border-color: var(--successo-bordo); color: var(--successo-testo); }
+        .spia.fatto .ico { stroke-width: 2.6; }
+        .spia.non-ancora { border-style: dashed; border-color: var(--neutro-tratteggio); color: var(--text-muted); }
+
+        /* ---- Riga d'avviso compatta (da controllare) ---- */
+        .riga-avviso {
+            display: flex; align-items: center; gap: var(--sp-2);
+            background: var(--warning-soft); border: 1px solid var(--avviso-bordo); border-radius: var(--radius-md);
+            padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3); font-size: var(--fs-testo); line-height: 1.35; color: var(--text-main);
+        }
+        .riga-avviso > .ico { width: 18px; height: 18px; flex-shrink: 0; color: var(--warning); }
+        .riga-avviso .bt-link { color: var(--avviso-testo); font-weight: 800; text-decoration: none; }
+
+        /* ---- Menu a comparsa (le azioni meno frequenti, dietro a un ⋯) ---- */
+        .menu-ancora { position: relative; flex-shrink: 0; }
+        .menu-azioni {
+            position: absolute; top: calc(100% + 4px); right: 0; z-index: 60; min-width: 220px;
+            display: flex; flex-direction: column; gap: 2px; padding: 6px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            transform-origin: top right; transform: scale(0.96) translateY(-4px); opacity: 0; pointer-events: none; visibility: hidden;
+            transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra), visibility 0s linear var(--mov-breve);
+        }
+        .menu-azioni.open { transform: none; opacity: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+        .menu-azioni [role="menuitem"] {
+            box-sizing: border-box; min-height: var(--h-bottone); width: 100%; padding: 0 var(--sp-3);
+            display: flex; align-items: center; gap: 10px; text-align: left;
+            background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-main);
+            font-family: inherit; font-size: var(--fs-testo); font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .menu-azioni [role="menuitem"] .ico { width: 18px; height: 18px; color: var(--text-muted); vertical-align: 0; }
+        .menu-azioni [role="menuitem"]:active { background: var(--bg-card-hover); }
+        .menu-azioni .menu-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+        /* ---- Toast: conferma di successo che sparisce da sola ----
+           Per ciò che è andato bene; con «Annulla» quando si può tornare indietro. Gli errori e le
+           domande restano dialoghi. In basso, sopra tutto tranne i dialoghi. */
+        .toast-app {
+            position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 9500;
+            box-sizing: border-box; width: calc(100vw - 32px); max-width: 520px; min-height: 48px;
+            display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
+            padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-4); border-radius: 12px;
+            background: var(--toast-sfondo); color: var(--toast-testo); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);
+            font-size: var(--fs-testo); font-weight: 700; line-height: 1.35;
+            transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+            transition: transform var(--mov-medio) var(--ease-entra), opacity var(--mov-medio) var(--ease-entra);
+        }
+        .toast-app.visibile { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+        .toast-app .toast-testo { flex: 1; min-width: 0; padding: 8px 0; }
+        .toast-app .toast-azione {
+            flex-shrink: 0; min-height: 44px; padding: 0 var(--sp-3); background: transparent; border: none;
+            color: var(--accent); font-family: inherit; font-size: var(--fs-testo); font-weight: 800; cursor: pointer;
+        }
+        /* Sul tema scuro il toast è chiaro: l'accento pieno non si leggerebbe, lo si scurisce. */
+        :root:not([data-theme="light"]) .toast-app .toast-azione { color: #0e7c80; color: color-mix(in srgb, var(--accent) 60%, #000); }

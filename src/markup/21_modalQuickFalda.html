@@ -1,0 +1,35 @@
+
+    <!-- MODAL RAPIDO FALDA (dalla spia «Falda» nella testata della prova) -->
+    <div class="modal-overlay" id="modalQuickFaldaOverlay"></div>
+    <div class="modal" id="modalQuickFalda" style="max-width: 92vw; width: 340px; padding: 16px;">
+        <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><svg class="ico"><use href="#i-droplet"/></svg> Profondità della falda</span>
+            <button type="button" class="chiudi-x" id="btnCloseQuickFaldaX" aria-label="Chiudi" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; margin-top: 6px;">
+            <div class="form-group">
+                <label style="font-size: 12px;">Falda da (m)</label>
+                <input type="number" id="numQuickFaldaDa" class="form-control" placeholder="es. 5.0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label style="font-size: 12px;">Falda a (m)</label>
+                <input type="number" id="numQuickFaldaA" class="form-control" placeholder="es. 8.6" step="0.1">
+            </div>
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 8px;">
+            <button class="btn-action" id="btnQuickFaldaReset" style="background: var(--bg-card-hover); color: var(--danger); border: 1px solid var(--border); font-size: 14px; min-height: 44px;">
+                <svg class="ico"><use href="#i-reset"/></svg> Reset
+            </button>
+            <button class="btn-action" id="btnQuickFaldaSave" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; font-size: 14px; min-height: 44px;">
+                <svg class="ico"><use href="#i-check"/></svg> Salva
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL CONFERMA ELIMINAZIONE PROGETTO (FINESTRA FLUTTUANTE) -->
+    <!-- DIALOGO GENERICO DELL'APP (sostituisce alert() e confirm() nativi del browser) -->
+    <!-- Le regole del contenuto dei blocchi di testo, LE STESSE del foglio di stampa: il tag
+         si riempie all'avvio con cssContenutoTesto(). Prima esistevano solo nel CSS di stampa,
+         e nella tela dell'editor una tabella nel testo compariva senza bordi — cioe' non
+         sembrava una tabella. -->
+    <style id="stileContenutoTesto"></style>

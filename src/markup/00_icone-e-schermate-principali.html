@@ -1,0 +1,434 @@
+
+    <!-- ============================================================
+         SISTEMA ICONE PROFESSIONALE (set stile Lucide, stroke 2px)
+         Sostituisce le emoji in tutta l'interfaccia.
+         Uso nel markup statico:   <svg class="ico"><use href="#i-nome"/></svg>
+         Uso nelle stringhe JS:    ${ico('nome')}
+         ============================================================ -->
+    <svg id="iconSpriteDefs" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></symbol>
+            <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24"><polyline points="3 3 3 21 21 21"/><polyline points="7 15 11 9 15 12 20 5"/></symbol>
+            <symbol id="i-list" viewBox="0 0 24 24"><path d="M13 5h8"/><path d="M13 9h5"/><path d="M13 15h8"/><path d="M13 19h5"/><rect x="3" y="4" width="6" height="6" rx="1"/><rect x="3" y="14" width="6" height="6" rx="1"/></symbol>
+            <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 2.7l5.3 5.3a7.5 7.5 0 1 1-10.6 0z"/></symbol>
+            <symbol id="i-layers" viewBox="0 0 24 24"><rect x="4" y="4" width="13" height="13" rx="2"/><path d="M9 16v2a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></symbol>
+            <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="12" cy="11" r="3"/><path d="M17.657 16.657L13.414 20.9a2 2 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></symbol>
+            <symbol id="i-camera" viewBox="0 0 24 24"><path d="M5 7h1a2 2 0 0 0 2-2 1 1 0 0 1 1-1h6a1 1 0 0 1 1 1 2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><circle cx="12" cy="13" r="3"/></symbol>
+            <symbol id="i-map" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></symbol>
+            <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+            <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+            <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+            <symbol id="i-settings" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+            <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+            <!-- A differenza delle altre icone (linee sottili, vedi .ico { fill:none; stroke:currentColor }),
+                 questa è fatta di puntini PIENI: fill/stroke impostati qui sui singoli cerchi
+                 sovrascrivono le regole ereditate da .ico, altrimenti con stroke-width:2 su un
+                 raggio di 1.6 verrebbero fuori anelli deformi invece di pallini netti. -->
+            <symbol id="i-grip" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g></symbol>
+            <symbol id="i-download" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 11l5 5l5-5"/><path d="M12 4v12"/></symbol>
+            <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+            <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+            <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M6 20l3-8h13l-3 8z"/><path d="M2 20V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v4"/></symbol>
+            <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+            <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+            <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+            <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="9" y1="7" x2="9.01" y2="7"/><line x1="15" y1="7" x2="15.01" y2="7"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="15" y1="12" x2="15.01" y2="12"/><path d="M10 22v-4h4v4"/></symbol>
+            <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+            <symbol id="i-reset" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+            <symbol id="i-back" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+            <symbol id="i-satellite" viewBox="0 0 24 24"><path d="M2 12a10 10 0 0 1 10-10"/><path d="M6.34 17.66a8 8 0 0 1 0-11.32"/><path d="M9.17 14.83a4 4 0 0 1 0-5.66"/><circle cx="12" cy="12" r="1.5"/></symbol>
+            <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+            <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+            <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+            <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+            <symbol id="i-home" viewBox="0 0 24 24"><path d="M5 12l-2 0l9-9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6"/></symbol>
+            <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+            <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+            <symbol id="i-minimize" viewBox="0 0 24 24"><path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/></symbol>
+            <symbol id="i-note" viewBox="0 0 24 24"><path d="M13 20l7-7"/><path d="M13 20v-6a1 1 0 0 1 1-1h6V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5z"/></symbol>
+            <symbol id="i-move-y" viewBox="0 0 24 24"><polyline points="8 18 12 22 16 18"/><polyline points="8 6 12 2 16 6"/><line x1="12" y1="2" x2="12" y2="22"/></symbol>
+            <symbol id="i-compress-h" viewBox="0 0 24 24"><line x1="3" y1="12" x2="9" y2="12"/><polyline points="6 9 9 12 6 15"/><line x1="21" y1="12" x2="15" y2="12"/><polyline points="18 9 15 12 18 15"/></symbol>
+            <symbol id="i-expand-h" viewBox="0 0 24 24"><line x1="3" y1="12" x2="9" y2="12"/><polyline points="6 9 3 12 6 15"/><line x1="21" y1="12" x2="15" y2="12"/><polyline points="18 9 21 12 18 15"/></symbol>
+            <symbol id="i-align-left" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></symbol>
+            <symbol id="i-align-center" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4.5" y1="18" x2="19.5" y2="18"/></symbol>
+            <symbol id="i-align-right" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></symbol>
+            <symbol id="i-align-justify" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+            <symbol id="i-ruler" viewBox="0 0 24 24"><path d="M21.3 8.7L8.7 21.3a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4L15.3 2.7a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4z"/><path d="M14.5 4l2 2"/><path d="M11.5 7l2 2"/><path d="M8.5 10l2 2"/><path d="M5.5 13l2 2"/></symbol>
+            <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></symbol>
+            <symbol id="i-shape-line-h" viewBox="0 0 32 16"><line x1="3" y1="8" x2="29" y2="8"/></symbol><symbol id="i-dadi" viewBox="0 0 24 24"><rect x="2.5" y="9" width="11" height="11" rx="2"/><circle cx="6" cy="12.5" r=".9" fill="currentColor"/><circle cx="10" cy="16.5" r=".9" fill="currentColor"/><path d="M9.5 6.2 12.8 3.4a1.8 1.8 0 0 1 2.5.2l4.4 5.2a1.8 1.8 0 0 1-.2 2.5l-2.6 2.2"/><circle cx="14.2" cy="7.6" r=".9" fill="currentColor"/><path d="M20.5 17.2l.5 1.6 1.6.5-1.6.5-.5 1.6-.5-1.6-1.6-.5 1.6-.5z" fill="currentColor" stroke="none"/></symbol><symbol id="i-crop" viewBox="0 0 24 24"><path d="M6.5 2v13.5a2 2 0 0 0 2 2H22"/><path d="M17.5 22V8.5a2 2 0 0 0-2-2H2"/></symbol><symbol id="i-flusso-blocco" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="8" rx="1.5"/><line x1="4" y1="16" x2="20" y2="16"/><line x1="4" y1="20" x2="15" y2="20"/></symbol><symbol id="i-flusso-sx" viewBox="0 0 24 24"><rect x="4" y="5" width="8" height="8" rx="1.5"/><line x1="14.5" y1="7" x2="20" y2="7"/><line x1="14.5" y1="11" x2="20" y2="11"/><line x1="4" y1="16.5" x2="20" y2="16.5"/><line x1="4" y1="20" x2="15" y2="20"/></symbol><symbol id="i-flusso-dx" viewBox="0 0 24 24"><rect x="12" y="5" width="8" height="8" rx="1.5"/><line x1="4" y1="7" x2="9.5" y2="7"/><line x1="4" y1="11" x2="9.5" y2="11"/><line x1="4" y1="16.5" x2="20" y2="16.5"/><line x1="4" y1="20" x2="15" y2="20"/></symbol><symbol id="i-testo" viewBox="0 0 24 24"><path d="M5 7V4.5h14V7"/><line x1="12" y1="4.5" x2="12" y2="19.5"/><line x1="8.5" y1="19.5" x2="15.5" y2="19.5"/></symbol><symbol id="i-cursore" viewBox="0 0 24 24"><path d="M5.5 3.2 19 11.4l-6.3 1.6L9.9 19z"/></symbol><symbol id="i-quadrato" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2.5"/></symbol><symbol id="i-cerchio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/></symbol><symbol id="i-triangolo" viewBox="0 0 24 24"><path d="M12 4.5 20.5 19.5H3.5z"/></symbol><symbol id="i-poligono" viewBox="0 0 24 24"><path d="M12 3.5 20.5 9.8 17.2 19.8H6.8L3.5 9.8z"/></symbol><symbol id="i-riempimento" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="2.5" fill="currentColor" stroke="none"/></symbol><symbol id="i-pilcrow" viewBox="0 0 24 24"><path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4h-9.5a4.5 4.5 0 0 0 0 9H13"/></symbol><symbol id="i-divider" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="6" y1="6" x2="18" y2="6" opacity=".45"/><line x1="6" y1="18" x2="18" y2="18" opacity=".45"/></symbol><symbol id="i-draw" viewBox="0 0 24 24"><path d="M3 15c2.2 0 2.2-8 4.4-8s2.2 8 4.4 8 2.2-6 4.4-6 2.2 4 4.4 4"/><line x1="3" y1="21" x2="21" y2="21"/></symbol>
+            <symbol id="i-checklist" viewBox="0 0 24 24"><polyline points="3 6 4.5 7.5 7.5 4.5"/><line x1="11" y1="6" x2="21" y2="6"/><polyline points="3 13 4.5 14.5 7.5 11.5"/><line x1="11" y1="13" x2="21" y2="13"/><line x1="3" y1="19" x2="7.5" y2="19"/><line x1="11" y1="19" x2="21" y2="19"/></symbol>
+            <symbol id="i-underline" viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></symbol>
+            <symbol id="i-strikethrough" viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12"/><path d="M16 6.5c-.9-1-2.3-1.6-4-1.6-2.5 0-4.5 1.2-4.5 3 0 1.4 1 2.2 2.5 2.7"/><path d="M8 17.5c.9 1 2.3 1.6 4 1.6 2.5 0 4.5-1.2 4.5-3"/></symbol>
+            <symbol id="i-quote" viewBox="0 0 24 24"><path d="M7 14c-2 0-3-1.3-3-3.3C4 8 5.8 6 8.5 5.3L9 7c-1.6.5-2.5 1.6-2.5 2.7 0 .3.1.5.3.5H8a2 2 0 0 1 2 2v.5A2 2 0 0 1 8 14z"/><path d="M16 14c-2 0-3-1.3-3-3.3 0-2.7 1.8-4.7 4.5-5.4L18 7c-1.6.5-2.5 1.6-2.5 2.7 0 .3.1.5.3.5H17a2 2 0 0 1 2 2v.5a2 2 0 0 1-2 1.8z"/></symbol>
+            <symbol id="i-highlighter" viewBox="0 0 24 24"><path d="M15.2 3.3 20.7 8.8 10 19.5 4 20l.5-6z"/><line x1="3" y1="22" x2="9" y2="22"/></symbol>
+            <symbol id="i-link" viewBox="0 0 24 24"><path d="M9 17H7a5 5 0 0 1 0-10h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></symbol>
+            <symbol id="i-undo" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M4 9h10a7 7 0 0 1 0 14H7"/></symbol>
+            <symbol id="i-redo" viewBox="0 0 24 24"><polyline points="15 4 20 9 15 14"/><path d="M20 9H10a7 7 0 0 0 0 14h7"/></symbol>
+            <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M20 20H8l-6-6a2 2 0 0 1 0-2.8L13.2 2a2 2 0 0 1 2.8 0l6 6a2 2 0 0 1 0 2.8L14 19"/><line x1="6" y1="14" x2="14" y2="20"/></symbol>
+            <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+            <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 2v6.34a2 2 0 0 1-.4 1.2L4.3 15.8a2 2 0 0 0 1.6 3.2h12.2a2 2 0 0 0 1.6-3.2l-4.3-6.26a2 2 0 0 1-.4-1.2V2"/><line x1="7" y1="2" x2="17" y2="2"/><line x1="7.5" y1="13" x2="16.5" y2="13"/></symbol>
+            <symbol id="i-activity" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+            <symbol id="i-bug" viewBox="0 0 24 24"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M8 11H3"/><path d="M21 11h-5"/><path d="M8 16H3"/><path d="M21 16h-5"/><path d="M12 6V3"/><path d="M9 3l1.5 2"/><path d="M15 3l-1.5 2"/><path d="M12 20v1.5"/><path d="M6 8l-2-2"/><path d="M18 8l2-2"/></symbol>
+            <symbol id="i-print" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+            <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+            <!-- Un'unica freccia "su": le altre 3 direzioni si ottengono ruotandola via CSS
+                 (vedi i pulsanti "Sposta mappa" in apriMenuBloccoEditor) invece di 4 simboli distinti. -->
+            <symbol id="i-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+            <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
+            <!-- Etichetta/cartellino: usata per il toggle "Toponimi" della mappa satellitare (nomi di
+                 vie/paesi sovrapposti alle tessere, vedi buildInquadramentoSatellitareHtml). -->
+            <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L3 3v6.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+            <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></symbol>
+            <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></symbol>
+            <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+            <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></symbol>
+            <symbol id="i-stack" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></symbol>
+            <!-- "Aa": lo stile del testo del documento. Distinta da i-heading, che marca un titolo:
+     una imposta come si scrive tutto, l'altra dichiara che questa riga e' un'intestazione. -->
+<symbol id="i-type" viewBox="0 0 24 24"><path d="M4 20 L8.5 7 L13 20"/><line x1="5.6" y1="16" x2="11.4" y2="16"/><path d="M20 20v-6.5a2.5 2.5 0 0 0-5 0"/><path d="M15 17.2a2.4 2.4 0 0 0 5 0"/></symbol>
+<symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></symbol>
+<symbol id="i-heading" viewBox="0 0 24 24"><line x1="6" y1="4" x2="6" y2="20"/><line x1="18" y1="4" x2="18" y2="20"/><line x1="6" y1="12" x2="18" y2="12"/></symbol>
+<!-- SAGOME DISTINTE PER L'ELENCO DEI TEMPLATE. i-copy e i-layers erano la stessa figura
+     (due rettangoli arrotondati sovrapposti, solo specchiata): a 20px "Duplica" e "Modifica
+     layout" erano indistinguibili, e la matita generica di i-edit diceva "modifica" quando
+     invece cambia solo il nome. Qui ogni verbo ha una silhouette sua: un foglio diviso (la
+     pagina), un foglio con righe e numeri (l'indice), due fogli col piu' (nasce una copia),
+     una T (si scrive un nome). -->
+<symbol id="i-layout-pagina" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M11 9v12"/></symbol>
+<symbol id="i-indice-pagina" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8.5h6"/><path d="M7 12h8"/><path d="M7 15.5h4"/><path d="M17 8.5h.01"/><path d="M17 12h.01"/><path d="M17 15.5h.01"/></symbol>
+<symbol id="i-duplica" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/><path d="M14.5 11.5v6"/><path d="M11.5 14.5h6"/></symbol>
+<symbol id="i-rinomina" viewBox="0 0 24 24"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/></symbol>
+        </defs>
+    </svg>
+
+    <!-- MAIN APP CONTENT -->
+    <main>
+
+        <!-- TESTATA DELLA PROVA (Fase 3, prototipo «Telefono · Prova in campo»). Solo in Vista Prova:
+             la Home ha la sua testata dentro #viewHome.
+             Riga 1: Home a sinistra; al centro, toccabile, «Prova N» e sotto «Nome progetto · Comune»
+             (apre l'intestazione della prova, come prima il titolo); a destra un ⋯ con le azioni meno
+             frequenti. Il titolo ha tutta la larghezza che resta: non si riduce più a «L…».
+             Riga 2: le spie di stato GPS, foto, falda, note (aprono le finestre di sempre).
+             Riga 3: le prove del progetto (cerchietti da 44) e il «+» per una nuova. -->
+        <header class="card unified-header testata-prova" id="testataProva">
+            <div class="testata-riga">
+                <button type="button" class="bt-icona" id="btnHomeView" aria-label="Torna ai progetti" title="Torna ai progetti"><svg class="ico"><use href="#i-home"/></svg></button>
+                <button type="button" class="testata-titolo" id="btnOpenSurveyDrawer" title="Intestazione di questa prova">
+                    <span class="testata-titolo-prova" id="lblSurveySummary">Prova</span>
+                    <span class="testata-titolo-progetto" id="lblSurveySub"></span>
+                </button>
+                <div class="menu-ancora">
+                    <button type="button" class="bt-icona" id="btnHeaderMore" aria-label="Altre azioni" title="Altre azioni" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
+                    <div class="menu-azioni" id="headerActionsSecondary" role="menu">
+                        <!-- Prima si apriva solo tenendo premuto il cerchietto della prova. -->
+                        <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Strumento e impostazioni della prova</button>
+                        <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Gestione litologica</button>
+                        <button type="button" role="menuitem" id="btnExportHeader"><svg class="ico"><use href="#i-download"/></svg>Esporta</button>
+                        <button type="button" role="menuitem" id="btnHamburger"><svg class="ico"><use href="#i-settings"/></svg>Impostazioni</button>
+                        <div class="menu-sep" aria-hidden="true"></div>
+                        <!-- «Annulla ultimo» (l'ANNULLA STEP della Modalità Espansa) resta sempre a portata:
+                             qui, tenendo premuto −1 e nel toast subito dopo aver registrato. -->
+                        <button type="button" role="menuitem" id="btnAnnullaUltimoMenu"><svg class="ico"><use href="#i-undo"/></svg>Annulla ultimo intervallo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spie" id="spieProva">
+                <button type="button" class="spia non-ancora" id="btnGetGpsHeader" title="Posizione GPS della prova">
+                    <svg class="ico" id="icoSpiaGps"><use href="#i-pin"/></svg><span id="lblSpiaGps">GPS</span>
+                    <span id="liveGpsAccuracyDot" title="GPS live" style="display: none;"></span>
+                </button>
+                <button type="button" class="spia non-ancora" id="btnOpenSurveyPhotosModal" title="Foto della prova">
+                    <svg class="ico"><use href="#i-camera"/></svg><span id="photoBadgeStatus">0 foto</span>
+                </button>
+                <button type="button" class="spia non-ancora" id="btnSpiaFalda" title="Profondità della falda">
+                    <svg class="ico"><use href="#i-droplet"/></svg><span id="lblSpiaFalda">Falda</span>
+                </button>
+                <button type="button" class="spia" id="btnOpenProjectNotesHeader" title="Note di progetto">
+                    <svg class="ico"><use href="#i-note"/></svg><span>Note</span>
+                </button>
+            </div>
+
+            <!-- BARRA DELLE PROVE DEL PROGETTO: la riempie renderSurveySwitcherBar -->
+            <div id="surveySwitcherBar" class="riga-prove"></div>
+        </header>
+
+        <!-- VIEW 1: HOME, L'ELENCO DEI PROGETTI (Fase 3, prototipo «Telefono · Home»).
+             Niente card dentro una card: la testata e le card dei progetti stanno direttamente nella
+             pagina. -->
+        <div id="viewHome" class="home" style="display: none;">
+            <div class="home-testata">
+                <div class="home-titoli">
+                    <h1 class="t-schermata">Progetti</h1>
+                    <div class="home-conteggi" id="lblHomeConteggi"></div>
+                </div>
+                <!-- Template di report e archivio litologico restano a un tocco dalla Home come prima
+                     (la Libreria arriva con la Fase 5); Impostazioni come nel prototipo. -->
+                <div class="home-azioni">
+                    <button type="button" class="bt-icona bordato" id="btnOpenReportTemplatesHome" aria-label="Template di report" title="Template di report"><svg class="ico"><use href="#i-file"/></svg></button>
+                    <button type="button" class="bt-icona bordato" id="btnOpenArchiveManagerHome" aria-label="Archivio litologico" title="Archivio litologico"><svg class="ico"><use href="#i-database"/></svg></button>
+                    <button type="button" class="bt-icona bordato" id="btnImpostazioniHome" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
+                </div>
+            </div>
+
+            <div class="home-comandi" id="homeComandi">
+                <button type="button" class="bt bt-principale" id="btnHomeNewProject"><svg class="ico"><use href="#i-plus"/></svg>Nuovo progetto</button>
+                <button type="button" class="bt" id="btnHomeImportProject" title="Ricevi un progetto da un altro dispositivo (pacchetto), oppure importa un JSON o uno ZIP"><svg class="ico"><use href="#i-download"/></svg>Ricevi</button>
+                <input type="file" id="fileImportProjectJson" accept="application/json,.json,.zip,application/zip" style="display:none;">
+            </div>
+
+            <!-- PROMEMORIA DEL BACKUP COMPLETO (decisione F): una riga gialla compatta con «Fai backup».
+                 Compare solo se su questo telefono non c'è mai stato un backup completo, o se l'ultimo ha
+                 più di 7 giorni e dopo ci sono state modifiche. La X lo nasconde fino alla prossima
+                 apertura dell'app. Lo riempie renderPromemoriaBackup. -->
+            <div id="homePromemoriaBackup" class="riga-avviso" role="note" style="display: none;"></div>
+
+            <!-- RICERCA E FILTRO PER STATO: la ricerca guarda nome, comune, committente e località
+                 (anche quelle delle prove) senza badare a maiuscole e accenti; le pillole filtrano per
+                 stato, che si imposta a mano dal ⋯ della card. Nascosto finché non c'è almeno un
+                 progetto (vedi renderHomeProjects). -->
+            <div id="homeRicercaProgetti" class="home-ricerca" style="display: none;">
+                <label class="campo-cerca">
+                    <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                    <input type="search" id="txtCercaProgetti" placeholder="Cerca nome, comune, committente" aria-label="Cerca progetti" autocomplete="off" enterkeyhint="search">
+                </label>
+                <div id="filtroStatoProgetti" class="pillole"></div>
+            </div>
+
+            <!-- LISTA DEI PROGETTI: la riempie renderHomeProjects -->
+            <div id="homeProjectsContainer" class="home-progetti"></div>
+        </div>
+
+        <!-- VIEW 2: SCHERMATA CAMPO (DASHBOARD & CONTEGGIO COLPI) -->
+        <div id="viewField" style="display: none; flex-direction: column; gap: 16px;">
+            <!-- BARRA DI STATO CONTESTUALE: compare solo quando il pannello di conteggio esce dallo
+                 schermo, cosi in cantiere le informazioni critiche (profondità, colpi, asta) restano
+                 sempre leggibili anche scorrendo il registro, senza dover tornare su. -->
+            <div id="stickyStatusBar">
+                <div class="ssb-item">
+                    <span class="ssb-lbl">Prof.</span>
+                    <span class="ssb-val" id="ssbDepth">0.00m</span>
+                </div>
+                <div class="ssb-item">
+                    <span class="ssb-lbl">Colpi</span>
+                    <span class="ssb-val ssb-blow" id="ssbBlows">0</span>
+                </div>
+                <div class="ssb-item">
+                    <span class="ssb-lbl">Asta</span>
+                    <span class="ssb-val" id="ssbRod">1</span>
+                </div>
+                <button class="ssb-jump" id="ssbJumpTop" title="Torna ai controlli di conteggio">
+                    <svg class="ico"><use href="#i-back"/></svg>
+                </button>
+            </div>
+
+            <!-- CARD CONTEGGIO COLPI (MAIN FIELD CONTROLLER) -->
+            <div class="card" id="cardCounterDashboard" style="position: relative;">
+                <div class="counter-quick-toggles-col">
+                    <!-- MANIGLIA/LUCCHETTO DI COMPRESSIONE: riusa la stessa colonna di icone
+                         d'angolo, cosi non occupa una riga
+                         dedicata e resta compatta anche a card espansa. A riposo è un lucchetto
+                         (nessuna azione possibile per errore); un tocco la sblocca per 4s e la
+                         trasforma in maniglia trascinabile — un secondo tocco o un trascinamento
+                         entro quella finestra comprime/espande la card, poi si ri-blocca da sola. -->
+                    <button class="counter-quick-toggle counter-lock-handle" id="btnCounterLockHandle" title="Tieni premuto per comprimere/espandere il contatore" aria-label="Comprimi o espandi il contatore, tieni premuto">
+                        <svg class="counter-lock-progress-ring" viewBox="0 0 40 40" aria-hidden="true">
+                            <circle cx="20" cy="20" r="17" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="106.8" id="counterLockProgressRing"/>
+                        </svg>
+                        <svg class="ico" id="counterLockHandleIco"><use href="#i-lock"/></svg>
+                    </button>
+                </div>
+
+                <!-- Riepilogo compatto: appare SOLO a card compressa (vedi #cardCounterDashboard.
+                     counter-collapsed), al posto dell'intero pannello. È una SPIA, non un comando:
+                     mostra profondità e colpi mentre si scorre il registro, e basta.
+                     La scorciatoia "+1 Colpo" che stava qui è stata tolta su richiesta esplicita —
+                     a pannello chiuso non si deve poter segnare un colpo: il rischio è battere un
+                     colpo per sbaglio mentre si scorre, e un colpo in più falsa la prova. Per
+                     contare si riapre il pannello, dove i tasti sono grandi e intenzionali. -->
+                <div class="counter-collapsed-bar" id="counterCollapsedBar">
+                    <div class="counter-compact-info" id="counterCompactInfo">
+                        <span id="counterCompactDepth">0.00m - 0.20m</span>
+                        <span class="cci-count" id="counterCompactCount">0</span>
+                    </div>
+                </div>
+
+                <div class="counter-body expand-region open" id="counterBody">
+                <!-- IL CONTATORE (Fase 3): l'intervallo che si sta contando in mono e l'asta; il numero
+                     grande; sotto, cosa sta contando. -->
+                <div class="counter-dashboard contatore">
+                    <div class="contatore-riga">
+                        <span class="contatore-intervallo" id="lblDepthRange">0,00–0,20 m</span>
+                        <span class="contatore-asta">Asta <strong id="lblCurrentRod">1</strong></span>
+                    </div>
+                    <div class="blow-display" id="lblBlowCount">0</div>
+                    <div class="contatore-didascalia">colpi in questo intervallo</div>
+                    <span id="lblTotalDepth" hidden></span>
+                </div>
+
+                <!-- +1 e −1: −1 un terzo, +1 due terzi. Tenere premuto +1 registra l'intervallo,
+                     tenere premuto −1 annulla l'ultimo (come prima). -->
+                <div class="controls-grid">
+                    <button type="button" class="btn-touch btn-minus" id="btnMinus" aria-label="Togli un colpo; tieni premuto per annullare l'ultimo intervallo" title="−1 colpo (tieni premuto: annulla l'ultimo intervallo)">
+                        <span class="btn-touch-cifra">−1</span>
+                        <span class="btn-touch-aiuto">tieni premuto: annulla ultimo</span>
+                    </button>
+                    <button type="button" class="btn-touch btn-plus" id="btnPlus" aria-label="Aggiungi un colpo; tieni premuto per registrare l'intervallo" title="+1 colpo (tieni premuto: registra l'intervallo)">
+                        <span class="btn-touch-cifra">+1</span>
+                        <span class="btn-plus-label">Colpo</span>
+                    </button>
+                </div>
+
+                <!-- REGISTRA (decisione G): visibile di default, dice quale intervallo registra.
+                     Si può nascondere e la scelta resta memorizzata (state.settings.tastoRegistraVisibile);
+                     da nascosto resta la riga tratteggiata per rimetterlo. La pressione lunga su +1 fa
+                     la stessa cosa in entrambi i casi. -->
+                <div class="registra-blocco" id="directActionButtonsRow">
+                    <button type="button" class="bt bt-successo bt-campo bt-registra" id="btnConfirmStepAction"><svg class="ico"><use href="#i-check"/></svg><span id="lblRegistraIntervallo">Registra 0,00–0,20 m</span></button>
+                    <div class="registra-sotto">
+                        <span class="t-didascalia">Oppure tieni premuto +1</span>
+                        <button type="button" class="bt-link" id="btnNascondiRegistra">Nascondi questo tasto</button>
+                    </div>
+                </div>
+                <div class="registra-nascosto" id="rigaRegistraNascosto" style="display: none;">
+                    <span>Registra tenendo premuto <strong>+1</strong></span>
+                    <button type="button" class="bt-link accento" id="btnMostraRegistra">Mostra il tasto</button>
+                </div>
+
+                <!-- NOTE RAPIDE sull'ultimo intervallo registrato: pillole da 44 che vanno a capo. -->
+                <div class="note-rapide">
+                    <span class="note-rapide-titolo">Nota sull'ultimo intervallo</span>
+                    <div class="note-tags-row pillole">
+                        <button type="button" class="btn-tag pillola" data-note="Ciottoli">Ciottoli</button>
+                        <button type="button" class="btn-tag pillola" data-note="Cavità">Cavità</button>
+                        <button type="button" class="btn-tag pillola" data-note="Rifiuto">Rifiuto</button>
+                        <button type="button" class="btn-tag pillola accento" id="btnCustomNote">Altra nota…</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- IL REGISTRO (tabella con le barre allineate riga per riga). L'ordine delle righe non
+                 cambia (decisione J). Titolo «Registro · N intervalli»; a destra Grafico, Aggiungi (un
+                 intervallo o intervalli multipli) e, nel ⋯, il riconoscimento automatico degli strati.
+                 La falda è passata alle spie della testata. -->
+            <div class="card" id="cardIntegratedRegister">
+                <div class="registro-testata">
+                    <h2 class="registro-titolo" id="lblIntegratedTotalSteps">Registro · 0 intervalli</h2>
+                    <div class="registro-azioni">
+                        <button type="button" class="bt btn-toggle-integrated-view" id="btnToggleViewIntegrated" aria-pressed="false" title="Mostra il grafico del profilo"><svg class="ico"><use href="#i-chart"/></svg>Grafico</button>
+                        <div class="menu-ancora">
+                            <button type="button" class="bt bt-tenue" id="btnAggiungiIntegrated" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-plus"/></svg>Aggiungi</button>
+                            <div class="menu-azioni" role="menu">
+                                <button type="button" role="menuitem" id="btnAddRowManualIntegrated"><svg class="ico"><use href="#i-plus"/></svg>Un intervallo</button>
+                                <button type="button" role="menuitem" class="btn-open-bulk-import"><svg class="ico"><use href="#i-list"/></svg>Aggiungi intervalli multipli</button>
+                            </div>
+                        </div>
+                        <div class="menu-ancora" id="menuAltroRegistroIntegrated" style="display: none;">
+                            <button type="button" class="bt-icona" id="btnAltroRegistroIntegrated" aria-label="Altre azioni sul registro" title="Altre azioni sul registro" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
+                            <div class="menu-azioni" role="menu">
+                                <button type="button" role="menuitem" id="btnAutoStratiIntegrated"><svg class="ico"><use href="#i-search"/></svg>Riconoscimento automatico degli strati</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="registro-aiuto">Tocca una riga per la scheda · scorri a sinistra per modificare, a destra per eliminare</div>
+
+                <!-- LEGENDA STRATI RAPIDA NEL REGISTRO INTEGRATO -->
+                <div id="integratedLegendContainer" class="registro-legenda">
+                    <!-- Popolato dinamicamente via JS -->
+                </div>
+
+                <!-- TABELLA CON BARRE GRAFICHE ALLINEATE -->
+                <div class="logs-table-wrapper" style="max-height: 480px; overflow-y: auto;">
+                    <div class="registro-intestazione">
+                        <div>Prof. (m)</div>
+                        <div style="text-align: center;">Colpi</div>
+                        <div>Profilo e litologia</div>
+                    </div>
+                    <div id="tblIntegratedLogsBody">
+                        <!-- Popolato dinamicamente da JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOG INTERVALLI REGISTRATI CON EDITING (VISTA SEPARATA CLASSICA): tabella e, sotto, il
+                 grafico. Stessa barra del registro integrato; qui «Grafico» è premuto. -->
+            <div class="card" id="cardLogsTable" style="display: none;">
+                <div class="registro-testata">
+                    <h2 class="registro-titolo" id="lblTotalSteps">Registro · 0 intervalli</h2>
+                    <div class="registro-azioni">
+                        <button type="button" class="bt btn-toggle-integrated-view" id="btnToggleViewChart" aria-pressed="true" title="Torna al registro con le barre"><svg class="ico"><use href="#i-chart"/></svg>Grafico</button>
+                        <div class="menu-ancora">
+                            <button type="button" class="bt bt-tenue" id="btnAggiungiChart" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-plus"/></svg>Aggiungi</button>
+                            <div class="menu-azioni" role="menu">
+                                <button type="button" role="menuitem" id="btnAddRowManual"><svg class="ico"><use href="#i-plus"/></svg>Un intervallo</button>
+                                <button type="button" role="menuitem" class="btn-open-bulk-import"><svg class="ico"><use href="#i-list"/></svg>Aggiungi intervalli multipli</button>
+                            </div>
+                        </div>
+                        <div class="menu-ancora" id="menuAltroRegistroChart" style="display: none;">
+                            <button type="button" class="bt-icona" id="btnAltroRegistroChart" aria-label="Altre azioni sul registro" title="Altre azioni sul registro" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
+                            <div class="menu-azioni" role="menu">
+                                <button type="button" role="menuitem" id="btnAutoStratiChart"><svg class="ico"><use href="#i-search"/></svg>Riconoscimento automatico degli strati</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="registro-aiuto">Tocca una riga per la scheda · scorri a sinistra per modificare, a destra per eliminare</div>
+                <div class="logs-table-wrapper">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 26%;">Intervallo (m)</th>
+                                <th style="width: 15%;">Colpi (N)</th>
+                                <th style="width: 17%;" title="Nspt equivalente">Nspt</th>
+                                <th style="width: 17%;" title="Nspt corretto per falda">Nspt'</th>
+                                <th style="width: 25%;" title="Resistenza dinamica di punta, kg/cm²">Rpd</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblLogsBody">
+                            <!-- Popolato dinamicamente da JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- GRAFICO PROFILO PENETROMETRICO REAL-TIME CON LEGENDA VISIVA (VISTA SEPARATA CLASSICA) -->
+            <div class="card" id="cardChart" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                    <h2 class="registro-titolo">Profilo penetrometrico dinamico (N vs m)</h2>
+                    <button type="button" class="btn-icon btn-icon-sm" id="btnToggleModificaStratiGrafico" aria-pressed="false" title="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico"><svg class="ico"><use href="#i-edit"/></svg></button>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; display:none; align-items:center; gap:5px;" id="lblDragHandlesHint">
+                    <svg class="ico"><use href="#i-move-y"/></svg> Trascina le maniglie sul lato destro del grafico per spostare manualmente il contatto tra due strati.
+                </div>
+                <!-- LEGENDA VISIVA DINAMICA DEL GRAFICO -->
+                <div id="chartLegendContainer" style="display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 5px 8px; margin-bottom: 8px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 12px; font-weight: 600;">
+                    <!-- Popolato dinamicamente da renderChart() -->
+                </div>
+                <div class="chart-box">
+                    <svg id="svgChart" width="100%" height="100%" style="overflow: visible;"></svg>
+                </div>
+            </div>
+
+            <!-- Hidden file inputs for photo capture (used by floating modal) -->
+            <input type="file" id="filePhotoInputCamera" accept="image/*" capture="environment" style="display:none;">
+            <input type="file" id="filePhotoInputGallery" accept="image/*" style="display:none;">
+
+            <!-- PUNTO DI EXPORT UNICO: prima qui c'erano 3 bottoni separati (Excel/KML/Condividi)
+                 con logica propria. Ora l'unico punto di export di questa vista è l'icona "Esporta"
+                 nell'header sopra, che apre la stessa modale completa (Excel, PDF, Report Completo,
+                 KML, Foto, JSON) raggiungibile anche da Elaborazione e da Home. -->
+        </div>
+
+        <!-- Elementi nascosti mantenuti per compatibilità con le funzioni di export esistenti
+             (la logica vera vive nei loro event listener, richiamati dalla modale unificata) -->
+        <button type="button" id="btnExportExcel" style="display:none;"></button>
+        <button type="button" id="btnExportKmlSingle" style="display:none;"></button>
+
+    </main>

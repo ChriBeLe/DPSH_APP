@@ -1,0 +1,108 @@
+
+    <!-- MODAL FLUTTUANTE ESPORTAZIONE UNIFICATA (PROGETTO / PROVA) -->
+    <div class="modal-overlay" id="modalExportOverlay"></div>
+    <div class="modal" id="modalExportFormats" style="max-width: 480px;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-download"/></svg>
+                </span>
+                <span id="lblExportModalTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Esporta Progetto</span>
+            </span>
+            <button type="button" class="chiudi-x" id="btnCloseExportX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div id="lblExportModalSubtitle" style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+            Seleziona il formato per esportare i dati del cantiere.
+        </div>
+
+        <!-- CONTROLLO DEI DATI (Fase 1): anomalie vere (intervalli con buchi, colpi non validi, foto o
+             strati che non esistono più). Nascosto se non c'è niente; non blocca. Lo riempie
+             renderIntegritaPrimaExport. -->
+        <div id="integritaPrimaExport" style="display: none; margin-bottom: 10px;"></div>
+        <!-- CONTROLLO PRIMA DELL'EXPORT: cosa manca, prova per prova (colpi, GPS, foto, falda,
+             intestazione). È un promemoria, non un blocco: si esporta comunque. Ogni avviso porta
+             alla prova e alla finestra dove si corregge. Lo riempie renderRiepilogoPrimaExport. -->
+        <div id="riepilogoPrimaExport" style="display: none; margin-bottom: 14px;"></div>
+
+        <!-- REPORT PDF: riguarda sempre l'INTERO PROGETTO (tutte le prove), anche quando la modale
+             è aperta dalla singola prova — per questo ha una gerarchia visiva superiore e
+             un'etichetta "Intero progetto" ben distinta dalle esportazioni qui sotto. Unico ingresso
+             per il PDF (redesign richiesto esplicitamente: prima esisteva anche una tile separata
+             "Report PDF" più in basso, ma portava alla stessa identica schermata — vedi
+             apriEsportazionePdfModal — quindi è stata rimossa; le tabelle Parametri Avanzati che la
+             distinguevano da questo bottone sono ora una spunta dentro quella schermata). -->
+        <div style="background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 13px 14px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--on-accent); background: var(--accent); padding: 3px 8px; border-radius: 10px;">Intero progetto</span>
+                <span style="font-weight: 800; font-size: 13.5px; color: var(--accent-ink);"><svg class="ico"><use href="#i-print"/></svg> Report PDF</span>
+            </div>
+            <div id="lblExportCompleteDesc" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px;">
+                Report di campo, con le tabelle Parametri Avanzati opzionali — scegli prove e opzioni nella schermata successiva.
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="export-opt-card" id="btnOptExportCompletePdf" style="flex: 1; background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12.5px; color: var(--on-accent); transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                    <svg class="ico"><use href="#i-print"/></svg> PDF
+                </button>
+                <button class="export-opt-card" id="btnOptExportCompleteWord" style="flex: 1; background: var(--bg-card); border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 800; font-size: 12.5px; color: var(--accent-ink); transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                    <svg class="ico"><use href="#i-file"/></svg> Word
+                </button>
+            </div>
+        </div>
+
+        <div id="lblExportSingleSurveyScope" style="display:none; align-items:center; gap:6px; font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">
+            <svg class="ico" style="width:12px; height:12px;"><use href="#i-list"/></svg> Solo questa prova: <span id="lblExportSingleSurveyName" style="color: var(--text-main);"></span>
+        </div>
+
+        <!-- Selettore "Template Report PDF (questa prova)" rimosso (richiesto esplicitamente:
+             "toglilo tanto questo menù dà la possibilità di scegliere, è più versatile" riferito al
+             fatto che la scelta del template per-prova è ormai disponibile — con più libertà, una
+             prova alla volta o tutte insieme — dentro la lista "Prove da includere" della modale
+             Esporta PDF (vedi popolaListaProveEsportazionePdf/impostaTemplateReportProva). -->
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+            <div class="export-opt-card" id="btnOptExportExcel" style="background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <div style="font-weight: 800; font-size: 13px; color: var(--success); display: flex; align-items: center; gap: 6px;">
+                    <svg class="ico"><use href="#i-chart"/></svg> Excel (.xlsx)
+                </div>
+                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                    Fogli elettronici formattati con registro penetrometrico.
+                </div>
+            </div>
+
+            <div class="export-opt-card" id="btnOptExportKML" style="background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <div style="font-weight: 800; font-size: 13px; color: var(--info); display: flex; align-items: center; gap: 6px;">
+                    <svg class="ico"><use href="#i-map"/></svg> KML (Google Earth)
+                </div>
+                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                    Coordinate GPS e segnaposto per GIS e Google Earth.
+                </div>
+            </div>
+
+            <div class="export-opt-card" id="btnOptExportPhotos" style="grid-column: span 2; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <div style="font-weight: 800; font-size: 13px; color: var(--warning); display: flex; align-items: center; gap: 6px;">
+                    <svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere
+                </div>
+                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                    Archivio fotografico di cantiere georeferenziato.
+                </div>
+            </div>
+
+            <!-- "Condividi" tolto: mandava alle app del telefono solo un riepilogo di testo (nome,
+                 committente, data), che non serviva a niente. Per passare un progetto a qualcuno
+                 c'è il Backup Strutturato qui sotto. "Foto Cantiere" prende la riga intera. -->
+
+            <div class="export-opt-card" id="btnOptExportJSON" style="grid-column: span 2; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <div>
+                    <div style="font-weight: 800; font-size: 13px; color: var(--purple);">
+                        <svg class="ico"><use href="#i-file"/></svg> Backup Strutturato (JSON)
+                    </div>
+                    <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+                        File di backup nativo per importazione e ripristino rapido.
+                    </div>
+                </div>
+                <svg class="ico ico-lg" style="transform:rotate(180deg)"><use href="#i-back"/></svg>
+            </div>
+        </div>
+
+        <!-- (Fase 3) Niente «Chiudi» in fondo: c'è già la X in alto. -->
+    </div>

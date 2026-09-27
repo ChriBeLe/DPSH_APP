@@ -1,0 +1,85 @@
+
+
+
+    <!-- COMPOSIZIONE DELL'INQUADRAMENTO. Due mappe, N etichette spostabili singolarmente, nord,
+         scala, riquadro rosso, provider, toponimi: oltre trenta parametri. In un menu laterale
+         su un telefono sarebbe una lista da scorrere alla cieca — lo stesso difetto già corretto
+         altrove in questa app. Qui si trascina e si vede.
+         La tavola al centro è renderizzata dalla STESSA funzione che produce la stampa: non è
+         un'anteprima somigliante, è il risultato. -->
+    <!-- tier-editor-top, NON tier-strati-top: il compositore si apre SEMPRE da dentro l'editor
+         del template (z-index 321) e il suo menu di blocco (330). A 301 finiva sotto entrambi —
+         si apriva davvero, ma dietro la schermata da cui era stato chiamato. Il livello di una
+         finestra non e' una preferenza estetica: e' una conseguenza di chi la apre. -->
+    <!-- LO STILE DEL TESTO DEL DOCUMENTO.
+         Richiesto: "tutto quanto uniformabile da un singolo blocco del testo cosi' da non far
+         impazzire l'utente per ricontrollare ogni volta paranoicamente". Questo e' il posto
+         normale: si tocca una volta e vale per tutti i blocchi di testo e titolo. I comandi
+         della barra dell'editor restano, ma diventano eccezioni su un singolo pezzo. -->
+    <div class="modal-overlay tier-editor-top tier-sopra-testo" id="modalStileTestoOverlay"></div>
+    <div class="modal tier-editor-top tier-sopra-testo" id="modalStileTesto" style="max-width: 92vw; width: 460px; max-height: 92vh; overflow-y: auto;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-type"/></svg> Stile del testo</span>
+            <button class="btn-icon" id="btnChiudiStileTestoX" style="background:transparent; border:none; color:var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-bottom:10px;">
+            Vale per <b>tutto</b> il documento. Quello che imposti qui non va ricontrollato blocco per blocco.
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Carattere</label>
+            <select id="selStileFont" class="form-control"></select>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:4px; line-height:1.45;">
+                I caratteri sono <b>incorporati nell&rsquo;app</b>: il documento esce identico sul telefono e sul computer. Dove il carattere originale &egrave; installato (Windows, Mac) viene usato quello vero.
+            </div>
+        </div>
+        <div id="anteprimaStileTesto" style="border:1px solid var(--border); border-radius:var(--radius-sm); background:#fff; color:#0f172a; padding:12px 14px; margin-bottom:12px;">
+            <div id="anteprimaStileTitolo" style="font-weight:700; margin-bottom:5px;">2. Prove penetrometriche DPSH</div>
+            <div id="anteprimaStileCorpo">La prova penetrometrica dinamica consiste nell&rsquo;infissione verticale nel terreno di una punta conica metallica, solidale a un&rsquo;asta di acciaio prolungabile, registrando il numero di colpi necessari alla penetrazione di ciascun tratto.</div>
+            <div id="anteprimaStileFormula" style="margin-top:6px;">R<sub>pd</sub> = M&sup2;&middot;H / [A&middot;e&middot;(M + P)]</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="form-group"><label class="form-label">Corpo del testo</label>
+                <select id="selStileCorpo" class="form-control"></select></div>
+            <div class="form-group"><label class="form-label">Interlinea</label>
+                <select id="selStileInterlinea" class="form-control">
+                    <option value="1">1 &mdash; singola</option>
+                    <option value="1.15">1,15</option>
+                    <option value="1.5">1,5</option>
+                    <option value="2">2 &mdash; doppia</option>
+                </select></div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Allineamento</label>
+            <div class="comp-seg" id="segStileAllineamento" style="display:inline-flex; gap:2px; padding:2px; border-radius:8px; background:var(--bg-sunken); border:1px solid var(--border);">
+                <button type="button" class="note-tb-btn" data-stile-allinea="left">a sinistra</button>
+                <button type="button" class="note-tb-btn" data-stile-allinea="center">al centro</button>
+                <button type="button" class="note-tb-btn" data-stile-allinea="right">a destra</button>
+                <button type="button" class="note-tb-btn" data-stile-allinea="justify">giustificato</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <div class="form-group"><label class="form-label">Titolo 1</label><select id="selStileH1" class="form-control"></select></div>
+            <div class="form-group"><label class="form-label">Titolo 2</label><select id="selStileH2" class="form-control"></select></div>
+            <div class="form-group"><label class="form-label">Titolo 3</label><select id="selStileH3" class="form-control"></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Peso dei titoli</label>
+            <select id="selStilePesoTitoli" class="form-control">
+                <option value="700">Grassetto</option>
+                <option value="800">Grassetto marcato</option>
+                <option value="600">Semigrassetto</option>
+                <option value="400">Come il testo</option>
+            </select></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="form-group"><label class="form-label">Rientro prima riga (mm)</label>
+                <input type="number" id="inpStileRientro" class="form-control" min="0" max="20" step="1"></div>
+            <div class="form-group"><label class="form-label">Spazio fra paragrafi (pt)</label>
+                <input type="number" id="inpStileSpazioPar" class="form-control" min="0" max="24" step="1"></div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-secondary" id="btnStileTestoRipristina">Valori di serie</button>
+            <button class="btn-primary" id="btnStileTestoOk">Fatto</button>
+        </div>
+    </div>

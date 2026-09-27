@@ -1,0 +1,48 @@
+
+    <!-- MODAL SCHEDA DETTAGLIO INTERVALLO (READ-ONLY) -->
+    <div class="modal-overlay" id="modalViewOverlay"></div>
+    <div class="modal" id="modalViewStep">
+        <div class="modal-title"><svg class="ico"><use href="#i-search"/></svg> Scheda Dettaglio Intervallo <span id="lblViewStepNum" style="color:var(--accent); font-size:13px; margin-left:auto;"></span></div>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px;">
+            <div class="form-group">
+                <label>Profondità Da (m)</label>
+                <input type="text" id="txtViewStart" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover);">
+            </div>
+            <div class="form-group">
+                <label>Profondità A (m)</label>
+                <input type="text" id="txtViewEnd" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover);">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px;">
+            <div class="form-group">
+                <label>Numero Colpi (N)</label>
+                <input type="text" id="txtViewColpi" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover); font-weight:700; color:var(--accent);">
+            </div>
+            <div class="form-group">
+                <label>Numero Asta</label>
+                <input type="text" id="txtViewAsta" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover);">
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label><svg class="ico"><use href="#i-layers"/></svg> Litologia Terreno (Attiva/Ereditate)</label>
+            <input type="text" id="txtViewLithology" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover); font-weight:600;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+            <label>Resistenza Dinamica Rpd (kg/cm²)</label>
+            <input type="text" id="txtViewRpd" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover); font-weight:700; color:var(--success);">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+            <label>Note / Eventi</label>
+            <input type="text" id="txtViewNote" class="form-control" readonly style="opacity: 0.9; background: var(--bg-card-hover);">
+        </div>
+
+        <div class="modal-actions" style="justify-content: space-between;">
+            <button class="btn-action" id="btnViewSwitchToEdit" style="background: var(--bg-card-hover); color: var(--accent);"><svg class="ico"><use href="#i-edit"/></svg> Modifica</button>
+            <button class="btn-action" id="btnViewClose"><svg class="ico"><use href="#i-x"/></svg> Chiudi</button>
+        </div>
+    </div>

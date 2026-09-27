@@ -1,0 +1,35 @@
+
+    <!-- MODAL SCELTA FORMATO BACKUP (JSON vs ZIP) — usata sia per il backup di un singolo
+         progetto sia per il backup completo dell'archivio (vedi impostazioni). -->
+    <div class="modal-overlay" id="modalBackupChoiceOverlay"></div>
+    <div class="modal" id="modalBackupChoice" style="max-width: 440px;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--info-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--info);"><use href="#i-download"/></svg>
+                </span>
+                <span id="lblBackupChoiceTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Scegli il formato del backup</span>
+            </span>
+            <button class="btn-icon" id="btnCloseBackupChoiceX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">In entrambi i formati vengono salvate <strong>tutte</strong> le foto, senza perdita di qualità: cambia solo il modo in cui vengono incluse nel file.</div>
+        <!-- Controllo dei dati (Fase 1): come nella finestra Esporta. Vedi renderIntegritaPrimaExport. -->
+        <div id="integritaPrimaBackup" style="display: none; margin-bottom: 12px;"></div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button type="button" class="btn-action" id="btnBackupChoiceJson" style="justify-content: flex-start; align-items: flex-start; gap: 10px; background: var(--bg-main); border: 1.5px solid var(--border); color: var(--text-main); padding: 12px; text-align: left; border-radius: var(--radius-sm);">
+                <svg class="ico" style="flex-shrink:0; margin-top:2px; color: var(--info);"><use href="#i-file"/></svg>
+                <span style="min-width:0;">
+                    <span style="display:block; font-weight:700; font-size: 13.5px; margin-bottom: 2px;">JSON — un file unico</span>
+                    <span style="display:block; font-size: 11.5px; color: var(--text-muted); font-weight: 400; line-height: 1.45;">Le foto restano incorporate nel testo del file, insieme a tutti gli altri dati. Comodo perché è un solo file da conservare o inviare, ma su progetti con molte foto diventa pesante e può essere lento (o, su alcuni telefoni, non riuscire a completarsi).</span>
+                </span>
+            </button>
+            <button type="button" class="btn-action" id="btnBackupChoiceZip" style="justify-content: flex-start; align-items: flex-start; gap: 10px; background: var(--bg-main); border: 1.5px solid var(--border); color: var(--text-main); padding: 12px; text-align: left; border-radius: var(--radius-sm);">
+                <svg class="ico" style="flex-shrink:0; margin-top:2px; color: var(--info);"><use href="#i-download"/></svg>
+                <span style="min-width:0;">
+                    <span style="display:block; font-weight:700; font-size: 13.5px; margin-bottom: 2px;">ZIP — foto come file originali</span>
+                    <span style="display:block; font-size: 11.5px; color: var(--text-muted); font-weight: 400; line-height: 1.45;">Le foto vengono salvate come file immagine separati, identici agli originali (stessa qualità, stessi dati EXIF), invece di essere incorporate nel testo. Più leggero e più affidabile con molte foto; puoi anche aprire le singole foto direttamente dallo ZIP.</span>
+                </span>
+            </button>
+        </div>
+    </div>

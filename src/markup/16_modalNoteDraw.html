@@ -1,0 +1,105 @@
+
+    <!-- STRUMENTO DI DISEGNO. Piccolo editor vettoriale, non una tela di pixel: ogni tratto
+         resta un OGGETTO finché il modale è aperto, quindi si può riselezionare, spostare e
+         ridimensionare. Alla conferma si rasterizza in PNG e si inserisce come una qualunque
+         immagine della nota (IndexedDB + cache RAM), senza formati nuovi da gestire altrove. -->
+    <div class="modal-overlay" id="modalNoteDrawOverlay"></div>
+    <div class="modal" id="modalNoteDraw" style="max-height: 92vh; overflow-y: auto; max-width: 660px; display:flex; flex-direction:column;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-draw"/></svg> Disegna</span>
+            <button class="btn-icon" id="btnCloseNoteDrawX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <div class="note-toolbar" id="noteDrawToolbar" style="flex-wrap:wrap;">
+            <!-- Cosa faccio col dito -->
+            <div class="note-tb-group" role="group" aria-label="Strumento">
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="seleziona" title="Seleziona e modifica una forma già tracciata" aria-label="Seleziona"><svg class="ico" style="width:15px;height:15px;"><use href="#i-cursore"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool is-active" data-draw-tool="libero" title="Tratto libero" aria-label="Tratto libero"><svg class="ico" style="width:15px;height:15px;"><use href="#i-draw"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="linea" title="Linea retta" aria-label="Linea"><svg class="ico" style="width:15px;height:15px;"><use href="#i-shape-line-h"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="rettangolo" title="Rettangolo" aria-label="Rettangolo"><svg class="ico" style="width:15px;height:15px;"><use href="#i-quadrato"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="cerchio" title="Cerchio o ellisse" aria-label="Cerchio"><svg class="ico" style="width:15px;height:15px;"><use href="#i-cerchio"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="triangolo" title="Triangolo" aria-label="Triangolo"><svg class="ico" style="width:15px;height:15px;"><use href="#i-triangolo"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="testo" title="Casella di testo: tocca dove vuoi scrivere" aria-label="Testo"><svg class="ico" style="width:15px;height:15px;"><use href="#i-testo"/></svg></button>
+                <button type="button" class="note-tb-btn note-draw-tool" data-draw-tool="poligono" title="Poligono: un tocco per ogni vertice, poi ✓ o tocca il primo vertice per chiudere" aria-label="Poligono"><svg class="ico" style="width:15px;height:15px;"><use href="#i-poligono"/></svg></button>
+            </div>
+
+            <!-- Con che colori -->
+            <div class="note-tb-group" role="group" aria-label="Colori">
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnNoteDrawContorno" title="Colore del contorno" aria-label="Contorno"><span class="note-draw-pastiglia" id="pastigliaContorno"></span></button>
+                    <div class="note-shape-popover" id="popContornoDisegno" style="display:none;">
+                        <div class="note-draw-colori" data-quale="contorno"></div>
+                        <button type="button" class="note-tb-btn" data-colore-disegno="contorno" data-valore="" style="margin-top:8px; width:100%;">Nessun contorno</button>
+                    </div>
+                </div>
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnNoteDrawRiempimento" title="Colore di riempimento" aria-label="Riempimento"><span class="note-draw-pastiglia" id="pastigliaRiempimento"></span></button>
+                    <div class="note-shape-popover" id="popRiempimentoDisegno" style="display:none;">
+                        <div class="note-draw-colori" data-quale="riempimento"></div>
+                        <button type="button" class="note-tb-btn" data-colore-disegno="riempimento" data-valore="" style="margin-top:8px; width:100%;">Nessun riempimento</button>
+                    </div>
+                </div>
+                <select id="selNoteDrawWidth" class="note-tb-select" title="Spessore del contorno">
+                    <option value="2">Sottile</option>
+                    <option value="4" selected>Medio</option>
+                    <option value="8">Spesso</option>
+                </select>
+            </div>
+
+            <!-- Sfondo: UNO SOLO, tre modi. Prima erano due tasti indipendenti ("Sfondo" e
+                 "Trasparente") che decidevano la stessa cosa e potevano contraddirsi. -->
+            <div class="note-tb-group" role="group" aria-label="Sfondo">
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnNoteDrawSfondo" title="Sfondo del disegno"><svg class="ico" style="width:14px;height:14px;"><use href="#i-layers"/></svg> <span id="lblSfondoDisegno">Sfondo</span></button>
+                    <div class="note-shape-popover" id="popSfondoDisegno" style="display:none; min-width:200px;">
+                        <div class="note-draw-sfondo-riga">
+                            <button type="button" class="note-tb-btn note-draw-sfondo-scelta" data-sfondo="tinta" style="width:100%; justify-content:flex-start; gap:7px;"><svg class="ico" style="width:14px;height:14px;"><use href="#i-riempimento"/></svg> Tinta unita</button>
+                            <div class="note-draw-colori" data-quale="sfondo" style="margin-top:6px;"></div>
+                        </div>
+                        <button type="button" class="note-tb-btn note-draw-sfondo-scelta" data-sfondo="foto" style="width:100%; justify-content:flex-start; gap:7px; margin-top:8px;"><svg class="ico" style="width:14px;height:14px;"><use href="#i-camera"/></svg> Foto del progetto…</button>
+                        <button type="button" class="note-tb-btn note-draw-sfondo-scelta" data-sfondo="file" style="width:100%; justify-content:flex-start; gap:7px; margin-top:4px;"><svg class="ico" style="width:14px;height:14px;"><use href="#i-upload"/></svg> Immagine dal telefono…</button>
+                        <button type="button" class="note-tb-btn note-draw-sfondo-scelta" data-sfondo="trasparente" style="width:100%; justify-content:flex-start; gap:7px; margin-top:4px;"><svg class="ico" style="width:14px;height:14px;"><use href="#i-droplet"/></svg> Trasparente</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azioni -->
+            <div class="note-tb-group" role="group" aria-label="Azioni">
+                <button type="button" class="note-tb-btn" id="btnNoteDrawClosePolygon" title="Chiudi il poligono" style="display:none;"><svg class="ico" style="width:14px;height:14px;"><use href="#i-check"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteDrawUndo" title="Annulla l'ultima forma" aria-label="Annulla"><svg class="ico" style="width:14px;height:14px;"><use href="#i-undo"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteDrawClear" title="Cancella tutto" aria-label="Cancella tutto"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+            </div>
+        </div>
+
+        <!-- Compare solo con una forma selezionata: qui si aggiusta quella, non le prossime. -->
+        <div class="note-toolbar" id="noteDrawShapeBar" style="display:none;">
+            <span class="note-tb-status" style="margin-left:0; margin-right:2px;">Forma scelta:</span>
+            <span id="lblNoteDrawShapeTipo" style="font-size:11px; font-weight:800; color:var(--accent-ink);"></span>
+            <span class="note-tb-sep"></span>
+            <label id="rigaRaggioDisegno" style="display:none; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text-muted);">
+                Angoli
+                <input type="range" id="rngNoteDrawRaggio" min="0" max="60" step="2" value="0" style="width:78px;">
+            </label>
+            <span class="note-tb-sep" id="sepRaggioDisegno" style="display:none;"></span>
+            <label id="rigaTestoDisegno" style="display:none; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text-muted);">
+                Grandezza
+                <input type="range" id="rngNoteDrawTesto" min="10" max="90" step="2" value="24" style="width:78px;">
+            </label>
+            <button type="button" class="note-tb-btn" id="btnNoteDrawRiscrivi" title="Riscrivi il testo" style="display:none;">Riscrivi</button>
+            <span class="note-tb-sep" id="sepTestoDisegno" style="display:none;"></span>
+            <button type="button" class="note-tb-btn" id="btnNoteDrawDeseleziona" title="Lascia la forma">Fine</button>
+            <button type="button" class="note-tb-btn" id="btnNoteDrawEliminaForma" title="Elimina questa forma" style="color:var(--danger);"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+        </div>
+
+        <input type="file" id="fileNoteDrawBgInput" accept="image/*" style="display:none;">
+
+        <div class="note-draw-canvas-wrap">
+            <canvas id="noteDrawCanvas" width="640" height="420"></canvas>
+        </div>
+        <div id="noteDrawSuggerimento" style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.45;"></div>
+
+        <div class="modal-actions">
+            <button class="btn-action" id="btnNoteDrawCancel" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">Annulla</button>
+            <button class="btn-action" id="btnNoteDrawInsert" style="background: var(--accent); color: var(--on-accent); font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Inserisci nella nota</button>
+        </div>
+    </div>

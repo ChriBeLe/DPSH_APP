@@ -1,0 +1,203 @@
+
+    <!-- FINESTRA FLOTTANTE "NOTE DI PROGETTO": una pagina di appunti unica per progetto (non per
+         singola prova), testo formattabile + immagini incorporate, pensata per essere aperta e
+         compilata subito dopo aver finito una prova, mentre l'utente ha ancora tutto a mente.
+         Immagini offloadate su IndexedDB (store 'noteImages') con lo stesso schema delle foto:
+         vedi stripNoteImagesHtml/saveNoteImageToIDB/getNoteImageFromIDB. -->
+    <div class="modal-overlay" id="modalProjectNotesOverlay"></div>
+    <div class="modal" id="modalProjectNotes" style="max-height: 92vh; overflow-y: auto; max-width: 620px; display:flex; flex-direction:column;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-file"/></svg> <span id="lblNoteProjectTitle">Note di progetto</span></span>
+            <button class="btn-icon" id="btnCloseProjectNotesX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <!-- LA BARRA, LETTA PER GRUPPI. Ogni gruppo raccoglie i comandi che agiscono sulla
+             stessa cosa: che tipo di riga e' questa, come appare il testo, cosa inserisco, e le
+             azioni. Prima erano ventun pulsanti in fila indiana, tutti uguali: per trovarne uno
+             bisognava leggerli tutti. -->
+        <div class="note-toolbar" id="noteToolbar">
+            <!-- SEI FAMIGLIE, NON UN MURO. Il primo gruppo ne conteneva quindici: tipo di
+                 riga, formule, tag, interruzioni, elenchi e allineamento tutti insieme. Su uno
+                 schermo stretto non ci stavano, e siccome un gruppo non andava a capo, la coda
+                 usciva dalla finestra: l'allineamento e la lista di controllo c'erano ma erano
+                 IRRAGGIUNGIBILI. Segnalato come "non sembrano esserci gli allineamenti" — ed e'
+                 esattamente cosi' che si presenta un comando fuori dallo schermo. -->
+            <!-- 1. CHE COS'E' QUESTA RIGA (i quattro modi si escludono a vicenda) -->
+            <div class="note-tb-group" role="group" aria-label="Tipo di riga">
+                <button type="button" class="note-tb-btn" data-format-tag="P" title="Testo normale" aria-label="Testo normale"><svg class="ico" style="width:15px;height:15px;"><use href="#i-pilcrow"/></svg></button>
+                <!-- Tre livelli, non due: l'indice del documento ha tre gerarchie, e finche' H3
+                     non si poteva scrivere qui il terzo livello era raggiungibile solo dal
+                     vecchio blocco Titolo. Ritirato quello, doveva esserci qui. -->
+                <button type="button" class="note-tb-btn" data-format-tag="H1" title="Titolo 1">H1</button>
+                <button type="button" class="note-tb-btn" data-format-tag="H2" title="Titolo 2">H2</button>
+                <button type="button" class="note-tb-btn" data-format-tag="H3" title="Titolo 3">H3</button>
+            </div>
+
+            <!-- 2. COME SI COMPORTA IL PARAGRAFO: la sua forma sulla pagina. Elenchi,
+                 citazione e allineamento stanno qui insieme alle regole di impaginazione
+                 perche' rispondono tutti alla stessa domanda — "questo blocco di testo come
+                 si dispone?" — mentre H1/H2/H3 rispondono a "che cosa e'". -->
+            <div class="note-tb-group" role="group" aria-label="Paragrafo">
+                <button type="button" class="note-tb-btn" data-format-tag="UL" title="Elenco puntato" aria-label="Elenco puntato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-list"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteInsertChecklist" data-format-tag="CHECKLIST" title="Lista di controllo" aria-label="Lista di controllo"><svg class="ico" style="width:15px;height:15px;"><use href="#i-checklist"/></svg></button>
+                <button type="button" class="note-tb-btn" data-format-tag="BLOCKQUOTE" title="Citazione" aria-label="Citazione"><svg class="ico" style="width:15px;height:15px;"><use href="#i-quote"/></svg></button>
+                <!-- ALLINEAMENTO. Un pulsante solo invece di quattro in fila: l'icona mostra
+                     l'allineamento attuale della riga, e il tocco apre le quattro scelte —
+                     giustificato compreso. Cosi' la barra non cresce e il pulsante dice anche
+                     in che stato sei. -->
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnNoteAllinea" data-comando-nota="allineamento" title="Allineamento del testo: sinistra, centro, destra, giustificato" aria-label="Allineamento"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left" id="usoIconaAllinea"/></svg></button>
+                    <div class="note-shape-popover" id="noteAllineaPopover" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:3px;">
+                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quello che l'autore decide non e' DOVE si taglia — quello dipende da corpo e
+                     larghezza e cambia da solo — ma quali paragrafi non si possono tagliare. E' il
+                     modello di Word, e funziona perche' e' la domanda a cui un autore sa rispondere. -->
+                <select class="note-tb-select" data-comando-nota="regola-pagina" aria-label="Fine pagina: cosa fa questo paragrafo" title="FINE PAGINA — cosa succede a QUESTO paragrafo quando la pagina finisce sopra di lui. Non sposta niente adesso: e' una regola che vale in stampa.">
+                    <option value="">Fine pagina: si spezza</option>
+                    <option value="non-spezzare">Fine pagina: non spezzarlo</option>
+                    <option value="con-successivo">Fine pagina: tienilo col dopo</option>
+                    <option value="pagina-nuova">Fine pagina: comincia in una nuova</option>
+                </select>
+                <button type="button" class="note-tb-btn" data-comando-nota="interruzione" title="Interruzione di pagina (Ctrl+Invio): da qui in poi si va alla pagina nuova" aria-label="Interruzione di pagina"><svg class="ico" style="width:15px;height:15px;"><use href="#i-scissors"/></svg></button>
+            </div>
+
+            <!-- 3. LE FORMULE. Verificato: senza pedice e apice lo schema buttava via <sub> e
+                 <sup> in silenzio, e "R(pd)" diventava "Rpd" — la formula perdeva significato
+                 senza nessun avviso. Non e' un vezzo tipografico, e' conservare il dato. -->
+            <div class="note-tb-group" role="group" aria-label="Formule">
+                <button type="button" class="note-tb-btn" data-comando-nota="pedice" title="Pedice (R con pd sotto)">x<sub>2</sub></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="apice" title="Apice (cm quadri)">x<sup>2</sup></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="formula" title="Carattere matematico: le lettere con grazie si distinguono meglio quando diventano simboli">&fnof;<i>x</i></button>
+                <button type="button" class="note-tb-btn" data-comando-nota="simboli" title="Simboli matematici">&radic;&pi;</button>
+            </div>
+
+            <!-- 4. COME APPARE IL TESTO SELEZIONATO -->
+            <div class="note-tb-group" role="group" aria-label="Aspetto del testo">
+                <button type="button" class="note-tb-btn" data-note-cmd="bold" title="Grassetto"><b>B</b></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="italic" title="Corsivo"><i>I</i></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="underline" title="Sottolineato" aria-label="Sottolineato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-underline"/></svg></button>
+                <button type="button" class="note-tb-btn" data-note-cmd="strikeThrough" title="Barrato" aria-label="Barrato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-strikethrough"/></svg></button>
+                <div style="position:relative; display:inline-flex;">
+                    <button type="button" class="note-tb-btn" id="btnNoteHighlight" data-comando-nota="evidenzia" title="Evidenzia (ripremi lo stesso colore per togliere)" aria-label="Evidenzia"><svg class="ico" style="width:15px;height:15px;"><use href="#i-highlighter"/></svg></button>
+                    <div class="note-shape-popover" id="noteHighlightPopover" style="display:none;">
+                        <div id="noteHighlightColors" data-colori-evidenziatore="1" style="display:flex; align-items:center; gap:5px;"></div>
+                        <button type="button" class="note-tb-btn" id="btnNoteHighlightNone" data-comando-nota="evidenzia-nessuna" title="Togli l'evidenziazione" style="margin-top:8px; width:100%;">Nessuna</button>
+                    </div>
+                </div>
+                <button type="button" class="note-tb-btn" id="btnNoteInsertLink" data-comando-nota="link" title="Link (ripremi su un link per toglierlo)" aria-label="Link"><svg class="ico" style="width:15px;height:15px;"><use href="#i-link"/></svg></button>
+            </div>
+
+            <!-- 5. COSA INSERISCO. Il tasto @ sta qui e non in un gruppo suo: inserire un dato
+                 del cantiere e' inserire, come una foto o una tabella. Segnalato: "e' utile
+                 segnalare all'utente che si puo' fare e che non deve un giorno per caso premere
+                 @ e vedere che gli compare" — una funzione che esiste solo per chi indovina la
+                 scorciatoia, per la maggior parte delle persone non esiste. -->
+            <div class="note-tb-group" role="group" aria-label="Inserisci">
+                <button type="button" class="note-tb-btn" data-comando-nota="inserisci-tag" title="Inserisci un dato del cantiere (o scrivi @)" style="font-weight:800;">@</button>
+                <button type="button" class="note-tb-btn" id="btnNoteInsertImage" data-comando-nota="immagine" title="Carica un'immagine da un file" aria-label="Carica immagine da file"><svg class="ico" style="width:15px;height:15px;"><use href="#i-upload"/></svg></button>
+                <!-- Le due sorgenti di immagine si distinguono a colpo d'occhio: una freccia che entra
+                     = un file da fuori, una macchina fotografica = le foto gia' scattate nelle prove. -->
+                <button type="button" class="note-tb-btn" id="btnNoteInsertFromGallery" data-comando-nota="galleria" title="Scegli una foto gia' scattata nelle prove" aria-label="Foto del progetto"><svg class="ico" style="width:15px;height:15px;"><use href="#i-camera"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteOpenDraw" data-comando-nota="disegno" title="Disegna a mano libera, anche sopra una foto" aria-label="Disegna"><svg class="ico" style="width:15px;height:15px;"><use href="#i-draw"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteInsertTable" data-comando-nota="tabella" title="Inserisci tabella" aria-label="Tabella"><svg class="ico" style="width:15px;height:15px;"><use href="#i-table"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteInsertHr" data-comando-nota="riga-divisoria" title="Linea divisoria" aria-label="Linea divisoria"><svg class="ico" style="width:15px;height:15px;"><use href="#i-divider"/></svg></button>
+            </div>
+
+            <!-- 6. AZIONI SUL TESTO INTERO -->
+            <div class="note-tb-group" role="group" aria-label="Azioni">
+                <button type="button" class="note-tb-btn" id="btnNoteUndo" data-comando-nota="annulla" title="Annulla" aria-label="Annulla"><svg class="ico" style="width:15px;height:15px;"><use href="#i-undo"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteRedo" data-comando-nota="ripeti" title="Ripeti" aria-label="Ripeti"><svg class="ico" style="width:15px;height:15px;"><use href="#i-redo"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteClearFormat" data-comando-nota="pulisci" title="Togli la formattazione e torna a testo normale" aria-label="Pulisci formattazione"><svg class="ico" style="width:15px;height:15px;"><use href="#i-eraser"/></svg></button>
+                <button type="button" class="note-tb-btn" id="btnNoteCerca" data-comando-nota="cerca" title="Cerca nelle note" aria-label="Cerca"><svg class="ico" style="width:15px;height:15px;"><use href="#i-search"/></svg></button>
+            </div>
+
+            <input type="file" id="fileNoteImageInput" accept="image/*" style="display:none;">
+            <span id="lblNoteSavedStatus" class="note-tb-status">Salvato</span>
+        </div>
+
+        <!-- Compare solo quando si tocca un'immagine (foto, forma o disegno) già inserita nella
+             nota: permette di regolarne la dimensione (o toglierla) senza dover ripassare dal
+             pulsante di inserimento originale. -->
+        <div class="note-toolbar" id="noteImageSizeBar" style="display:none;">
+            <span class="note-tb-status" style="margin-left:0; margin-right:2px;">Dimensione:</span>
+            <button type="button" class="note-tb-btn" data-img-size-pct="25">25%</button>
+            <button type="button" class="note-tb-btn" data-img-size-pct="50">50%</button>
+            <button type="button" class="note-tb-btn" data-img-size-pct="75">75%</button>
+            <button type="button" class="note-tb-btn" data-img-size-pct="100">Originale</button>
+            <span class="note-tb-sep"></span>
+            <button type="button" class="note-tb-btn" id="btnNoteImageRitaglia" title="Ritaglia questa immagine"><svg class="ico" style="width:15px;height:15px;"><use href="#i-crop"/></svg> Ritaglia</button>
+            <span class="note-tb-sep" id="sepFlussoImmagine"></span>
+            <!-- DISPOSIZIONE. Finora ogni immagine era per forza un blocco a se': una foto
+                 piccola si prendeva comunque tutta la riga, e accanto restava il vuoto. -->
+            <span class="note-tb-status" style="margin-left:0; margin-right:2px;" id="lblFlussoImmagine">Disposizione:</span>
+            <button type="button" class="note-tb-btn" data-img-flusso="blocco" title="In colonna: il testo va sotto" aria-label="In colonna"><svg class="ico" style="width:15px;height:15px;"><use href="#i-flusso-blocco"/></svg></button>
+            <button type="button" class="note-tb-btn" data-img-flusso="sinistra" title="A sinistra, con il testo che le scorre a destra" aria-label="Testo a destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-flusso-sx"/></svg></button>
+            <button type="button" class="note-tb-btn" data-img-flusso="destra" title="A destra, con il testo che le scorre a sinistra" aria-label="Testo a sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-flusso-dx"/></svg></button>
+            <span class="note-tb-sep"></span>
+            <button type="button" class="note-tb-btn" id="btnNoteImageDelete" title="Rimuovi questa immagine" style="color:var(--danger);"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+        </div>
+
+        <!-- Il contenteditable non è più questo div: qui dentro monta il suo il motore dell'editor
+             (vedi creaEditorNote). Il div resta il contenitore, e tiene il segnaposto. -->
+        <!-- RICERCA. Sopra: dentro la nota aperta, con avanti/indietro sulle occorrenze.
+             Sotto: negli altri progetti, perche' la domanda vera in cantiere e' "dove avevo
+             scritto di quella cavita'?" e la risposta non puo' essere "riaprile tutte". -->
+        <div class="note-search-row" id="noteSearchRow">
+            <input type="search" class="note-search-input" id="noteSearchInput" placeholder="Cerca in questa nota e nelle altre..." autocomplete="off">
+            <span class="note-search-conteggio" id="noteSearchConteggio">—</span>
+            <button type="button" class="note-tb-btn" id="btnNoteSearchPrec" title="Occorrenza precedente" aria-label="Precedente">&#8593;</button>
+            <button type="button" class="note-tb-btn" id="btnNoteSearchSucc" title="Occorrenza successiva" aria-label="Successiva">&#8595;</button>
+            <button type="button" class="note-tb-btn" id="btnNoteSearchChiudi" title="Chiudi la ricerca" aria-label="Chiudi"><svg class="ico" style="width:14px;height:14px;"><use href="#i-x"/></svg></button>
+            <div class="note-search-altri" id="noteSearchAltri"></div>
+        </div>
+
+        <!-- La barretta che compare selezionando del testo. Fuori dal flusso: si posiziona da
+             sola sulle coordinate della selezione. -->
+        <div class="note-bolla" id="noteBubbleMenu">
+            <button type="button" class="note-tb-btn" data-bolla="bold" title="Grassetto"><b>B</b></button>
+            <button type="button" class="note-tb-btn" data-bolla="italic" title="Corsivo"><i>I</i></button>
+            <button type="button" class="note-tb-btn" data-bolla="highlight" title="Evidenzia"><svg class="ico" style="width:15px;height:15px;"><use href="#i-highlighter"/></svg></button>
+            <button type="button" class="note-tb-btn" data-bolla="link" title="Link"><svg class="ico" style="width:15px;height:15px;"><use href="#i-link"/></svg></button>
+        </div>
+
+        <!-- Compare solo col cursore dentro una tabella: prima non poteva esistere, perche' una
+             tabella inserita come stringa HTML non era un oggetto a cui chiedere "aggiungi una riga". -->
+        <div class="note-toolbar" id="noteTableBar" style="display:none;">
+            <span class="note-tb-status" style="margin-left:0; margin-right:2px;">Tabella:</span>
+            <button type="button" class="note-tb-btn" data-tab-cmd="riga-dopo" title="Aggiungi una riga sotto">+ riga</button>
+            <button type="button" class="note-tb-btn" data-tab-cmd="riga-via" title="Elimina questa riga">− riga</button>
+            <button type="button" class="note-tb-btn" data-tab-cmd="col-dopo" title="Aggiungi una colonna a destra">+ col.</button>
+            <button type="button" class="note-tb-btn" data-tab-cmd="col-via" title="Elimina questa colonna">− col.</button>
+            <span class="note-tb-sep"></span>
+            <button type="button" class="note-tb-btn" data-tab-cmd="intestazione" title="Prima riga come intestazione">Intestazione</button>
+            <button type="button" class="note-tb-btn" data-tab-cmd="tabella-via" title="Elimina tutta la tabella" style="color:var(--danger);"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+        </div>
+
+        <div id="noteEditorBody" class="note-editor-body" data-placeholder="Scrivi qui gli appunti del progetto... puoi anche incollare o inserire immagini."></div>
+
+        <!-- Compare solo su una nota scritta PRIMA del motore nuovo, e solo finché l'utente non
+             dice che la conversione è buona: fino a quel momento il testo originale resta
+             conservato a fianco e si può rimettere al suo posto con un tocco. -->
+        <div id="noteConversioneRow" style="display:none; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-sunken);">
+            <span id="lblNoteConversione" style="flex:1; min-width:150px; font-size:11.5px; color:var(--text-muted); line-height:1.45;"></span>
+            <button type="button" class="note-export-btn" id="btnNoteScaricaPrima">Scarica l'originale</button>
+            <button type="button" class="note-export-btn" id="btnNoteRipristinaPrima">Rimetti com'era</button>
+            <button type="button" class="note-export-btn" id="btnNoteConversioneOk">Va bene così</button>
+        </div>
+
+        <div class="note-export-row">
+            <span class="note-export-label">Esporta questa nota:</span>
+            <button type="button" class="note-export-btn" id="btnNoteExportTxt">.txt</button>
+            <button type="button" class="note-export-btn" id="btnNoteExportMd">.md</button>
+            <button type="button" class="note-export-btn" id="btnNoteExportJson">.json</button>
+            <button type="button" class="note-export-btn" id="btnNoteExportPdf">.pdf</button>
+            <button type="button" class="note-export-btn" id="btnNoteExportDoc">Word</button>
+        </div>
+    </div>

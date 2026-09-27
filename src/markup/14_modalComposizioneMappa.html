@@ -1,0 +1,210 @@
+
+    <div class="modal-overlay tier-editor-top" id="modalComposizioneMappaOverlay"></div>
+    <div class="modal tier-editor-top" id="modalComposizioneMappa" style="max-width: 96vw; width: 900px; max-height: 96vh; overflow-y: auto; display:flex; flex-direction:column;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-map"/></svg> Componi l'inquadramento</span>
+            <button class="btn-icon" id="btnChiudiComposizioneX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <!-- LA BARRA A SCHEDE.
+             Segnalato: "e' molto facile confondersi". Era vero, ed era un difetto di
+             raggruppamento: quindici comandi diversi in fila su due righe, dove "zoom" della
+             mappa grande e "zoom" del riquadro regionale si somigliavano senza essere
+             parenti. Ora ogni scheda risponde a UNA domanda — che cartografia, che formato,
+             quali prove, quali nomi, che etichetta, il riquadro regionale, i decori — e a
+             video c'e' solo la scheda aperta. Meno cose insieme, non comandi in meno.  -->
+        <div id="composizioneSchede" role="tablist" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; border-bottom:1.5px solid var(--border); padding-bottom:7px;">
+            <button type="button" class="note-tb-btn" data-comp-scheda="mappa">Cartografia</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="formato">Formato</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="prove">Prove</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="nomi">Toponimi</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="etichetta">Etichetta</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="regionale">Regionale</button>
+            <button type="button" class="note-tb-btn" data-comp-scheda="decori">Nord e scala</button>
+        </div>
+
+        <div class="note-toolbar" id="composizioneBarra" style="margin-top:8px;">
+
+            <div class="comp-pannello" data-comp-pannello="mappa" style="display:flex; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Immagini</span>
+                    <select id="selComposizioneProvider" class="note-tb-select" title="Da dove vengono le immagini"></select>
+                    <span class="note-tb-status">Zoom</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-zoom="-1" title="Allontana">&minus;</button>
+                        <button type="button" class="note-tb-btn" data-comp-zoom="1" title="Avvicina">+</button>
+                    </span>
+                    <span class="note-tb-status" id="lblComposizioneZoom" style="min-width:44px;">z 16</span>
+                </div>
+                <div id="composizioneWmsPronti" style="display:none; width:100%; flex-direction:column; gap:5px; padding:8px; border:1px solid var(--border); border-radius:8px; background:var(--bg-sunken); margin-top:4px;">
+                    <div style="font-size:10.5px; font-weight:800; color:var(--text-muted);">Servizi pronti &mdash; premi per usarne uno</div>
+                    <div id="composizioneWmsElenco" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+                    <input type="text" id="inpComposizioneWmsUrl" class="form-control" placeholder="Indirizzo del servizio WMS" style="font-size:11px;">
+                    <input type="text" id="inpComposizioneWmsLayer" class="form-control" placeholder="Nome del layer (es. 0)" style="font-size:11px;">
+                    <input type="text" id="inpComposizioneAttribuzione" class="form-control" placeholder="Fonte da citare sotto la figura" style="font-size:11px;">
+                    <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+                        <button type="button" class="note-tb-btn comp-sw" id="btnComposizioneWmsSalva" title="Salva questo servizio fra i tuoi, per ritrovarlo sempre">Salva fra i miei</button>
+                        <span class="note-tb-status" id="lblComposizioneWmsNota" style="font-size:10px;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="formato" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Proporzioni</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-rateo="1">1:1</button>
+                        <button type="button" class="note-tb-btn" data-comp-rateo="1.3333">4:3</button>
+                        <button type="button" class="note-tb-btn" data-comp-rateo="1.5">3:2</button>
+                        <button type="button" class="note-tb-btn" data-comp-rateo="1.7778">16:9</button>
+                        <button type="button" class="note-tb-btn" data-comp-rateo="0.7071">verticale</button>
+                    </span>
+                </div>
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Misure</span>
+                    <span class="note-tb-status">Larghezza</span>
+                    <input type="range" id="rngComposizioneLarghezza" min="40" max="190" step="1" value="140" title="Larghezza del riquadro sul foglio" style="width:78px;">
+                    <span class="note-tb-status" id="lblComposizioneLarghezza" style="min-width:42px;">140mm</span>
+                    <span class="note-tb-status">Altezza</span>
+                    <input type="range" id="rngComposizioneAltezza" min="30" max="230" step="1" value="140" title="Altezza del riquadro sul foglio" style="width:78px;">
+                    <span class="note-tb-status" id="lblComposizioneAltezza" style="min-width:42px;">140mm</span>
+                </div>
+                <div class="comp-nota">Ritaglia l&rsquo;inquadratura, non la deforma: se una prova finisse fuori, il riquadro si riadatta da solo.</div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="prove" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Pin</span>
+                    <button type="button" class="note-tb-btn comp-sw" data-comp-toggle="mappaTutteLeProve" title="Mostra tutte le prove del cantiere">Tutte le prove del cantiere</button>
+                </div>
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Etichette</span>
+                    <button type="button" class="note-tb-btn comp-sw" data-comp-toggle="mappaEtichettePinAttive" title="Etichette DPSH sotto le pin">Scritta DPSH sotto le pin</button>
+                    <span class="note-tb-status">Misura</span>
+                    <input type="range" id="rngComposizioneMisuraPin" min="6" max="20" step="1" value="9" title="Dimensione delle etichette DPSH" style="width:72px;">
+                </div>
+                <div class="comp-nota">Ogni etichetta DPSH si trascina per conto suo, sulla mappa.</div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="nomi" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Toponimi</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-toponimi="off" title="Nessun toponimo">nessuno</button>
+                        <button type="button" class="note-tb-btn" data-comp-toponimi="0" title="Dimensione normale">1&times;</button>
+                        <button type="button" class="note-tb-btn" data-comp-toponimi="1" title="Pi&ugrave; grandi, ma meno numerosi">2&times;</button>
+                        <button type="button" class="note-tb-btn" data-comp-toponimi="2" title="Molto pi&ugrave; grandi, molti meno nomi">4&times;</button>
+                    </span>
+                    <span class="note-tb-status">Intensit&agrave;</span>
+                    <input type="range" id="rngComposizioneOpacitaToponimi" min="10" max="100" step="5" value="100" title="Quanto sono marcati i nomi" style="width:72px;">
+                </div>
+                <div class="comp-nota">Nomi pi&ugrave; grandi = nomi meno numerosi: vengono da uno zoom pi&ugrave; largo.</div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="etichetta" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Scrive</span>
+                    <select id="selComposizioneEtichettaModo" class="note-tb-select" title="Che cosa scrivere sulla mappa">
+                        <option value="none">nessuna etichetta</option>
+                        <option value="localita">la Localit&agrave;</option>
+                        <option value="comune">il Comune</option>
+                        <option value="custom">un testo mio&hellip;</option>
+                    </select>
+                    <input type="text" id="inpComposizioneEtichettaTesto" class="note-tb-select" placeholder="testo dell&rsquo;etichetta" style="display:none; min-width:140px;">
+                    <span class="note-tb-status">Misura</span>
+                    <input type="range" id="rngComposizioneEtichettaMisura" min="8" max="28" step="1" value="12" title="Dimensione del testo dell&rsquo;etichetta" style="width:72px;">
+                </div>
+                <div class="comp-nota">Localit&agrave; e Comune si rileggono dal cantiere ad ogni stampa.</div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="regionale" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Riquadro</span>
+                    <button type="button" class="note-tb-btn comp-sw" data-comp-toggle="inset" title="Inquadramento regionale d&rsquo;angolo">Mostra</button>
+                    <span class="note-tb-status">Zoom</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-inset-zoom="-1" title="Allarga">&minus;</button>
+                        <button type="button" class="note-tb-btn" data-comp-inset-zoom="1" title="Stringi">+</button>
+                    </span>
+                    <span class="note-tb-status" id="lblComposizioneInsetZoom" style="min-width:40px;">z 11</span>
+                    <span class="note-tb-status">Misura</span>
+                    <input type="range" id="rngComposizioneInsetMisura" min="15" max="60" step="1" value="34" title="Quanto &egrave; grande il riquadro regionale" style="width:66px;">
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-inset-rateo="1">1:1</button>
+                        <button type="button" class="note-tb-btn" data-comp-inset-rateo="1.3333">4:3</button>
+                        <button type="button" class="note-tb-btn" data-comp-inset-rateo="1.5">3:2</button>
+                        <button type="button" class="note-tb-btn" data-comp-inset-rateo="0.7071">vert.</button>
+                    </span>
+                </div>
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Contenuto</span>
+                    <button type="button" class="note-tb-btn comp-sw" id="btnComposizioneInsetRiquadro" title="Il rettangolo rosso che segna l&rsquo;area di dettaglio">Rettangolo rosso</button>
+                    <select id="selComposizioneInsetEtichettaModo" class="note-tb-select" title="Che cosa scrivere nel riquadro regionale">
+                        <option value="comune">scrive il Comune</option>
+                        <option value="localita">scrive la Localit&agrave;</option>
+                        <option value="custom">scrive un testo mio&hellip;</option>
+                        <option value="none">senza scritta</option>
+                    </select>
+                    <input type="text" id="inpComposizioneInsetEtichetta" class="note-tb-select" placeholder="testo del riquadro" style="display:none; min-width:130px;">
+                    <span class="note-tb-status">Misura</span>
+                    <input type="range" id="rngComposizioneInsetEtichettaMisura" min="6" max="20" step="1" value="9" title="Dimensione dell&rsquo;etichetta del riquadro regionale" style="width:66px;">
+                </div>
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Il dito</span>
+                    <span class="note-tb-status">trascinando muove</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-inset-trascina="riquadro" title="Sposta il riquadro sulla figura">il riquadro</button>
+                        <button type="button" class="note-tb-btn" data-comp-inset-trascina="mappa" title="Sposta la mappa dentro il riquadro">la mappa dentro</button>
+                    </span>
+                </div>
+                <div class="comp-nota">Stessa basemap della mappa grande. Due gesti sullo stesso oggetto non si indovinano: qui si sceglie quale.</div>
+            </div>
+
+            <div class="comp-pannello" data-comp-pannello="decori" style="display:none; flex-wrap:wrap; width:100%;">
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Nord</span>
+                    <button type="button" class="note-tb-btn comp-sw" data-comp-toggle="mappaMostraNord" title="Freccia del nord">Mostra</button>
+                    <span class="note-tb-status">Misura</span>
+                    <input type="range" id="rngComposizioneNordMisura" min="60" max="260" step="5" value="100" title="Dimensione della freccia del nord" style="width:72px;">
+                    <span class="note-tb-status">Colore</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-nord-stile="chiaro" title="Bianca con contorno nero: per sfondi scuri">bianca</button>
+                        <button type="button" class="note-tb-btn" data-comp-nord-stile="scuro" title="Nera con contorno bianco: per ortofoto chiare">nera</button>
+                    </span>
+                </div>
+                <div class="comp-riga">
+                    <span class="comp-oggetto">Scala</span>
+                    <button type="button" class="note-tb-btn comp-sw" data-comp-toggle="mappaMostraScala" title="Barra di scala">Mostra</button>
+                    <span class="note-tb-status">Lunghezza</span>
+                    <input type="range" id="rngComposizioneScalaLunghezza" min="12" max="60" step="2" value="25" title="Quanto e lunga la barra di scala rispetto alla figura" style="width:78px;">
+                    <span class="note-tb-status" id="lblComposizioneScalaLunghezza" style="min-width:44px;"></span>
+                    <span class="note-tb-status">Riquadro</span>
+                    <input type="range" id="rngComposizioneScalaRiquadro" min="60" max="250" step="5" value="100" title="Dimensione del riquadro della barra di scala" style="width:62px;">
+                    <span class="note-tb-status">Testo</span>
+                    <input type="range" id="rngComposizioneScalaTesto" min="5" max="16" step="1" value="7" title="Dimensione dei numeri della barra di scala" style="width:62px;">
+                    <span class="note-tb-status">Sfondo</span>
+                    <span class="comp-seg">
+                        <button type="button" class="note-tb-btn" data-comp-scala-sfondo="chiaro" title="Riquadro bianco">chiaro</button>
+                        <button type="button" class="note-tb-btn" data-comp-scala-sfondo="scuro" title="Riquadro scuro">scuro</button>
+                        <button type="button" class="note-tb-btn" data-comp-scala-sfondo="nessuno" title="Nessuno sfondo: solo la barra, con il testo contornato">nessuno</button>
+                    </span>
+                </div>
+                <div class="comp-nota">La barra si allunga per passi tondi (100&nbsp;m, 250&nbsp;m, 1&nbsp;km&hellip;).</div>
+            </div>
+
+            <span class="note-tb-status" id="lblComposizioneStato" style="width:100%; padding-top:5px; border-top:1px solid var(--border);">Trascina per inquadrare</span>
+        </div>
+
+        <div id="composizioneTela" style="position:relative; margin-top:10px; background:var(--bg-sunken); border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:300px; touch-action:none; cursor:grab;"></div>
+
+        <div style="font-size:11px; color:var(--text-muted); margin-top:8px; line-height:1.5;">
+            Trascina la mappa per inquadrare. Trascina un'etichetta <b>DPSH</b>, il riquadro regionale, il nord o la scala per spostarli: ogni etichetta si muove per conto suo.
+        </div>
+        <!-- i campi del WMS sono nella scheda "Cartografia", insieme alla scelta della basemap:
+             erano l'unica impostazione che stava fuori dal gruppo a cui appartiene -->
+
+        <div class="modal-actions">
+            <button class="btn-action" id="btnComposizioneAnnulla" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">Annulla</button>
+            <button class="btn-action" id="btnComposizioneSalva" style="background: var(--accent); color: var(--on-accent); font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Applica al blocco</button>
+        </div>
+    </div>

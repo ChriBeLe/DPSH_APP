@@ -1,0 +1,42 @@
+
+    <!-- MODAL FALLBACK GPS INTELLIGENTE PER FOTO SENZA COORDINATE -->
+    <div class="modal-overlay" id="modalPhotoGpsFallbackOverlay"></div>
+    <div class="modal" id="modalPhotoGpsFallback" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+        <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><svg class="ico"><use href="#i-pin"/></svg> Foto Senza Coordinate GPS</span>
+            <button class="btn-action" id="btnClosePhotoGpsFallbackX" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:${padV} 6px;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+            Questa foto non contiene coordinate GPS nei metadati. Come vuoi assegnarle la posizione?
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;" id="photoGpsFallbackChoices">
+            <button class="btn-action" id="btnPhotoGpsUseLive" style="text-align:left; padding:10px 12px; background: var(--bg-card-hover); border:1px solid var(--border); font-weight:700; font-size:12.5px;">
+                <svg class="ico"><use href="#i-satellite"/></svg> Usa GPS Attuale del Dispositivo
+                <div id="lblPhotoGpsLiveStatus" style="font-size:10.5px; font-weight:500; color: var(--text-muted); margin-top:2px;">Verifica disponibilità...</div>
+            </button>
+            <button class="btn-action" id="btnPhotoGpsUseMap" style="text-align:left; padding:10px 12px; background: var(--bg-card-hover); border:1px solid var(--border); font-weight:700; font-size:12.5px;">
+                <svg class="ico"><use href="#i-map"/></svg> Scegli un Punto sulla Mappa
+            </button>
+            <button class="btn-action" id="btnPhotoGpsUsePaste" style="text-align:left; padding:10px 12px; background: var(--bg-card-hover); border:1px solid var(--border); font-weight:700; font-size:12.5px;">
+                <svg class="ico"><use href="#i-edit"/></svg> Incolla Coordinate (es. da Google Maps)
+            </button>
+            <button class="btn-action" id="btnPhotoGpsCancel" style="text-align:left; padding:10px 12px; background: transparent; border:1px solid var(--border); color: var(--text-muted); font-weight:600; font-size:12.5px;">
+                <svg class="ico"><use href="#i-x"/></svg> Nessuna Coordinata (Annulla)
+            </button>
+        </div>
+
+        <div id="photoGpsPasteBox" style="display:none; margin-top:4px;">
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="txtPhotoGpsPasteCoords" class="form-control" placeholder="es. 41.845912, 12.562424" style="flex:1;">
+                <button class="btn-action" id="btnPhotoGpsApplyPaste" style="background: var(--info); color:#fff; border:none; font-weight:700; font-size:12px; white-space:nowrap; padding:10px 12px;"><svg class="ico"><use href="#i-check"/></svg> Applica</button>
+            </div>
+            <button class="btn-action" id="btnPhotoGpsBackFromPaste" style="width:100%; margin-top:8px; background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:11.5px;"><svg class="ico"><use href="#i-back"/></svg> Indietro</button>
+        </div>
+
+        <div id="photoGpsMapBox" style="display:none; margin-top:4px;">
+            <div id="photoGpsMapEl" style="width:100%; height:260px; border-radius: var(--radius-md); border:1px solid var(--border); background:var(--bg-sunken);"></div>
+            <div style="font-size:10.5px; color:var(--text-muted); margin:6px 0;">Tocca la mappa per posizionare il marker sul punto esatto.</div>
+            <button class="btn-action" id="btnPhotoGpsConfirmMap" style="width:100%; background: var(--accent); color:var(--on-accent); border:none; font-weight:700; margin-bottom:6px;"><svg class="ico"><use href="#i-check"/></svg> Conferma Posizione</button>
+            <button class="btn-action" id="btnPhotoGpsBackFromMap" style="width:100%; background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:11.5px;"><svg class="ico"><use href="#i-back"/></svg> Indietro</button>
+        </div>
+    </div>

@@ -1,0 +1,20 @@
+
+    <!-- MODAL CENTRALE "MODIFICA PARAMETRI AVANZATI" (uno strato alla volta): sovraimpressione
+         al centro dello schermo invece che inline nello stretto drawer "Gestione dei dati
+         litologici", per non comprometterne la leggibilità con selettori e note lunghe. -->
+    <div class="modal-overlay tier-strati-top" id="modalEditParamsOverlay"></div>
+    <div class="modal tier-strati-top" id="modalEditParams" style="max-height: 92vh; overflow-y: auto; max-width: 480px;">
+        <div class="modal-title" style="justify-content: space-between; align-items: flex-start;">
+            <span style="display:flex; align-items:center; gap:9px; min-width:0;">
+                <div style="width: 28px; height: 28px; border-radius: 9px; background: var(--purple-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--purple); width:16px; height:16px;"><use href="#i-edit"/></svg>
+                </div>
+                <span style="min-width:0;">
+                    <span style="display:block;">Modifica Parametri Avanzati</span>
+                    <span id="lblEditParamsStrato" style="display:block; font-size:11px; font-weight:600; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                </span>
+            </span>
+            <button class="btn-icon" id="btnCloseEditParamsX" title="Chiudi senza salvare" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto; flex-shrink:0;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div id="editParamsBody"></div>
+    </div>

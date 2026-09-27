@@ -1,0 +1,75 @@
+
+    <!-- Intestazione della SINGOLA prova (committente, comune, località, data, N° prova): si apre
+         toccando la card in alto in Vista Prova. Prima questi campi vivevano nel drawer
+         Impostazioni generale insieme a preferenze dell'app — spostati qui perché sono dati della
+         prova aperta, non preferenze; per lo stesso motivo questa scorciatoia non compare affatto
+         in Home, dove non c'è ancora una prova specifica a cui riferirli. -->
+    <div class="modal-overlay" id="modalCantiereInfoOverlay"></div>
+    <div class="modal" id="modalCantiereInfo" style="max-width: 420px;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-list"/></svg>
+                </span>
+                <span>Intestazione Cantiere</span>
+            </span>
+            <button class="btn-icon" id="btnCloseCantiereInfoX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <!-- Il nome del progetto: prima si sceglieva solo alla creazione e non si poteva più cambiare. -->
+        <div class="form-group">
+            <label>Nome del progetto</label>
+            <input type="text" id="txtNomeProgetto" class="form-control" placeholder="es. Scuola Via Roma">
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Cliente / Committente</label>
+                <input type="text" id="txtCommittente" class="form-control" placeholder="es. Mario Rossi">
+            </div>
+            <div class="form-group">
+                <label>Comune</label>
+                <input type="text" id="txtComune" class="form-control" placeholder="es. Genzano">
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Località / Indirizzo</label>
+                <input type="text" id="txtLocalita" class="form-control" placeholder="es. Via Roma 10">
+            </div>
+            <div class="form-group">
+                <label>Data Indagine</label>
+                <input type="date" id="txtDataIndagine" class="form-control">
+            </div>
+        </div>
+
+        <!-- DUE DATI DEL CANTIERE, NON DELLA PROVA. Servono all'apertura della relazione
+             ("per conto della ditta X, con sede a Y, a corredo dell'intervento denominato Z") e
+             sono uguali per tutte le prove dello stesso cantiere: si scrivono una volta e
+             valgono per il progetto intero, come gia' fanno comune, committente e localita'. -->
+        <div class="form-group">
+            <label>Provincia</label>
+            <input type="text" id="txtProvincia" class="form-control" placeholder="es. TA" maxlength="30">
+            <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Compare nell&rsquo;ubicazione del sito: &laquo;in agro del Comune di Sava (TA)&raquo;.</div>
+        </div>
+        <div class="form-group">
+            <label>Sede del committente</label>
+            <input type="text" id="txtSedeCommittente" class="form-control" placeholder="es. S.P. Sava-San Marzano, Zona Industriale di Sava (TA)">
+        </div>
+        <div class="form-group">
+            <label>Denominazione dell'intervento</label>
+            <input type="text" id="txtDenominazioneIntervento" class="form-control" placeholder="es. Interventi previsti nell'Area industriale di Taranto…">
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Prova N°</label>
+                <input type="text" id="txtProvaNr" class="form-control" placeholder="es. 1" value="1">
+            </div>
+            <div class="form-group">
+                <label>Lunghezza Asta (m)</label>
+                <input type="number" id="numHeaderLunghAsta" class="form-control" placeholder="es. 1.00" value="1.00" step="0.1">
+            </div>
+        </div>
+    </div>

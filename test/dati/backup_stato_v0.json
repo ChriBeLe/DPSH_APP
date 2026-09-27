@@ -1,0 +1,1200 @@
+{
+  "currentProjectId": "PROJ_Copertino_1790450355704",
+  "currentSurveyId": "SURV_2_1790450363276",
+  "projects": {
+    "PROJ_Nard__1790450327664": {
+      "id": "PROJ_Nard__1790450327664",
+      "name": "Nardò - Scuola Via Roma",
+      "comune": "Nardò",
+      "committente": "Comune di Nardò",
+      "localita": "Area parcheggio",
+      "operator": "",
+      "date": "2026-09-14",
+      "updatedAt": 1790450355701,
+      "surveys": {
+        "SURV_1_1790450327664": {
+          "id": "SURV_1_1790450327664",
+          "header": {
+            "committente": "Comune di Nardò",
+            "comune": "Nardò",
+            "localita": "Cortile interno, lato nord",
+            "provaNr": "1",
+            "faldaDa": "2.40",
+            "faldaA": "2.40",
+            "lat": 40.19741,
+            "lng": 17.99213,
+            "alt": 42,
+            "acc": 4.5,
+            "date": "2026-09-14"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 4.000000000000001,
+          "currentRod": 5,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 3,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1"
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 5,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 4,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6000000000000001,
+              "end": 0.8,
+              "colpi": 7,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 9,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1790450331851"
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 12,
+              "asta": 2,
+              "note": "Rifiuto parziale, trovante calcareo",
+              "lithology": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 10,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 14,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.5999999999999999,
+              "end": 1.7999999999999998,
+              "colpi": 15,
+              "asta": 2,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 1.7999999999999998,
+              "end": 1.9999999999999998,
+              "colpi": 18,
+              "asta": 2,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 1.9999999999999998,
+              "end": 2.1999999999999997,
+              "colpi": 16,
+              "asta": 3,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 2.1999999999999997,
+              "end": 2.4,
+              "colpi": 20,
+              "asta": 3,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 2.4,
+              "end": 2.6,
+              "colpi": 22,
+              "asta": 3,
+              "note": "",
+              "lithology": "strato_1790450331898"
+            },
+            {
+              "start": 2.6,
+              "end": 2.8000000000000003,
+              "colpi": 19,
+              "asta": 3,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 2.8000000000000003,
+              "end": 3.0000000000000004,
+              "colpi": 25,
+              "asta": 3,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 3.0000000000000004,
+              "end": 3.2000000000000006,
+              "colpi": 28,
+              "asta": 4,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 3.2000000000000006,
+              "end": 3.400000000000001,
+              "colpi": 30,
+              "asta": 4,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 3.400000000000001,
+              "end": 3.600000000000001,
+              "colpi": 27,
+              "asta": 4,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 3.600000000000001,
+              "end": 3.800000000000001,
+              "colpi": 24,
+              "asta": 4,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 3.800000000000001,
+              "end": 4.000000000000001,
+              "colpi": 26,
+              "asta": 4,
+              "note": "",
+              "lithology": ""
+            }
+          ],
+          "photos": [
+            {
+              "id": "photo_1790450332990",
+              "dataUrl": "\u0000PJPROJ_Nard__1790450327664_0\u0000",
+              "lat": 40.19741,
+              "lng": 17.99213,
+              "alt": 42,
+              "hasExifGps": false,
+              "gpsSource": "cantiere",
+              "timestamp": "26/09/2026 21:18"
+            },
+            {
+              "id": "photo_1790450333301",
+              "dataUrl": "\u0000PJPROJ_Nard__1790450327664_1\u0000",
+              "lat": 40.19741,
+              "lng": 17.99213,
+              "alt": 42,
+              "hasExifGps": false,
+              "gpsSource": "cantiere",
+              "timestamp": "26/09/2026 21:18"
+            }
+          ],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450333641
+        },
+        "SURV_2_1790450333641": {
+          "id": "SURV_2_1790450333641",
+          "header": {
+            "committente": "Comune di Nardò",
+            "comune": "Nardò",
+            "localita": "Cortile interno, lato sud",
+            "provaNr": "2",
+            "faldaDa": "",
+            "faldaA": "",
+            "lat": 40.19702,
+            "lng": 17.99251,
+            "alt": null,
+            "acc": null,
+            "date": "2026-09-14"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 1.9999999999999998,
+          "currentRod": 3,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 2,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 4,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 6,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6000000000000001,
+              "end": 0.8,
+              "colpi": 8,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 8,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 11,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 13,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 15,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.5999999999999999,
+              "end": 1.7999999999999998,
+              "colpi": 18,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.7999999999999998,
+              "end": 1.9999999999999998,
+              "colpi": 21,
+              "asta": 2,
+              "note": ""
+            }
+          ],
+          "photos": [],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450339851
+        },
+        "SURV_3_1790450339851": {
+          "id": "SURV_3_1790450339851",
+          "header": {
+            "committente": "Comune di Nardò",
+            "comune": "Nardò",
+            "localita": "Area parcheggio",
+            "provaNr": "3",
+            "faldaDa": "",
+            "faldaA": "",
+            "lat": null,
+            "lng": null,
+            "alt": null,
+            "acc": null,
+            "date": "2026-09-14"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 2.4,
+          "currentRod": 3,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 1,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1"
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 3,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 3,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6,
+              "end": 0.8,
+              "colpi": 5,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1790450331851"
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 9,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 14,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 20,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 26,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.6,
+              "end": 1.8,
+              "colpi": 31,
+              "asta": 2,
+              "note": "",
+              "lithology": "strato_1790450331898"
+            },
+            {
+              "start": 1.7999999999999998,
+              "end": 1.9999999999999998,
+              "colpi": 35,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.9999999999999998,
+              "end": 2.1999999999999997,
+              "colpi": 40,
+              "asta": 3,
+              "note": ""
+            },
+            {
+              "start": 2.1999999999999997,
+              "end": 2.4,
+              "colpi": 50,
+              "asta": 3,
+              "note": ""
+            }
+          ],
+          "photos": [
+            {
+              "id": "photo_1790450354252",
+              "dataUrl": "\u0000PJPROJ_Nard__1790450327664_2\u0000",
+              "lat": null,
+              "lng": null,
+              "alt": null,
+              "hasExifGps": false,
+              "gpsSource": null,
+              "timestamp": "26/09/2026 21:19"
+            }
+          ],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450354568
+        },
+        "SURV_3B_1790450354568": {
+          "id": "SURV_3B_1790450354568",
+          "header": {
+            "committente": "Comune di Nardò",
+            "comune": "Nardò",
+            "localita": "Area parcheggio",
+            "provaNr": "3B",
+            "faldaDa": "",
+            "faldaA": "",
+            "lat": null,
+            "lng": null,
+            "alt": null,
+            "acc": null,
+            "date": "2026-09-14",
+            "interpretazioneDi": "SURV_3_1790450339851"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 2.4,
+          "currentRod": 3,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 1,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1"
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 3,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 3,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6,
+              "end": 0.8,
+              "colpi": 5,
+              "asta": 1,
+              "note": "",
+              "lithology": ""
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 9,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 14,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 20,
+              "asta": 2,
+              "note": "",
+              "lithology": "strato_1790450331851"
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 26,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.6,
+              "end": 1.8,
+              "colpi": 31,
+              "asta": 2,
+              "note": "",
+              "lithology": "strato_1790450331898"
+            },
+            {
+              "start": 1.7999999999999998,
+              "end": 1.9999999999999998,
+              "colpi": 35,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.9999999999999998,
+              "end": 2.1999999999999997,
+              "colpi": 40,
+              "asta": 3,
+              "note": ""
+            },
+            {
+              "start": 2.1999999999999997,
+              "end": 2.4,
+              "colpi": 50,
+              "asta": 3,
+              "note": ""
+            }
+          ],
+          "photos": [
+            {
+              "id": "photo_1790450354252",
+              "dataUrl": "\u0000PJPROJ_Nard__1790450327664_3\u0000",
+              "lat": null,
+              "lng": null,
+              "alt": null,
+              "hasExifGps": false,
+              "gpsSource": null,
+              "timestamp": "26/09/2026 21:19"
+            }
+          ],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450355701
+        }
+      },
+      "strati": [
+        {
+          "id": "strato_1",
+          "name": "Terreno vegetale limoso",
+          "color": "#fbbf24",
+          "parametriAvanzati": {}
+        },
+        {
+          "id": "strato_1790450331851",
+          "name": "Sabbia limosa mediamente addensata",
+          "color": "#ef4444",
+          "parametriAvanzati": {
+            "angoloAttrito": {
+              "autoreIndex": 0
+            },
+            "moduloElastico": {
+              "autoreIndex": 0
+            },
+            "moduloEdometrico": {
+              "autoreIndex": 0
+            },
+            "densitaRelativa": {
+              "autoreIndex": 2
+            },
+            "moduloTaglio": {
+              "autoreIndex": 0
+            },
+            "resistenzaCPT": {
+              "autoreIndex": 0
+            }
+          }
+        },
+        {
+          "id": "strato_1790450331898",
+          "name": "Calcarenite tenera",
+          "color": "#3b82f6",
+          "parametriAvanzati": {
+            "angoloAttrito": {
+              "autoreIndex": 3
+            },
+            "moduloElastico": {
+              "autoreIndex": 0
+            },
+            "moduloEdometrico": {
+              "autoreIndex": 0
+            },
+            "densitaRelativa": {
+              "autoreIndex": 2
+            },
+            "moduloTaglio": {
+              "autoreIndex": 0
+            }
+          }
+        }
+      ],
+      "notes": {
+        "html": "<h2>Sopralluogo del 14/09</h2><p>Accesso dal cancello di <strong>Via Roma</strong>. Falda intercettata nella prova 1 a circa 2,40 m.</p><p>Schizzo della posizione delle prove:<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAAcklEQVR4nO3VMQoAIQwFUQ+3V9jO2s4reHYRBFG+nZk0gZSB12gmfX+Rk2uT82o/uai5NgEDqoAZ9YQxdYNJdcGwOmFeHbCLeoWt1XFAXFQBM+oJY+oGk+qCYXXCvHrNYvTY4B1Ejxk1eoyp0ePoseVP610/VcSnvvvXAAAAAElFTkSuQmCC\" data-note-img-id=\"nimg_1790450355305_4fms7\"></p>",
+        "updatedAt": 1790450355500,
+        "schemaMotore": 2
+      }
+    },
+    "PROJ_Copertino_1790450355704": {
+      "id": "PROJ_Copertino_1790450355704",
+      "name": "Copertino - Cantiere",
+      "comune": "Copertino",
+      "committente": "Edil Salento S.r.l.",
+      "localita": "Lotto 9",
+      "operator": "",
+      "date": "2026-09-20",
+      "updatedAt": 1790450367910,
+      "surveys": {
+        "SURV_1_1790450355704": {
+          "id": "SURV_1_1790450355704",
+          "header": {
+            "committente": "Edil Salento S.r.l.",
+            "comune": "Copertino",
+            "localita": "Lotto 7, Via delle Cesine",
+            "provaNr": "1",
+            "faldaDa": "",
+            "faldaA": "",
+            "lat": null,
+            "lng": null,
+            "alt": null,
+            "acc": null,
+            "date": "2026-09-20"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 2.1999999999999997,
+          "currentRod": 3,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 4,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 6,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 6,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6000000000000001,
+              "end": 0.8,
+              "colpi": 9,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 11,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 10,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 12,
+              "asta": 2,
+              "note": "",
+              "lithology": "strato_1790450363024"
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 16,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.5999999999999999,
+              "end": 1.7999999999999998,
+              "colpi": 19,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.7999999999999998,
+              "end": 1.9999999999999998,
+              "colpi": 22,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.9999999999999998,
+              "end": 2.1999999999999997,
+              "colpi": 24,
+              "asta": 3,
+              "note": ""
+            }
+          ],
+          "photos": [],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450363273
+        },
+        "SURV_2_1790450363276": {
+          "id": "SURV_2_1790450363276",
+          "header": {
+            "committente": "Edil Salento S.r.l.",
+            "comune": "Copertino",
+            "localita": "Lotto 9",
+            "provaNr": "2",
+            "faldaDa": "",
+            "faldaA": "",
+            "lat": null,
+            "lng": null,
+            "alt": null,
+            "acc": null,
+            "date": "2026-09-20"
+          },
+          "instrument": {
+            "pesoMassa": 63.5,
+            "pesoAsta": 6.3,
+            "lunghAsta": 1,
+            "cambioAsta": 1,
+            "pesoSistema": 8,
+            "volata": 0.75,
+            "passo": 0.2,
+            "areaPunta": 20,
+            "angoloPunta": 90
+          },
+          "settings": {
+            "penetrometer": "DPSH (63.5kg)",
+            "stepCm": 20,
+            "operator": "",
+            "haptic": true,
+            "audio": true,
+            "wakeLock": true,
+            "darkMode": true,
+            "themeHue": "antracite",
+            "expandedMode": false,
+            "integratedChart": true
+          },
+          "currentCount": 0,
+          "currentDepthStart": 1.5999999999999999,
+          "currentRod": 2,
+          "logs": [
+            {
+              "start": 0,
+              "end": 0.2,
+              "colpi": 3,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.2,
+              "end": 0.4,
+              "colpi": 5,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.4,
+              "end": 0.6000000000000001,
+              "colpi": 8,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.6000000000000001,
+              "end": 0.8,
+              "colpi": 8,
+              "asta": 1,
+              "note": ""
+            },
+            {
+              "start": 0.8,
+              "end": 1,
+              "colpi": 10,
+              "asta": 1,
+              "note": "",
+              "lithology": "strato_1790450363024"
+            },
+            {
+              "start": 1,
+              "end": 1.2,
+              "colpi": 13,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.2,
+              "end": 1.4,
+              "colpi": 17,
+              "asta": 2,
+              "note": ""
+            },
+            {
+              "start": 1.4,
+              "end": 1.5999999999999999,
+              "colpi": 21,
+              "asta": 2,
+              "note": ""
+            }
+          ],
+          "photos": [],
+          "reportTemplateId": null,
+          "templateImages": {},
+          "updatedAt": 1790450367910
+        }
+      },
+      "strati": [
+        {
+          "id": "strato_1",
+          "name": "Limo argilloso",
+          "color": "#fbbf24",
+          "parametriAvanzati": {}
+        },
+        {
+          "id": "strato_1790450363024",
+          "name": "Sabbia fine addensata",
+          "color": "#ef4444",
+          "parametriAvanzati": {}
+        }
+      ]
+    }
+  },
+  "lithologyArchive": {},
+  "reportTemplates": {
+    "classico": {
+      "id": "classico",
+      "name": "Classico",
+      "builtIn": true,
+      "pages": [
+        {
+          "id": "classico-p1",
+          "cols": 4,
+          "header": {
+            "imageDataUrl": null,
+            "text": ""
+          },
+          "footer": {
+            "text": ""
+          },
+          "rows": [
+            {
+              "id": "classico-r1",
+              "blocks": [
+                {
+                  "id": "classico-b1",
+                  "type": "inquadramento",
+                  "colSpan": 4
+                }
+              ]
+            },
+            {
+              "id": "classico-r2",
+              "blocks": [
+                {
+                  "id": "classico-b2",
+                  "type": "dati-prova",
+                  "colSpan": 2
+                },
+                {
+                  "id": "classico-b3",
+                  "type": "tabella-colpi",
+                  "colSpan": 2
+                }
+              ]
+            },
+            {
+              "id": "classico-r3",
+              "blocks": [
+                {
+                  "id": "classico-b4",
+                  "type": "grafico-stratigrafia",
+                  "colSpan": 4
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "margins": {
+        "top": 14,
+        "bottom": 14,
+        "left": 12,
+        "right": 12
+      }
+    }
+  },
+  "indiceTemplates": {
+    "idx_classico": {
+      "id": "idx_classico",
+      "name": "Classico",
+      "builtIn": true,
+      "mostraPagina": true,
+      "font": "Times New Roman",
+      "divisore": "punti",
+      "gutter": false,
+      "numero": {
+        "pt": 11,
+        "peso": 700
+      },
+      "titolo": {
+        "pt": 20,
+        "peso": 800
+      },
+      "titoloTesto": "Indice",
+      "pagina": {
+        "pt": 11,
+        "peso": 400
+      },
+      "coloreTesto": "#1e293b",
+      "coloreDivisore": "#cbd5e1",
+      "livelli": {
+        "h1": {
+          "pt": 13,
+          "rientroMm": 0,
+          "peso": 700,
+          "corsivo": false
+        },
+        "h2": {
+          "pt": 11.5,
+          "rientroMm": 6,
+          "peso": 400,
+          "corsivo": false
+        },
+        "h3": {
+          "pt": 10.5,
+          "rientroMm": 12,
+          "peso": 400,
+          "corsivo": true
+        }
+      }
+    }
+  },
+  "header": {
+    "committente": "Edil Salento S.r.l.",
+    "comune": "Copertino",
+    "localita": "Lotto 9",
+    "provaNr": "2",
+    "faldaDa": "",
+    "faldaA": "",
+    "lat": null,
+    "lng": null,
+    "alt": null,
+    "acc": null,
+    "date": "2026-09-20"
+  },
+  "instrument": {
+    "pesoMassa": 63.5,
+    "pesoAsta": 6.3,
+    "lunghAsta": 1,
+    "cambioAsta": 1,
+    "pesoSistema": 8,
+    "volata": 0.75,
+    "passo": 0.2,
+    "areaPunta": 20,
+    "angoloPunta": 90
+  },
+  "settings": {
+    "penetrometer": "DPSH (63.5kg)",
+    "stepCm": 20,
+    "operator": "",
+    "haptic": true,
+    "audio": true,
+    "wakeLock": true,
+    "darkMode": true,
+    "themeHue": "antracite",
+    "expandedMode": false,
+    "integratedChart": true
+  },
+  "currentCount": 0,
+  "currentDepthStart": 1.5999999999999999,
+  "currentRod": 2,
+  "logs": [
+    {
+      "start": 0,
+      "end": 0.2,
+      "colpi": 3,
+      "asta": 1,
+      "note": ""
+    },
+    {
+      "start": 0.2,
+      "end": 0.4,
+      "colpi": 5,
+      "asta": 1,
+      "note": ""
+    },
+    {
+      "start": 0.4,
+      "end": 0.6000000000000001,
+      "colpi": 8,
+      "asta": 1,
+      "note": ""
+    },
+    {
+      "start": 0.6000000000000001,
+      "end": 0.8,
+      "colpi": 8,
+      "asta": 1,
+      "note": ""
+    },
+    {
+      "start": 0.8,
+      "end": 1,
+      "colpi": 10,
+      "asta": 1,
+      "note": "",
+      "lithology": "strato_1790450363024"
+    },
+    {
+      "start": 1,
+      "end": 1.2,
+      "colpi": 13,
+      "asta": 2,
+      "note": ""
+    },
+    {
+      "start": 1.2,
+      "end": 1.4,
+      "colpi": 17,
+      "asta": 2,
+      "note": ""
+    },
+    {
+      "start": 1.4,
+      "end": 1.5999999999999999,
+      "colpi": 21,
+      "asta": 2,
+      "note": ""
+    }
+  ],
+  "strati": [
+    {
+      "id": "strato_1",
+      "name": "Limo argilloso",
+      "color": "#fbbf24",
+      "parametriAvanzati": {}
+    },
+    {
+      "id": "strato_1790450363024",
+      "name": "Sabbia fine addensata",
+      "color": "#ef4444",
+      "parametriAvanzati": {}
+    }
+  ],
+  "photos": [],
+  "archive": {},
+  "templateImages": {},
+  "uiState": {
+    "currentView": "home"
+  },
+  "reportTemplateId": null
+}

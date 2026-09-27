@@ -1,0 +1,39 @@
+
+    <!-- RITAGLIO DELLE IMMAGINI. Uno strumento solo, riusato da chiunque abbia un'immagine da
+         ritagliare: le foto delle prove (e quindi i blocchi foto, il report e il PDF, che le
+         leggono dallo stesso archivio) e le immagini delle note, disegni compresi.
+         Sta su un livello dichiarato piu' alto delle finestre da cui viene aperto. -->
+    <div class="modal-overlay tier-strati-top" id="modalRitaglioOverlay"></div>
+    <div class="modal tier-strati-top" id="modalRitaglio" style="max-width: 700px; max-height: 94vh; overflow-y: auto; display:flex; flex-direction:column;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-crop"/></svg> <span id="lblRitaglioTitolo">Ritaglia</span></span>
+            <button class="btn-icon" id="btnRitaglioChiudiX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+
+        <div class="note-toolbar" id="ritaglioToolbar">
+            <div class="note-tb-group" role="group" aria-label="Proporzioni">
+                <button type="button" class="note-tb-btn ritaglio-prop is-active" data-ritaglio-prop="libero" title="Proporzioni libere">Libero</button>
+                <button type="button" class="note-tb-btn ritaglio-prop" data-ritaglio-prop="1:1" title="Quadrato">1:1</button>
+                <button type="button" class="note-tb-btn ritaglio-prop" data-ritaglio-prop="4:3" title="Orizzontale 4:3">4:3</button>
+                <button type="button" class="note-tb-btn ritaglio-prop" data-ritaglio-prop="3:4" title="Verticale 3:4">3:4</button>
+                <button type="button" class="note-tb-btn ritaglio-prop" data-ritaglio-prop="16:9" title="Panoramico 16:9">16:9</button>
+            </div>
+            <div class="note-tb-group" role="group" aria-label="Azioni">
+                <button type="button" class="note-tb-btn" id="btnRitaglioTutto" title="Riparti dall'immagine intera">Tutta l'immagine</button>
+            </div>
+            <span class="note-tb-status" id="lblRitaglioMisura">—</span>
+        </div>
+
+        <div class="ritaglio-tela-wrap">
+            <canvas id="ritaglioCanvas" width="640" height="420"></canvas>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.45;">
+            Trascina dentro il riquadro per spostarlo, dai quadratini agli angoli per cambiarne la forma. Quello che resta fuori viene tagliato via.
+        </div>
+        <div id="ritaglioNotaOriginale" style="display:none; font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.45; padding:7px 9px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-sunken);"></div>
+
+        <div class="modal-actions">
+            <button class="btn-action" id="btnRitaglioAnnulla" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">Annulla</button>
+            <button class="btn-action" id="btnRitaglioConferma" style="background: var(--accent); color: var(--on-accent); font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Ritaglia</button>
+        </div>
+    </div>

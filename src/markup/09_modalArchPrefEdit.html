@@ -1,0 +1,369 @@
+
+    <!-- MODAL MODIFICA PREFERENZA FORMULA DI CATEGORIA (Archivio Litologico Globale): sostituisce
+         il vecchio <select> inline nella scheda archivio (richiesto esplicitamente: "non voglio
+         che da qui sia più editabile come menù a tendina... ogni categoria deve avere un tasto per
+         modificare direttamente") con un tasto per categoria che apre questa lista di scelta
+         rapida, dedicata a UNA categoria alla volta, invece di tanti piccoli menu a tendina
+         affiancati — stesso meccanismo "tocca per applicare subito" già usato altrove nell'app
+         (es. il selettore di pattern/retino). -->
+    <div class="modal-overlay tier-strati-top" id="modalArchPrefEditOverlay"></div>
+    <div class="modal tier-strati-top" id="modalArchPrefEdit" style="max-width: 420px;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span id="lblArchPrefEditTitolo"><svg class="ico"><use href="#i-flask"/></svg> Preferenza formula</span>
+            <button class="btn-icon" id="btnCloseArchPrefEditX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+            Formula proposta per prima quando questo strato viene riusato in un progetto e ha già intervalli assegnati. Resta comunque libero di cambiarla caso per caso in base ai colpi reali.
+        </div>
+        <div id="archPrefEditList" style="display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto;"></div>
+    </div>
+
+    <!-- MODAL WIZARD GUIDATO PARAMETRI AVANZATI -->
+    <style>
+        /* Stili scoperti dal wizard originale (wizard-parametri-avanzati.html), adattati
+           alle variabili di tema di Modulo 1 e prefissati "wiz-" per non collidere con
+           nessuna classe già in uso nel resto dell'app. */
+        .wiz-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;}
+        .wiz-strati-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none;}
+        .wiz-strati-tabs::-webkit-scrollbar{display:none;}
+        .wiz-strato-tab{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;border:1px solid var(--border);background:var(--bg-card-hover);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-muted);white-space:nowrap;font-family:var(--font-sans);}
+        .wiz-strato-tab .wiz-swatch{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+        .wiz-strato-tab.wiz-attivo{border-color:var(--accent);color:var(--text-main);background:var(--accent-soft);}
+        .wiz-strato-tab .wiz-badge-count{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);}
+        .wiz-strato-tab.wiz-completo .wiz-badge-count{color:var(--success);}
+        .wiz-card{display:flex;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+        .wiz-core-strip{width:12px;flex:0 0 12px;background-size:cover;}
+        .wiz-body{flex:1;min-width:0;padding:16px 16px 18px;}
+        /* Navigazione a pallini del wizard: SEMPRE tutte le 8 macro-categorie, mai nascoste (le
+           "non tipiche" per la natura dello strato restano spente ma toccabili — vedi
+           categoriaTipicaPerStrato). Pensati per essere comodamente premibili con il pollice: il
+           pallino visivo resta piccolo/compatto, ma l'area di tocco reale (padding+margin
+           negativo sul bottone) è molto più grande. */
+        .wiz-progress-row{position:relative;display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+        .wiz-progress-dots{display:flex;align-items:center;gap:2px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;touch-action:pan-y;cursor:grab;padding:4px 2px;}
+        .wiz-progress-dots::-webkit-scrollbar{display:none;}
+        .wiz-progress-dots:active{cursor:grabbing;}
+        .wiz-dot-btn{appearance:none;-webkit-appearance:none;background:none;border:none;padding:13px;margin:-13px;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;}
+        .wiz-dot{display:block;border-radius:50%;box-sizing:border-box;width:10px;height:10px;background:var(--bg-sunken);border:2px solid var(--border);transition:width var(--mov-breve) var(--ease-entra),height var(--mov-breve) var(--ease-entra),background-color var(--mov-breve) var(--ease-entra),border-color var(--mov-breve) var(--ease-entra),outline-color var(--mov-breve) var(--ease-entra),box-shadow var(--mov-breve) var(--ease-entra);}
+        .wiz-dot.wiz-dot-tipico{background:var(--accent-soft);border-color:var(--accent);}
+        .wiz-dot.wiz-dot-fatto{background:var(--accent);border-color:var(--accent);}
+        .wiz-dot.wiz-dot-non-tipico{background:var(--bg-sunken);border-color:var(--border);opacity:.75;}
+        .wiz-dot.wiz-dot-attivo{width:13px;height:13px;background:var(--accent);border-color:var(--accent);outline:2.5px solid var(--accent-soft);outline-offset:1px;}
+        .wiz-dot.wiz-dot-attivo.wiz-dot-attivo-non-tipico{background:var(--text-muted);border-color:var(--text-muted);outline-color:var(--bg-sunken);}
+        /* Un piccolo alone verde indica che il wizard ha già un consiglio pronto per questa
+           categoria, in base al nome dello strato — visibile anche sui pallini "non tipici"
+           (altrimenti tutti grigi indistintamente), cosi l'utente sa dove vale la pena guardare. */
+        .wiz-dot.wiz-dot-consigliato{box-shadow:0 0 0 2px var(--success);}
+        .wiz-progress-label{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-left:auto;white-space:nowrap;flex:0 0 auto;}
+        .wiz-progress-legend{display:flex;align-items:center;gap:12px;font-size:10px;color:var(--text-muted);margin:2px 0 12px;flex-wrap:wrap;row-gap:4px;}
+        .wiz-progress-legend span{display:inline-flex;align-items:center;gap:4px;}
+        .wiz-progress-legend b{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+        .wiz-progress-legend .wiz-legend-tipico{background:var(--accent-soft);border:1.5px solid var(--accent);}
+        .wiz-progress-legend .wiz-legend-non-tipico{background:var(--bg-sunken);border:1.5px solid var(--border);}
+        .wiz-progress-legend .wiz-legend-consigliato{background:var(--bg-sunken);border:1.5px solid var(--border);box-shadow:0 0 0 2px var(--success);}
+        .wiz-dots-hint{position:absolute;top:-30px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:5px;background:var(--text-main);color:var(--bg-card);font-size:10.5px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow-md, 0 4px 12px rgba(0,0,0,.25));animation:wiz-hint-bounce 1.1s ease-in-out infinite;}
+        @keyframes wiz-hint-bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-3px);}}
+        .wiz-avviso-non-tipico{display:flex;align-items:flex-start;gap:10px;width:100%;background:var(--warning-soft);border:1px solid var(--warning);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11.5px;color:var(--text-main);font-family:var(--font-sans);cursor:pointer;text-align:left;}
+        .wiz-avviso-non-tipico svg{width:16px;height:16px;flex:0 0 auto;margin-top:1px;color:var(--warning);}
+        .wiz-avviso-non-tipico b{font-weight:700;}
+        .wiz-avviso-non-tipico .wiz-avviso-testo{flex:1;min-width:0;line-height:1.5;}
+        .wiz-avviso-non-tipico .wiz-avviso-hint{opacity:.75;font-style:italic;}
+        .wiz-avviso-non-tipico .wiz-avviso-chevron{flex:0 0 auto;font-weight:700;font-size:14px;color:var(--warning);}
+        .wiz-tag-non-tipico{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--text-main);background:var(--warning-soft);border:1px solid var(--warning);border-radius:999px;padding:${padV} 6px;margin-right:6px;}
+        .wiz-categoria-header{margin-bottom:12px;}
+        .wiz-categoria-header h2{font-size:16.5px;font-weight:700;color:var(--text-main);margin:0;}
+        .wiz-categoria-header .wiz-unita{color:var(--text-muted);font-weight:400;font-size:13px;}
+        .wiz-spiegazione{font-size:12.5px;color:var(--text-muted);margin-top:6px;line-height:1.55;padding:9px 11px;background:var(--info-soft);border-radius:8px;border-left:3px solid var(--info);}
+        .wiz-candidati-list{display:flex;flex-direction:column;gap:9px;margin-top:12px;}
+        .wiz-gruppo{border:1.5px solid var(--border);border-radius:10px;background:var(--bg-card);overflow:hidden;}
+        .wiz-gruppo.wiz-ha-consigliati{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+        .wiz-gruppo-intestazione{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-sunken);border-bottom:1px solid var(--border);}
+        .wiz-cognome{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);}
+        .wiz-gruppo.wiz-ha-consigliati .wiz-gruppo-intestazione{background:var(--accent-soft);}
+        .wiz-gruppo.wiz-ha-consigliati .wiz-cognome{color:var(--accent);}
+        .wiz-varianti{display:flex;flex-direction:column;}
+        .wiz-variante{display:flex;flex-direction:column;border-top:1px solid var(--border);cursor:pointer;background:var(--bg-card);}
+        .wiz-variante:first-child{border-top:none;}
+        .wiz-variante:hover{background:var(--bg-card-hover);}
+        .wiz-variante.wiz-selezionato{background:var(--success-soft);}
+        .wiz-variante-riga{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;}
+        .wiz-variante-terreno{font-size:12.5px;color:var(--text-main);font-weight:500;}
+        .wiz-variante.wiz-selezionato .wiz-variante-terreno{color:var(--success);font-weight:700;}
+        .wiz-variante-valore{font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--text-main);white-space:nowrap;flex:0 0 auto;}
+        .wiz-variante-check{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;}
+        .wiz-variante.wiz-selezionato .wiz-variante-check{background:var(--success);border-color:var(--success);}
+        .wiz-variante-check svg{width:10px;height:10px;display:none;}
+        .wiz-variante.wiz-selezionato .wiz-variante-check svg{display:block;}
+        .wiz-riga-consiglio{display:flex;align-items:center;gap:6px;padding:0 12px 9px;}
+        .wiz-badge-consigliato{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--on-accent);background:var(--accent);border-radius:6px;padding:4px 9px 4px 7px;}
+        .wiz-badge-consigliato svg{width:13px;height:13px;flex:0 0 auto;}
+        .wiz-badge-consigliato.wiz-badge-parziale{color:#7a4a00;background:#ffcc66;}
+        .wiz-btn-info{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--border);color:var(--text-muted);background:var(--bg-card);font-size:12px;font-weight:700;font-family:var(--font-sans);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;padding:0;}
+        .wiz-btn-info:hover{border-color:var(--info);color:var(--info);}
+        .wiz-btn-info.wiz-btn-spiega{border-color:var(--accent);color:var(--accent);}
+        .wiz-btn-info.wiz-btn-spiega:hover{background:var(--accent-soft);}
+        .wiz-spiega-panel{font-size:12px;color:var(--accent);background:var(--accent-soft);border-radius:7px;padding:9px 11px;margin:0 12px 11px;line-height:1.5;}
+        .wiz-spiega-panel.wiz-neutro{background:var(--bg-sunken);color:var(--text-muted);}
+        .wiz-spiega-panel b{font-weight:700;}
+        .wiz-spiega-panel .wiz-voce{margin-top:7px;}
+        .wiz-spiega-panel .wiz-voce:first-child{margin-top:0;}
+        .wiz-fonte-tag{font-size:10px;font-style:italic;opacity:.8;}
+        .wiz-categoria-vuota{font-size:13px;color:var(--text-muted);padding:16px 4px;text-align:center;}
+        .wiz-link-btn{font-family:var(--font-sans);font-size:13px;font-weight:700;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;}
+        .wiz-ricerca-row{position:relative;display:flex;align-items:center;margin-bottom:12px;}
+        .wiz-ricerca-ico{position:absolute;left:11px;width:15px;height:15px;color:var(--text-muted);pointer-events:none;}
+        .wiz-ricerca-input{width:100%;font-family:var(--font-sans);font-size:13px;padding:9px 34px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);}
+        .wiz-ricerca-input:focus{outline:none;border-color:var(--accent);}
+        .wiz-ricerca-reset{position:absolute;right:8px;width:22px;height:22px;border-radius:50%;border:none;background:var(--bg-sunken);color:var(--text-muted);font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+        .wiz-ricerca-reset:hover{color:var(--text-main);}
+
+        /* ===== NOTE DI PROGETTO (finestra flottante, pagina unica per progetto) ===== */
+        .note-toolbar{display:flex;align-items:center;gap:4px;padding:8px 4px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+        .note-tb-btn{min-width:30px;height:30px;padding:0 7px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--text-main);font-family:var(--font-sans);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+        .note-tb-btn:hover{background:var(--bg-sunken);border-color:var(--border);}
+        .note-tb-btn.is-active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
+        .note-tb-sep{width:1px;align-self:stretch;background:var(--border);margin:2px 4px;}
+        /* I pulsanti si leggono per GRUPPI, non come un muro unico: ogni gruppo raccoglie i
+           comandi che agiscono sulla stessa cosa (la riga, il testo, cosa si inserisce, le
+           azioni). Quando la barra va a capo su un telefono, va a capo tra un gruppo e l'altro
+           invece che nel mezzo di una famiglia di comandi. */
+        /* IL GRUPPO VA A CAPO ANCH'ESSO. La barra aveva flex-wrap, i gruppi no: quando un
+           gruppo era piu' largo della finestra non si spezzava, USCIVA — e i comandi in coda
+           (allineamento, lista di controllo) diventavano invisibili pur essendo li'. Ora la
+           barra non puo' piu' traboccare: al massimo cresce in altezza. */
+        .note-tb-group{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px;padding:2px;border-radius:9px;background:var(--bg-sunken);border:1px solid var(--border);max-width:100%;min-width:0;}
+        .note-toolbar{max-width:100%;box-sizing:border-box;}
+        /* SOLO I FIGLI DIRETTI. Prima era `.note-toolbar *`, e quella stella colpiva anche i
+           pannellini a scomparsa (allineamento, colori) che vivono in posizione ASSOLUTA dentro
+           un contenitore largo quanto il loro pulsante: max-width:100% li schiacciava a trenta
+           pixel, e le quattro scelte dell'allineamento si accavallavano sulla riga sotto.
+           Un selettore universale dentro un contenitore e' una rete che pesca anche quello che
+           non doveva esserci. */
+        .note-toolbar > *{max-width:100%;}
+        .note-shape-popover{max-width:none;}
+        /* La tendina dell'impaginazione ha l'etichetta piu' lunga di tutta la barra: le si
+           lascia restringere, invece di lasciarle decidere la larghezza minima del gruppo. */
+        .note-tb-group .note-tb-select{flex:0 1 auto;min-width:0;max-width:200px;}
+        .note-tb-group .note-tb-btn:hover{background:var(--bg-card);}
+        /* LA BARRETTA CHE COMPARE SULLA SELEZIONE. Vive fuori dal flusso, ancorata alle
+           coordinate della selezione: sul telefono toglie il viaggio dito -> barra in cima ->
+           dito, che su uno schermo piccolo e' il costo piu' alto di tutta la scrittura. */
+        .note-bolla{position:fixed;z-index:260;display:none;align-items:center;gap:2px;padding:3px;
+            border-radius:10px;background:var(--bg-card);border:1px solid var(--border);
+            box-shadow:0 6px 20px rgba(0,0,0,.28);transform:translate(-50%,-100%);
+            opacity:0;transition:opacity var(--mov-breve) var(--ease-entra);}
+        .note-bolla.aperta{display:flex;opacity:1;}
+        /* RICERCA */
+        .note-search-row{display:none;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 4px;border-bottom:1px solid var(--border);}
+        .note-search-row.aperta{display:flex;}
+        .note-search-input{flex:1;min-width:120px;box-sizing:border-box;font-size:13px;padding:8px 10px;
+            border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);}
+        .note-search-conteggio{font-size:11px;font-weight:700;color:var(--text-muted);white-space:nowrap;min-width:56px;text-align:center;}
+        .note-search-altri{flex:1 0 100%;display:none;flex-direction:column;gap:4px;max-height:150px;overflow-y:auto;margin-top:2px;}
+        .note-search-altri.aperta{display:flex;}
+        .note-search-hit{text-align:left;padding:7px 9px;border-radius:8px;border:1px solid var(--border);
+            background:var(--bg-main);color:var(--text-main);font-size:11.5px;line-height:1.4;cursor:pointer;}
+        .note-search-hit:hover{border-color:var(--accent);background:var(--bg-sunken);}
+        .note-search-hit b{color:var(--accent-ink);}
+        /* Le occorrenze trovate: sono DECORAZIONI, non modifiche al testo — non entrano
+           nell'annulla e non finiscono nel salvataggio. Inchiostro scuro forzato per la stessa
+           ragione dell'evidenziatore: il fondo e' chiaro anche in tema scuro. */
+        .note-editor-body .nota-trovato{background:#fde68a;color:#111827 !important;border-radius:2px;}
+        .note-editor-body .nota-trovato-corrente{background:#f59e0b;color:#111827 !important;box-shadow:0 0 0 2px rgba(245,158,11,.35);}
+        .note-tb-status{margin-left:auto;font-size:10.5px;color:var(--text-muted);font-weight:600;white-space:nowrap;}
+        /* Col dito i 30px stanno stretti: su schermi tattili i pulsanti crescono. */
+        @media (pointer: coarse){
+            .note-tb-btn{min-width:36px;height:36px;}
+            .note-toolbar{gap:5px;}
+        }
+        .note-tb-status.note-saving{color:var(--accent-ink);}
+        .note-editor-body{flex:1;min-height:260px;max-height:48vh;overflow-y:auto;padding:14px 4px;font-size:13.5px;line-height:1.6;color:var(--text-main);outline:none;position:relative;}
+        /* Vale per l'editor di testo dei template, che resta un contenteditable diretto. */
+        .note-editor-body:empty:before{content:attr(data-placeholder);color:var(--text-muted);pointer-events:none;}
+        /* NOTE DI PROGETTO: qui #noteEditorBody non è più il contenteditable, è il CONTENITORE in cui
+           il motore (TipTap/ProseMirror) monta il proprio. Tutte le regole qui sotto sono discendenti,
+           quindi continuano a valere identiche; queste tre riguardano il contenitore e il suo interno. */
+        .note-editor-body > .ProseMirror{outline:none;min-height:100%;}
+        .note-editor-body > .ProseMirror p{margin:0 0 6px;}
+        .note-editor-body > .ProseMirror > :last-child{margin-bottom:0;}
+        /* Un'immagine affiancata "galleggia": senza questo il contenitore non la conterrebbe e
+           l'ultima riga di testo finirebbe a sbordare oltre il fondo della nota. */
+        .note-editor-body > .ProseMirror:after{content:"";display:block;clear:both;}
+        /* Il segnaposto non può più essere :empty (dentro c'è sempre almeno un paragrafo del motore):
+           la classe la mette e la toglie l'editor, che sa davvero se il documento è vuoto. */
+        .note-editor-body.note-vuota:before{content:attr(data-placeholder);position:absolute;left:4px;top:14px;right:4px;color:var(--text-muted);pointer-events:none;}
+        /* Selezione di un'immagine: la mette ProseMirror da solo quando la tocchi (NodeSelection),
+           non serve più aggiungere e togliere una classe a mano. */
+        .note-editor-body .ProseMirror-selectednode{outline:3px solid var(--accent);outline-offset:2px;}
+        /* EVIDENZIATORE E TEMA SCURO. I colori dell'evidenziatore sono chiari per forza (sono
+           colori da evidenziatore), ma in tema scuro il testo e' quasi bianco: bianco su giallo
+           pallido non si legge. Il motore scrive "color: inherit" in linea sul <mark>, quindi qui
+           serve !important — una dichiarazione !important del foglio di stile batte una regola
+           in linea che non lo e'. Stessa scelta gia' fatta per le intestazioni colorate delle
+           tabelle del report: su un fondo chiaro l'inchiostro e' scuro, sempre. */
+        .note-editor-body mark{background:#fef08a;border-radius:2px;padding:0 1px;color:#111827 !important;}
+        .note-editor-body mark *{color:inherit;}
+        .note-editor-body img{max-width:100%;border-radius:8px;margin:6px 0;display:block;}
+        .note-editor-body img.note-inline-shape{display:inline-block;vertical-align:middle;margin:0 3px;border-radius:0;max-width:none;}
+        .note-editor-body img.note-img-selected{outline:3px solid var(--accent);outline-offset:2px;}
+        .note-editor-body h1{font-size:19px;font-weight:800;margin:12px 0 6px;}
+        .note-editor-body h2{font-size:17px;font-weight:800;margin:11px 0 5px;}
+        .note-editor-body h3{font-size:15px;font-weight:800;margin:10px 0 4px;}
+        .note-editor-body ul,
+        .note-editor-body ol{padding-left:20px;}
+        .note-editor-body li > p{margin:0;}
+        /* LE TABELLE SI STILANO SUL TAG, NON SULLA CLASSE. La classe "note-table" c'e' solo
+           nell'HTML SERIALIZZATO (getHTML, quindi export e stampa): dentro l'editor la tabella la
+           disegna ProseMirror con il proprio contenitore — <div class="tableWrapper"><table> —
+           e quella classe non arriva mai. Legandoci ad essa la tabella nasceva senza un bordo,
+           cioe' invisibile: sembrava che il pulsante non facesse niente. */
+        .note-editor-body .tableWrapper{overflow-x:auto;margin:8px 0;}
+        .note-editor-body table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12.5px;table-layout:fixed;}
+        .note-editor-body table th,
+        .note-editor-body table td{border:1px solid var(--border);padding:6px 8px;min-width:36px;text-align:left;vertical-align:top;position:relative;}
+        .note-editor-body table th{background:var(--bg-sunken);font-weight:700;}
+        .note-editor-body table p{margin:0;}
+        /* Celle scelte con la selezione a rettangolo: senza questo non si vede cosa si sta per
+           cancellare quando si tolgono righe o colonne. */
+        .note-editor-body .selectedCell:after{content:"";position:absolute;inset:0;background:var(--accent-soft);opacity:.55;pointer-events:none;}
+        /* «SI SCRIVE COME SI STAMPA»: il corpo dell'editor del blocco di testo prende le
+           stesse variabili del foglio — carattere, corpo, interlinea, allineamento — cosi' i
+           capoversi vanno a capo negli stessi punti. Solo per il blocco del template: le note di
+           progetto restano un taccuino, non un foglio A4. */
+        .note-editor-come-stampa{font-family:var(--tpl-font, inherit);}
+        .note-editor-come-stampa p{text-align:var(--tpl-allineamento, justify);text-indent:var(--tpl-rientro, 0);}
+        .note-editor-come-stampa h1,.note-editor-come-stampa h2,.note-editor-come-stampa h3{font-weight:var(--tpl-peso-titoli, 700);text-align:left;text-indent:0;}
+        /* GLI ELENCHI HANNO SEMPRE UN RIENTRO. Un punto elenco allineato al margine come il
+           testo normale non si legge come un elenco: e' il rientro a dire "questi vanno insieme,
+           e sono subordinati a cio' che precede". */
+        .note-editor-come-stampa ul,.note-editor-come-stampa ol{margin-left:6mm;}
+        .note-editor-come-stampa li p{text-align:left;text-indent:0;}
+        /* UNA FORMULA DA SOLA E' UN BLOCCO, non una riga di testo: va centrata, senza rientro e
+           senza giustificazione, che su una riga corta aprirebbe voragini fra i simboli. Dentro
+           un capoverso, invece, resta testo — cambia solo il carattere. */
+        .note-editor-come-stampa p[data-formula-blocco]{text-align:center;text-indent:0;margin:0.6em 0;}
+        /* Mentre si scrive, la marcatura non c'e' ancora (la mette il render del foglio): qui
+           si riconosce il capoverso di sola formula col selettore :has. Dove non c'e', non
+           succede niente di male — si vede centrata comunque sul foglio. */
+        .note-editor-come-stampa p:has(> [data-formula]:only-child){text-align:center;text-indent:0;margin:0.6em 0;}
+        .note-editor-body blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid var(--accent);background:var(--bg-sunken);color:var(--text-muted);font-style:italic;}
+        .note-editor-body hr{border:none;border-top:1.5px solid var(--border);margin:14px 0;}
+        .note-editor-body a{color:var(--info);text-decoration:underline;}
+        /* CHECKLIST: ogni voce è un div non-lista (non un <li>) cosi il tasto Invio è gestito "a
+           mano" (vedi keydown su noteEditorBody) invece di affidarsi al comportamento nativo del
+           browser sulle liste, che con un checkbox dentro è inaffidabile. La checkbox è avvolta in
+           un contenitore contenteditable="false": resta cliccabile ma non modificabile come testo. */
+        .note-editor-body .note-check-item{display:flex;align-items:flex-start;gap:8px;margin:3px 0;}
+        .note-editor-body .note-check-label{display:flex;align-items:center;flex:0 0 auto;padding-top:2px;cursor:pointer;}
+        .note-editor-body .note-check-box{width:16px;height:16px;flex:0 0 auto;cursor:pointer;accent-color:var(--accent);}
+        .note-editor-body .note-check-text{flex:1;min-width:1px;}
+        .note-editor-body .note-check-item.checked .note-check-text{text-decoration:line-through;color:var(--text-muted);}
+        /* FORMA NUOVA della lista di controllo, quella del motore: <ul data-type="taskList"> con
+           dentro <li data-type="taskItem" data-checked>. L'aspetto è deliberatamente identico a
+           quello della forma vecchia qui sopra, così la conversione non si vede. */
+        .note-editor-body ul[data-type="taskList"]{list-style:none;padding-left:2px;margin:4px 0;}
+        .note-editor-body ul[data-type="taskList"] li{display:flex;align-items:flex-start;gap:8px;margin:3px 0;}
+        .note-editor-body ul[data-type="taskList"] li > label{flex:0 0 auto;display:flex;align-items:center;padding-top:2px;cursor:pointer;}
+        .note-editor-body ul[data-type="taskList"] li > label input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--accent);}
+        .note-editor-body ul[data-type="taskList"] li > div{flex:1;min-width:1px;}
+        .note-editor-body ul[data-type="taskList"] li > div p{margin:0;}
+        .note-editor-body ul[data-type="taskList"] li[data-checked="true"] > div{text-decoration:line-through;color:var(--text-muted);}
+        .note-tb-select{height:28px;padding:0 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);font-family:var(--font-sans);font-size:11.5px;font-weight:600;cursor:pointer;}
+        .note-export-row{display:flex;align-items:center;gap:6px;padding:10px 4px 2px;border-top:1px solid var(--border);flex-wrap:wrap;}
+        .note-export-label{font-size:10.5px;color:var(--text-muted);font-weight:700;margin-right:2px;}
+        .note-export-btn{font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--text-main);cursor:pointer;}
+        .note-export-btn:hover{background:var(--bg-card-hover);}
+
+        /* SELETTORE FOTO PROGETTO (riusato da inserimento diretto e da sfondo disegno) */
+        .note-photo-pick-item{position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);background:#0f172a;aspect-ratio:1/1;cursor:pointer;}
+        .note-photo-pick-item img{width:100%;height:100%;object-fit:cover;display:block;}
+        .note-photo-pick-item .note-photo-pick-tag{position:absolute;bottom:0;left:0;right:0;background:rgba(15,23,42,0.85);padding:2px 4px;font-size:8.5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .note-photo-pick-item:active{transform:scale(0.96);}
+
+        /* POPOVER GENERICO (riusato dall'evidenziatore) */
+        .note-shape-popover{position:absolute;top:calc(100% + 6px);left:0;z-index:20;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-md, 0 6px 18px rgba(0,0,0,0.3));padding:10px;width:180px;}
+
+        /* STRUMENTO DI DISEGNO */
+        .note-draw-tool.is-active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
+        .note-draw-color{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;flex:0 0 auto;}
+        .note-draw-colori{display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:180px;}
+        /* La pastiglia mostra il colore attuale dentro il pulsante: il comando dice anche in
+           che stato e', invece di aprirsi solo per farlo scoprire. Il taglio in diagonale e'
+           il modo consueto di dire "nessun colore". */
+        .note-draw-pastiglia{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--border);display:inline-block;}
+        .note-draw-pastiglia.vuota{background:linear-gradient(to top right, transparent 45%, var(--danger) 45%, var(--danger) 55%, transparent 55%) !important;}
+        .note-draw-sfondo-scelta.is-active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);}
+        .note-draw-sfondo-riga{border-bottom:1px solid var(--border);padding-bottom:8px;}
+        .note-draw-color.is-active{border-color:var(--text-main);box-shadow:0 0 0 2px var(--bg-card);}
+        /* La scacchiera segue il TEMA, non e' fissa chiara. Con lo sfondo trasparente e' l'unica
+           cosa che si vede sotto il tratto: se restasse chiara mentre la nota e' scura, si
+           disegnerebbe guardando un fondo che poi non ci sara'. */
+        /* I DATI PRESI DAL CAMPO, dentro un testo generato. Evidenziati col colore del tema
+           per dire, senza scriverlo, che quel pezzo non e' stato inventato: viene dai dati di
+           cantiere. Sono marcatori di REDAZIONE — nel foglio di stile della stampa non esistono,
+           quindi nel PDF e nel Word il testo esce pulito senza doverlo ripulire a mano. */
+        .dato-cantiere{background:var(--accent-soft);color:var(--accent-ink);border-radius:3px;padding:0 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone;cursor:pointer;}
+        .dato-cantiere:hover{outline:1px solid var(--accent);}
+        .dato-mancante{background:var(--danger-soft);color:var(--danger);font-weight:700;outline:1px dashed var(--danger);}
+        /* Il conteggio sul blocco: un triangolo e un numero. Un dato mancante che resta muto
+           finisce stampato tra parentesi quadre in una relazione firmata. */
+        .badge-dati-mancanti{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:800;
+            color:var(--danger);background:var(--danger-soft);border:1px solid var(--danger);
+            border-radius:999px;padding:1px 7px 1px 5px;white-space:nowrap;}
+        .ico-dadi{color:#f59e0b;}
+        .ritaglio-tela-wrap{background:repeating-conic-gradient(var(--bg-sunken) 0% 25%, var(--bg-card) 0% 50%) 50% / 16px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;}
+        #ritaglioCanvas{max-width:100%;height:auto;display:block;cursor:move;touch-action:none;}
+        .note-draw-canvas-wrap{background:repeating-conic-gradient(var(--bg-sunken) 0% 25%, var(--bg-card) 0% 50%) 50% / 16px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;}
+        #noteDrawCanvas{width:100%;height:auto;display:block;cursor:crosshair;touch-action:none;}
+        .wiz-nav-row{display:flex;align-items:center;gap:10px;margin-top:18px;}
+        .wiz-btn{font-family:var(--font-sans);font-size:13px;font-weight:700;padding:9px 15px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);cursor:pointer;}
+        .wiz-btn.wiz-fantasma{border-color:transparent;color:var(--text-muted);background:transparent;}
+        .wiz-btn:disabled{opacity:.35;cursor:not-allowed;}
+        .wiz-btn.wiz-btn-archivio{display:inline-flex;align-items:center;gap:6px;background:var(--purple-soft);color:var(--purple);border:1px solid rgba(168,85,247,0.4);}
+        .wiz-badge-archivio{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--purple);background:var(--purple-soft);border:1px solid rgba(168,85,247,0.4);padding:8px 12px;border-radius:8px;}
+        .wiz-riepilogo-riga{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+        .wiz-riepilogo-riga:last-child{border-bottom:none;}
+        .wiz-riepilogo-nome{font-size:12.5px;color:var(--text-muted);}
+        .wiz-riepilogo-dettaglio{text-align:right;}
+        .wiz-riepilogo-valore{font-family:var(--font-mono);font-size:13.5px;font-weight:700;color:var(--text-main);}
+        .wiz-riepilogo-autore{font-size:11px;color:var(--text-muted);margin-top:1px;}
+        .wiz-riepilogo-manca{font-size:12px;color:var(--danger);font-style:italic;}
+        .wiz-tag-natura{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:${padV} 6px;border-radius:5px;margin-right:6px;}
+        .wiz-tag-natura.wiz-granulare{background:var(--accent-soft);color:var(--accent);}
+        .wiz-tag-natura.wiz-coesivo{background:var(--purple-soft);color:var(--purple);}
+        .wiz-foot-note{margin-top:14px;font-size:11px;color:var(--text-muted);text-align:center;line-height:1.5;}
+        /* Override manuale delle categorie litologiche (Ghiaia/Sabbia/Limo/Argilla) usate dal
+           meccanismo "consigliato" del wizard — vedi categorieRiconosciuteDiStrato in JS. Chip
+           preselezionati dal riconoscimento automatico del nome, toccabili per correggerli
+           quando il nome non basta o va interpretato diversamente. */
+        .wiz-categorie-manuali{margin-bottom:12px;}
+        .wiz-categorie-manuali-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+        .wiz-categorie-manuali-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+        .wiz-cat-chip{flex:0 0 auto;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--bg-card-hover);cursor:pointer;font-size:11.5px;font-weight:600;color:var(--text-muted);font-family:var(--font-sans);}
+        .wiz-cat-chip.wiz-cat-chip-attiva{border-color:var(--accent);color:var(--on-accent);background:var(--accent);font-weight:700;}
+        .wiz-cat-reset{flex:0 0 auto;padding:5px 4px;border:none;background:transparent;color:var(--accent-ink);font-size:11px;font-weight:700;text-decoration:underline;cursor:pointer;font-family:var(--font-sans);}
+        .wiz-avviso-carbonatico{display:flex;gap:10px;align-items:flex-start;width:100%;background:var(--danger-soft);border:1px solid var(--danger);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--danger);line-height:1.5;font-family:var(--font-sans);cursor:pointer;text-align:left;}
+        .wiz-avviso-carbonatico .wiz-avviso-ico{width:16px;height:16px;flex:0 0 auto;margin-top:1px;}
+        .wiz-avviso-carbonatico b{font-weight:700;}
+        .wiz-avviso-carbonatico .wiz-avviso-testo{flex:1;min-width:0;}
+        .wiz-avviso-carbonatico .wiz-avviso-hint{opacity:.75;font-style:italic;}
+        .wiz-avviso-carbonatico .wiz-avviso-chevron{flex:0 0 auto;font-weight:700;font-size:14px;line-height:1;margin-top:1px;}
+        .wiz-avviso-carbonatico:not(.wiz-avviso-aperto){align-items:center;}
+        .wiz-continua-overlay{position:sticky;bottom:0;display:flex;justify-content:flex-end;padding-top:14px;margin-top:6px;background:linear-gradient(to top, var(--bg-card) 65%, transparent);}
+        .wiz-btn-continua{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-sans);font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:999px;border:none;background:var(--accent);color:var(--on-accent);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+        .wiz-btn-continua svg{width:15px;height:15px;}
+
+        /* Selettore visuale del pattern/retino (sostituisce il <select> testuale):
+           mostra un'anteprima reale del retino/pattern durante la scelta. Prefisso
+           "patpick-" per non collidere con nessuna classe già in uso. */
+        .patpick-wrap{position:relative;width:100%;}
+        .patpick-trigger{display:flex;align-items:center;gap:7px;width:100%;padding:4px 8px;font-size:11px;cursor:pointer;text-align:left;}
+        .patpick-swatch{width:18px;height:18px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(0,0,0,0.25);}
+        .patpick-trigger-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .patpick-chevron{font-size:10px;color:var(--text-muted);flex:0 0 auto;}
+        .patpick-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,0.25);max-height:260px;overflow-y:auto;padding:6px;}
+        .patpick-section-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);padding:6px 6px 4px;}
+        .patpick-option{display:flex;align-items:center;gap:8px;width:100%;padding:5px 6px;font-size:11.5px;text-align:left;border-radius:6px;border:none;background:transparent;cursor:pointer;color:var(--text-main);}
+        .patpick-option:hover{background:var(--bg-card-hover);}
+        .patpick-option-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    </style>

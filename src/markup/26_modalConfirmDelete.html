@@ -1,0 +1,21 @@
+
+    <div class="modal-overlay" id="modalConfirmDeleteOverlay"></div>
+    <div class="modal" id="modalConfirmDelete">
+        <div class="modal-title" style="color: var(--danger); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+            <svg class="ico"><use href="#i-trash"/></svg> Elimina Progetto
+        </div>
+        <p style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; line-height: 1.5;">
+            Sei sicuro di voler eliminare il progetto <strong id="lblDeleteProjName" style="color: var(--accent);">"Cantiere"</strong> e tutte le relative prove penetrometriche?
+        </p>
+        <div style="font-size: 11px; color: var(--text-muted); background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); margin-bottom: 18px;">
+            <svg class="ico"><use href="#i-info"/></svg> Avrai comunque 10 secondi per annullare l'operazione dalla barra notifiche.
+        </div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn-action" id="btnCancelDeleteProjModal" style="background: var(--bg-card-hover); border: 1px solid var(--border); font-size: 12px; font-weight: 600;">
+                Annulla
+            </button>
+            <button class="btn-action" id="btnConfirmDeleteProjModal" style="background: var(--danger); color: #ffffff; border: none; font-size: 12px; font-weight: 800; padding: 8px 16px;">
+                <svg class="ico"><use href="#i-trash"/></svg> Elimina Definitivemente
+            </button>
+        </div>
+    </div>

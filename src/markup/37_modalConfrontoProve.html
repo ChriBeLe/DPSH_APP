@@ -1,0 +1,23 @@
+
+    <!-- CONFRONTO TRA PROVE (voce 12): le prove di un progetto sullo stesso asse delle profondità, in una
+         sola figura: a sinistra i valori sovrapposti (colpi N o Rpd), a destra le colonne stratigrafiche.
+         Così una profondità si legge in orizzontale su tutto. Lo riempie renderConfrontoProve. -->
+    <div class="modal-overlay" id="modalConfrontoProveOverlay"></div>
+    <div class="modal" id="modalConfrontoProve" style="max-width: 600px; width: 94vw; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-chart"/></svg>
+                </span>
+                <span id="lblConfrontoTitolo" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Confronta prove</span>
+            </span>
+            <button class="btn-icon" id="btnCloseConfrontoX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+            Profondità dal piano campagna, uguali per tutte le prove. Tocca una prova per mostrarla o nasconderla; le interpretazioni alternative partono nascoste.
+        </div>
+        <div id="confrontoGrandezza" style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;"></div>
+        <div id="confrontoProve" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;"></div>
+        <div id="confrontoGrafico" style="overflow-x: auto;"></div>
+        <div id="confrontoLegendaStrati" style="display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; font-size: 11px; color: var(--text-muted);"></div>
+    </div>

@@ -1,0 +1,26 @@
+
+    <!-- MODAL ELIMINAZIONE PROVA (richiede digitazione di CANCELLA) -->
+    <div class="modal-overlay" id="modalDeleteSurveyOverlay"></div>
+    <div class="modal" id="modalDeleteSurvey" style="max-width: 380px;">
+        <div class="modal-title" style="color: var(--danger); gap: 9px;">
+            <svg class="ico ico-lg"><use href="#i-alert"/></svg>
+            <span>Elimina Prova</span>
+        </div>
+        <div style="font-size: 13px; line-height: 1.55; color: var(--text-main); margin-bottom: 12px;">
+            Stai per eliminare <strong id="lblDeleteSurveyName" style="color: var(--danger);">questa prova</strong> dal progetto corrente.
+        </div>
+        <div id="lblDeleteSurveyDetails" style="font-size: 11.5px; line-height: 1.5; color: var(--text-muted); background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; margin-bottom: 14px;"></div>
+        <div class="form-group" style="margin-bottom: 6px;">
+            <label style="color: var(--danger);">Scrivi CANCELLA per confermare</label>
+            <input type="text" id="txtDeleteSurveyConfirm" class="form-control" placeholder="CANCELLA" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </div>
+        <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 14px;">
+            L'operazione è definitiva e non può essere annullata.
+        </div>
+        <div class="modal-actions" style="display:flex; justify-content:flex-end; gap: 8px;">
+            <button class="btn-action" id="btnCancelDeleteSurvey" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 600;">Annulla</button>
+            <button class="btn-action" id="btnConfirmDeleteSurvey" style="background: var(--danger); color: var(--on-solid); border: none; font-weight: 700; opacity: 0.45; pointer-events: none;">
+                <svg class="ico"><use href="#i-trash"/></svg> Elimina
+            </button>
+        </div>
+    </div>

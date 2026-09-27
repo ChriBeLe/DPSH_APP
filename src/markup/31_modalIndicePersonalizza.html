@@ -1,0 +1,63 @@
+
+    <!-- MODAL "PERSONALIZZA INDICE": tre vesti di partenza (Classico/Moderno/Tecnico, scelte dalla
+         riga selEsportaPdfIndiceStile nell'export) restano completamente personalizzabili qui
+         oltre il preset — richiesto esplicitamente. Contenuto costruito in JS (vedi
+         renderModalPersonalizzaIndice) riusando gli stessi helper del menu blocco del template
+         editor (htmlControlloNumerico/htmlInterruttore, classi tpl-editor-menu-*): stesso
+         linguaggio visivo di ogni altro pannello di personalizzazione dell'app, non un widget a
+         parte. Leggero apposta (niente sistema a schede/fasce): una decina di controlli, non
+         il menu di un blocco. -->
+    <!-- Schermata a pieno schermo, non più una finestra centrata: richiesto esplicitamente
+         ("Deve avere una sua schermata come quella degli altri template per le prove... usa la
+         stessa finestra ma non rendere visibili i blocchi... solo tutte le personalizzazioni
+         possibili per l'indice"). Stessa cornice (classe tier-editor, stesso stile di barra del
+         titolo) dell'editor a blocchi #modalTemplateEditor, ma senza tavolozza blocchi né
+         striscia pagine: qui non ci sono né blocchi né più pagine, solo lo stile di UN indice.
+         L'anteprima a destra resta alimentata dalla stessa identica funzione dell'export vero
+         (buildIndiceReportCompletoHtml) con righe finte — nessuna seconda implementazione dello
+         stile che potrebbe disallinearsi da quella reale. -->
+    <div class="modal-overlay tier-editor" id="modalIndicePersonalizzaOverlay"></div>
+    <div class="modal tier-editor" id="modalIndicePersonalizza" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
+                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-list"/></svg>
+                </span>
+                <span id="lblIndicePersTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Personalizza indice</span>
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <button class="btn-action" id="btnIndicePersSalva" style="height: 32px; padding: 0 12px; font-size: 11.5px; background: var(--accent); color: var(--on-accent); font-weight: 800;">Salva</button>
+                <span style="width: 1px; height: 20px; background: var(--border); margin: 0 2px;"></span>
+                <button class="btn-icon" id="btnCloseIndicePersonalizzaX" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            </span>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex: 1; min-height: 0;">
+            <div id="idxPersControlli" style="width: 264px; flex-shrink: 0; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"></div>
+
+            <!-- Stessa gerarchia/tecnica dello zoom-e-pan reale dell'editor a blocchi
+                 (#templateEditorViewportWrap &gt; #templateEditorViewport + #templateEditorZoomBar
+                 fratelli): il wrap esterno NON scorre (la barra dello zoom vi resta ancorata),
+                 il viewport interno sì (overflow:auto, MAI justify-content:center — con
+                 justify-content:center gli angoli che sporgono oltre il centro non sono mai
+                 raggiungibili con lo scroll, bug segnalato esplicitamente). "outer" è
+                 dimensionato in JS alla dimensione POST-scala esatta (vedi applicaZoomIndicePers):
+                 è quel dimensionamento a far funzionare "margin:auto" — centra quando il foglio
+                 ci sta, lascia scorrere liberamente in ogni direzione quando trabocca. -->
+            <div style="position: relative; flex: 1; min-width: 0; display: flex;">
+                <div id="idxPersViewport" style="position: relative; flex: 1; min-width: 0; overflow: auto; background: var(--bg-sunken); border-radius: var(--radius-sm); padding: 24px; display: flex; touch-action: pan-x pan-y;">
+                    <div id="idxPersPreviewScaleOuter" style="margin: auto; flex-shrink: 0;">
+                        <div id="idxPersPreviewScaleWrap" style="transform-origin: top left;">
+                            <iframe id="idxPersPreview" style="width: 794px; height: 1123px; border: none; display: block; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.45);"></iframe>
+                        </div>
+                    </div>
+                </div>
+                <div style="position: absolute; right: 12px; top: 12px; display: flex; align-items: center; gap: 4px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); padding: 4px 5px;">
+                    <svg class="ico" style="width: 13px; height: 13px; color: var(--text-muted);"><use href="#i-search"/></svg>
+                    <input type="range" id="rangeIndicePersZoom" min="30" max="150" step="1" value="70" title="Zoom dell'anteprima" style="width: 100px; accent-color: var(--accent);">
+                    <span id="lblIndicePersZoom" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); min-width: 34px; text-align: center; user-select: none;">70%</span>
+                    <button type="button" id="btnIndicePersZoomFit" title="Adatta alla finestra" style="height: 26px; padding: 0 8px; border: none; background: none; cursor: pointer; font-size: 10px; font-weight: 800; color: var(--text-main); border-radius: 6px;">Adatta</button>
+                </div>
+            </div>
+        </div>
+    </div>

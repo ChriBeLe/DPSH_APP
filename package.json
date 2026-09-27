@@ -1,0 +1,13 @@
+{
+  "name": "dpsh-field-collector",
+  "version": "2026.9.11",
+  "private": true,
+  "description": "DPSH Field Collector: acquisizione, elaborazione e consegna delle prove penetrometriche dinamiche",
+  "scripts": {
+    "build": "python build.py",
+    "test": "python build.py && node test/esegui_tutti.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.1"
+  }
+}

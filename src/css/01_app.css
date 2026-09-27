@@ -1,0 +1,3066 @@
+        /* =========================================================================
+           SISTEMA COLORI — 8 palette a tema "Rocce & Minerali" (Antracite, Arenaria,
+           Ardesia, Rame, Giada, Ametista, Granito, Ambra) × chiaro/scuro. "Antracite" è
+           il default quando [data-hue] non è impostato. "Ambra" sono i colori originali
+           dell'app (ambra su ardesia), tenuti identici sotto un nuovo nome invece di
+           essere il default. "Granito" sostituisce un rosso pieno precedente con una
+           tonalità pietrosa più tenue. "Arenaria" e "Rame" sono tenute volutamente
+           lontane sulla ruota colore (>20°) per non confondersi come le due precedenti
+           che le hanno ispirate. Ogni palette è una coppia chiaro/scuro calcolata con lo
+           stesso rapporto di luminosità (verificato: testo su sfondo sempre oltre 12:1 di
+           contrasto, accento sempre almeno 2.7:1).
+           I token semantici (success/danger/info/purple) restano fissi in ogni
+           palette: sono colori di stato, non d'identità visiva.
+           ========================================================================= */
+        :root {
+            /* Token condivisi da tutte le palette */
+            --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --on-solid: #ffffff;        /* bianco su rosso/verde/blu pieni, sempre */
+
+            /* =====================  LA CADENZA DEL MOVIMENTO  =====================
+               Prima c'erano 12 durate diverse (0,05 · 0,08 · 0,1 · 0,14 · 0,15 · 0,16 ·
+               0,18 · 0,2 · 0,22 · 0,25 · 0,3 · 0,35) e sei curve, scelte una alla volta.
+               Due elementi vicini che si muovono a velocità diverse si leggono come un
+               errore anche quando ognuno, preso da solo, è a posto: è da lì che veniva
+               la sensazione di "scattoso", non dalla mancanza di animazioni.
+               Quattro durate e due curve. Chi ne aggiunge una fuori scala lo fa apposta,
+               non per distrazione — e il test se ne accorge. */
+            --mov-istante: 90ms;   /* risposta al tocco, hover: deve sembrare istantaneo */
+            --mov-breve: 160ms;    /* comparse, cambi di stato, icone che ruotano */
+            --mov-medio: 240ms;    /* pannelli, espansioni, menu */
+            --mov-lungo: 320ms;    /* solo cambi di schermata */
+            /* Qualcosa che ENTRA o si sposta: parte veloce e si posa piano (è già la curva
+               più usata nel file, 14 volte, scelta a suo tempo e mai messa in discussione). */
+            --ease-entra: cubic-bezier(.22, .61, .36, 1);
+            /* Qualcosa che cambia RESTANDO dov'è: simmetrica, senza slancio. */
+            --ease-inloco: cubic-bezier(.4, 0, .2, 1);
+
+            /* RISPETTO DELLA PREFERENZA DI SISTEMA. Non toglie nessuna funzione: gli stati
+               finali restano identici, sparisce solo il tragitto per arrivarci. Vale anche
+               come interruttore d'emergenza se su un telefono lento il movimento pesasse. */
+        }
+        @media (prefers-reduced-motion: reduce) {
+            :root {
+                --mov-istante: 1ms; --mov-breve: 1ms; --mov-medio: 1ms; --mov-lungo: 1ms;
+            }
+            *, *::before, *::after {
+                animation-duration: 1ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 1ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        /* =====================  LA RISPOSTA FISICA DEI TASTI  =====================
+           Contati nel file: 334 bottoni, 19 regole :active. Il 94% dei comandi non
+           rispondeva in nessun modo al tocco — e su un telefono, quando il dito preme e
+           non succede niente per un decimo di secondo, sembra che l'app abbia ignorato
+           il gesto. Una regola sola li copre tutti.
+
+           Si anima `transform`, non `width`/`padding`: il transform non tocca il layout,
+           quindi non può spostare quello che c'è intorno né far ricalcolare la pagina.
+           Sta QUI, in cima al foglio di stile, di proposito: qualunque regola :active
+           più specifica scritta più avanti la sovrascrive senza lotte di !important. */
+        button:not(:disabled):active,
+        [role="button"]:not([aria-disabled="true"]):active {
+            transform: scale(0.97);
+        }
+        /* Il colore deve seguire lo stesso ritmo dello schiacciamento. Con la sola `transform`
+           qui, un tasto si comprimeva in modo fluido e cambiava colore a scatto nello stesso
+           gesto: due velocità diverse sullo stesso elemento si notano più di nessuna animazione.
+           `background-color` e non `background`: la scorciatoia include anche l'immagine di
+           sfondo, che sui retini litologici non ha senso interpolare. */
+        button, [role="button"], .card, .btn-tag {
+            transition: transform var(--mov-istante) var(--ease-inloco),
+                        background-color var(--mov-istante) var(--ease-inloco),
+                        border-color var(--mov-istante) var(--ease-inloco),
+                        color var(--mov-istante) var(--ease-inloco);
+        }
+
+        /* LE ECCEZIONI. Ne serve UNA SOLA scritta, e vale la pena dire perché le altre no:
+           · le maniglie (ridimensionamento, margini pagina, riordino pagine) e la targhetta
+             del blocco sono <div> e <span>, non bottoni — la regola qui sopra non le
+             raggiunge proprio. Ed è giusto così: si TRASCINANO, e uno scalino sotto il dito
+             mentre trascini sposta il punto di presa, cioè peggiora il gesto in corso.
+           · .btn-touch (+1 / −1 del contatore) ha già la sua risposta, tarata sul guanto
+             (scale 0.94 + brightness): è scritta più avanti nel foglio, stessa specificità,
+             quindi vince da sola. Nessuna regola da aggiungere.
+           · Il lucchetto del contatore invece È un bottone, e la regola lo raggiungerebbe:
+             ma è un tieni-premuto con il suo anello di avanzamento, e due animazioni
+             sovrapposte sullo stesso gesto si disturbano. Questa è l'unica esclusione vera. */
+        .counter-lock-handle:active { transform: none; }
+        :root {
+
+            --success: #10b981;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --purple: #a855f7;
+            --warning: #eab308;
+            --success-soft: rgba(16, 185, 129, 0.16);
+            --danger-soft: rgba(239, 68, 68, 0.16);
+            --info-soft: rgba(59, 130, 246, 0.16);
+            --purple-soft: rgba(168, 85, 247, 0.16);
+            --warning-soft: rgba(234, 179, 8, 0.16);
+        }
+
+        /* ---- ANTRACITE (default): scuro ---- */
+        /* Sostituisce "Notte": stessa idea di base scura per il cantiere, ma tonalità e
+           accento completamente rifatti (verde acqua/petrolio al posto dell'ambra).
+           :not([data-hue]) rende esplicito che questa regola vale SOLO quando nessuna
+           palette è stata scelta esplicitamente, cosa che elimina ogni ambiguità di
+           specificità/ordine con le regole delle altre palette qui sotto. */
+        :root:not([data-hue]), [data-hue="antracite"] {
+            --bg-main: #16201e; --bg-card: #22322f; --bg-card-hover: #314743; --bg-sunken: #101715;
+            --text-main: #f1f3f3; --text-muted: #91a9a4;
+            --accent: #11bec3; --accent-hover: #0e999d; --accent-ink: #11bec3;
+            --accent-soft: rgba(17, 190, 195, 0.16);
+            --border: #3e4c49; --border-strong: #586a66;
+            --on-accent: #0d1c1a;
+            --overlay: rgba(0, 0, 0, 0.75);
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
+        }
+        /* ---- ANTRACITE: chiaro ---- */
+        :root:not([data-hue])[data-theme="light"], [data-hue="antracite"][data-theme="light"] {
+            --bg-main: #eef1f1; --bg-card: #ffffff; --bg-card-hover: #e6ecea; --bg-sunken: #e8ecec;
+            --text-main: #16201e; --text-muted: #5c6e6a;
+            --accent: #0d9488; --accent-hover: #09655d; --accent-ink: #0f4f49;
+            --accent-soft: #d7f3ef;
+            --border: #d7e0de; --border-strong: #8fa8a3;
+            --on-accent: #ffffff;
+            --overlay: rgba(22, 32, 30, 0.45);
+            --shadow: 0 10px 24px -6px rgba(22, 32, 30, 0.18);
+            --shadow-sm: 0 1px 4px rgba(22, 32, 30, 0.12);
+            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
+        }
+
+        /* ---- AMBRA ---- */
+        /* I colori originali che prima erano "Notte" (ambra su ardesia), conservati
+           identici e riproposti qui sotto un nome nuovo, come palette aggiuntiva
+           accanto ad Antracite invece che come default. */
+        [data-hue="ambra"] {
+            --bg-main: #0f172a; --bg-card: #1e293b; --bg-card-hover: #334155; --bg-sunken: #0b1120;
+            --text-main: #f1f5f9; --text-muted: #94a3b8;
+            --accent: #f59e0b; --accent-hover: #d97706; --accent-ink: #f59e0b;
+            --accent-soft: rgba(245, 158, 11, 0.16);
+            --border: #334155; --border-strong: #475569;
+            --on-accent: #0f172a;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 16px; --radius-md: 12px; --radius-sm: 8px;
+        }
+        [data-hue="ambra"][data-theme="light"] {
+            --bg-main: #eef2f7; --bg-card: #ffffff; --bg-card-hover: #e8edf4; --bg-sunken: #f8fafc;
+            --text-main: #0f172a; --text-muted: #5b6b7f;
+            --accent: #c2680a; --accent-hover: #9a5208; --accent-ink: #9a5208;
+            --accent-soft: rgba(194, 104, 10, 0.12);
+            --border: #d3dbe6; --border-strong: #adb9c9;
+            --on-accent: #ffffff;
+            --overlay: rgba(15, 23, 42, 0.45); --shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.18); --shadow-sm: 0 1px 4px rgba(15, 23, 42, 0.12);
+            --radius-lg: 16px; --radius-md: 12px; --radius-sm: 8px;
+        }
+
+        /* ---- AMETISTA ---- */
+        [data-hue="ametista"] {
+            --bg-main: #241f2e; --bg-card: #322b40; --bg-card-hover: #433a56; --bg-sunken: #1d1925;
+            --text-main: #f7f4fa; --text-muted: #aba3b9;
+            --accent: #a272cb; --accent-hover: #8e54c0; --accent-ink: #a272cb;
+            --accent-soft: rgba(162, 114, 203, 0.16);
+            --border: #3f2e5b; --border-strong: #594181;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 20px; --radius-md: 12px; --radius-sm: 7px;
+        }
+        [data-hue="ametista"][data-theme="light"] {
+            --bg-main: #f4f1f8; --bg-card: #ffffff; --bg-card-hover: #ede8f4; --bg-sunken: #efeaf5;
+            --text-main: #241f2e; --text-muted: #726a82;
+            --accent: #7c4dbd; --accent-hover: #643a9d; --accent-ink: #4c2c78;
+            --accent-soft: #ece2fa;
+            --border: #e2dbee; --border-strong: #9c84c5;
+            --on-accent: #ffffff;
+            --overlay: rgba(36, 31, 46, 0.45); --shadow: 0 10px 24px -6px rgba(36, 31, 46, 0.18); --shadow-sm: 0 1px 4px rgba(36, 31, 46, 0.12);
+            --radius-lg: 20px; --radius-md: 12px; --radius-sm: 7px;
+        }
+
+        /* ---- GRANITO ---- */
+        /* Sostituisce "Cremisi": stesse venature sul rosso, molto più tenue/pietrosa
+           invece che satura — un grigio caldo con riflessi rosati, non più un rosso pieno. */
+        [data-hue="granito"] {
+            --bg-main: #262323; --bg-card: #363232; --bg-card-hover: #494343; --bg-sunken: #1e1c1c;
+            --text-main: #f3f1f1; --text-muted: #b6adad;
+            --accent: #be8a8b; --accent-hover: #af7071; --accent-ink: #be8a8b;
+            --accent-soft: rgba(190, 138, 139, 0.16);
+            --border: #494141; --border-strong: #675b5b;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
+        }
+        [data-hue="granito"][data-theme="light"] {
+            --bg-main: #f1eeee; --bg-card: #fbfafa; --bg-card-hover: #e6e0e0; --bg-sunken: #ece8e8;
+            --text-main: #262323; --text-muted: #7d7676;
+            --accent: #a8636a; --accent-hover: #8b4d54; --accent-ink: #6b3238;
+            --accent-soft: #ecdcde;
+            --border: #e0dada; --border-strong: #a69595;
+            --on-accent: #ffffff;
+            --overlay: rgba(38, 35, 35, 0.45); --shadow: 0 10px 24px -6px rgba(38, 35, 35, 0.18); --shadow-sm: 0 1px 4px rgba(38, 35, 35, 0.12);
+            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
+        }
+
+        /* ---- ARENARIA ---- */
+        /* Sostituisce "Sabbia": stessa famiglia calda/sabbiosa, ma resa una roccia (la
+           pietra che la sabbia diventa) e allontanata di più da "Rame" qui sotto. */
+        [data-hue="arenaria"] {
+            --bg-main: #2e2618; --bg-card: #423722; --bg-card-hover: #5a4a2f; --bg-sunken: #241e13;
+            --text-main: #f7f3ec; --text-muted: #b5a994;
+            --accent: #caae7a; --accent-hover: #bf9c5d; --accent-ink: #caae7a;
+            --accent-soft: rgba(202, 174, 122, 0.16);
+            --border: #5b4d2f; --border-strong: #806c42;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
+        }
+        [data-hue="arenaria"][data-theme="light"] {
+            --bg-main: #f6f1e8; --bg-card: #ffffff; --bg-card-hover: #efe8d8; --bg-sunken: #f3ede1;
+            --text-main: #2e2618; --text-muted: #7d715c;
+            --accent: #b98a4e; --accent-hover: #98703c; --accent-ink: #6b4d24;
+            --accent-soft: #ecdfc4;
+            --border: #e5dcc9; --border-strong: #bca473;
+            --on-accent: #ffffff;
+            --overlay: rgba(46, 38, 24, 0.45); --shadow: 0 10px 24px -6px rgba(46, 38, 24, 0.18); --shadow-sm: 0 1px 4px rgba(46, 38, 24, 0.12);
+            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
+        }
+
+        /* ---- ARDESIA ---- */
+        /* Sostituisce "Nebbia": stesso blu-grigio freddo, ma la roccia che dà il nome
+           al colore ("ardesia" = slate) e un accento più smorzato, meno acceso. */
+        [data-hue="ardesia"] {
+            --bg-main: #1e262b; --bg-card: #2b363d; --bg-card-hover: #394952; --bg-sunken: #181e22;
+            --text-main: #f1f3f5; --text-muted: #9caab4;
+            --accent: #6883a7; --accent-hover: #546f92; --accent-ink: #6883a7;
+            --accent-soft: rgba(104, 131, 167, 0.16);
+            --border: #3b474f; --border-strong: #53646f;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
+        }
+        [data-hue="ardesia"][data-theme="light"] {
+            --bg-main: #eef1f3; --bg-card: #ffffff; --bg-card-hover: #e7ebee; --bg-sunken: #e8ecef;
+            --text-main: #1e262b; --text-muted: #64727c;
+            --accent: #4d6a85; --accent-hover: #3a5065; --accent-ink: #2c3f52;
+            --accent-soft: #dbe4ea;
+            --border: #dde3e7; --border-strong: #92a5b2;
+            --on-accent: #ffffff;
+            --overlay: rgba(30, 38, 43, 0.45); --shadow: 0 10px 24px -6px rgba(30, 38, 43, 0.18); --shadow-sm: 0 1px 4px rgba(30, 38, 43, 0.12);
+            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
+        }
+
+        /* ---- RAME ---- */
+        /* Sostituisce "Terra": era troppo simile a Sabbia/Arenaria. Il rame vira più
+           deciso verso il rosso-bruno, chiaramente distinto dal giallo-ocra di Arenaria
+           (differenza di tonalità verificata: oltre 20° sulla ruota colore). */
+        [data-hue="rame"] {
+            --bg-main: #35201a; --bg-card: #4a2c24; --bg-card-hover: #613b30; --bg-sunken: #2b1a15;
+            --text-main: #f6f0ea; --text-muted: #beaba3;
+            --accent: #c67859; --accent-hover: #b7613f; --accent-ink: #c67859;
+            --accent-soft: rgba(198, 120, 89, 0.16);
+            --border: #5d412d; --border-strong: #835b3f;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
+        }
+        [data-hue="rame"][data-theme="light"] {
+            --bg-main: #f5ede6; --bg-card: #fffaf6; --bg-card-hover: #ecdccf; --bg-sunken: #f2e8df;
+            --text-main: #35201a; --text-muted: #8a7267;
+            --accent: #a8503a; --accent-hover: #823e2d; --accent-ink: #5c2a18;
+            --accent-soft: #edd9cd;
+            --border: #e6d4c7; --border-strong: #bf906f;
+            --on-accent: #ffffff;
+            --overlay: rgba(53, 32, 26, 0.45); --shadow: 0 10px 24px -6px rgba(53, 32, 26, 0.18); --shadow-sm: 0 1px 4px rgba(53, 32, 26, 0.12);
+            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
+        }
+
+        /* ---- GIADA ---- */
+        /* Sostituisce "Salvia": stesso registro verde, ma come pietra (giada) invece
+           che come pianta, e un verde più freddo/smorzato invece del verde-oliva. */
+        [data-hue="giada"] {
+            --bg-main: #1c2b22; --bg-card: #283e31; --bg-card-hover: #365342; --bg-sunken: #16221b;
+            --text-main: #f1f6f3; --text-muted: #99afa2;
+            --accent: #6cab90; --accent-hover: #56977c; --accent-ink: #6cab90;
+            --accent-soft: rgba(108, 171, 144, 0.16);
+            --border: #3a4f40; --border-strong: #526f5a;
+            --on-accent: #1c1a17;
+            --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
+        }
+        [data-hue="giada"][data-theme="light"] {
+            --bg-main: #eef4f0; --bg-card: #ffffff; --bg-card-hover: #e6eee9; --bg-sunken: #e8f0eb;
+            --text-main: #1c2b22; --text-muted: #62766a;
+            --accent: #4f8a6c; --accent-hover: #3c6a53; --accent-ink: #2a4c3a;
+            --accent-soft: #dbece2;
+            --border: #dbe6de; --border-strong: #90b299;
+            --on-accent: #ffffff;
+            --overlay: rgba(28, 43, 34, 0.45); --shadow: 0 10px 24px -6px rgba(28, 43, 34, 0.18); --shadow-sm: 0 1px 4px rgba(28, 43, 34, 0.12);
+            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+ touch-action: manipulation; /* Opt for fast field taps without double-tap delay */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* HEADER & NAVBAR UNIFICATO (SCHEDA CARD STONDATA) */
+        header.unified-header {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 14px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .header-main-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-ink));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--on-accent);
+            font-weight: 800;
+            font-size: 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand-text h1 {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .brand-text span {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Home/Note/Litologia/Esporta/Menu: su schermi larghi restano in riga (comportamento
+           invariato). Sotto i 480px la riga non ha più spazio per tutto (il titolo cantiere finiva
+           troncato) — il gruppo si nasconde e riappare come piccolo menu a comparsa quando si tocca
+           #btnHeaderMore, con le stesse identiche voci/listener di prima, solo riposizionate. */
+        .header-actions-secondary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        @media (max-width: 480px) {
+            #btnHeaderMore { display: flex !important; }
+            /* Sotto questa soglia il gruppo è SEMPRE un menu a comparsa in overlay (mai la riga
+               inline): resta quindi sempre nel DOM con display:flex, la comparsa/scomparsa è
+               affidata a opacità + piccola scala invece che a display:none, altrimenti niente
+               transizione possibile (vedi .popover-region). pointer-events:none da chiuso evita
+               di intercettare tocchi su un menu invisibile. */
+            .header-actions-secondary {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                position: absolute;
+                top: 58px;
+                right: 14px;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                padding: 6px;
+                gap: 2px;
+                z-index: 60;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+                transform-origin: top right;
+                transform: scale(0.96) translateY(-4px);
+                opacity: 0;
+                pointer-events: none;
+                transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra);
+            }
+            .header-actions-secondary.open {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .header-actions-secondary .btn-icon {
+                width: auto;
+                height: auto;
+                justify-content: flex-start;
+                gap: 10px;
+                padding: 10px 14px;
+                border: none;
+                background: transparent;
+                font-size: 13px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .header-actions-secondary .btn-icon::after {
+                content: attr(data-label);
+            }
+            .header-actions-secondary .btn-icon:active {
+                background: var(--bg-card-hover);
+            }
+        }
+
+        /* Modificatore SOLO per l'header di Vista Prova: distingue a colpo d'occhio le azioni
+           frequenti (GPS/Fotocamera, restano .btn-icon piena come sempre) da quelle secondarie
+           (Home/Note/Litologia/Esporta/Menu, qui "a contorno"). Non tocca .btn-icon di base, che è
+           condivisa da tutti gli altri bottoni icona dell'app — solo questi la ricevono in più. */
+        .btn-icon.btn-icon-ghost {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
+
+        /* Barra prove: niente scrollbar nativa (fuori posto su un'interfaccia touch), al suo posto
+           una dissolvenza sui bordi che compare solo dal lato in cui c'è davvero altro contenuto da
+           scorrere — le classi fade-left/fade-right vengono attivate via JS in base allo scroll
+           reale (vedi updateSurveySwitcherFade), non sono sempre entrambe presenti a caso. Usa
+           mask-image (non un overlay a tinta piatta) cosi funziona identica su tutte le 5 palette
+           colore e sia in chiaro che in scuro, senza dover indovinare un colore di sfondo esatto. */
+        #surveySwitcherBar {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #surveySwitcherBar::-webkit-scrollbar { display: none; }
+        #surveySwitcherBar.fade-right {
+            -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+        }
+        #surveySwitcherBar.fade-left {
+            -webkit-mask-image: linear-gradient(to left, black calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to left, black calc(100% - 28px), transparent 100%);
+        }
+        #surveySwitcherBar.fade-left.fade-right {
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+        }
+
+        .btn-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            /* Elenco esplicito invece di `all`: `all` anima anche le proprieta di LAYOUT che
+               cambiano insieme alle altre, e ognuna di quelle costa un ricalcolo per fotogramma. */
+            transition: background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);
+        }
+
+        .btn-icon:active {
+            transform: scale(0.92);
+        }
+
+        /* VARIANTE PICCOLA (36px) — intestazioni affollate come quella del Registro Misurazioni,
+           dove quattro comandi devono stare in fila accanto al titolo.
+           Perché una classe e non "width:36px" scritto nell'attributo style, com'era prima: uno
+           stile in linea vince su QUALSIASI regola del foglio di stile, quindi vinceva anche su
+           "body.glove-mode .btn-icon { width: 58px }". Risultato: la modalità guanti ingrandiva
+           58 bottoni su 61 e questi restavano a 36px — cioè proprio i comandi del registro, la
+           schermata che si usa in cantiere col guanto. Con una classe la modalità guanti torna a
+           vincere normalmente (due classi battono una). */
+        .btn-icon-sm {
+            width: 36px;
+            height: 36px;
+            font-size: 15px;
+        }
+        /* (nessuna regola sull'icona: la dimensione la fissa già ".btn-icon .ico" più avanti nel
+           foglio, e va bene così — l'aspetto deve restare identico a prima.) */
+        /* L'aspetto resta 36px, ma il dito ne trova 44: l'area cresce verso l'esterno con un
+           pseudo-elemento trasparente, come già fatto per le maniglie dell'editor. I 4px per lato
+           non invadono il vicino, che dista 6px (gap della barra). */
+        .btn-icon-sm { position: relative; }
+        .btn-icon-sm::before { content: ''; position: absolute; inset: -4px; }
+
+        /* Il "⋮ Altre azioni" di ogni strato è il bersaglio più piccolo dell'app: 26px, in una
+           riga fitta. Qui la dimensione NON si tocca (a 44px veri sfonderebbe la riga e il menu
+           a tendina che ci pende sotto), si allarga solo l'area: 44px in altezza, ma appena 6px
+           per lato in orizzontale — la freccia di apertura riga sta a 8px e deve restare
+           raggiungibile. Il menu a tendina resta ancorato a .strato-more-wrap, che ha già il
+           proprio position:relative: questa regola riguarda il bottone, non il contenitore. */
+        .strato-more-btn { position: relative; }
+        .strato-more-btn::before { content: ''; position: absolute; inset: -9px -6px; }
+
+        /* MAIN CONTAINER */
+        main {
+            flex: 1;
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* CARD COMPONENT */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* BANNER SOMMARIO CANTIERE */
+        .survey-summary-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: background var(--mov-breve) var(--ease-entra);
+        }
+
+        .survey-summary-banner:active {
+            background: var(--border);
+        }
+
+        .summary-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .summary-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .summary-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* GPS BOX IN DRAWER */
+        .gps-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--accent-soft);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+        }
+
+        .gps-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .gps-coords {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .gps-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .btn-gps {
+            background: var(--accent);
+            color: var(--on-accent);
+            font-weight: 700;
+            border: none;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-gps:active {
+            transform: scale(0.95);
+        }
+
+        /* COUNTER DASHBOARD */
+        .counter-dashboard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 0 10px;
+            gap: 4px;
+            position: relative;
+            background: var(--bg-sunken);
+            border-radius: var(--radius-sm);
+        }
+        .depth-badge {
+            background: var(--accent-soft);
+            border: none;
+            border-radius: 999px;
+            padding: 6px 16px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--accent-ink);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .blow-display {
+            font-family: var(--font-mono);
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-main);
+            margin: 6px 0;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .rod-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* MANIGLIA/LUCCHETTO DI COMPRESSIONE DEL CONTATORE (vedi JS: btnCounterLockHandle).
+           Circolare, senza bordo, sfondo quasi invisibile a riposo (solo un
+           accenno per far capire che è toccabile). Un solo gesto: tieni premuto ~550ms e un
+           anellino pieno si disegna sul cerchio; a rilascio anticipato l'anello si svuota e non succede nulla.
+           Selettore composto (.counter-quick-toggle.counter-lock-handle) per avere la certezza
+           di vincere sulla regola condivisa .counter-quick-toggle indipendentemente dall'ordine
+           di dichiarazione nel foglio di stile. */
+        .counter-quick-toggle.counter-lock-handle {
+            position: relative;
+            touch-action: none;
+            border: none;
+            border-radius: 50%;
+            background: rgba(127, 127, 127, 0.08);
+            color: var(--text-muted);
+        }
+        .counter-lock-progress-ring {
+            position: absolute;
+            inset: -5px;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+            transform: rotate(-90deg);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity var(--mov-breve) var(--ease-entra);
+        }
+        .counter-quick-toggle.counter-lock-handle.pressing .counter-lock-progress-ring { opacity: 1; }
+        .counter-quick-toggle.counter-lock-handle.pressing { color: var(--accent-ink); background: rgba(127, 127, 127, 0.14); }
+        /* Riepilogo compatto mostrato SOLO a card compressa, al posto dell'intero pannello.
+           Reso più sottile su richiesta: meno padding verticale e testo leggermente più
+           piccolo, cosi la barra occupa meno altezza quando il contatore è chiuso. */
+        .counter-collapsed-bar {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 6px 4px;
+        }
+        #cardCounterDashboard.counter-collapsed .counter-collapsed-bar {
+            display: flex;
+            /* Comprimendo la card questa riga compariva dal nulla nello stesso istante in cui il
+               pannello spariva: due cambiamenti simultanei senza nessun legame visivo fra loro.
+               Entrando dall'alto racconta che è ciò che RESTA del pannello, non una cosa nuova. */
+            animation: tplEditorFadeInUp var(--mov-breve) var(--ease-entra);
+        }
+        .counter-compact-info {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+        .counter-compact-info span:first-child {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .counter-compact-info .cci-count {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-main);
+            flex: 0 0 auto;
+        }
+
+        /* KEYPAD & TOUCH CONTROLS */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 2.2fr;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-touch {
+            border: none;
+            border-radius: var(--radius-lg);
+            font-family: var(--font-sans);
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: transform var(--mov-istante) var(--ease-entra), filter var(--mov-istante) var(--ease-entra);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        }
+
+        .btn-touch:active {
+            transform: scale(0.94);
+            filter: brightness(0.9);
+        }
+
+        .btn-minus {
+            background-color: var(--bg-sunken);
+            color: var(--danger);
+            font-size: 32px;
+            height: 120px;
+            border: 2px solid var(--danger);
+        }
+
+        .btn-plus {
+            background: linear-gradient(135deg, var(--accent), var(--accent-ink));
+            color: var(--on-accent);
+            font-size: 40px;
+            height: 120px;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+        }
+
+        .btn-plus-label {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            box-sizing: border-box;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--text-main);
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-action:active {
+            transform: scale(0.96);
+        }
+
+        /* QUICK NOTE TAGS */
+        .note-tags-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 0 8px 0;
+            margin-top: 8px;
+        }
+
+        .btn-tag {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .btn-tag:active {
+            background: var(--accent);
+            color: var(--on-accent);
+        }
+        /* Le note rapide (Ciottoli, Cavità, Rifiuto…) sono alte 28px reali: padding 6px + 12px di
+           testo. Si toccano in cantiere, spesso con una mano sola mentre l'altra tiene l'asta,
+           quindi 28px sono pochi. L'area sale a 44px SENZA cambiare l'aspetto della pillola: in
+           verticale cresce di 8px per lato (non c'è nient'altro sopra o sotto nella riga), in
+           orizzontale solo di 3px, cioè metà del gap di 6px — così due tag vicine non si rubano
+           il tocco a vicenda. */
+        .btn-tag { position: relative; }
+        .btn-tag::before { content: ''; position: absolute; inset: -8px -3px; }
+
+        /* DATA TABLE / RECENT LOGS */
+        .logs-table-wrapper {
+            max-height: 220px;
+            overflow-y: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        table.logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        table.logs-table th {
+            background: var(--bg-card);
+            color: var(--text-muted);
+            padding: 8px 6px;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            border-bottom: 2px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        table.logs-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* INTERACTIVE SWIPE TABLE ROWS (GIALLO EDIT / ROSSO ELIMINA) */
+        .swipe-row-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-main);
+            width: 100%;
+        }
+
+        .swipe-bg {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity var(--mov-istante) var(--ease-entra), transform var(--mov-istante) var(--ease-entra), filter var(--mov-istante) var(--ease-entra);
+        }
+
+        .swipe-bg.is-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Quando lo swipe raggiunge il completamento (rettangolo rivelato del tutto) */
+        .swipe-bg.is-armed {
+            transform: scale(1.25);
+            filter: brightness(1.2);
+        }
+
+        /* Rivelato quando si trascina il dito verso DESTRA -> Elimina (Rosso <svg class="ico"><use href="#i-trash"/></svg>) */
+        .swipe-bg-delete {
+            left: 0;
+            background: var(--danger);
+            color: #ffffff;
+        }
+
+        /* Rivelato quando si trascina il dito verso SINISTRA -> Modifica (Giallo <svg class="ico"><use href="#i-edit"/></svg>) */
+        .swipe-bg-edit {
+            right: 0;
+            background: var(--warning);
+            color: var(--on-solid);
+        }
+
+        .swipe-content {
+            position: relative;
+            background: var(--bg-card);
+            transition: transform var(--mov-breve) var(--ease-entra);
+            width: 100%;
+            display: grid;
+            grid-template-columns: 26% 15% 17% 17% 25%;
+            align-items: center;
+            padding: 10px 10px;
+            box-sizing: border-box;
+            font-size: 13px;
+            touch-action: pan-y;
+            cursor: pointer;
+        }
+        .swipe-content .col-nspt-value {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .swipe-content:active {
+            background: var(--bg-card-hover);
+        }
+
+        .tag-note {
+            background: var(--accent-soft);
+            color: var(--accent-ink);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* SVG CHART */
+        .chart-box {
+            width: 100%;
+            max-height: 480px;
+            min-height: 240px;
+            overflow-y: auto;
+            background: var(--bg-main);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            position: relative;
+            padding: 8px 4px;
+            box-sizing: border-box;
+        }
+
+        /* La larghezza QUI E' IL DATO: la barra lunga il doppio vuol dire il doppio dei colpi.
+           Non è convertibile in transform senza deformare anche il bordo e il testo dentro. */
+        .chart-rect-bar {
+            transition: fill var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra);
+        }
+
+        .chart-bar-group:hover .chart-rect-bar,
+        .chart-bar-group:active .chart-rect-bar {
+            fill: var(--accent);
+            stroke: var(--on-accent);
+            filter: drop-shadow(0 0 6px var(--accent));
+        }
+
+        /* DRAWER MENU (HAMBURGER) */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--mov-medio) var(--ease-entra);
+        }
+
+        .drawer-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            /* SCORRE CON transform, NON CON `right`. Animare `right` (com'era) ricalcola il
+               layout a ogni fotogramma per tutto il pannello e per quello che ha intorno;
+               `transform` viene passato direttamente al compositore. Il risultato a schermo è
+               identico — cambia solo quanto lavoro fa il telefono per ottenerlo, ed è il
+               pannello più grande dell'app.
+               `right: 0` fisso + traslazione della propria larghezza: così a chiuso il
+               pannello è fuori dallo schermo qualunque sia la sua larghezza reale (340px o il
+               90vw del telefono), senza dover tenere sincronizzati due numeri. */
+            right: 0;
+            transform: translateX(100%);
+            width: 340px;
+            max-width: 90vw;
+            height: 100vh;
+            height: 100dvh; /* su mobile la barra del browser cambia altezza: dvh evita il taglio */
+            background-color: var(--bg-card);
+            border-left: 1px solid var(--border);
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+            transition: transform var(--mov-medio) var(--ease-entra);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .drawer-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .drawer-body {
+            flex: 1;
+            min-height: 0; /* consente allo scroll di attivarsi davvero dentro il flex column */
+            padding: 14px;
+            padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .drawer-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Il contenitore .drawer-body è un flex column: senza questo, le sezioni vengono
+               compresse in proporzione (flex-shrink vale 1 di default) e, combinato con
+               overflow:hidden, il loro contenuto risulta tagliato invece di far scorrere il menu. */
+            flex: 0 0 auto;
+        }
+
+        .drawer-section-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 13px;
+            background: var(--bg-sunken);
+            border-bottom: 1px solid var(--border);
+            margin: 0;
+        }
+
+        /* Contenuto della sezione: spaziatura uniforme, separata dall'intestazione */
+        .drawer-section > *:not(.drawer-section-title) {
+            margin-left: 13px;
+            margin-right: 13px;
+            flex: 0 0 auto; /* evita che anche i contenuti interni vengano compressi */
+        }
+        /* :first-of-type seleziona il primo elemento DI OGNI TIPO: con figli misti (div, button,
+           input) generava margini incoerenti. Il selettore adiacente è deterministico. */
+        .drawer-section > .drawer-section-title + * { margin-top: 12px; }
+        .drawer-section > *:last-child { margin-bottom: 13px; }
+        .drawer-section > * + *:not(.drawer-section-title) { margin-top: 11px; }
+
+        /* Box informativi collassabili: al posto dei box sempre visibili, un tastino "ⓘ"
+           che si espande/richiude con un'animazione, per essere meno invadenti. */
+        .info-collapsible {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-main);
+            overflow: hidden;
+            flex: 0 0 auto;
+        }
+        .info-collapsible-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            background: transparent;
+            border: none;
+            font-family: var(--font-sans);
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: left;
+            cursor: pointer;
+        }
+        .info-collapsible-toggle .ico:first-child { color: var(--info); flex: 0 0 auto; }
+        .info-collapsible-toggle span { flex: 1; }
+        .info-collapsible-chevron { flex: 0 0 auto; transition: transform var(--mov-medio) var(--ease-entra); color: var(--text-muted); }
+        .info-collapsible.open .info-collapsible-chevron { transform: rotate(180deg); }
+        .info-collapsible-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height var(--mov-lungo) var(--ease-entra);
+        }
+        .info-collapsible.open .info-collapsible-body {
+            max-height: 300px;
+        }
+        .info-collapsible-body-inner {
+            padding: 10px 12px 12px;
+            border-top: 1px solid var(--border);
+            font-size: 11.5px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        /* RIGA IMPOSTAZIONE: etichetta + descrizione a sinistra, controllo a destra.
+           Sostituisce la vecchia impaginazione a colonna che rendeva il menu disordinato. */
+        .setting-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .setting-row:last-of-type { border-bottom: none; }
+        .setting-text { flex: 1; min-width: 0; }
+        .setting-label {
+            font-size: 13.5px;
+            font-weight: 650;
+            color: var(--text-main);
+            line-height: 1.25;
+        }
+        .setting-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-top: 3px;
+        }
+        .setting-control { flex: 0 0 auto; padding-top: 1px; }
+
+        /* INTERRUTTORE CUSTOM: le checkbox native usavano il blu di sistema, estraneo
+           alla palette dell'app e diverso tra Android e iOS. */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+            flex: 0 0 auto;
+        }
+        .switch input {
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            cursor: pointer;
+            position: relative;
+            z-index: 2;
+        }
+        .switch-visual {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: var(--bg-sunken);
+            border: 1px solid var(--border-strong);
+            transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra);
+            pointer-events: none;
+        }
+        .switch-visual::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            transition: transform var(--mov-medio) var(--ease-entra), background var(--mov-medio) var(--ease-entra);
+        }
+        .switch input:checked ~ .switch-visual {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+        }
+        .switch input:checked ~ .switch-visual::after {
+            transform: translateX(20px);
+            background: var(--accent);
+        }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch-row span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* MODAL EDITING DIALOG */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .form-control {
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* MODAL EDITING DIALOG */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--mov-medio) var(--ease-entra);
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: calc(100vw - 32px);
+            max-width: 440px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 18px;
+            z-index: 201;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            pointer-events: none;
+            /* Elenco esplicito: qui l'unica cosa che deve muoversi e' la comparsa. */
+            transition: opacity var(--mov-medio) var(--ease-entra), transform var(--mov-medio) var(--ease-entra);
+            box-sizing: border-box;
+        }
+
+        .modal.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* GERARCHIA DI SOVRAPPOSIZIONE TRA FINESTRE FLUTTUANTI: le finestre normali (Aggiungi
+           Intervallo, Importazione, Esporta, ecc.) restano al livello base .modal (z-index 200/201).
+           Gestione dei dati litologici è invece sempre sopra di loro, perché si può aprire da
+           dentro una di quelle finestre (es. dal tasto "Litologia" mentre si è in Aggiungi
+           Intervallo) e deve comparire sovrapposta, non sotto. Wizard "Configurazione guidata",
+           "Modifica Parametri Avanzati" e le finestre archivio strati si aprono a loro volta da
+           dentro la Gestione Litologica, quindi stanno ancora più sopra di tutte le altre. */
+        .modal-overlay.tier-strati { z-index: 250; }
+        .modal.tier-strati { z-index: 251; }
+        .modal-overlay.tier-strati-top { z-index: 300; }
+        .modal.tier-strati-top { z-index: 301; }
+        /* NELLA COMPOSIZIONE TUTTO SI AFFERRA. Sul foglio stampato le etichette hanno
+           pointer-events:none — devono lasciar passare il clic, non sono comandi. Qui invece
+           sono proprio la cosa da spostare, e senza questa riga il dito le attraverserebbe
+           afferrando la mappa sotto: si sarebbe trascinato l'inquadramento credendo di
+           spostare l'etichetta. Vale solo dentro la tela del compositore. */
+        /* IL COMPOSITORE HA UNA BARRA SUA, non quella delle note.
+           Segnalato: gruppi disallineati, spinti a destra. La causa era una riga sola —
+           .note-tb-status nasce nell'editor delle note come "stato", e li' sta in fondo a
+           destra grazie a margin-left:auto. Qui la stessa classe la uso come ETICHETTA che
+           precede un comando, e quel margin-left:auto spingeva l'etichetta e tutto quello
+           che la segue contro il bordo destro. Riusare una classe per un ruolo diverso da
+           quello per cui e' nata costa sempre, prima o poi.
+           Qui sotto anche la compattazione: comandi piu' bassi, cursori piu' corti, niente
+           riquadri annidati che sprecano larghezza. */
+        /* L'INTERRUZIONE DI PAGINA, come si vede scrivendo. Non un simbolo da interpretare:
+           una riga tratteggiata con scritto sopra cosa succede. E' colorata e con l'etichetta
+           perche' e' una decisione dell'autore — quella grigia e automatica, che dira' "qui
+           taglia da solo", dev'essere riconoscibile a colpo d'occhio come un'altra cosa. */
+        /* Il testo marcato come formula usa il carattere matematico incorporato, sia
+           nell'editor sia sul foglio: una formula che si vede in un modo mentre si scrive e
+           in un altro nel PDF non serve a niente. */
+        /* LA PASTIGLIA. Deve dire due cose a colpo d'occhio: che quel testo e' automatico, e
+           se il dato c'e' o manca. Colorata = compilato, rossa = da compilare. Chi rilegge la
+           relazione sa subito cosa viene dai dati di cantiere e cosa e' scritto a mano. */
+        .dpsh-tag { display: inline; border-radius: 4px; padding: 0 3px; background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--accent); cursor: pointer; }
+        /* Sul foglio dell'editor anche i segnaposto del testo generato sono toccabili: il
+           puntatore lo dice, e l'area di tocco e' quella della scritta. */
+        .tpl-editor-canvas .dato-cantiere, .dpsh-tag { cursor: pointer; }
+        .tpl-editor-canvas .dato-cantiere:hover, .tpl-editor-canvas .dpsh-tag:hover { outline: 1.5px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+        .dpsh-tag-manca { background: rgba(220,38,38,0.12); color: #b91c1c; box-shadow: inset 0 0 0 1px #dc2626; font-style: italic; }
+        .menu-tag { position: fixed; z-index: 500; width: 260px; max-height: 320px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); padding: 4px; }
+        .menu-tag-gruppo { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); padding: 7px 8px 3px; }
+        .menu-tag-voce { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; border: none; background: transparent; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+        .menu-tag-voce.is-active, .menu-tag-voce:hover { background: var(--accent-soft); }
+        .menu-tag-nome { font-size: 12px; font-weight: 700; color: var(--text-main); }
+        .menu-tag-valore { font-size: 10.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dpsh-formula { font-family: 'Cambria Math', 'STIX Two Math', 'Cambria', serif; }
+        .dpsh-interruzione { position: relative; height: 0; border-top: 2px dashed var(--accent); margin: 16px 0; }
+        .dpsh-interruzione::after { content: 'interruzione di pagina'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--bg-card); color: var(--accent-ink); font-size: 9.5px; font-weight: 800; letter-spacing: .3px; padding: 0 8px; text-transform: uppercase; }
+        .ProseMirror .dpsh-interruzione.ProseMirror-selectednode { border-top-color: var(--danger); }
+        /* I paragrafi con una regola: un segno discreto a margine, che c'e' solo se la regola
+           c'e'. Un documento pieno di simboli e' un documento che non si legge. */
+        .ProseMirror [data-regola-pagina] { position: relative; }
+        .ProseMirror [data-regola-pagina]::before { content: ''; position: absolute; left: -10px; top: 2px; bottom: 2px; width: 3px; border-radius: 2px; background: var(--accent); opacity: .55; }
+        #composizioneBarra .note-tb-status { margin-left: 0; }
+        /* DUE LINGUAGGI VISIVI, PERCHE' SONO DUE COSE DIVERSE.
+           Nella barra un interruttore acceso e un'opzione scelta avevano lo stesso aspetto —
+           bordo arancione — quindi guardando "Nord | nera" non si capiva quale dei due fosse
+           un acceso/spento e quale una scelta fra alternative. Ora:
+           · INTERRUTTORE (.comp-sw): pieno quando e' acceso. Dice "questo c'e' / non c'e'".
+           · SCELTA (.comp-seg): il gruppo ha un fondo incassato e l'opzione scelta e' una
+             pastiglia in rilievo. Dice "fra queste, questa". E' la stessa distinzione che
+             fanno i sistemi operativi, e conviene non inventarne un'altra. */
+        #composizioneBarra .comp-sw { border: 1px solid var(--border); background: var(--bg-card); font-weight: 700; }
+        #composizioneBarra .comp-sw.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        #composizioneBarra .comp-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border); }
+        #composizioneBarra .comp-seg .note-tb-btn { border-color: transparent; background: transparent; color: var(--text-muted); }
+        #composizioneBarra .comp-seg .note-tb-btn.is-active { background: var(--bg-card); color: var(--text-main); border-color: var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.25); font-weight: 800; }
+        /* UNA RIGA PER OGGETTO. Le proprieta' della freccia del nord stavano in tre gruppi
+           diversi, mescolate a quelle della barra di scala: l'occhio doveva ricomporle da
+           solo. Ora ogni riga comincia col nome dell'oggetto e contiene tutto e solo cio'
+           che lo riguarda. */
+        #composizioneBarra .comp-riga { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; width: 100%; padding: 3px 0; }
+        #composizioneBarra .comp-riga + .comp-riga { border-top: 1px dashed var(--border); }
+        #composizioneBarra .comp-oggetto { font-size: 10.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; min-width: 74px; }
+        /* La scheda scelta dev'essere la piu' evidente: prima il passaggio del mouse era piu'
+           marcato dello stato attivo, cioe' la gerarchia era rovesciata. */
+        #composizioneSchede .note-tb-btn { border: 1px solid transparent; color: var(--text-muted); }
+        #composizioneSchede .note-tb-btn:hover { background: var(--bg-sunken); color: var(--text-main); }
+        #composizioneSchede .note-tb-btn.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
+        #composizioneBarra { gap: 6px; padding: 0; border-bottom: none; }
+        #composizioneBarra .comp-pannello { gap: 6px 8px !important; align-items: center; }
+        #composizioneBarra .note-tb-group { padding: 1px 4px 1px 2px; gap: 3px; border-radius: 7px; }
+        #composizioneBarra .note-tb-group > .note-tb-status:first-child { padding-left: 4px; }
+        #composizioneBarra .note-tb-btn { height: 26px; min-width: 26px; padding: 0 8px; font-size: 11.5px; }
+        #composizioneBarra .note-tb-select { height: 26px; font-size: 11px; }
+        #composizioneBarra input[type="range"] { height: 22px; margin: 0; }
+        /* Le note esplicative: restano (spiegano scelte non ovvie) ma non occupano una riga
+           intera ciascuna — diventano una riga sola sotto la scheda, piccola e discreta. */
+        #composizioneBarra .comp-nota { font-size: 9.5px; color: var(--text-muted); width: 100%; line-height: 1.4; margin: -1px 0 0; opacity: .85; }
+        #composizioneSchede { gap: 3px !important; padding-bottom: 5px !important; }
+        #composizioneSchede .note-tb-btn { height: 27px; padding: 0 9px; font-size: 11.5px; }
+        #lblComposizioneStato { margin-left: 0; }
+        @media (max-width: 640px) {
+            #composizioneBarra .note-tb-btn { height: 30px; min-width: 30px; }
+            #composizioneSchede .note-tb-btn { height: 30px; }
+        }
+        #composizioneTela [data-etichetta-libera],
+        #composizioneTela [data-inset-etichetta],
+        #composizioneTela [data-inset-regionale],
+        #composizioneTela [data-pin-etichetta],
+        #composizioneTela [data-elemento-mappa] { pointer-events: auto !important; cursor: move; }
+        #composizioneTela [data-etichetta-libera]:hover,
+        #composizioneTela [data-inset-etichetta]:hover,
+        #composizioneTela [data-pin-etichetta]:hover,
+        #composizioneTela [data-elemento-mappa]:hover { outline: 1.5px dashed rgba(255,255,255,0.9); outline-offset: 2px; }
+        /* Editor a righe del template di report: si apre da dentro "Template di Report" (tier
+           base), deve stare sopra a tutto il resto pur non avendo nulla in comune con gli altri
+           livelli "strati". */
+        .modal-overlay.tier-editor { z-index: 320; }
+        .modal.tier-editor { z-index: 321; }
+        /* L'editor di testo formattato (Titolo/Testo, "Scrivi testo") si apre DA DENTRO l'editor
+           template a schermo intero (anch'esso tier-editor): a parità di z-index vincerebbe
+           l'ordine nel DOM, e siccome l'editor template compare più avanti nel markup finiva
+           SOTTO restando invisibile ("compare in underlay"), segnalato esplicitamente — serve un
+           tier dedicato, più alto anche del menu blocco (330), per stare sempre in primo piano. */
+        .modal-overlay.tier-editor-top { z-index: 340; }
+        .modal.tier-editor-top { z-index: 341; }
+        /* SOPRA ANCHE ALLA FINESTRA DEL TESTO. Il pannello dello stile si apre ora anche da
+           dentro «Modifica testo», che sta nello stesso piano (341) ma PIU' IN BASSO nel
+           documento: a parita' di z-index vince l'ultimo, quindi il pannello sarebbe comparso
+           dietro. E' lo stesso inciampo del compositore, mesi fa: due finestre nello stesso
+           piano, e l'ordine nel file a decidere in silenzio chi si vede. */
+        .modal-overlay.tier-sopra-testo { z-index: 350; }
+        .modal.tier-sopra-testo { z-index: 351; }
+        /* L'editor del template è sempre una schermata a sé stante, mai una finestra fluttuante
+           centrata sopra lo sfondo: occupa sempre l'intero viewport (stessa identica regola già
+           usata sotto i 760px per il redesign mobile, qui applicata a ogni larghezza). Il trucco
+           di centratura position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) della
+           classe .modal, applicato a un elemento largo/alto esattamente 100vw/100vh, lo posiziona
+           già perfettamente a (0,0): nessun altro aggiustamento di transform necessario. */
+        #modalTemplateEditor { max-width: 100vw !important; width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; }
+        /* "Personalizza indice", stessa cornice a schermo intero e per lo stesso motivo di
+           #modalTemplateEditor qui sopra — richiesto esplicitamente per darle "una sua
+           schermata come quella degli altri template", non più una finestra centrata. */
+        #modalIndicePersonalizza { max-width: 100vw !important; width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; }
+        /* Anteprima di stampa reale (Fase B del piano di riscrittura layout/export, vedi
+           Piano_Riscrittura_Layout_Export.md): stessa logica "schermo intero" della modale
+           editor qui sopra, per lo stesso motivo — si apre DA DENTRO l'editor a schermo intero
+           e deve avere il massimo spazio per mostrare pagine A4 vere una sotto l'altra. */
+        #modalAnteprimaStampaReale { max-width: 100vw !important; width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; padding: 0 !important; display: flex; flex-direction: column; overflow: hidden; }
+        /* Il dialogo generico di avviso/conferma (appAlert/appConfirm) può essere invocato da
+           DENTRO qualunque altra finestra, incluso l'editor del template (il tier più alto sopra):
+           deve sempre comparire per ultimo, in cima a tutto, altrimenti finirebbe nascosto dietro
+           la finestra da cui è stato aperto invece di bloccarla in attesa di risposta. */
+        #appDialogOverlay { z-index: 400; }
+        #appDialog { z-index: 401; }
+
+        .tpl-editor-block { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-sm); position: relative; }
+        /* IL DIVISORE STRETTO RESTA AFFERRABILE. Ora puo' scendere a pochi millimetri di
+           larghezza (vedi flexEntryCss): a quel punto il riquadro sulla tela e' piu' sottile di
+           un dito e non lo prenderesti mai. La presa non si allarga allargando il BLOCCO —
+           sarebbe rimettere il pavimento da cui siamo partiti — ma con un'area invisibile che
+           sborda dai lati: il blocco resta largo due millimetri sul foglio, il bersaglio ne
+           misura quarantaquattro sullo schermo. Sono due cose diverse e vanno tenute diverse. */
+        .tpl-editor-block[data-block-tipo="divisore"] { min-width: 3px; }
+        .tpl-editor-block[data-block-tipo="divisore"]::after {
+            content: ''; position: absolute; top: 0; bottom: 0;
+            left: 50%; width: 44px; transform: translateX(-50%);
+            /* Sotto il contenuto e sotto le maniglie: e' solo un bersaglio, non deve coprire
+               niente di cliccabile che stia sopra. */
+            z-index: 0;
+        }
+        /* Il divisore elastico si riconosce a colpo d'occhio sulla tela: una fascia a righe
+           diagonali tenui dice «questo spazio si allunga da solo», che e' l'unica cosa che
+           distingue un divisore elastico da uno alto uguale per caso. Solo nell'editor. */
+        .tpl-editor-block [data-divisore-elastico] {
+            background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(148,163,184,0.16) 6px 12px);
+            border-radius: 3px;
+        }
+        .tpl-editor-block.dragging { opacity: 0.35; }
+        /* Colonna con blocchi impilati (vedi inserisciBloccoInPagina / stackInto): il riquadro
+           ".tpl-editor-block.tpl-editor-stack" è solo un contenitore di layout (nessun bordo/sfondo
+           proprio, altrimenti si vedrebbe un doppio bordo attorno ai singoli blocchi impilati) — è
+           ogni ".tpl-editor-stack-item" al suo interno ad avere l'aspetto di un blocco normale. */
+        .tpl-editor-block.tpl-editor-stack { background: none; border: none; border-radius: 0; }
+        .tpl-editor-stack-item { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-sm); position: relative; }
+        .tpl-editor-preview-mode .tpl-editor-stack-item { border-color: transparent; background: transparent; }
+        /* Niente scroll/altezza massima qui: la pagina intera (non il singolo blocco) viene
+           rimpicciolita per stare sempre visibile, vedi #templateEditorScaleWrap. Un blocco alto
+           deve potersi vedere per intero, altrimenti si perde il senso di quanto sia ingombrante.
+           Sfondo bianco e testo scuro FORZATI qui, a prescindere dal tema (chiaro/scuro) dell'app:
+           questo riquadro anticipa una pagina STAMPATA, sempre su carta bianca, quindi il contenuto
+           (tabelle/grafici pensati per un foglio bianco) deve vedersi identico in entrambi i temi —
+           altrimenti in tema scuro certe scritte pensate per sfondo chiaro diventano illeggibili. */
+        .tpl-editor-block-body { padding: 6px; background: #fff; color: #1e293b; border-radius: var(--radius-sm); cursor: pointer; touch-action: pan-y; transition: transform var(--mov-istante) var(--ease-entra); }
+        /* Riscontro visivo al tocco (richiesto esplicitamente), stesso principio dei blocchi della
+         * palette: un piccolo schiacciamento immediato, indipendente dall'esito del gesto. */
+        .tpl-editor-block-body.tpl-editor-block-pressed { transform: scale(0.97); }
+        /* Il "pop" di scala alla selezione (0.95→1.015→1) è stato disattivato (richiesto
+         * esplicitamente: "disattiva le animazioni di selezione così eccessive dei blocchi") — su
+         * blocchi grandi come le tabelle risultava un salto visivo troppo marcato. La classe
+         * .tpl-editor-block-select-pop continua a essere assegnata in JS (vedi
+         * justSelectedAnimKey/selezionaBloccoEditor, che serve anche a far ripartire l'evidenza
+         * della selezione una sola volta per click) ma ora non applica più alcuna animazione: la
+         * selezione resta segnalata solo dall'outline istantaneo di .tpl-editor-block-selected. */
+        .tpl-editor-block-select-pop { animation: none; }
+
+        /* Controlli "maniglie dirette": nessuna barra sempre visibile, solo il contenuto finché il
+           blocco non viene toccato — poi compare un'etichetta trascinabile (sposta) e due maniglie
+           dirette (angolo = dimensione, lato = larghezza colonna); tenendo premuto si apre invece
+           il menu contestuale (vedi apriMenuBloccoEditor) con le opzioni meno usate quotidianamente. */
+        .tpl-editor-block-selected { outline: 2px solid var(--accent); outline-offset: 2px; z-index: 2; }
+        /* ---- CESTINO DEL TRASCINAMENTO ----
+           Compare solo mentre trascini un blocco che esiste già. Sta in basso al centro: è dove
+           il pollice arriva senza spostare la presa, e lontano dalle righe del foglio, così non
+           si finisce dentro per sbaglio mentre si cerca una posizione. */
+        .tpl-editor-cestino {
+            position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 8px;
+            min-height: 52px; padding: 0 18px;
+            border-radius: 26px;
+            border: 2px dashed var(--danger); background: var(--bg-card);
+            color: var(--danger); font-size: 12px; font-weight: 800;
+            box-shadow: 0 6px 22px rgba(0,0,0,0.35);
+            z-index: 60; pointer-events: none;
+            animation: tplCestinoEntra var(--mov-medio) var(--ease-entra);
+        }
+        .tpl-editor-cestino[hidden] { display: none; }
+        .tpl-editor-cestino .ico { width: 18px; height: 18px; }
+        /* Sopra il cestino diventa pieno: il cambiamento deve essere netto, non una sfumatura —
+           qui si distrugge qualcosa e bisogna capirlo prima di lasciare il dito. */
+        .tpl-editor-cestino.attivo {
+            background: var(--danger); color: #fff; border-style: solid;
+            transform: translateX(-50%) scale(1.06);
+        }
+        @keyframes tplCestinoEntra { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; } }
+
+        /* ---- DURANTE IL TRASCINAMENTO IL RESTO SI FA DA PARTE ----
+           Voce di bacheca: "oscurare leggermente tutto tranne la riga di destinazione". Si
+           sbiadiscono i comandi (maniglie, targhette, barre) e non il CONTENUTO del foglio: è
+           guardando il contenuto che si decide dove mettere il blocco, oscurarlo sarebbe togliere
+           proprio l'informazione che serve. */
+        body.tpl-trascinamento-in-corso #templateEditorZoomBar,
+        body.tpl-trascinamento-in-corso .tpl-editor-block-select-overlay,
+        body.tpl-trascinamento-in-corso .tpl-editor-block-menu {
+            opacity: 0.25; transition: opacity var(--mov-breve) var(--ease-entra);
+        }
+        body.tpl-trascinamento-in-corso .tpl-editor-pages-drawer { opacity: 0.35; transition: opacity var(--mov-breve) var(--ease-entra); }
+
+        .tpl-editor-block-select-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+        /* ANELLO DI SELEZIONE PERSISTENTE (voce di bacheca). Prima il blocco selezionato si
+           riconosceva solo dalle maniglie e dalla targhetta col nome — che però stanno dentro
+           l'overlay e su mobile finiscono spesso sotto il pannello dei comandi. Risultato: stavi
+           regolando qualcosa senza vedere su cosa. L'anello è disegnato con outline e non con
+           border: outline non occupa spazio nel flusso, quindi il blocco non si sposta di un
+           pixel quando lo selezioni — un bordo l'avrebbe fatto ballare, e con esso l'intera riga.
+           outline-offset lo stacca dal contenuto perché resti leggibile anche su una tabella
+           che arriva fino al bordo. */
+        .tpl-editor-block-body.selezionato {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 3px;
+        }
+        /* In "anteprima pulita" sparisce come tutto il resto: lì si guarda il risultato. */
+        .tpl-editor-preview-mode .tpl-editor-block-body.selezionato { outline: none !important; }
+        .tpl-editor-block-chip { position: absolute; top: -12px; left: 8px; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 30px); background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 800; padding: 3px 9px 3px 6px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: grab; touch-action: none; pointer-events: auto; white-space: nowrap; }
+        /* Il pallino delle eccezioni: piccolo, in alto a destra, e c'e' SOLO quando il
+           blocco si scosta davvero dallo stile del documento. E' il controllo che l'utente
+           non deve piu' fare a mano. */
+        .tpl-editor-pallino-eccezioni { position: absolute; top: -5px; right: -5px; width: 11px; height: 11px; border-radius: 50%; background: #f59e0b; border: 2px solid var(--bg-card); box-shadow: 0 1px 3px rgba(0,0,0,0.4); z-index: 7; pointer-events: none; }
+        .tpl-editor-block-chip span { overflow: hidden; text-overflow: ellipsis; }
+        /* Piccolo scatto quando si prova a trascinare un blocco con la posizione bloccata
+           (richiesto esplicitamente): comunica subito "non si muove" senza dover aprire il menu. */
+        @keyframes tplEditorChipShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+        .tpl-editor-chip-shake { animation: tplEditorChipShake 0.32s ease; cursor: not-allowed !important; }
+        .tpl-editor-block-handle { position: absolute; pointer-events: auto; touch-action: none; z-index: 6; background: var(--accent); border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
+        .tpl-editor-block-handle .ico { width: 11px; height: 11px; color: var(--on-accent); pointer-events: none; }
+
+        /* ============ AREE DI TOCCO (44px) — vedi Design_Mobile_Editor_Template.md ============
+           Segnalato: "le maniglie dei singoli blocchi sono davvero piccole e difficili da premere,
+           sembrano ottimizzate per desktop". Misurate: 13px sul lato corto (handle-bottom 40x13,
+           handle-side 13x40), grip riordino pagine 16x16, chip ~20px. Il minimo raccomandato è
+           44x44 (Apple HIG, WCAG 2.5.5) o 48dp (Material): siamo a meno di un terzo.
+
+           La soluzione NON è ingrandirle visivamente — sono sovrapposte al contenuto del foglio, e
+           più grandi coprirebbero proprio quello che stai componendo. Si allarga solo l'AREA
+           SENSIBILE con uno pseudo-elemento invisibile: l'aspetto resta identico al millimetro, ma
+           il dito trova il bersaglio. È il motivo per cui questa modifica non ha alcun effetto
+           visibile e va comunque provata col dito, non con il mouse.
+
+           Nota su "inset" negativo: lo pseudo-elemento eredita pointer-events:auto dal genitore, e
+           non serve z-index perché sta nello stesso contesto di impilamento della maniglia.
+
+           L'espansione NON è uguale per tutti: ogni maniglia è circondata da cose diverse, e
+           allargare alla cieca farebbe rubare tocchi a comandi vicini. Qui sotto ogni valore è
+           scelto in base a cosa c'è intorno. Nessuno sfondo: gli pseudo-elementi esistono solo per
+           intercettare il dito (per verificarne l'estensione basta colorarli temporaneamente). */
+
+        /* Maniglie di ridimensionamento: stanno SUI BORDI del blocco, fuori dal contenuto — qui si
+           può espandere generosamente senza coprire niente di cliccabile.
+           13px + 16 + 16 = 45px reali sul lato corto. */
+        .tpl-editor-block-handle::before { content: ''; position: absolute; inset: -16px; }
+
+        /* Chip di trascinamento: sporge SOPRA il blocco ma il suo bordo inferiore ricade dentro il
+           contenuto, dove il tocco serve a selezionare/aprire il menu. Espansione contenuta, e più
+           in verticale che in orizzontale: guadagna il pollice senza mangiarsi l'angolo del blocco. */
+        .tpl-editor-block-chip::before { content: ''; position: absolute; inset: -10px -6px; }
+
+        /* Grip di riordino nella MINIATURA di pagina (22x22 con posizione assoluta in linea):
+           22 + 8 + 8 = 38px. Volutamente non 44: la miniatura stessa è il bersaglio per cambiare
+           pagina, e un'area troppo grande trasformerebbe ogni cambio pagina in un trascinamento. */
+        .tpl-editor-page-drag-handle::before { content: ''; position: absolute; inset: -8px; }
+        .tpl-editor-page-drag-handle { position: relative; }
+
+        /* .tpl-editor-page-check NON viene espanso di proposito: in modalità selezione è l'INTERA
+           miniatura (o l'intera linguetta) a fare da interruttore, quindi il pallino non è mai il
+           solo bersaglio disponibile. In più, nella versione compatta ha "position:static" scritto
+           in linea: un ::before assoluto si ancorerebbe all'antenato posizionato più vicino invece
+           che al pallino, creando un'area invisibile enorme e nel posto sbagliato. */
+        /* Maniglia dimensione (ex pallino d'angolo): spostata sul lato BASSO del riquadro di
+           selezione, trascinamento verticale — invertito su richiesta esplicita: spostare verso
+           il BASSO ingrandisce, verso l'ALTO rimpicciolisce. Icona i-move-y (freccette su/giù) a
+           indicare l'asse di trascinamento. */
+        .tpl-editor-handle-bottom { width: 40px; height: 13px; left: 50%; bottom: -6.5px; transform: translateX(-50%); border-radius: 7px; cursor: ns-resize; }
+        /* DUE MANIGLIE SULLO STESSO LATO, MAI SUGLI ANGOLI. Un angolo, in ogni programma di
+           disegno, vuol dire "ridimensiona in diagonale": mettere li' un comando che taglia le
+           pagine sarebbe una promessa falsa. Restano tutte e due sul bordo inferiore — dove il
+           gesto e' gia' "quanto in basso arriva questo blocco" — a un terzo e a due terzi della
+           larghezza: affiancate, ma abbastanza lontane da non prendersi col dito.
+           30% e 70% e non 25/75: piu' vicino ai bordi si finisce a litigare con la maniglia
+           laterale della larghezza, che vive li' accanto. */
+        .tpl-editor-handle-bottom.e-coppia-sx { left: 30%; }
+        .tpl-editor-handle-bottom.e-coppia-dx { left: 70%; }
+        /* La maniglia del taglio si distingue anche dal colore, non solo dall'icona: sono due
+           mestieri diversi, e a colpo d'occhio deve vedersi quale si sta per afferrare. */
+        .tpl-editor-handle-bottom.e-taglio { background: #f59e0b; border-color: #f59e0b; cursor: ns-resize; }
+        .tpl-editor-handle-bottom.e-taglio .ico { color: #1e293b; }
+        /* Il lucchetto "estendi il limite di scala" è stato rimosso (richiesto esplicitamente,
+           ripensamento radicale del posizionamento/ridimensionamento): lo Zoom ha ora un unico
+           range fisso e ampio (10%-400%) sempre disponibile per tutti i blocchi. */
+        /* Maniglia larghezza colonna: icona i-expand-h (frecce sx/dx) a indicare l'asse
+           orizzontale di trascinamento. */
+        .tpl-editor-handle-side { width: 13px; height: 40px; right: -6.5px; top: 50%; transform: translateY(-50%); border-radius: 7px; cursor: ew-resize; }
+        /* Interruttore "testo fisso" (richiesto esplicitamente): accanto alla maniglia di
+           ridimensionamento, per evitare che trascinandola cambi anche la dimensione del testo —
+           di default il testo segue lo zoom del blocco come sempre, attivandolo invece il testo
+           resta della dimensione attuale mentre il resto (righe, padding, bordi) continua a
+           ingrandirsi/rimpicciolirsi normalmente. */
+        /* L'interruttore "testo fisso" è stato rimosso (richiesto esplicitamente, sostituito da un
+           meccanismo più radicale): i blocchi di testo/tabelle non usano più zoom CSS affatto (vedi
+           BLOCCHI_CON_FONT_REGOLABILE in costruisciHtmlBloccoEditor), quindi non serve più
+           compensare il suo effetto sul font — non c'è più nessun effetto da compensare. */
+        .tpl-editor-handle-label { position: fixed; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 400; box-shadow: 0 3px 8px rgba(0,0,0,0.35); display: none; }
+
+        /* Ghost di trascinamento (richiesto esplicitamente: dev'essere "fisicamente" animato):
+         * segue il puntatore con un breve scorrimento (non un salto istantaneo, vedi transition su
+         * left/top) e "morfa" da una semplice pillola con l'etichetta a una mini-card che mostra
+         * l'ANTEPRIMA REALE del contenuto — diventa cioè "l'effettivo blocco di info" — non appena
+         * il puntatore entra sopra il foglio (vedi la classe .morphed aggiunta/tolta in
+         * posizionaGhostTrascinamentoEditor). Le due rappresentazioni sono sovrapposte nello stesso
+         * punto e si dissolvono a vicenda invece di ridimensionarsi bruscamente. */
+                /* FUORI SCALA DI PROPOSITO: questo riquadro insegue il dito. 50ms sono quel tanto
+           che basta a smussare i sobbalzi del puntatore senza farlo "nuotare" indietro.
+           Portarlo alla scala del movimento lo renderebbe visibilmente in ritardo sul dito,
+           che è peggio di non animarlo affatto. */
+.tpl-editor-drag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; transition: left 0.05s linear, top 0.05s linear; }
+        .tpl-editor-drag-ghost-chip { background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); white-space: nowrap; transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-drag-ghost-card { position: absolute; left: 0; top: 0; width: 150px; max-height: 210px; overflow: hidden; background: #fff; border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 10px 26px rgba(0,0,0,0.4); opacity: 0; transform: scale(0.85); transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-drag-ghost-card-label { background: var(--accent); color: var(--on-accent); font-size: 9.5px; font-weight: 800; padding: 3px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-editor-drag-ghost-card-body { padding: 6px; color: #1e293b; }
+        .tpl-editor-drag-ghost.morphed .tpl-editor-drag-ghost-chip { opacity: 0; transform: scale(0.6); }
+        .tpl-editor-drag-ghost.morphed .tpl-editor-drag-ghost-card { opacity: 1; transform: scale(1); }
+
+        /* Riquadro fantasma (richiesto esplicitamente): mostra la forma/dimensione che il blocco
+         * assumerà una volta rilasciato in quel punto — non solo la sottile linea di inserimento
+         * (che resta, più precisa) ma un intero rettangolo tratteggiato della grandezza prevista,
+         * vedi mostraIndicatoreDropEditor. */
+                /* FUORI SCALA DI PROPOSITO, stessa ragione del ghost qui sopra: l'indicatore di
+           rilascio deve raggiungere la posizione nuova prima che il dito ci arrivi. */
+.tpl-editor-drop-ghost-shape { position: absolute; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: 6px; z-index: 3; pointer-events: none; opacity: 0.8; transition: left 0.08s ease, top 0.08s ease, width 0.08s ease, height 0.08s ease, border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease; }
+        /* Semaforo predittivo di piazzamento (richiesto esplicitamente: non più solo un'area
+         * gialla generica ma un vero alone colorato in base a quanto "pulito" sarebbe il
+         * piazzamento) — vedi valutaQualitaPiazzamento/applicaStatoQualitaGhost. Le classi si
+         * applicano sia al riquadro fantasma sia alla zona di impilamento (usata al posto del
+         * riquadro per pos.stackInto), così qualunque forma sia visibile porta comunque il colore.
+         * L'alone (box-shadow diffuso) resta leggibile anche quando il riquadro è piccolo. */
+        .tpl-editor-drop-ghost-shape.tpl-ghost-verde  { border-color: var(--success); background: var(--success-soft); box-shadow: 0 0 0 6px var(--success-soft); }
+        .tpl-editor-drop-ghost-shape.tpl-ghost-giallo { border-color: var(--warning); background: var(--warning-soft); box-shadow: 0 0 0 6px var(--warning-soft); }
+        .tpl-editor-drop-ghost-shape.tpl-ghost-rosso  { border-color: var(--danger); background: var(--danger-soft); box-shadow: 0 0 0 6px var(--danger-soft); }
+
+        /* Maniglie dirette di margini/intestazione (tocco prolungato sullo sfondo del foglio, vedi
+           attivaLongPressManigliePagina): barrette scure per distinguerle a colpo d'occhio dalle
+           maniglie accento dei blocchi — quelle agiscono sul singolo blocco, queste sull'intero
+           foglio. La variante ".header" usa l'accento perché condivide semanticamente il concetto
+           di "dimensione" con le maniglie dei blocchi (angolo/lato), non è un margine del foglio. */
+        .tpl-editor-page-margin-handle { position: absolute; pointer-events: auto; touch-action: none; background: #0f172a; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); border-radius: 6px; z-index: 8; width: 34px; height: 11px; cursor: ns-resize; }
+        .tpl-editor-page-margin-handle.vert { width: 11px; height: 34px; cursor: ew-resize; }
+        .tpl-editor-page-margin-handle.header { background: var(--accent); cursor: ns-resize; }
+        /* Anteprima a schermo intero: quando la modale è l'elemento in Fullscreen nativo del
+         * browser, le sue dimensioni fisse (max-width/max-height inline) andrebbero altrimenti in
+         * conflitto — qui le sovrascriviamo per farla occupare TUTTO lo schermo. La palette e tutti
+         * i controlli di editing restano visibili e attivi (richiesto esplicitamente: deve restare
+         * editabile a schermo intero, non solo una vista di sola lettura più grande). */
+        #modalTemplateEditor.tpl-editor-fullscreen { max-width: 100vw !important; width: 100vw !important; max-height: 100vh !important; height: 100vh !important; border-radius: 0 !important; }
+        /* Il divisore trascinabile tra due blocchi affiancati è stato rimosso (richiesto
+         * esplicitamente, riorganizzazione posizionamento/ridimensionamento): ridondante con la
+         * maniglia laterale del singolo blocco, faceva la stessa cosa con un secondo gesto. */
+
+        /* Menu contestuale a tocco prolungato: popover ancorato al blocco (vedi
+           posizionaMenuBloccoEditor), z-index sopra la modale dell'editor per non finire coperto. */
+        /* max-height+overflow-y (richiesto esplicitamente dopo che il popover, su schermi bassi,
+           finiva per coprire praticamente tutto quanto — "appare sempre in mezzo ai coglioni"):
+           non supera mai l'altezza della finestra, il resto scorre dentro invece di sforare sotto
+           il bordo visibile senza modo di raggiungerlo. */
+        .tpl-editor-block-menu { position: fixed; z-index: 330; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 10px; width: 220px; display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 20px); overflow-y: auto; }
+        /* Maniglia di trascinamento del popover (richiesta esplicitamente): una barretta a tutta
+           larghezza in cima al menu, sporgente oltre il normale padding così resta ben distinta dal
+           primo controllo reale sotto — un tocco/trascinamento su di essa sposta l'intero popover,
+           che è position:fixed e quindi già pronto ad accettare left/top arbitrari via JS (vedi
+           trascinaMenuBloccoEditor). Il resto del menu continua a funzionare come prima: la
+           chiusura al tocco fuori (gestisciClickFuoriMenuBlocco) already ignora i click dentro
+           .tpl-editor-block-menu, quindi anche quelli sulla maniglia. Sticky (segue lo scroll
+           interno): con max-height+overflow-y sopra, altrimenti scorrerebbe via insieme al resto. */
+        .tpl-editor-block-menu-drag-handle { position: sticky; top: -10px; z-index: 1; background: var(--bg-card); margin: -10px -10px 4px; padding: 6px 4px 4px 10px; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; color: var(--text-muted); border-bottom: 1px solid var(--border); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+        .tpl-editor-block-menu-drag-handle:active { cursor: grabbing; background: var(--bg-card-hover); }
+        /* Riduci a bolla (richiesto esplicitamente: "rendila richiudibile in una bolla"): bottone
+           dentro la stessa maniglia, a destra del grip — non ruba il gesto di trascinamento perché
+           un click/tap su un elemento interno non fa comunque scattare il drag della maniglia
+           (quello parte solo da pointerdown sulla maniglia stessa, vedi
+           attivaTrascinamentoMenuBloccoEditor). */
+        .tpl-editor-block-menu-collapse { position: absolute; right: 4px; background: none; border: none; cursor: pointer; color: inherit; padding: 3px; display: flex; align-items: center; border-radius: 4px; }
+        .tpl-editor-block-menu-collapse:hover { background: var(--bg-card-hover); }
+        /* Bolla (popover ridotto a icona): stessa area occupata dal popover pieno ma minuscola,
+           per lasciare libero il resto dello schermo mentre il blocco resta selezionato — un tap
+           la riapre. */
+        .tpl-editor-block-menu-bubble { position: fixed; z-index: 330; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); cursor: pointer; border: none; padding: 0; }
+        .tpl-editor-menu-section-label { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+        /* Sotto-sezione dentro una sezione già etichettata (es. "Asse"/"Dimensioni"/"Etichette
+           strati" dentro "Grafico"): un pallino colorato invece del testo muto, un filo verticale
+           che raccoglie visivamente i comandi sotto — abbastanza distinta dalla sezione principale
+           da non essere scambiata per un'altra sezione di pari livello, abbastanza leggera da non
+           competere con essa. */
+        .tpl-editor-menu-sottosezione { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 800; color: var(--accent-ink); text-transform: uppercase; letter-spacing: 0.03em; margin: 4px 0 -2px; }
+        .tpl-editor-menu-sottosezione::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .tpl-editor-menu-gruppo { border-left: 1.5px solid var(--border); padding-left: 8px; margin-left: 1px; display: flex; flex-direction: column; gap: 6px; }
+        /* Interruzioni di pagina — comportamento DESKTOP (la navigazione a due pagine vive solo
+           nel @media mobile in fondo al foglio). Qui il popover è alto e la lista ci sta comoda,
+           quindi la riga di riepilogo e la freccia "indietro" non servono: si mostra direttamente
+           il contenuto, come è sempre stato. */
+        .tpl-editor-interr-riepilogo { display: none; }
+        .tpl-editor-interr-chiudi { display: none; }
+        .tpl-editor-interr-testata { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+        /* Controllo numerico condiviso: slider per esplorare, campo per essere precisi.
+           L'unità sta FUORI dal campo, come etichetta: dentro il campo diventerebbe testo da
+           cancellare ogni volta che si riscrive il numero. */
+        .tpl-ctrl-num { display: flex; flex-direction: column; gap: 2px; }
+        .tpl-ctrl-num-testata { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); font-weight: 700; }
+        .tpl-ctrl-num-etichetta { flex-shrink: 0; }
+        .tpl-ctrl-num-secondario { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; opacity: .75; }
+        .tpl-ctrl-num-campo { display: inline-flex; align-items: baseline; gap: 3px; flex-shrink: 0; }
+        .tpl-ctrl-num-input {
+            width: 52px; text-align: right;
+            padding: 3px 5px; border: 1px solid var(--border); border-radius: 6px;
+            background: var(--bg-main); color: var(--text-main);
+            font-size: 12px; font-weight: 800; font-family: var(--font-mono);
+        }
+        /* Via le frecce del campo numerico: rubano larghezza al numero e su un telefono non le
+           usa nessuno — per variare di poco c'è già il cursore accanto. */
+        .tpl-ctrl-num-input::-webkit-outer-spin-button,
+        .tpl-ctrl-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .tpl-ctrl-num-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+        .tpl-ctrl-num-unita { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+        .tpl-ctrl-num-scala { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); margin-top: -1px; }
+        /* Il tasto che risolve l'avviso rosso: vive dentro il riquadro d'allarme, quindi ne prende
+           i colori invece di introdurne di nuovi. */
+        .tpl-editor-dividi-btn {
+            align-self: flex-start; min-height: 32px; padding: 0 10px;
+            border: 1px solid #b91c1c; border-radius: 7px;
+            background: #fff; color: #b91c1c;
+            font-size: 10.5px; font-weight: 800; cursor: pointer; white-space: nowrap;
+        }
+        .tpl-editor-dividi-btn:active { background: #b91c1c; color: #fff; }
+        /* ⋮ della testata: ospita le azioni rare e distruttive, fuori dal flusso dei comandi. */
+        .tpl-editor-menu-altro-btn {
+            flex-shrink: 0; width: 28px; height: 28px; padding: 0;
+            border: none; background: none; cursor: pointer;
+            color: var(--text-muted); font-size: 17px; line-height: 1; border-radius: 6px;
+        }
+        .tpl-editor-menu-altro-btn[aria-expanded="true"] { background: var(--bg-main); color: var(--text-main); }
+        /* .tpl-editor-menu-altro: vedi le regole condivise dei menu di azioni più sotto. */
+        /* Interruttore del menu: nome del concetto sopra, stato attuale sotto in piccolo.
+           Riga alta 44px senza sforzo — la spunta da 19px che sostituisce era il bersaglio più
+           piccolo del pannello. */
+        .tpl-editor-interruttore {
+            display: flex; align-items: center; gap: 8px;
+            min-height: 44px; padding: 2px 0; cursor: pointer;
+        }
+        .tpl-editor-interruttore-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .tpl-editor-interruttore-nome { font-size: 12px; font-weight: 700; color: var(--text-main); }
+        /* Lo stato è scritto: il colore da solo non basta a dire in che situazione sei, e non
+           tutti lo distinguono. */
+        .tpl-editor-interruttore-stato {
+            font-size: 10px; color: var(--text-muted); font-weight: 600;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        /* ℹ️: una riga discreta, non un paragrafo. Chi la vuole la tocca, chi no non la legge. */
+        .tpl-editor-spiegazione {
+            align-self: flex-start; min-height: 32px; padding: 0 8px;
+            border: none; background: none; cursor: pointer;
+            color: var(--text-muted); font-size: 10.5px; font-weight: 700;
+        }
+        .tpl-editor-spiegazione:active { color: var(--text-main); }
+        .tpl-editor-menu-row { display: flex; align-items: center; gap: 6px; }
+        .tpl-editor-menu-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 34px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-main); font-weight: 800; font-size: 12px; cursor: pointer; }
+        .tpl-editor-menu-btn:disabled { opacity: 0.4; cursor: default; }
+        .tpl-editor-menu-value { min-width: 34px; text-align: center; font-size: 10.5px; color: var(--text-muted); }
+        /* ===== RIORDINO DELLE SCHEDE "DATI PROVA" A TRASCINAMENTO =====
+           Altezza 36px: e' la misura minima perche' un dito colpisca la riga giusta senza
+           mirare. touch-action:none sulla voce e' obbligatorio, non decorativo — senza,
+           il browser interpreta il trascinamento verticale come scorrimento della pagina e
+           i pointermove non arrivano mai. */
+        .tpl-schede-lista { position: relative; }
+        .tpl-scheda-voce {
+            display: flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 8px;
+            font-size: 11px; background: var(--bg-main); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text-main); cursor: grab; user-select: none;
+            touch-action: none; will-change: transform;
+            transition: transform 170ms cubic-bezier(.22, 1, .36, 1), box-shadow 140ms ease, border-color 140ms ease;
+        }
+        .tpl-scheda-voce > span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tpl-scheda-grip { color: var(--text-muted); flex: none; }
+        /* La voce in mano NON ha transizione sulla trasformazione: deve stare incollata al dito.
+           Le altre ce l'hanno, ed e' quella differenza a far leggere il movimento — una scorre
+           col dito, le altre si scansano da sole. */
+        .tpl-scheda-voce.e-in-mano {
+            transition: box-shadow 140ms ease, border-color 140ms ease;
+            cursor: grabbing; z-index: 3; position: relative;
+            border-color: var(--accent); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+        }
+        .tpl-scheda-voce.e-in-mano .tpl-scheda-grip { color: var(--accent); }
+        /* La stessa scheda, accesa sul foglio: si sposta guardando il documento, non l'elenco. */
+        .databox-in-movimento {
+            outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 5px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22); position: relative; z-index: 2;
+        }
+        .databox-sbiadita { opacity: 0.45; }
+        .databox-in-movimento, .databox-sbiadita { transition: opacity 160ms ease, outline-color 160ms ease, box-shadow 160ms ease; }
+        /* Dopo il rilascio: un lampo breve sulla scheda spostata, perche' si veda DOVE e'
+           atterrata. Senza, il blocco si ridisegna e non si capisce se e' cambiato qualcosa. */
+        @keyframes dpshSchedaAtterrata { 0% { outline-color: var(--accent); } 100% { outline-color: transparent; } }
+        .databox-atterrata { outline: 2px solid transparent; outline-offset: 2px; border-radius: 5px; animation: dpshSchedaAtterrata 620ms ease-out; }
+        /* .tpl-editor-menu-remove/.tpl-editor-menu-sposta: sono righe del menu ⋮, stilate
+           dalle regole condivise dei menu di azioni. Il riquadro rosso a tutta larghezza che
+           c'era qui è stato tolto — vedi il commento là sotto. */
+        /* Griglia icone a 2 colonne (vedi renderTemplateEditorPalette): icona grande + etichetta
+           centrata, niente più anteprima dal vivo incorporata — quella resta disponibile al passaggio
+           del mouse (vedi mostraAnteprimaPaletteHover), ma la card stessa ora è compatta, non più
+           alta ~90px, per far stare tutti i tipi di blocco senza scorrere troppo. */
+        /* ---- BLOCCO IN SPOSTAMENTO ---- */
+        /* Barra fluttuante sopra il canvas: resta visibile mentre cambi pagina ed è l'unica cosa
+           che dice "stai spostando qualcosa". In basso a SINISTRA perché in basso a destra c'è già
+           il cestino del trascinamento e in alto a destra la barra dello zoom.
+           column-reverse: la tendina si apre VERSO L'ALTO, così la pillola non si sposta da sotto
+           il dito nel momento in cui la tocchi. */
+        .tpl-editor-spostamento { position: absolute; left: 14px; bottom: 14px; z-index: 420;
+            display: flex; flex-direction: column-reverse; gap: 8px; align-items: flex-start; max-width: min(340px, calc(100% - 28px)); }
+        .tpl-editor-spostamento-pill { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 7px 12px 7px 8px;
+            border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); cursor: pointer;
+            box-shadow: 0 8px 22px rgba(15,23,42,0.26); font-family: inherit; text-align: left; max-width: 100%;
+            animation: tplSpostamentoEntra var(--mov-medio) var(--ease-entra) both; }
+        .tpl-editor-spostamento-pill:active { transform: scale(0.98); }
+        .tpl-editor-spostamento-pill .sp-ico { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+            border-radius: 10px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+        .tpl-editor-spostamento-pill .sp-ico .ico { width: 17px; height: 17px; }
+        .tpl-editor-spostamento-pill .sp-etichette { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+        /* Lo STATO sopra e il NOME sotto, non il contrario: la domanda a cui la pillola risponde è
+           "cosa sta succedendo?", e solo dopo "a quale blocco". */
+        .tpl-editor-spostamento-pill .sp-stato { font-size: 9px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; opacity: 0.82; }
+        .tpl-editor-spostamento-pill .sp-nome { font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tpl-editor-spostamento-pill .sp-freccia { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.8; transition: transform var(--mov-medio) var(--ease-entra); }
+        .tpl-editor-spostamento.aperta .sp-freccia { transform: rotate(180deg); }
+        /* UN SOLO LINGUAGGIO PER I MENU DI AZIONI. Le stesse regole valgono per la tendina della
+           barra di spostamento E per il ⋮ "Altre azioni" del blocco: sono due menu che fanno lo
+           stesso mestiere — elencare verbi — e prima parlavano due lingue diverse. Nel ⋮ le voci
+           erano due BOTTONI a tutta larghezza impilati, uno bianco pieno e uno col contorno rosso:
+           due riquadri della stessa taglia che si contendevano l'attenzione, con quello distruttivo
+           che vinceva perché era l'unico colorato. Un menu non è un modulo: sono righe, non bottoni.
+           Regole condivise = non possono più divergere. */
+        .tpl-editor-spostamento-menu, .tpl-editor-menu-altro { display: flex; flex-direction: column; gap: 1px; padding: 6px; border-radius: 14px;
+            background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 12px 34px rgba(15,23,42,0.26); min-width: 232px; }
+        .tpl-editor-spostamento-menu[hidden], .tpl-editor-menu-altro[hidden] { display: none; }
+        /* COMPARSA DELLE DUE TENDINE DI AZIONI. Prima apparivano di colpo: `hidden` toglie e
+           rimette l'elemento, e da `display:none` non si può transitare.
+           Si anima quindi l'INGRESSO, non l'uscita — e non è una scorciatoia: un'animazione di
+           uscita obbligherebbe a ritardare la chiusura fino alla sua fine, cioè a tenere in vita
+           un pannello che lo stato dà già per chiuso. È esattamente il tipo di stato appeso a
+           un'animazione che il vincolo n.3 del piano vieta, ed è la famiglia del bug del
+           pannello "visibile col FAB già a +" che abbiamo dovuto correggere. Chiudere resta
+           istantaneo e senza stati intermedi. */
+        @keyframes tplMenuAzioniEntra { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
+        .tpl-editor-spostamento-menu:not([hidden]), .tpl-editor-menu-altro:not([hidden]) {
+            animation: tplMenuAzioniEntra var(--mov-breve) var(--ease-entra) both;
+            transform-origin: bottom left;
+        }
+        .tpl-editor-menu-altro:not([hidden]) { transform-origin: top right; }
+        .tpl-editor-spostamento-menu button, .tpl-editor-menu-altro button { display: flex; align-items: center; gap: 10px; width: 100%;
+            min-height: 46px; padding: 5px 10px; border: none; border-radius: 10px; background: none; color: var(--text-main);
+            font-family: inherit; text-align: left; cursor: pointer; }
+        .tpl-editor-spostamento-menu button .ico, .tpl-editor-menu-altro button .ico { width: 15px; height: 15px; flex-shrink: 0; color: var(--accent-ink); }
+        .tpl-editor-spostamento-menu .sp-testo, .tpl-editor-menu-altro .sp-testo { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+        .tpl-editor-spostamento-menu .sp-verbo, .tpl-editor-menu-altro .sp-verbo { font-size: 13px; font-weight: 800; }
+        .tpl-editor-spostamento-menu .sp-nota, .tpl-editor-menu-altro .sp-nota { font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+        .tpl-editor-spostamento-menu button:hover, .tpl-editor-menu-altro button:hover { background: var(--bg-sunken); }
+        .tpl-editor-spostamento-menu button:active, .tpl-editor-menu-altro button:active { background: var(--bg-sunken); transform: scale(0.99); }
+        .tpl-editor-spostamento-menu button:disabled, .tpl-editor-menu-altro button:disabled { opacity: 0.45; cursor: not-allowed; }
+        /* L'azione distruttiva: staccata in fondo da un filo, e ROSSA SOLO NEL TESTO E NELL'ICONA.
+           Il riquadro rosso pieno di prima la rendeva l'elemento più vistoso del menu — cioè
+           l'esatto contrario di quello che serve per l'azione più rara e irreversibile. */
+        .tpl-editor-spostamento-menu button.pericolo, .tpl-editor-menu-altro button.pericolo {
+            margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--border); border-radius: 0 0 10px 10px; }
+        .tpl-editor-spostamento-menu button.pericolo .ico, .tpl-editor-menu-altro button.pericolo .ico,
+        .tpl-editor-spostamento-menu button.pericolo .sp-verbo, .tpl-editor-menu-altro button.pericolo .sp-verbo { color: var(--danger); }
+        /* Unica differenza fra i due: la tendina della barra di spostamento FLOTTA sopra il canvas
+           (quindi ombra marcata e larghezza propria), quella del ⋮ vive DENTRO il pannello del
+           blocco, in colonna con gli altri comandi — lì una larghezza fissa sfonderebbe il pannello
+           sui telefoni stretti, e un'ombra pesante la farebbe sembrare staccata da ciò che la
+           contiene. */
+        .tpl-editor-menu-altro { width: 100%; min-width: 0; margin: 2px 0 4px; box-shadow: 0 4px 14px rgba(15,23,42,0.14); }
+        @keyframes tplSpostamentoEntra { from { opacity: 0; transform: translateY(10px) scale(0.94); } to { opacity: 1; transform: none; } }
+        /* La scheda del blocco in spostamento nella barra degli strumenti: stessa forma e stessa
+           altezza delle altre — cambiano solo i colori e un piccolo bollo d'angolo. Prima aveva una
+           terza riga di testo che la faceva più alta di tutte le altre, e in una griglia di schede
+           uguali basta quello per farla sembrare rotta. */
+        .tpl-editor-palette-item.in-spostamento { background: var(--accent); color: var(--on-accent); border-color: var(--accent); position: relative; }
+        .tpl-editor-palette-item.in-spostamento .ico { color: var(--on-accent) !important; }
+        .tpl-editor-palette-badge-spostamento { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--on-accent); box-shadow: 0 0 0 2px var(--accent); }
+        .tpl-editor-palette-item.spostamento-lampeggia { animation: tplSpostamentoLampeggia 0.45s ease-in-out 3; }
+        @keyframes tplSpostamentoLampeggia { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 0 4px rgba(255,255,255,0.55); } }
+
+        .tpl-editor-palette-item { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; padding: 8px 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 9.5px; font-weight: 600; text-align: center; line-height: 1.25; cursor: grab; touch-action: none; transition: transform var(--mov-istante) var(--ease-entra), box-shadow var(--mov-istante) var(--ease-entra), background var(--mov-istante) var(--ease-entra); }
+        /* Animazione di pressione (richiesta esplicitamente): un piccolo "schiacciamento" al tocco,
+         * come un bottone premuto — vedi la classe aggiunta/rimossa su pointerdown/pointerup in
+         * renderTemplateEditorPalette. */
+        .tpl-editor-palette-item.tpl-editor-palette-pressed { transform: scale(0.92); box-shadow: inset 0 2px 6px rgba(0,0,0,0.25); background: var(--accent-soft); }
+
+        /* Animazioni dell'editor template: i blocchi che cambiano posizione/dimensione (drag,
+           colspan, scala, font) si muovono con una transizione FLIP applicata via JS (vedi
+           applicaFlipBlocchi); qui servono solo l'ingresso di un blocco nuovo/spostato su un'altra
+           pagina (nessuna posizione precedente nota) e l'ingresso delle miniature pagina. */
+        @keyframes tplBlockEnter { from { opacity: 0; transform: scale(0.92) translateY(6px); } to { opacity: 1; transform: none; } }
+        .tpl-editor-block-enter { animation: tplBlockEnter var(--mov-medio) var(--ease-entra); }
+        @keyframes tplThumbIn { from { opacity: 0; transform: translateY(-6px) scale(0.94); } to { opacity: 1; transform: none; } }
+        .tpl-editor-page-thumb { animation: tplThumbIn var(--mov-medio) var(--ease-entra) both; }
+        @keyframes tplPagesStripToggle { from { opacity: 0; transform: translateY(-8px) scaleY(0.9); } to { opacity: 1; transform: none; } }
+        .tpl-pagestrip-anim { animation: tplPagesStripToggle var(--mov-medio) var(--ease-entra); transform-origin: top; }
+        /* Animazione di comparsa generica (richiesta esplicitamente "ovunque necessario"): usata da
+         * pannelli/popover/barre che compaiono all'improvviso — barra selezione pagine, menu
+         * contestuale del blocco, maniglie margini/intestazione, anteprima hover della palette. */
+        @keyframes tplEditorFadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .tpl-editor-anim-in { animation: tplEditorFadeInUp var(--mov-medio) var(--ease-entra); }
+        @keyframes tplEditorFadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .tpl-editor-anim-in-scale { animation: tplEditorFadeInScale var(--mov-breve) cubic-bezier(.34,1.56,.64,1); transform-origin: center top; }
+        /* IL MENU DEL BLOCCO NON RIMBALZA PIU'. Usava la classe qui sopra, con quell'1.56 nella
+           curva che e' un sorpasso oltre il valore finale — gradevole una volta, fastidiosa alla
+           ventesima, e questo menu si ricostruisce a ogni comando. Resta una comparsa breve e
+           piatta, solo opacita': segnala che il pannello e' arrivato senza mettersi in mostra.
+           `.e-senza-entrata` e' il freno per le ricostruzioni: niente ingresso ne' sul menu ne'
+           sul pannello della scheda, perche' li' non sta entrando niente. Dura un fotogramma
+           (vedi apriMenuBloccoEditor), quindi il cambio scheda conserva il suo movimento. */
+        @keyframes tplEditorComparsaPiatta { from { opacity: 0; } to { opacity: 1; } }
+        .tpl-editor-menu-entra { animation: tplEditorComparsaPiatta var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-block-menu.e-senza-entrata,
+        .tpl-editor-block-menu.e-senza-entrata .tpl-editor-menu-pannello.attiva { animation: none !important; }
+        /* ---- BARRA DEL TITOLO DELL'EDITOR: TRE ZONE, TRE PESI ----
+           Prima: otto comandi quasi tutti con lo stesso trattamento (riquadro pieno, bordo, stessa
+           area) e misure che non seguivano l'importanza — 42px per "Salva come copia" e per "Aa",
+           cioè i due che si aprono quasi mai, 32px per l'anteprima di stampa; e fra Salva e Chiudi,
+           l'azione che tiene tutto e quella che può buttarlo, due pixel e un filo grigio.
+           Ora tre trattamenti soli, decisi da quanto spesso si usa una cosa:
+           - FANTASMA (.tpl-barra-gh): gli attrezzi che si toccano di continuo — Annulla/Ripeti e la
+             vista. Nessuna cornice propria: li tiene insieme come gruppo un fondo appena accennato
+             (.tpl-barra-segmento). Leggeri da guardare, grandi da toccare (34px in un segmento da 40).
+           - CONTORNO (.tpl-barra-out): quello che APRE qualcosa e si usa ogni tanto — stile del
+             testo, anteprima di stampa. Bordo sì, riempimento no: si vedono senza gridare.
+           - PIENO (.tpl-barra-split): solo Salva, l'unica cosa che chiude il lavoro. "Salva come
+             copia" smette di essere un tasto a sé e diventa la freccia accanto.
+           Tutto con classi, niente style="" in linea: uno stile in linea batte la modalità guanti
+           (stessa lezione di .btn-icon-sm), ed era proprio il caso del vecchio Salva a 32px. */
+        .tpl-barra-titolo { display: flex; align-items: center; gap: 9px; min-width: 0; }
+        .tpl-barra-badge { width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tpl-barra-badge .ico { width: 17px; height: 17px; vertical-align: 0; }
+        .tpl-barra-destra { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .tpl-barra-segmento { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--bg-main); }
+        /* Il fondo del segmento è un velo dell'inchiostro del tema invece di un colore fisso: resta
+           "appena accennato" sia sulle palette chiare che su quelle scure. Dentro @supports e non
+           come seconda dichiarazione di ripiego: con var() dentro, un browser che non conosce
+           color-mix non torna alla riga precedente, la butta e lascia il fondo trasparente. */
+        @supports (background: color-mix(in srgb, red 6%, transparent)) {
+            .tpl-barra-segmento { background: color-mix(in srgb, var(--text-main) 6%, transparent); }
+        }
+        .tpl-barra-gh { height: 34px; min-width: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 11.5px; font-weight: 700; white-space: nowrap; cursor: pointer; user-select: none; transition: background var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-gh .ico { width: 18px; height: 18px; vertical-align: 0; }
+        .tpl-barra-gh:hover:not(:disabled) { background: var(--bg-card-hover); color: var(--text-main); }
+        .tpl-barra-gh:disabled { opacity: .35; cursor: default; }
+        /* Stato ACCESO visibile: "Riquadri" è una vista, non un comando — deve dire se è attiva. */
+        .tpl-barra-gh.premuto, .tpl-barra-gh.premuto:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-ink); }
+        .tpl-barra-divisore { width: 1px; height: 18px; margin: 0 1px; background: var(--border); flex-shrink: 0; }
+        .tpl-barra-out { height: 38px; min-width: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent; color: var(--text-main); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 11.5px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-out .ico { width: 17px; height: 17px; vertical-align: 0; }
+        .tpl-barra-out:hover { background: var(--bg-card-hover); border-color: var(--border-strong, var(--border)); }
+        .tpl-barra-split { display: flex; align-items: stretch; border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,0.25); flex-shrink: 0; }
+        .tpl-barra-salva { height: 38px; padding: 0 15px; border: none; background: var(--accent); color: var(--on-accent); font-family: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-freccia { width: 30px; border: none; border-left: 1px solid rgba(0,0,0,0.22); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-freccia .ico { width: 15px; height: 15px; vertical-align: 0; }
+        .tpl-barra-salva:hover, .tpl-barra-freccia:hover { background: var(--accent-hover, var(--accent)); }
+        /* Chiudi staccato davvero da Salva: uno spazio e una linea alta, non un filo di un pixel. */
+        .tpl-barra-uscita { display: flex; align-items: center; gap: 10px; padding-left: 6px; flex-shrink: 0; }
+        .tpl-barra-sep { width: 1px; height: 24px; background: var(--border); }
+        .tpl-barra-uscita .tpl-barra-gh, #btnTemplateEditorMobileMore.tpl-barra-gh { height: 38px; min-width: 38px; }
+        /* Anello di focus da tastiera. Dentro lo split l'anello va verso l'interno: il contenitore
+           ha overflow:hidden per gli angoli arrotondati e taglierebbe quello esterno. */
+        .tpl-barra-gh:focus-visible, .tpl-barra-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .tpl-barra-salva:focus-visible, .tpl-barra-freccia:focus-visible { outline: 2px solid var(--on-accent); outline-offset: -4px; }
+        /* Modalità guanti: la barra cresce come il resto dell'app. */
+        body.glove-mode .tpl-barra-gh { height: 44px; min-width: 46px; }
+        body.glove-mode .tpl-barra-out, body.glove-mode .tpl-barra-salva, body.glove-mode .tpl-barra-uscita .tpl-barra-gh, body.glove-mode #btnTemplateEditorMobileMore.tpl-barra-gh { height: 50px; min-width: 50px; }
+        body.glove-mode .tpl-barra-salva { font-size: 14px; }
+        body.glove-mode .tpl-barra-freccia { width: 40px; }
+        body.glove-mode .tpl-barra-destra .tpl-barra-gh .ico, body.glove-mode .tpl-barra-out .ico { width: 22px; height: 22px; }
+        /* --- Redesign mobile "Opzione B" dell'editor template report --- (vedi @media sotto)
+           Soglia deliberatamente più larga degli altri 480px usati nel resto dell'app: la modale
+           desktop (1080px) non ci sta comodamente nemmeno su molti tablet, quindi qui il layout
+           cambia struttura (foglio sempre a tutto schermo, palette e pagine diventano cassetti a
+           comparsa) invece di limitarsi a comprimere la barra del titolo come altrove. Gli elementi
+           restano sempre nel DOM (mai creati/distrutti al volo) così le transizioni funzionano. */
+        #btnTemplateEditorMobileMore { display: none; }
+        .tpl-editor-mobile-more-menu { display: none; position: absolute; top: 38px; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 6px; min-width: 220px; z-index: 60; flex-direction: column; gap: 2px; transform-origin: top right; transform: scale(0.96) translateY(-4px); opacity: 0; pointer-events: none; transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-mobile-more-menu.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+        .tpl-editor-mobile-more-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; background: transparent; border-radius: var(--radius-sm); color: var(--text-main); font-size: 12.5px; font-weight: 700; text-align: left; cursor: pointer; }
+        .tpl-editor-mobile-more-menu button:active { background: var(--bg-card-hover); }
+        /* ---- RIGHE DELL'ELENCO TEMPLATE: miniatura + un verbo + il resto nel menù ----
+           Prima ogni riga finiva con quattro bottoni-icona muti, di cui due con la STESSA
+           figura. Ora a sinistra c'è il template in miniatura (si vede che cos'è prima di
+           leggere come si chiama, e si tocca per aprirlo), al centro il nome, a destra
+           l'unica azione che si fa davvero — scritta a parole — e un menù per le tre rare,
+           scritte anche loro. Il menù è UNO SOLO per tutta la modale ed è position:fixed:
+           dentro l'elenco verrebbe tagliato dal suo stesso overflow. */
+        .tpl-riga-thumb-wrap { position: relative; width: 38px; height: 47px; flex-shrink: 0; cursor: pointer; background: none; border: none; padding: 0; }
+        .tpl-riga-thumb { position: absolute; left: 0; top: 0; width: 34px; height: 44px; background: #f7f3ec; border: 1px solid var(--border-strong); border-radius: 3px; padding: 4px; display: flex; flex-direction: column; gap: 2.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.45); overflow: hidden; }
+        .tpl-riga-thumb-dietro { position: absolute; left: 4px; top: 3px; width: 34px; height: 44px; background: #b6a98f; border: 1px solid var(--border-strong); border-radius: 3px; }
+        .tpl-riga-blk { background: #c3b79f; border-radius: 1px; min-height: 2px; }
+        .tpl-riga-idxr { display: flex; align-items: center; gap: 3px; }
+        .tpl-riga-idxr i { height: 2px; background: #a99e88; border-radius: 1px; flex: 1; display: block; min-width: 3px; }
+        .tpl-riga-idxr b { width: 3px; height: 3px; border-radius: 50%; background: #a99e88; flex-shrink: 0; }
+        .tpl-riga-idxr u { width: 4px; height: 2px; background: #8a7f6b; flex-shrink: 0; }
+        .tpl-riga-primaria { height: 42px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-card-hover); color: var(--text-main); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .tpl-riga-primaria .ico { width: 17px; height: 17px; }
+        .tpl-riga-kebab { width: 42px; height: 42px; flex-shrink: 0; border-radius: var(--radius-md); border: 1px solid var(--border); background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .tpl-riga-kebab .ico { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+        .tpl-riga-kebab.aperto { background: var(--bg-card-hover); color: var(--text-main); border-color: var(--border-strong); }
+        .tpl-riga-menu { position: fixed; z-index: 500; width: 194px; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 12px 28px rgba(0,0,0,0.5); padding: 5px; display: none; flex-direction: column; gap: 2px; }
+        .tpl-riga-menu.open { display: flex; }
+        .tpl-riga-menu button { display: flex; align-items: center; gap: 9px; padding: 10px 9px; border: none; background: transparent; border-radius: 7px; color: var(--text-main); font-family: inherit; font-size: 12.5px; font-weight: 700; text-align: left; cursor: pointer; }
+        .tpl-riga-menu button:active { background: var(--bg-card-hover); }
+        .tpl-riga-menu button.pericolo { color: var(--danger); }
+        .tpl-riga-menu-sep { height: 1px; background: var(--border); margin: 3px 6px; }
+        .tpl-editor-mobile-palette-close { display: none; }
+        .tpl-editor-mobile-fab { display: none; }
+        .tpl-editor-pages-drawer-handle { display: none; }
+        /* ---- LE ANTEPRIME PAGINA SI SOVRAPPONGONO, NON RESTRINGONO IL FOGLIO (desktop) ----
+           Segnalato: aprendo le anteprime, la pagina inquadrata "sobbalza fuori verso l'alto" e
+           parte del contenuto smette di vedersi pur restando nel blocco.
+           Causa: questo cassetto è un fratello del riquadro del foglio dentro la colonna della
+           modale. Espandendolo diventa alto (mostra miniature vere, non linguette), quindi il
+           riquadro sopra si accorcia della stessa quantità — e con esso l'area visibile del
+           foglio, che però non viene ridisegnata: il risultato è contenuto che sparisce sotto il
+           bordo senza che nulla lo dica.
+           Su MOBILE il problema non esisteva perché lì il cassetto è già sovrapposto (vedi il
+           @media più sotto). Qui si fa la stessa cosa: esce dal flusso e copre il canvas, che così
+           mantiene esattamente le dimensioni di prima.
+           VALE IN ENTRAMBI GLI STATI, espanso e ridotto a linguette. Una prima versione lo faceva
+           solo da espanso, con la scusa che da chiuso è una striscia bassa: ma anche quelle poche
+           decine di pixel restringono il riquadro, e soprattutto la barra si spostava sotto il
+           foglio invece di stare dove stanno le anteprime — due posizioni diverse per la stessa
+           cosa a seconda dello stato, che è proprio quello che confonde. */
+        @media (min-width: 761px) {
+            .tpl-editor-pages-drawer {
+                position: absolute;
+                /* Parte dopo la colonna degli strumenti invece che dal bordo della modale: gli
+                   attrezzi devono restare raggiungibili mentre si guardano le pagine. La larghezza
+                   reale della colonna la misura il JS e la deposita qui (vedi
+                   renderTemplateEditorPagesStrip), perché cambia col contenuto e con lo schermo. */
+                left: calc(16px + var(--tpl-larghezza-strumenti, 0px));
+                right: 16px; bottom: 16px;
+                z-index: 30;
+                display: flex; flex-direction: column;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
+                padding: 8px 10px;
+                overflow: hidden;
+            }
+            /* Il tetto d'altezza serve solo da espanso: da ridotto la barra è alta quanto le
+               linguette e non deve riservarsi metà schermo. */
+            .tpl-editor-pages-drawer.espanso { max-height: 46%; }
+        }
+        @media (max-width: 760px) {
+            /* Barra titolo ridotta all'essenziale: Annulla/Ripeti, Salva, Chiudi + menu "altro" per
+               tutto il resto (riquadri, schermo intero, anteprima, stile del testo, salva come
+               copia), che su mobile sono azioni occasionali. I bottoni restano nel DOM: il menu
+               inoltra loro il click. Ripeti resta fuori dal menu: sta in coppia con Annulla, e un
+               Ripeti da cercare dentro un menu non lo usa nessuno. */
+            .tpl-barra-vista, .tpl-barra-doc, #btnSaveTemplateEditorAsCopy { display: none !important; }
+            #btnTemplateEditorMobileMore { display: flex; }
+            .tpl-editor-mobile-more-menu { display: flex; }
+            #lblTemplateEditorTitle { max-width: 92px; }
+            /* Su un telefono stretto la riga non ci sta: "Salva Template" diventa "Salva" (di quale
+               template si tratta lo dice già il titolo) e il distintivo decorativo cede il posto al
+               nome, che altrimenti si ridurrebbe a due lettere. */
+            .tpl-barra-salva-coda, .tpl-barra-badge { display: none; }
+            .tpl-barra-destra { gap: 6px; }
+            .tpl-barra-uscita { gap: 6px; padding-left: 2px; }
+            .tpl-barra-salva { padding: 0 13px; }
+
+            /* Il foglio (#templateEditorViewportWrap, flex:1) occupa sempre tutta la larghezza
+               residua: la palette e il cassetto pagine diventano position:fixed, quindi escono dal
+               flusso flex e non gli sottraggono più spazio. (#modalTemplateEditor è già a schermo
+               intero ad ogni larghezza, vedi regola sopra non più legata a questo media query.) */
+
+            /* Tendina blocchi a tutto schermo, aperta dal FAB invece che trascinata dalla barra
+               laterale fissa (troppo stretta/scomoda da usare col dito su schermi piccoli). */
+            /* PANNELLO BLOCCHI: da schermo intero a foglio basso (vedi
+               Design_Mobile_Editor_Template.md). Prima era "inset: 0", cioè copriva TUTTO: nel
+               momento in cui sceglievi un blocco il foglio A4 non era visibile, quindi non potevi
+               vedere né dove sarebbe finito né che fosse successo qualcosa. Era la causa comune di
+               metà dei problemi segnalati su questa schermata.
+               Ora si ferma a 58vh: sopra restano ~40% di schermo con il foglio in vista, e il
+               risultato del tocco si vede mentre accade. Il pannello scorre al proprio interno, così
+               anche le impostazioni di pagina più in basso restano raggiungibili. */
+            #templateEditorPaletteSidebar {
+                position: fixed; inset: auto 0 0 0; z-index: 400; width: auto;
+                max-height: 58vh;
+                border-radius: 16px 16px 0 0; border: none; border-top: 1px solid var(--border);
+                padding: 16px; padding-top: 22px;
+                /* Spazio in fondo perché il FAB, che galleggia sopra il pannello facendo da
+                   bottone di chiusura, non copra l'ultimo comando dell'elenco. */
+                padding-bottom: 78px;
+                transform: translateY(100%); transition: transform var(--mov-medio) var(--ease-entra);
+                box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+                overflow-y: auto; overscroll-behavior: contain;
+            }
+            /* Chiuso vuol dire CHIUSO. Il solo translateY(100%) lo spingeva fuori schermo ma lo
+               lasciava "presente": bastava un altro stile a contendersi la transform perché
+               restasse lì a metà, ed è quello che si vedeva (pannello visibile col FAB ancora a
+               "+", cioè con lo stato interno che lo dava per chiuso). visibility+pointer-events
+               tolgono ogni ambiguità: da chiuso il pannello non si vede e non si tocca,
+               qualunque cosa succeda alla transform. La visibility è ritardata quanto la
+               transizione, così lo scorrimento verso il basso si vede ancora tutto. */
+            #templateEditorPaletteSidebar {
+                visibility: hidden; pointer-events: none;
+                transition: transform var(--mov-medio) var(--ease-entra), visibility 0s linear var(--mov-medio);
+            }
+            #templateEditorPaletteSidebar.mobile-open {
+                transform: translateY(0);
+                visibility: visible; pointer-events: auto;
+                transition: transform var(--mov-medio) var(--ease-entra), visibility 0s;
+            }
+            /* Barretta di presa in cima al foglio: segnala "questo è un pannello che sale dal
+               basso" prima ancora di leggerne il contenuto. */
+            #templateEditorPaletteSidebar::before {
+                content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+                width: 40px; height: 4px; border-radius: 2px; background: var(--border);
+            }
+            /* Il "+" ruota di 45° e diventa una ✕ quando il pannello è aperto: stesso bottone, due
+               stati, passaggio continuo invece di uno scambio di icona. */
+            .tpl-editor-mobile-fab .ico { transition: transform var(--mov-medio) var(--ease-entra); }
+            .tpl-editor-mobile-fab.aperto .ico { transform: rotate(45deg); }
+            /* Il FAB deve restare sopra il foglio dei blocchi, altrimenti a pannello aperto
+               diventerebbe irraggiungibile proprio quando serve per chiuderlo. */
+            .tpl-editor-mobile-fab { z-index: 401; position: fixed; }
+            /* La ✕ in alto nel pannello non serve più: c'è il FAB che fa da interruttore, ed è
+               nella zona del pollice invece che nell'angolo opposto. */
+            /* DUE regole per lo stesso selettore, una che nascondeva e una subito sotto che
+               rimetteva: a parità di specificità vinceva la seconda, quindi la ✕ è rimasta lì
+               nonostante il commento dicesse il contrario. Residuo di una modifica precedente,
+               tolto — il FAB fa già da interruttore ed è nella zona del pollice. */
+            .tpl-editor-mobile-palette-close { display: none !important; }
+
+            /* FAB: tocco su un blocco della tendina piazza direttamente il blocco (vedi
+               inserisciBloccoATocco), non avvia il drag&drop che qui sotto è disattivato.
+               Sollevato sopra la maniglia sempre visibile del cassetto pagine (40px, vedi sotto)
+               e spostato a sinistra della barra zoom (che qui sotto passa a bottom-left) per non
+               sovrapporsi né all'una né all'altra. */
+            .tpl-editor-mobile-fab { display: flex; position: absolute; right: 14px; bottom: 54px; z-index: 6; width: 52px; height: 52px; border-radius: 50%; border: none; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 18px rgba(0,0,0,0.35); cursor: pointer; }
+            .tpl-editor-mobile-fab:active { transform: scale(0.92); }
+            .tpl-editor-mobile-fab .ico { width: 24px; height: 24px; }
+
+            /* Barra zoom: spostata a sinistra e sollevata sopra la maniglia del cassetto pagine
+               (invece del suo angolo di sempre in basso a destra, ora occupato dal FAB). !important
+               necessario: l'elemento ha right/bottom impostati inline nell'HTML (per il posizionamento
+               desktop), che altrimenti vincerebbero su questa regola pur avendo lo stesso selettore
+               #id — l'inline style ha sempre priorità su un normale selettore da foglio di stile. */
+            #templateEditorZoomBar { right: 10px !important; left: auto !important; top: 10px !important; bottom: auto !important; }
+
+            /* Cassetto pagine: resta quasi tutto fuori schermo dietro la maniglia sempre visibile,
+               si apre toccandola/trascinandola verso l'alto invece di occupare permanentemente
+               spazio verticale accanto al foglio a tutto schermo. */
+            #templateEditorPagesDrawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 20px rgba(0,0,0,0.3); padding: 0 12px 12px; margin-top: 0 !important; max-height: 62vh; overflow-y: auto; transform: translateY(calc(100% - 40px)); transition: transform var(--mov-medio) var(--ease-entra); }
+            #templateEditorPagesDrawer.drawer-open { transform: translateY(0); }
+            .tpl-editor-pages-drawer-handle { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 8px 0 6px; touch-action: none; }
+            .tpl-editor-pages-drawer-grip { width: 36px; height: 4px; border-radius: 3px; background: var(--border); }
+            .tpl-editor-pages-drawer-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+
+            /* Menu a comparsa del blocco (Allineamento/Dimensione/Interruzioni di pagina/...): su
+               desktop è un popover stretto (220px) posizionato via JS accanto al blocco toccato
+               (menu.style.left/top, vedi apriMenuBloccoEditor/posizionaMenuBloccoEditor) e
+               trascinabile a piacere — su un telefono quella larghezza è troppo stretta per
+               controlli precisi col dito, e la posizione "accanto al blocco" spesso finisce
+               parzialmente fuori schermo o sopra la tastiera. Diventa quindi un pannello ancorato
+               in basso (stesso pattern già usato per #templateEditorPagesDrawer sopra), sempre
+               alla stessa posizione comoda per il pollice, indipendente da dove si trova il
+               blocco toccato. !important necessario: altrimenti l'inline style/top assegnato da
+               JS (identico problema di #templateEditorZoomBar, vedi sopra) vincerebbe sempre su
+               una regola da foglio di stile con lo stesso selettore per id/classe. La maniglia di
+               trascinamento in cima resta presente (nessuna modifica al JS: se qualcuno prova
+               comunque a trascinarla il pannello semplicemente non si sposta, nessun errore) ma
+               il cursore "grab" viene tolto per non promettere un movimento che qui non avviene —
+               resta comunque utile per il tasto "riduci a bolla" che ospita.
+            */
+            .tpl-editor-block-menu {
+                position: fixed !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                top: auto !important;
+                width: auto !important;
+                max-width: none !important;
+                /* ALTEZZA A POSIZIONI FISSE (vedi Design_Mobile_Editor_Template.md).
+                   Prima era un tetto unico di 78vh: il foglio copriva quasi tutto lo schermo e
+                   il blocco che stavi modificando finiva sotto, quindi ogni regolazione si faceva
+                   alla cieca. Ora l'altezza è una variabile che la maniglia in cima cambia con tre
+                   scatti — spia / metà / intero — e la scelta resta per le aperture successive. */
+                max-height: var(--tpl-menu-h, 55vh) !important;
+                border-radius: 16px 16px 0 0 !important;
+                padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+                box-shadow: 0 -8px 26px rgba(0,0,0,0.4) !important;
+                gap: 10px !important;
+                transition: max-height var(--mov-medio) var(--ease-entra);
+            }
+            /* Durante il trascinamento la transizione va spenta: l'altezza deve seguire il dito
+               all'istante, non inseguirlo con un ritardo. */
+            .tpl-editor-block-menu.ridimensionamento-in-corso { transition: none !important; }
+
+            /* ---- IL MENU SI FA DA PARTE MENTRE REGOLI (solo mobile) ----
+               Segnalato: "quando si opera una modifica tramite quel menù, l'utente lo fa alla
+               cieca siccome non si vede minimamente quello che sta avvenendo". Su desktop il
+               popover sta di lato e non copre niente, quindi questo vive solo qui.
+               Sbiadisce TUTTO il pannello, comando compreso: mentre trascini sai già dov'è lo
+               slider, e tenerlo pieno lascerebbe una macchia opaca sul foglio proprio dove stai
+               guardando. Non si tocca pointer-events e non si tocca la geometria: il trascinamento
+               continua a funzionare, e il cursore resta esattamente sotto il dito. */
+            .tpl-editor-block-menu.in-regolazione {
+                opacity: 0.15;
+                box-shadow: none !important;
+                transition: opacity var(--mov-breve) var(--ease-entra);
+            }
+            /* La maniglia diventa un comando vero anche su mobile — prima aveva "cursor: default"
+               proprio perché non faceva niente qui, ma i 6 pallini restavano a promettere un
+               movimento (segnalato: "non risulta trascinabile malgrado nella versione desktop lo
+               sia"). Ora trascinandola in verticale si cambia l'altezza del foglio. */
+            .tpl-editor-block-menu-drag-handle { cursor: ns-resize; }
+            /* Barretta orizzontale al posto dei 6 pallini: su un foglio che sale dal basso è il
+               segno che tutti riconoscono come "questo si tira su e giù". I pallini suggerivano
+               invece uno spostamento libero, che qui non esiste. */
+            .tpl-editor-block-menu-drag-handle .ico { display: none; }
+            .tpl-editor-block-menu-drag-handle::after {
+                content: ''; width: 40px; height: 4px; border-radius: 2px;
+                background: var(--text-muted); opacity: .5;
+            }
+            /* Area di presa generosa: è il comando che si usa più spesso di tutto il foglio. */
+            .tpl-editor-block-menu-drag-handle { min-height: 30px; padding-top: 12px; padding-bottom: 10px; }
+
+            /* ---- INTERRUZIONI DI PAGINA: SECONDA PAGINA DEL PANNELLO ----
+               Non è una "modalità a tutto schermo" ma una NAVIGAZIONE: nel menu normale la sezione
+               è una riga sola che riassume ("3 pagine ›"), toccandola si va alla seconda pagina del
+               pannello e da lì si torna con "‹". Due vantaggi rispetto a un interruttore: la
+               sezione non occupa più mezzo menu quando non serve, e il riassunto dice già quante
+               pagine servono senza doverla aprire. */
+            .tpl-editor-interr-riepilogo {
+                display: flex; align-items: center; gap: 10px; width: 100%;
+                min-height: 46px; padding: 0 10px;
+                border-radius: 9px; border: 1px solid var(--border); background: var(--bg-main);
+                color: var(--text-main); font-size: 12px; font-weight: 700; cursor: pointer;
+                text-align: left;
+            }
+            .tpl-editor-interr-riepilogo-titolo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .tpl-editor-interr-riepilogo-valore { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-muted); }
+            /* Il chevron è ciò che comunica "porta a un'altra schermata" invece di "apre/chiude
+               qui": è la differenza tra una navigazione e un interruttore. */
+            .tpl-editor-interr-riepilogo-freccia { flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--text-muted); }
+
+            /* La seconda pagina non si vede finché non ci si naviga. */
+            .tpl-editor-interr-pagina2 { display: none; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-riepilogo { display: none; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-pagina2 {
+                display: flex; flex-direction: column; flex: 1; min-height: 0;
+                /* Entra da destra: il movimento dice da solo "sei andato avanti di una schermata",
+                   e il "‹" della testata dice come tornare. */
+                animation: tplInterrEntra var(--mov-medio) var(--ease-entra);
+            }
+            @keyframes tplInterrEntra { from { transform: translateX(22px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+            /* Testata della seconda pagina: freccia indietro + titolo, come qualunque schermata
+               annidata. La freccia è un bersaglio pieno da 44px, non una scritta piccola. */
+            .tpl-editor-interr-testata {
+                display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+                margin: -2px 0 6px; font-size: 13px; font-weight: 800; color: var(--text-main);
+                /* Annulla il maiuscoletto da "etichetta di sezione" che la regola desktop mette:
+                   qui non è più un'etichetta ma il titolo di una schermata. */
+                text-transform: none; letter-spacing: 0;
+            }
+            .tpl-editor-interr-chiudi {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 44px; height: 44px; flex-shrink: 0;
+                border-radius: 10px; border: 1px solid var(--border); background: var(--bg-main);
+                color: var(--text-main); font-size: 22px; line-height: 1; cursor: pointer; padding: 0;
+            }
+
+            /* Stato "seconda pagina": il menu diventa alto quanto lo schermo e mostra SOLO la
+               maniglia e la sezione delle interruzioni. Tutto il resto del menu resta nel DOM
+               (quindi i suoi gestori restano vivi e al ritorno è tutto com'era), semplicemente non
+               si vede. */
+            .tpl-editor-block-menu.solo-interruzioni {
+                --tpl-menu-h: 92vh;
+                height: 92vh !important;
+            }
+            /* Con le schede la sezione interruzioni non è più figlia diretta del menu ma sta dentro
+               il pannello "Pagine": si nascondono la barra delle linguette e tutti gli altri
+               pannelli, non più "tutti i figli tranne la sezione". */
+            .tpl-editor-block-menu.solo-interruzioni > *:not(.tpl-editor-block-menu-drag-handle):not(.tpl-editor-interr-sezione):not(.tpl-editor-menu-pannello) {
+                display: none !important;
+            }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-menu-schede { display: none !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-menu-pannello:not([data-scheda="pagine"]) { display: none !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-menu-pannello[data-scheda="pagine"] {
+                display: flex !important; flex-direction: column; flex: 1; min-height: 0; overflow: visible;
+            }
+
+            /* ---- SCHEDE DEL MENU (solo mobile) ----
+               Una riga di linguette al posto di una colonna lunghissima. Scorrono in orizzontale:
+               con cinque schede su uno schermo stretto, comprimerle tutte renderebbe le parole
+               illeggibili — meglio poterle far scorrere. */
+            .tpl-editor-menu-schede {
+                display: flex; gap: 4px; flex-shrink: 0;
+                overflow-x: auto; overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 2px;
+                border-bottom: 1px solid var(--border);
+            }
+            .tpl-editor-menu-schede::-webkit-scrollbar { display: none; }
+            .tpl-editor-menu-scheda-btn {
+                flex: 0 0 auto; min-height: 40px; padding: 0 13px;
+                border: none; background: none; cursor: pointer;
+                color: var(--text-muted); font-size: 12.5px; font-weight: 800;
+                border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
+                white-space: nowrap;
+            }
+            /* Sottolineatura invece di riempimento: la linguetta attiva deve dire "sei qui" senza
+               diventare il pulsante più vistoso del pannello — i comandi veri stanno sotto. */
+            .tpl-editor-menu-scheda-btn.attiva {
+                color: var(--accent-ink);
+                border-bottom-color: var(--accent);
+                background: var(--accent-soft);
+            }
+            .tpl-editor-menu-pannello { display: none; flex-direction: column; gap: 10px; }
+            .tpl-editor-menu-pannello.attiva {
+                display: flex; flex: 1; min-height: 0;
+                overflow-y: auto; -webkit-overflow-scrolling: touch;
+                /* Cambiando scheda il pannello si sostituiva di colpo: è il comando che si tocca
+                   più spesso nell'editor, e senza nessuno scarto le due schede sembravano la
+                   stessa che cambia contenuto da sola. Basta un accenno di entrata — 6px, non un
+                   viaggio: il pannello resta dov'è, cambia solo quello che c'è dentro.
+                   Solo ingresso, come per le tendine: un'uscita animata vorrebbe dire tenere
+                   visibile una scheda che lo stato dà già per chiusa. */
+                animation: tplEditorFadeInUp var(--mov-breve) var(--ease-entra);
+            }
+            /* La sezione occupa tutta l'altezza libera e la lista si prende quello che resta: è
+               questo che trasforma i ~60px di prima in una lista davvero usabile. */
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-sezione {
+                display: flex; flex-direction: column; flex: 1; min-height: 0;
+            }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-list {
+                max-height: none !important; flex: 1; min-height: 0;
+            }
+            /* Righe più alte quando c'è spazio: con 11 categorie e il dito, 4px di padding non
+               bastano a distinguere una riga dall'altra né a centrare il "+" tra due. */
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-chip { padding: 10px 9px !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-add-btn { padding: 10px 0 !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-plus-glyph { font-size: 18px !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-intro { font-size: 11.5px; line-height: 1.5; }
+            .tpl-editor-block-menu-bubble { width: 54px; height: 54px; }
+
+            /* Controlli comuni del menu (condivisi da tutte le sezioni: Allineamento, Dimensione,
+               Livello, Zoom mappa, Foto, ecc.) — bersagli più grandi, testo più leggibile. Nessun
+               !important qui: sono regole di CLASSE che seguono normalmente quelle di base sopra
+               (stessa specificità, questa arriva dopo nel foglio di stile), gli stili inline messi
+               dal JS per colorare i pulsanti attivi (background/color/border-color) non toccano
+               queste proprietà quindi non c'è conflitto da vincere. */
+            .tpl-editor-block-menu .tpl-editor-menu-btn { min-height: 42px; font-size: 13px; }
+            .tpl-editor-block-menu label { min-height: 36px; font-size: 12.5px; }
+            .tpl-editor-block-menu input[type="checkbox"] { width: 19px; height: 19px; }
+            .tpl-editor-block-menu input[type="range"] { height: 30px; }
+            .tpl-editor-block-menu input[type="text"], .tpl-editor-block-menu input[type="number"], .tpl-editor-block-menu select { min-height: 40px; font-size: 13px; }
+            /* Il campo del controllo numerico è più largo su mobile: 52px bastano al desktop ma
+               non a un dito che deve appoggiarsi dentro per correggere una cifra. Font a 16px
+               perché sotto quella misura iOS ingrandisce la pagina da solo quando il campo prende
+               il fuoco, e il foglio salta via da sotto le mani. */
+            .tpl-ctrl-num-input { width: 68px !important; font-size: 16px !important; }
+            .tpl-ctrl-num-testata { font-size: 12px; }
+            .tpl-ctrl-num-scala { font-size: 10px; }
+            .tpl-editor-block-menu-collapse { width: 30px; height: 30px; }
+
+            /* Sezione "Interruzioni di pagina" (vedi apriMenuBloccoEditor): stessa lista, ma chip
+               più alte, badge "P.N" e bottoni "+"/"✕" più grandi — sono tutti stili INLINE messi
+               dal JS (i colori dipendono dalla categoria, calcolati lì), quindi qui serve
+               !important per vincere sulla stessa proprietà già impostata inline. */
+            .tpl-editor-interr-list { max-height: 42vh !important; padding: 6px !important; }
+            .tpl-editor-interr-chip { padding: 10px 10px !important; gap: 8px !important; }
+            .tpl-editor-interr-badge { font-size: 11px !important; padding: 3px 8px !important; }
+            /* I millimetri sono il dato su cui si decide il taglio: a 9px sul telefono non si
+               leggono. Non diventano però più grandi del nome della categoria, che resta la cosa
+               principale della riga. */
+            .tpl-editor-interr-mm { font-size: 10.5px !important; }
+            .tpl-editor-dividi-btn { min-height: 42px !important; font-size: 12px !important; }
+            .tpl-editor-interr-riempimento { font-size: 10px !important; }
+            .tpl-editor-interr-divider { font-size: 11.5px !important; margin: 6px 0 !important; gap: 8px !important; }
+            .tpl-editor-interr-add-btn { padding: 12px 0 !important; min-height: 40px; }
+            .tpl-editor-interr-plus-glyph { font-size: 18px !important; font-weight: 800; }
+            .tpl-editor-interr-remove-btn { padding: 8px 10px !important; font-size: 16px !important; min-width: 38px; min-height: 38px; }
+        }
+
+        /* Riordino pagine tenendo premuto e trascinando (vedi gestisciSpostamentoPaginaEditor):
+           l'elemento afferrato si affievolisce per far capire che si sta trascinando LUI, la barretta
+           verticale (#templateEditorPageReorderIndicator) segna dove finirebbe se si rilasciasse ora.
+           touch-action:pan-x (non più "none", segnalato esplicitamente): un dito che scorre SOPRA una
+           miniatura deve scorrere la striscia come qualunque altro punto, non essere intercettato dal
+           riordino — che sul tocco resta riservato alla maniglia dedicata qui sotto
+           (.tpl-editor-page-drag-handle), l'unica con touch-action:none. Il trascinamento dal corpo
+           della card (senza maniglia) resta comunque disponibile col MOUSE su desktop, dove non c'è
+           nessuno scroll nativo col dito da preservare (vedi il controllo pointerType nel JS). */
+        .tpl-editor-page-thumb, .tpl-editor-page-tab { touch-action: pan-x; }
+        .tpl-editor-page-drag-handle { touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); background: rgba(15,23,42,0.55); border-radius: 5px; }
+        .tpl-editor-page-tab .tpl-editor-page-drag-handle { color: inherit; background: none; opacity: 0.55; width: 16px; height: 16px; flex-shrink: 0; }
+        .tpl-editor-page-drag-handle:active { cursor: grabbing; }
+        .tpl-editor-page-drag-active { opacity: 0.4; }
+        #templateEditorPageReorderIndicator { animation: tplDropPulse 0.9s ease-in-out infinite; }
+        /* Pallino di spunta in modalità selezione multipla pagine (sostituisce la vecchia crocetta
+           di eliminazione rapida, tolta esplicitamente): vuoto/scuro se non selezionato, pieno con
+           segno di spunta se selezionato — vedi attivaModalitaSelezionePagine. */
+        .tpl-editor-page-check { display: block; flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; background: rgba(15,23,42,0.55); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.35); box-sizing: border-box; }
+        .tpl-editor-page-check.checked { background: var(--accent); }
+        .tpl-editor-page-check.checked::after { content: ''; display: block; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); margin: 1px auto 0; }
+        @keyframes tplBlockPulse { 0% { box-shadow: 0 0 0 0 var(--accent); } 60% { box-shadow: 0 0 0 5px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+        .tpl-editor-block-pulse { animation: tplBlockPulse 0.4s ease-out; }
+
+        /* Suggerimento di piazzamento durante il drag&drop: riga target evidenziata + barra
+           pulsante + pillola di testo (vedi mostraIndicatoreDropEditor) — prima c'era solo una
+           sottile barretta colorata, troppo poco per capire cosa sarebbe successo lasciando lì. */
+        .tpl-editor-row-drop-target { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: var(--radius-sm); background: var(--accent-soft); transition: background var(--mov-breve) var(--ease-entra), outline-color var(--mov-breve) var(--ease-entra); }
+        @keyframes tplDropPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        #templateEditorDropIndicator { animation: tplDropPulse 0.9s ease-in-out infinite; box-shadow: 0 0 0 4px var(--accent-soft); }
+        #templateEditorDropLabel { position: absolute; background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: 0 3px 8px rgba(0,0,0,0.35); }
+
+        /* "Anteprima pulita": nasconde tutte le maniglie/pulsanti di editing (testata del blocco,
+           bordo del riquadro, linea di fine pagina) per vedere il contenuto esattamente come uscirà
+           nel PDF — la classe si applica su #templateEditorPageFrame (antenato comune di canvas e
+           linea A4) così una sola regola CSS copre entrambi senza bisogno di JS aggiuntivo. */
+        .tpl-editor-preview-mode .tpl-editor-block-select-overlay { display: none !important; }
+        .tpl-editor-preview-mode .tpl-editor-block { border-color: transparent; background: transparent; }
+        .tpl-editor-preview-mode .tpl-editor-block-body { border-radius: var(--radius-sm); cursor: default; }
+        .tpl-editor-preview-mode #templateEditorA4Line { opacity: 0.35; }
+
+        /* BARRA DI STATO CONTESTUALE (sticky, compare allo scroll) */
+        #stickyStatusBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 7px 10px;
+            background: var(--bg-card);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--accent);
+            box-shadow: var(--shadow);
+            transform: translateY(-105%);
+            transition: transform var(--mov-medio) var(--ease-entra);
+            pointer-events: none;
+        }
+        #stickyStatusBar.visible {
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        /* Il drawer e i modali coprono l'intera schermata: la barra di stato non deve
+           restare sopra di loro (aveva z-index superiore e si sovrapponeva al menu). */
+        body.drawer-open #stickyStatusBar,
+        body.modal-open #stickyStatusBar {
+            transform: translateY(-105%);
+            pointer-events: none;
+        }
+        .ssb-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.15;
+            min-width: 0;
+        }
+        .ssb-lbl {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+        .ssb-val {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .ssb-val.ssb-blow { color: var(--accent); font-size: 17px; }
+        .ssb-jump {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .ssb-jump .ico { transform: rotate(90deg); }
+        /* 34px in una barra fissa alta ~40px: non c'è spazio per farlo più grande davvero, ma
+           l'area di tocco sì. Solo 5px per lato in orizzontale perché a sinistra c'è il gruppo
+           "Asta" e non deve rubargli il tocco; in verticale resta dentro la barra. */
+        .ssb-jump { position: relative; }
+        .ssb-jump::before { content: ''; position: absolute; inset: -5px; }
+
+        /* MODALITÀ GUANTI: ingrandisce i target touch primari per l'uso in cantiere
+           con guanti da lavoro o mani bagnate. */
+        body.glove-mode .btn-touch {
+            min-height: 128px;
+            font-size: 42px;
+        }
+        body.glove-mode .btn-icon {
+            width: 58px;
+            height: 58px;
+        }
+        body.glove-mode .btn-icon .ico { width: 27px; height: 27px; }
+        body.glove-mode .btn-action {
+            min-height: 50px;
+            font-size: 15px;
+        }
+        body.glove-mode .btn-tag {
+            padding: 13px 17px;
+            font-size: 15px;
+        }
+        body.glove-mode .swipe-content {
+            min-height: 50px !important;
+            font-size: 15px;
+        }
+        /* Il tasto "torna ai controlli" della barra di stato fissa: è il modo di risalire al
+           contatore mentre si scorre il registro, quindi in cantiere si usa spesso. Restava a
+           34px anche col guanto perché nessuna regola lo copriva. */
+        body.glove-mode .ssb-jump { width: 44px; height: 44px; }
+        body.glove-mode .blow-display { font-size: 68px; }
+
+        /* Estensione modalità guanti oltre il contatore di Vista Prova: campi di testo,
+           interruttori e righe delle Impostazioni sono i bersagli più piccoli e frequenti
+           nel resto dell'app, quindi vale la pena ingrandirli allo stesso modo. Usando
+           selettori di classe globali, questo copre automaticamente ogni schermata che usa
+           questi componenti (Home, Impostazioni, Gestione dati litologici, Parametri
+           avanzati, modali) senza dover toccare ogni singola vista. */
+        body.glove-mode .form-control {
+            min-height: 48px;
+            font-size: 16px;
+            padding: 12px 14px;
+        }
+        body.glove-mode .form-group label { font-size: 12.5px; }
+        body.glove-mode .switch { width: 60px; height: 34px; }
+        body.glove-mode .switch-visual::after { top: 4px; left: 4px; width: 24px; height: 24px; }
+        body.glove-mode .switch input:checked ~ .switch-visual::after { transform: translateX(28px); }
+        body.glove-mode .switch-row span { font-size: 15px; }
+        body.glove-mode .setting-row { padding: 14px 0; gap: 16px; }
+        body.glove-mode .setting-label { font-size: 15px; }
+        body.glove-mode .setting-desc { font-size: 12.5px; }
+        body.glove-mode .drawer-section > * + *:not(.drawer-section-title) { margin-top: 17px; }
+        body.glove-mode .drawer-body { gap: 17px; }
+        body.glove-mode .info-collapsible-toggle { padding: 13px 14px; font-size: 13px; }
+
+        /* Pallino "posizione attuale" sulle mappe Leaflet: pulsante e distinto dal pin trascinabile */
+        .gps-live-dot-wrap {
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gps-live-dot-core {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: #2563eb;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+            position: relative;
+            z-index: 2;
+        }
+        .gps-live-dot-pulse {
+            position: absolute;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.35);
+            animation: gpsLiveDotPulse 1.8s ease-out infinite;
+        }
+        @keyframes gpsLiveDotPulse {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        /* Pin grigi delle ALTRE prove dello stesso progetto sulla mappa di posizionamento manuale
+           (richiesto esplicitamente): solo un punto di riferimento visivo, non selezionabili/non
+           cliccabili (vedi interactive:false in aggiornaAltreProveMarkersSuMappaGps) e volutamente
+           spenti/grigi per non confondersi con il pin arancione trascinabile della prova che si sta
+           posizionando ora. Riportano solo il numero prova, senza altro testo, per restare leggibili
+           anche piccoli e numerosi. */
+        .gps-altra-prova-pin {
+            width: 22px; height: 22px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            background: #64748b;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0.85;
+        }
+        .gps-altra-prova-pin span {
+            transform: rotate(45deg);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            font-family: inherit;
+        }
+
+        /* Pin BLU trascinabile della prova che si sta posizionando ora (richiesto esplicitamente:
+           anche questo deve mostrare il numero prova, non solo i pin grigi delle altre) — stessa
+           forma a goccia dei pin grigi ma più grande/in evidenza e colorata con --info, per restare
+           immediatamente distinguibile dai riferimenti grigi non selezionabili. */
+        .gps-mia-prova-pin {
+            width: 30px; height: 30px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            background: #2563eb;
+            border: 2.5px solid #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gps-mia-prova-pin span {
+            transform: rotate(45deg);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            font-family: inherit;
+        }
+
+        /* Passaggio Registro Integrato <-> Grafico/Tabella separati: le due modalità mostrano
+           GLI STESSI dati, solo presentati diversamente — non è una navigazione verso un'altra
+           schermata, quindi niente slide laterale (che suggerirebbe "vado altrove"). Una
+           dissolvenza incrociata con un lieve "respiro" di scala comunica meglio "stessa cosa,
+           altra faccia": la vista uscente si ritira leggermente, quella entrante si assesta al
+           suo posto. L'icona del tasto che ha innescato il cambio ruota di 180°, a rinforzare
+           visivamente il concetto di "giro pagina/gira la medaglia". */
+        .view-swap-out {
+            animation: viewSwapOut var(--mov-breve) var(--ease-entra) forwards;
+        }
+        .view-swap-in {
+            animation: viewSwapIn var(--mov-medio) var(--ease-entra) forwards;
+        }
+        @keyframes viewSwapOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.97); }
+        }
+        @keyframes viewSwapIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .btn-toggle-integrated-view .ico {
+            transition: transform var(--mov-lungo) var(--ease-entra);
+        }
+        .btn-toggle-integrated-view.spin .ico {
+            transform: rotate(180deg);
+        }
+
+        /* Passaggio Home -> Prova (e viceversa): qui si cambia DAVVERO schermata (altro progetto,
+           altro contesto), diverso dal cross-fade qui sopra che dice "stessa cosa, altra faccia".
+           Uno slide verticale più marcato + dissolvenza comunica "sto entrando in un altro spazio".
+           Si anima solo la vista che COMPARE: quella che sparisce passa a display:none subito,
+           quindi animarne l'uscita non si vedrebbe comunque senza ritardare lo swap, cosa non
+           necessaria per l'effetto voluto (vedi switchView in JS). */
+        @keyframes screenNavEnter {
+            from { opacity: 0; transform: translateY(18px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .screen-nav-enter {
+            animation: screenNavEnter var(--mov-lungo) var(--ease-entra) .61, .36, 1);
+        }
+
+        /* Impulso luminoso sulle card Registro/Grafico quando cambia la prova visualizzata */
+        @keyframes dataChangedPulse {
+            0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.45); }
+            50% { box-shadow: 0 0 0 6px rgba(59,130,246,0.12); }
+            100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+        }
+        .data-changed-pulse { animation: dataChangedPulse 0.6s ease; }
+        /* L'impulso del contatore: una spinta breve, NON un lampeggio di colore. Il colore del
+           numero dice già altro (dipende dal tema), e cambiarglielo a ogni colpo lo renderebbe
+           illeggibile proprio nel momento in cui lo stai guardando. `transform` non tocca il
+           layout, quindi la riga sotto — profondità, asta — non si muove di un pixel. */
+        @keyframes blowDisplayCambiato {
+            0% { transform: scale(1); }
+            35% { transform: scale(1.09); }
+            100% { transform: scale(1); }
+        }
+        .blow-display-cambiato { animation: blowDisplayCambiato var(--mov-medio) var(--ease-entra); }
+        /* CAMBIO PAGINA NELL'EDITOR: SOLO OPACITÀ, MAI GEOMETRIA.
+           Uno scorrimento laterale del foglio racconterebbe meglio la direzione, ma il foglio è la
+           zona misurata: un `transform` in volo su di lui è esattamente ciò che il vincolo n.1 del
+           piano vieta, ed è la famiglia del bug che ci è costata di più. Un velo di opacità dà lo
+           stacco che serve senza spostare un solo pixel di geometria. */
+        @keyframes tplPaginaCambiata { from { opacity: 0.35; } to { opacity: 1; } }
+        .tpl-pagina-cambiata { animation: tplPaginaCambiata var(--mov-breve) var(--ease-entra); }
+
+        /* Barre del grafico SVG: transizione di larghezza usata per l'effetto "crescita"
+           quando si cambia prova (vedi pendingBarGrowAnim in JS) */
+        .chart-rect-bar { transition: width var(--mov-lungo) var(--ease-entra); }
+
+        /* Utility generica per pannelli che si espandono/richiudono in verticale (accordion):
+           Parametri Avanzati per strato, dettaglio d'archivio, ecc. L'elemento va SEMPRE
+           renderizzato nel DOM (mai incluso/escluso via if nel template), altrimenti non c'è
+           nulla su cui far scorrere una transizione — qui si controlla solo la classe .open.
+           margin-top e border-top-color animano insieme a max-height/opacity così a chiuso non
+           resta né uno spazio vuoto né una lineetta orfana. */
+        .expand-region {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            overflow: hidden;
+            border-color: transparent !important;
+            transition: max-height var(--mov-medio) var(--ease-entra), opacity var(--mov-medio) var(--ease-entra), margin-top var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra);
+        }
+        .expand-region.open {
+            max-height: 900px;
+            opacity: 1;
+            margin-top: 8px;
+            border-color: var(--border) !important;
+        }
+        /* IL max-height DA 900px E' UN NUMERO INVENTATO, e fa due danni:
+             · un contenuto più alto di 900px viene TAGLIATO;
+             · sotto i 900px l'animazione "corre nel vuoto" per la parte eccedente, quindi la
+               velocità percepita cambia con quanto è pieno il pannello — un pannello corto
+               sembra scattare, uno lungo sembra lento, con la STESSA transizione. È una delle
+               cause della sensazione di scatto.
+           Dove il motore lo consente si anima invece l'altezza VERA (`height: 0 → auto`), che
+           non ha numeri magici, non taglia niente e ha la stessa velocità a qualunque lunghezza.
+           Sta dentro @supports di proposito: sui motori che non lo conoscono l'intero blocco
+           viene ignorato e resta esattamente il comportamento di prima. Nessun ripiego da
+           scrivere, nessuna regressione possibile — o è meglio, o è identico. */
+        @supports (interpolate-size: allow-keywords) {
+            :root { interpolate-size: allow-keywords; }
+            .expand-region {
+                max-height: none; height: 0;
+                transition: height var(--mov-medio) var(--ease-entra), opacity var(--mov-medio) var(--ease-entra), margin-top var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra);
+            }
+            .expand-region.open { max-height: none; height: auto; }
+        }
+
+        /* Il corpo della riga strato contiene il selettore pattern (.patpick-panel), un menu a
+           comparsa POSITION:ABSOLUTE che deve potersi aprire oltre il bordo inferiore del corpo
+           — cosa impossibile finché quel corpo eredita l'overflow:hidden di .expand-region (serve
+           solo per l'animazione di apertura/chiusura, non per contenere popover interni). Stesso
+           bug già risolto sul menu ⋮ dell'header: qui però non si può togliere l'overflow sempre,
+           altrimenti l'animazione di apertura del corpo perderebbe l'effetto di "crescita" —
+           lo si toglie SOLO a corpo già aperto, quando la crescita è comunque già conclusa nella
+           quasi totalità dei casi reali (il pattern picker si apre sempre DOPO aver aperto la
+           riga, mai in contemporanea). Selettore a 3 classi per vincere su .expand-region.open
+           indipendentemente dall'ordine nel foglio di stile. */
+        .strato-row-body.expand-region.open {
+            overflow: visible;
+        }
+
+        /* Stesso discorso per il corpo espanso della card nell'Archivio Litologico Globale, che
+           ora ospita anch'esso un pattern picker con popover assoluto (vedi buildArchPatternPickerHtml). */
+        .arch-card-body.expand-region.open {
+            overflow: visible;
+        }
+
+        /* Non basta: anche il CONTENITORE della card ha un overflow:hidden inline (serve a
+           tagliare gli angoli quadrati della griglia statistiche interna sui bordi arrotondati
+           della card, vedi renderArchiveManagerList). Essendo inline vince su qualunque regola
+           di classe normale, quindi qui serve !important — attivo SOLO a card espansa, quando
+           l'ultimo contenuto visibile in basso è il corpo del picker (senza sfondo "a blocco"
+           che possa sporgere dagli angoli), non più la griglia statistiche. */
+        .arch-card-wrap.arch-card-wrap-open {
+            overflow: visible !important;
+        }
+
+        /* Popover a comparsa (pattern picker, menu "altre azioni"): niente scatto secco tra
+           display:none e display:flex — display resta sempre "flex" nel markup quando la larghezza
+           lo prevede, la comparsa è governata da opacità + piccola scala, con pointer-events
+           disattivati quando chiuso per non intercettare tocchi mentre è invisibile. */
+        .popover-region {
+            transform: scale(0.96) translateY(-4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra);
+        }
+        .popover-region.open {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* METODI GPS (Posizione GPS Cantiere): barra a schede segmentate, una sola voce attiva
+           alla volta, per non avere tutti i metodi di input (file/incolla/manuale+mappa)
+           visibili insieme. .gps-accordion-toggle resta l'aggancio usato dal JS per il toggle
+           (querySelectorAll), lo stile vero e proprio è su .gps-tab-btn. */
+        .gps-method-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            background: rgba(127, 127, 127, 0.08);
+            border-radius: var(--radius-sm);
+            padding: 3px;
+            margin-bottom: 10px;
+        }
+        .gps-tab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            border-radius: calc(var(--radius-sm) - 2px);
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 10.5px;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: background var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra);
+        }
+        .gps-tab-btn .ico { width: 15px; height: 15px; }
+        .gps-tab-btn.open {
+            background: var(--bg-card);
+            color: var(--accent-ink);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        }
+        .gps-method-panel { margin-bottom: 14px; }
+        .gps-accordion-body { background: var(--bg-main); border-radius: var(--radius-sm); padding: 0 12px; }
+        .gps-accordion-body.open { border: 1px solid var(--border) !important; }
+        .gps-accordion-body-inner { padding: 12px 0; }
+
+        /* Selettore stile mappa: Strada / Satellite / Ibrida */
+        .gps-map-layer-switch {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .gps-map-layer-btn {
+            padding: 7px 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--text-muted);
+            font-size: 11.5px;
+            font-weight: 700;
+            font-family: var(--font-sans);
+            cursor: pointer;
+        }
+        .gps-map-layer-btn.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent-ink);
+        }
+
+        /* PULSANTE TEMA SOLE/LUNA */
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+        .theme-toggle-track {
+            position: relative;
+            width: 54px;
+            height: 28px;
+            border-radius: 999px;
+            background: var(--bg-sunken);
+            border: 1px solid var(--border-strong);
+            display: block;
+            flex: 0 0 auto;
+        }
+        .theme-toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--on-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform var(--mov-medio) var(--ease-entra);
+        }
+        [data-theme="light"] .theme-toggle-thumb { transform: translateX(26px); }
+        .theme-toggle-thumb .ico { width: 14px; height: 14px; }
+        .theme-ico-sun { display: none; }
+        [data-theme="light"] .theme-ico-sun { display: block; }
+        [data-theme="light"] .theme-ico-moon { display: none; }
+        .theme-toggle-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            min-width: 44px;
+            text-align: left;
+        }
+
+        /* TOGGLE COMPATTO NEL PANNELLO CONTEGGIO */
+        .counter-quick-toggles-col {
+            position: absolute;
+            /* A card espansa il riquadro scuro (.counter-dashboard) inizia un po' più in basso
+               del bordo della card (margine dell'accordion + suo padding interno): questo offset
+               porta la colonna di icone davvero dentro quel riquadro, non sopra di esso. A card
+               compressa il riquadro scuro non c'è più (resta solo la barra riepilogo compatta),
+               quindi torna a un angolo più stretto — vedi override sotto. */
+            top: 30px;
+            left: 14px;
+            z-index: 4;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: top var(--mov-medio) var(--ease-entra), left var(--mov-medio) var(--ease-entra);
+        }
+        #cardCounterDashboard.counter-collapsed .counter-quick-toggles-col {
+            top: 8px;
+            left: 8px;
+        }
+        /* A barra compressa il lucchetto si rimpicciolisce insieme al resto (vedi barra più
+           sottile sopra): l'allineamento verticale col testo viene poi rifinito via JS
+           (syncCounterLockHandlePosition), questa è solo la misura di partenza coerente. */
+        #cardCounterDashboard.counter-collapsed .counter-quick-toggle.counter-lock-handle {
+            width: 28px;
+            height: 28px;
+        }
+        #cardCounterDashboard.counter-collapsed .counter-quick-toggle.counter-lock-handle .ico {
+            width: 15px;
+            height: 15px;
+        }
+        .counter-quick-toggle {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-card-hover);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: color var(--mov-breve) var(--ease-entra), background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra);
+        }
+        .counter-quick-toggle .ico { width: 18px; height: 18px; }
+        .counter-quick-toggle.is-active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .counter-quick-toggle:active { transform: scale(0.92); }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ICONE SVG: ereditano colore e si allineano al testo circostante */
+        .ico {
+            width: 1.05em;
+            height: 1.05em;
+            flex: 0 0 auto;
+            vertical-align: -0.15em;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+        }
+        .ico-lg { width: 20px; height: 20px; }
+        .ico-xl { width: 34px; height: 34px; stroke-width: 1.6; }
+        /* Nei pulsanti icona il glifo deve essere nitido e centrato */
+        .btn-icon .ico { width: 20px; height: 20px; vertical-align: 0; }
+        /* Allineamento del testo accanto alle icone dentro i bottoni */
+        .btn-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+        }

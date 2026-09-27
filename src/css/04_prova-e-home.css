@@ -1,0 +1,140 @@
+        /* ================== PROVA IN CAMPO E HOME (Fase 3) ==================
+           Le due schermate del prototipo approvato («Telefono · Prova in campo», «Telefono · Home»),
+           scritte con le regole di 03_regole-di-stile.css. Sul PC restano la colonna di oggi. */
+
+        /* ---- Testata della prova ---- */
+        header.testata-prova { padding: var(--sp-2) var(--sp-2) var(--sp-3); gap: var(--sp-3); }
+        .testata-riga { display: flex; align-items: center; gap: var(--sp-2); width: 100%; }
+        .testata-titolo {
+            flex: 1 1 auto; min-width: 0; min-height: var(--h-bottone); padding: 2px var(--sp-1);
+            display: flex; flex-direction: column; justify-content: center; gap: 2px; text-align: left;
+            background: transparent; border: none; border-radius: var(--radius-md); color: var(--text-main);
+            font-family: inherit; cursor: pointer;
+        }
+        .testata-titolo-prova { font-size: 22px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .testata-titolo-progetto { font-size: var(--fs-testo); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .testata-titolo-progetto:empty { display: none; }
+        /* Quattro spie in una riga. Non colonne uguali: a 375 «Falda 1,20 m» non ci starebbe, e
+           «GPS» o «Note» avanzano spazio. Ognuna prende quello che le serve e il resto si divide. */
+        .spie { display: flex; gap: 4px; padding: 0; }
+        .spie .spia { flex: 1 1 auto; padding: 0 6px; gap: 4px; }
+        /* Sul telefono stretto la foto e la falda perdono l'icona: il testo («2 foto», «Falda
+           1,20 m») dice già cosa sono, e lo spazio serve al numero. La spunta del GPS resta. */
+        @media (max-width: 420px) {
+            #btnOpenSurveyPhotosModal .ico, #btnSpiaFalda .ico { display: none; }
+        }
+        #liveGpsAccuracyDot { position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; border-radius: 50%; }
+        /* La riga delle prove: «Prove», i cerchietti da 44 e il «+» tratteggiato. Scorre di lato se
+           le prove sono tante (le dissolvenze ai bordi restano quelle di 01_app.css). */
+        #surveySwitcherBar.riga-prove { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 0 var(--sp-1); margin: 0; border: none; -webkit-overflow-scrolling: touch; }
+        .riga-prove .riga-prove-etichetta { flex: 0 0 auto; font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); margin-right: var(--sp-1); }
+        .prova-chip {
+            position: relative; flex: 0 0 auto; box-sizing: border-box; width: 44px; height: 44px; padding: 0; border-radius: 22px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-main); border: 1px solid var(--border); color: var(--text-main);
+            font-family: var(--font-mono); font-size: 15px; font-weight: 800; cursor: pointer;
+            -webkit-touch-callout: none; user-select: none; -webkit-user-select: none;
+        }
+        .prova-chip[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        /* Le interpretazioni (3B) hanno un nome più lungo: la pillola si allarga invece di tagliarlo. */
+        .prova-chip.lunga { width: auto; min-width: 44px; padding: 0 10px; }
+        .prova-chip-nuova { border: 1.5px dashed var(--border-strong); background: transparent; color: var(--text-muted); font-family: var(--font-sans); font-size: 22px; font-weight: 500; }
+        .prova-chip-nuova .ico { width: 20px; height: 20px; }
+
+        /* ---- Contatore ---- */
+        .counter-dashboard.contatore { padding: 14px var(--sp-3) var(--sp-3); gap: 2px; align-items: stretch; }
+        /* A sinistra del riquadro c'è il lucchetto (posizionato in JS): la riga gli lascia posto. */
+        .contatore-riga { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); min-height: 44px; padding-left: 52px; }
+        .contatore-intervallo { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--accent-ink); white-space: nowrap; }
+        .contatore-asta { font-size: var(--fs-testo); color: var(--text-muted); white-space: nowrap; }
+        .contatore-asta strong { color: var(--text-main); }
+        .counter-dashboard.contatore .blow-display { font-size: var(--fs-contatore); font-weight: 700; line-height: 1.05; margin: 0; text-align: center; text-shadow: none; }
+        .contatore-didascalia { font-size: var(--fs-testo); color: var(--text-muted); text-align: center; }
+        .controls-grid { grid-template-columns: 1fr 2fr; gap: var(--sp-2); margin-top: var(--sp-3); }
+        .controls-grid .btn-touch { height: 96px; gap: 2px; }
+        .btn-minus { border-color: rgba(239, 68, 68, 0.7); color: var(--pericolo-testo); }
+        .btn-touch-cifra { font-size: 36px; font-weight: 800; line-height: 1; }
+        .btn-plus .btn-touch-cifra { font-size: 38px; }
+        .btn-touch-aiuto { font-size: var(--fs-didascalia); font-weight: 600; opacity: .85; text-align: center; line-height: 1.2; padding: 0 4px; }
+        .counter-quick-toggle.counter-lock-handle { width: 44px; height: 44px; }
+
+        /* Registra: 56, a tutta larghezza, col suo intervallo. */
+        .registra-blocco { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-3); }
+        .bt-registra { width: 100%; }
+        .registra-sotto { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+        .registra-nascosto {
+            display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-3);
+            background: var(--bg-main); border: 1px dashed var(--border-strong); border-radius: var(--radius-md);
+            padding-left: var(--sp-3); font-size: var(--fs-testo); color: var(--text-main);
+        }
+
+        /* Note rapide: pillole da 44 che vanno a capo, niente scorrimento di lato. */
+        .note-rapide { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border); }
+        .note-rapide-titolo { font-size: var(--fs-testo); font-weight: 700; color: var(--text-muted); }
+        .note-tags-row.pillole { overflow: visible; padding: 0; margin: 0; flex-wrap: wrap; }
+        .note-tags-row .pillola.btn-tag { padding: 0 14px; border-radius: 22px; font-size: var(--fs-testo); font-weight: 600; background: var(--bg-main); }
+        .note-tags-row .pillola.btn-tag.accento { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+        .note-tags-row .pillola.btn-tag::before { content: none; }
+
+        /* ---- Registro ---- */
+        .registro-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); flex-wrap: wrap; }
+        .registro-titolo { margin: 0; font-size: 17px; font-weight: 800; color: var(--text-main); }
+        .registro-azioni { display: flex; align-items: center; gap: 6px; }
+        .registro-aiuto { font-size: var(--fs-didascalia); color: var(--text-muted); margin-bottom: var(--sp-2); line-height: 1.4; }
+        .registro-legenda { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px var(--sp-2); margin-bottom: var(--sp-2); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 600; }
+        .registro-legenda:empty { display: none; }
+        .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
+        .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
+
+        /* ---- Barra di stato fissa (quando il contatore esce dallo schermo) ---- */
+        .ssb-lbl { font-size: var(--fs-didascalia); text-transform: none; letter-spacing: 0; }
+        .ssb-jump { width: 44px; height: 44px; }
+        /* La matita che sblocca i contatti tra strati sul grafico (vista con «Grafico» premuto). */
+        #btnToggleModificaStratiGrafico { width: var(--h-bottone); height: var(--h-bottone); }
+
+        /* ---- Home ---- */
+        .home { display: flex; flex-direction: column; gap: 14px; }
+        .home-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+        .home-titoli { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .home-conteggi { font-size: var(--fs-testo); color: var(--text-muted); }
+        .home-azioni { display: flex; gap: 6px; flex-shrink: 0; }
+        .home-comandi { display: grid; grid-template-columns: 2fr 1fr; gap: var(--sp-2); }
+        .home-comandi .bt { min-height: 48px; font-size: var(--fs-campo); }
+        .home-comandi .bt:not(.bt-principale) { background: var(--bg-card); }
+        .home-ricerca { display: flex; flex-direction: column; gap: var(--sp-2); }
+        /* I quattro filtri stanno su una riga anche a 375: si stringono invece di andare a capo. */
+        #filtroStatoProgetti { flex-wrap: nowrap; gap: 6px; }
+        #filtroStatoProgetti .pillola { flex: 1 1 auto; min-width: 0; padding: 0 6px; justify-content: center; }
+        .campo-cerca { position: relative; display: block; }
+        .campo-cerca .ico { position: absolute; left: 12px; top: 13px; width: 18px; height: 18px; color: var(--text-muted); }
+        .campo-cerca input {
+            box-sizing: border-box; width: 100%; height: var(--h-bottone); padding: 0 12px 0 38px;
+            background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius-md);
+            color: var(--text-main); font-family: inherit; font-size: var(--fs-campo);
+        }
+        .home-progetti { display: flex; flex-direction: column; gap: 10px; }
+        .card-progetto { display: flex; align-items: stretch; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+        .card-progetto-apri {
+            flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; gap: 6px; padding: 14px var(--sp-1) 14px var(--sp-4);
+            background: transparent; border: none; color: var(--text-main); text-align: left; font-family: inherit; cursor: pointer;
+        }
+        .card-progetto-riga1 { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+        .card-progetto-nome { font-size: var(--fs-campo); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .card-progetto-stato { flex-shrink: 0; display: inline-flex; align-items: center; min-height: 22px; padding: 0 var(--sp-2); border-radius: 11px; font-size: var(--fs-didascalia); font-weight: 700; border: 1px solid currentColor; }
+        .card-progetto-luogo { font-size: var(--fs-testo); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-progetto-numeri { font-size: var(--fs-testo); color: var(--text-main); }
+        .card-progetto-data { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .card-progetto-altro {
+            flex: 0 0 48px; width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;
+            background: transparent; border: none; border-left: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+        }
+        .card-progetto-altro .ico { width: 20px; height: 20px; }
+        .home-vuota { text-align: center; color: var(--text-muted); padding: 32px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--fs-testo); line-height: 1.5; }
+        .home-vuota .titolo { font-size: var(--fs-campo); font-weight: 800; color: var(--text-main); margin-bottom: 6px; }
+
+        /* ---- Finestre toccate: la X da 44 ---- */
+        .chiudi-x { width: 44px; height: 44px; flex-shrink: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent !important; border: none !important; color: var(--text-muted); cursor: pointer; }
+        .chiudi-x .ico { width: 20px; height: 20px; }
+
+        /* ---- La striscia «Salvataggio sospeso» (Fase 1) spinge giù il contenuto ---- */
+        #barraSalvataggioSospeso { position: sticky; top: 0; }

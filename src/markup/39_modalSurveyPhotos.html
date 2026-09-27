@@ -1,0 +1,34 @@
+
+    <!-- MODAL FLUTTUANTE FOTO PROVA -->
+    <div class="modal-overlay" id="modalSurveyPhotosOverlay"></div>
+    <div class="modal" id="modalSurveyPhotos" style="max-width: 500px; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span><svg class="ico"><use href="#i-camera"/></svg> Foto della prova (<span id="lblPhotoCount">0</span>)</span>
+            <button type="button" class="chiudi-x" id="btnClosePhotosModalX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+            Le foto vengono georeferenziate automaticamente e incluse nella scheda PDF.
+        </p>
+
+        <div style="overflow-y: auto; flex: 1; padding-right: 4px;">
+            <!-- Upload Controls -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <label class="btn-action" style="flex: 1; min-width: 130px; text-align: center; background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; cursor: pointer; padding: 8px 12px; min-height: 44px;">
+                    <svg class="ico"><use href="#i-camera"/></svg> Scatta foto
+                    <input type="file" id="fileCameraInputModal" accept="image/*" capture="environment" style="display: none;">
+                </label>
+                <label class="btn-action" style="flex: 1; min-width: 130px; text-align: center; background: var(--bg-card-hover); border: 1px solid var(--border); color: var(--text-main); font-weight: 700; cursor: pointer; padding: 8px 12px; min-height: 44px;">
+                    <svg class="ico"><use href="#i-image"/></svg> Carica foto
+                    <input type="file" id="fileGalleryInputModal" accept="image/*" multiple style="display: none;">
+                </label>
+            </div>
+            <div id="lblBatchImportProgress" style="display:none; font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--bg-card-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 10px; text-align: center;"></div>
+
+            <!-- Gallery Container -->
+            <div id="modalPhotoGalleryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; min-height: 120px;">
+                <!-- Popolato dinamicamente via JS -->
+            </div>
+        </div>
+
+        <!-- (Fase 3) Niente «Chiudi» in fondo: c'è già la X in alto. -->
+    </div>

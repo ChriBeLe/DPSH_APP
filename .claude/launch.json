@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dpsh-app",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8744", "--directory", "dist"],
+      "port": 8744
+    }
+  ]
+}

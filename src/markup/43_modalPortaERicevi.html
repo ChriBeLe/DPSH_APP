@@ -1,0 +1,49 @@
+
+    <!-- PORTA SU UN ALTRO DISPOSITIVO (Fase 2): il pacchetto di progetto, copia esatta. Sul telefono
+         è un foglio dal basso, sul PC una finestra. Dal ⋯ del progetto. La riempie apriPortaProgetto. -->
+    <div class="modal-overlay" id="modalPortaProgettoOverlay"></div>
+    <section class="modal passaggio" id="modalPortaProgetto" role="dialog" aria-labelledby="titoloPortaProgetto">
+        <span class="maniglia" aria-hidden="true"></span>
+        <div class="testata">
+            <div style="min-width: 0;">
+                <h2 id="titoloPortaProgetto">Porta su un altro dispositivo</h2>
+                <div class="sottotitolo" id="lblPortaProgettoNome"></div>
+            </div>
+            <button type="button" class="chiudi" id="btnChiudiPortaProgetto" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="numeri" id="portaProgettoNumeri"></div>
+        <ul class="spunte">
+            <li class="spunta"><svg class="ico"><use href="#i-check"/></svg><span>È la <strong>copia esatta</strong> del progetto: prove con GPS, foto originali con le loro coordinate, note con le immagini, strati, template e lo storico degli intervalli.</span></li>
+            <li class="spunta"><svg class="ico"><use href="#i-check"/></svg><span>Ogni file ha la sua impronta: all'arrivo si verifica che nulla si sia rovinato per strada.</span></li>
+            <li class="spunta"><svg class="ico"><use href="#i-check"/></svg><span>Sull'altro dispositivo: apri DPSH e tocca <strong>Ricevi</strong> nella Home.</span></li>
+        </ul>
+        <div class="riquadro avviso" id="portaProgettoMancanti" style="display: none;"></div>
+        <div class="riga-dispositivo">
+            <span>Questo dispositivo: <strong id="lblPortaProgettoDispositivo">Telefono</strong></span>
+            <button type="button" class="link" id="btnCambiaNomeDispositivo">Cambia nome</button>
+        </div>
+        <button type="button" class="principale" id="btnCreaPacchetto" disabled>
+            <svg class="ico"><use href="#i-download"/></svg>
+            <span id="lblCreaPacchetto">Calcolo il peso…</span>
+        </button>
+        <div class="nota">Il file finisce nei Download. Lo sposti tu, con il cavo o dove preferisci.</div>
+    </section>
+
+    <!-- RICEVI UN PROGETTO (Fase 2): anteprima di un pacchetto prima di scriverlo. Si apre da «Ricevi»
+         in Home quando il file scelto è un pacchetto. La riempie apriRiceviProgetto. -->
+    <div class="modal-overlay" id="modalRiceviProgettoOverlay"></div>
+    <section class="modal passaggio ricevi" id="modalRiceviProgetto" role="dialog" aria-labelledby="titoloRiceviProgetto">
+        <span class="maniglia" aria-hidden="true"></span>
+        <div class="testata">
+            <div style="min-width: 0;">
+                <h2 id="titoloRiceviProgetto">Ricevi un progetto</h2>
+                <div class="sottotitolo file" id="lblRiceviProgettoFile"></div>
+            </div>
+            <button type="button" class="chiudi" id="btnChiudiRiceviProgetto" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div id="riceviProgettoCorpo"></div>
+        <div class="bottoni">
+            <button type="button" class="secondario" id="btnRiceviAnnulla">Annulla</button>
+            <button type="button" class="primario" id="btnRiceviConferma" disabled>Importa</button>
+        </div>
+    </section>

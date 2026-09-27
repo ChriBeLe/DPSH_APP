@@ -1,0 +1,17 @@
+
+    <!-- SELETTORE FOTO DEL PROGETTO: riusato sia per inserire una foto già scattata direttamente
+         nella nota, sia (con onSelect diverso) come sfondo su cui disegnare nello strumento di
+         disegno qui sotto. Mostra le foto di TUTTE le prove del progetto corrente, etichettate
+         con la prova di provenienza, non solo quelle della prova aperta al momento. -->
+    <!-- tier-strati: il selettore si apre SEMPRE da dentro un'altra finestra (le note o lo
+         strumento di disegno). A parita' di z-index vinceva quella disegnata dopo nel DOM, e
+         dallo strumento di disegno il selettore finiva SOTTO: si vedeva, e non si poteva
+         toccare. Un livello dichiarato al posto di un ordine casuale. -->
+    <div class="modal-overlay tier-strati" id="modalNotePhotoPickerOverlay"></div>
+    <div class="modal tier-strati" id="modalNotePhotoPicker" style="max-height: 88vh; overflow-y: auto; max-width: 560px;">
+        <div class="modal-title" style="justify-content: space-between;">
+            <span><svg class="ico"><use href="#i-folder-open"/></svg> Scegli una foto del progetto</span>
+            <button class="btn-icon" id="btnCloseNotePhotoPickerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div id="notePhotoPickerGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap:8px; margin-top:6px;"></div>
+    </div>
