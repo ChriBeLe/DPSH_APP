@@ -668,44 +668,44 @@ finestre: `#modalVista3d`
 `renderPc`, `apriDalLato`
 
 ### `src/js/071b_registro-sul-pc.js`
-77 righe · in `dist/DPSH.html` dalla riga 43970
+112 righe · in `dist/DPSH.html` dalla riga 43970
 
-`segnaRigaScelta`, `scegliRiga`, `righeVisibili`, `staScrivendo`, `chiudiMenuRiga`, `apriMenuRiga`
+`segnaRigaScelta`, `scegliRiga`, `righeVisibili`, `staScrivendo`, `chiudiMenuRiga`, `apriMenuContesto`, `apriMenuRiga`, `apriMenuProgetto`, `apriMenuProva`
 
 ### `src/js/071c_palette-e-scorciatoie.js`
-128 righe · in `dist/DPSH.html` dalla riga 44047
+128 righe · in `dist/DPSH.html` dalla riga 44082
 
 `comandiPc`, `voceHtml`, `renderPalette`, `apriFinestraPc`, `apriPalette`, `eseguiVocePalette`, `apriScorciatoie`
 
 ### `src/js/071d_contatore-sul-pc.js`
-21 righe · in `dist/DPSH.html` dalla riga 44175
+21 righe · in `dist/DPSH.html` dalla riga 44210
 
 `interruttoreContatorePc`
 
 ### `src/js/071e_guida-rapida-pc.js`
-54 righe · in `dist/DPSH.html` dalla riga 44196
+54 righe · in `dist/DPSH.html` dalla riga 44231
 
 `mostraPassoGuida`, `apriGuidaRapida`, `chiudiGuidaRapida`, `forseGuidaRapida`
 
 ### `src/js/071f_terreno-dtm.js`
-405 righe · in `dist/DPSH.html` dalla riga 44250
+405 righe · in `dist/DPSH.html` dalla riga 44285
 
 `utmDaGeo`, `puntoNelCrs`, `crsDaEpsg`, `leggiAsciiGrid`, `tagTiff`, `lzwTiff`, `inflateZlib`, `leggiGeoTiff`, `proveConCoordinate`, `ritaglioDtmPerProgetto`, `quoteDtm`, `quotaDtm`, `quotaDellaProva`, `formattaMetri`, `renderTerreno`, `apriTerreno`
 
 ### `src/js/071g_sezione.js`
-195 righe · in `dist/DPSH.html` dalla riga 44655
+195 righe · in `dist/DPSH.html` dalla riga 44690
 
 `proveDellaSezione`, `datiSezione`, `unioniFasce`, `svgSezione`, `renderSezione`, `apriSezione`
 
 ### `src/js/071h_vista-3d.js`
-187 righe · in `dist/DPSH.html` dalla riga 44850
+187 righe · in `dist/DPSH.html` dalla riga 44885
 
 `datiVista3d`, `svgVista3d`, `renderVista3d`, `apriVista3d`, `ridisegna3d`, `distanzaDita`, `zoom3d`
 
 ### `src/js/072_fase-3-modal-fallback-gps-foto.js`
-932 righe · in `dist/DPSH.html` dalla riga 45037
+932 righe · in `dist/DPSH.html` dalla riga 45072
 
 `ensureLeafletLoaded`, `showPhotoGpsFallbackStep`, `openPhotoGpsFallbackModal`, `closePhotoGpsFallbackModal`, `applyGpsToFallbackPhoto`, `openPhotoGpsMapPicker`, `scriviDatoProgettoCorrente`, `aggiornaPannelloBetaT`, `openDrawer`, `closeDrawer`, `openCantiereInfoModal`, `closeCantiereInfoModal`, `chiudiMenuAzioni`, `impostaTastoRegistraVisibile`, `linearScrollBy`, `animateViewSwap`, `exportGlobalJSONBackup`, `importGlobalJSONBackup`, `importGlobalZipBackup`, `renderThemeHuePicker`, `exportCsvFallback`
 
 ### `src/shell/06_fine.html`
-3 righe · in `dist/DPSH.html` dalla riga 45969
+3 righe · in `dist/DPSH.html` dalla riga 46004

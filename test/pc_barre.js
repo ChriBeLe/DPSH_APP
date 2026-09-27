@@ -69,6 +69,17 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   clic(app, $(app, 'pcPercorso').querySelector('[data-vista="home"]'));
   t('e «Progetti» riporta alla Home', app.E('state.uiState.currentView') === 'home');
 
+  const destro = (el) => el.dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
+  const voci = () => [...$(app, 'menuRiga').querySelectorAll('[data-voce]')].map(b => b.textContent);
+  destro($(app, 'homeProjectsContainer').querySelector('[data-id]'));
+  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Consegna|Terreno e sezioni|Note, stato, copia, elimina…');
+  clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
+  t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
+  destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
+  t('tasto destro su una prova: Apri, Dati, Strumento', voci().join('|') === 'Apri|Dati della prova|Strumento');
+  clic(app, $(app, 'menuRiga').querySelector('[data-voce="1"]'));
+  t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
+  app.E('closeAnyOpenModal()');
   clic(app, $(app, 'pcBtnImpostazioni'));
   t('Impostazioni apre il cassetto', $(app, 'drawerMenu').classList.contains('open'));
 

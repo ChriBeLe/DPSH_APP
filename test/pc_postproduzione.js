@@ -43,7 +43,7 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   evento(riga(3), 'contextmenu', { clientX: 300, clientY: 200 });
   const menu = $(app, 'menuRiga');
   t('tasto destro: menu aperto dove sta il mouse, con Modifica ed Elimina',
-    menu.classList.contains('open') && menu.style.left === '300px' && menu.querySelectorAll('[data-azione]').length === 2);
+    menu.classList.contains('open') && menu.style.left === '300px' && menu.querySelectorAll('[data-voce]').length === 2);
   tasto('Escape');
   t('Esc chiude il menu', !menu.classList.contains('open'));
   tasto('Enter');

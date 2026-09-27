@@ -32,24 +32,59 @@
 
             const menuRiga = document.getElementById('menuRiga');
             function chiudiMenuRiga() { menuRiga.classList.remove('open'); }
-            function apriMenuRiga(e, idx) {
+            // Il menu del tasto destro, dove sta il mouse: un titolo e le voci
+            // [etichetta, icona, tasto, azione, pericolo], o '-' per una riga di separazione.
+            let vociMenuContesto = [];
+            function apriMenuContesto(e, titolo, voci) {
                 e.preventDefault();
-                scegliRiga(idx);
-                const l = state.logs[idx];
-                menuRiga.innerHTML = `<div class="menu-contesto-titolo">${numeroConVirgola(l.start)}–${numeroConVirgola(l.end)} m · ${l.colpi} colpi</div>
-                    <button type="button" role="menuitem" data-azione="modifica"><svg class="ico"><use href="#i-edit"/></svg>Modifica<kbd>Invio</kbd></button>
-                    <div class="menu-sep" aria-hidden="true"></div>
-                    <button type="button" role="menuitem" data-azione="elimina" class="pericolo"><svg class="ico"><use href="#i-trash"/></svg>Elimina<kbd>Canc</kbd></button>`;
+                vociMenuContesto = voci;
+                menuRiga.innerHTML = `<div class="menu-contesto-titolo">${escapeHtmlDidascalia(titolo)}</div>` + voci.map((v, i) => v === '-'
+                    ? '<div class="menu-sep" aria-hidden="true"></div>'
+                    : `<button type="button" role="menuitem" data-voce="${i}"${v[4] ? ' class="pericolo"' : ''}><svg class="ico"><use href="#${v[1]}"/></svg>${v[0]}${v[2] ? `<kbd>${v[2]}</kbd>` : ''}</button>`).join('');
                 menuRiga.classList.add('open');
                 menuRiga.style.left = Math.min(e.clientX, window.innerWidth - menuRiga.offsetWidth - 8) + 'px';
                 menuRiga.style.top = Math.min(e.clientY, window.innerHeight - menuRiga.offsetHeight - 38) + 'px'; // sopra la barra di stato
             }
+            function apriMenuRiga(e, idx) {
+                scegliRiga(idx);
+                const l = state.logs[idx];
+                apriMenuContesto(e, `${numeroConVirgola(l.start)}–${numeroConVirgola(l.end)} m · ${l.colpi} colpi`, [
+                    ['Modifica', 'i-edit', 'Invio', () => openEditModal(idx)],
+                    '-',
+                    ['Elimina', 'i-trash', 'Canc', () => deleteLogStep(idx), true]
+                ]);
+            }
+            // Progetti (barra laterale, Home) e prove (barra laterale, schermata Progetto).
+            function apriMenuProgetto(e, id) {
+                const p = state.projects[id];
+                apriMenuContesto(e, p.name || p.comune || 'Progetto', [
+                    ['Apri', 'i-folder-open', '', () => apriDalLato(id)],
+                    ['Consegna', 'i-download', '', () => openExportModal('project', id)],
+                    ['Terreno e sezioni', 'i-map', '', () => { apriDalLato(id); apriTerreno(); }],
+                    '-',
+                    ['Note, stato, copia, elimina…', 'i-more', '', () => openProjectActionsModal(id)]
+                ]);
+            }
+            function apriMenuProva(e, survId) {
+                const s = state.projects[state.currentProjectId].surveys[survId];
+                apriMenuContesto(e, 'Prova ' + ((s.header || {}).provaNr || '?'), [
+                    ['Apri', 'i-folder-open', '', () => apriDalLato(null, survId)],
+                    ['Dati della prova', 'i-file', '', () => openSurveySettingsModal(survId, 'dati')],
+                    ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')]
+                ]);
+            }
+            document.addEventListener('contextmenu', (e) => {
+                if (!suPc()) return;
+                const progetto = e.target.closest('#pcLato [data-progetto], #homeProjectsContainer [data-id]');
+                const prova = e.target.closest('#pcLato [data-prova], #listaProveProgetto [data-surv]');
+                if (progetto) apriMenuProgetto(e, progetto.dataset.progetto || progetto.dataset.id);
+                else if (prova) apriMenuProva(e, prova.dataset.prova || prova.dataset.surv);
+            });
             menuRiga.addEventListener('click', (e) => {
-                const b = e.target.closest('[data-azione]');
+                const b = e.target.closest('[data-voce]');
                 if (!b) return;
                 chiudiMenuRiga();
-                if (b.dataset.azione === 'modifica') openEditModal(rigaScelta);
-                else deleteLogStep(rigaScelta);
+                vociMenuContesto[Number(b.dataset.voce)][3]();
             });
             document.addEventListener('click', (e) => { if (!menuRiga.contains(e.target)) chiudiMenuRiga(); });
 
