@@ -588,6 +588,7 @@ ${bodyConBgcolor}
                     const riga = document.getElementById('rigaRegistraNascosto');
                     if (blocco) blocco.style.display = visibile ? 'flex' : 'none';
                     if (riga) riga.style.display = visibile ? 'none' : 'flex';
+                    document.getElementById('chkTastoRegistra').checked = visibile;
                 }
 
                 // Theme Mode (chiaro/scuro) + Palette Colore (7 varianti, vedi THEME_HUES)

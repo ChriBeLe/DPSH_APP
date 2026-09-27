@@ -42,7 +42,7 @@
 
             <!-- 4. PREFERENZE DI CAMPO -->
             <div class="drawer-section">
-                <div class="drawer-section-title"><svg class="ico"><use href="#i-ruler"/></svg> Comportamento in Campo</div>
+                <div class="drawer-section-title"><svg class="ico"><use href="#i-ruler"/></svg> In campo</div>
 
                 <div class="setting-row">
                     <div class="setting-text">
@@ -87,98 +87,17 @@
                         <span class="switch-visual"></span>
                     </label>
                 </div>
-            </div>
-
-            <!-- FUNZIONI SPERIMENTALI: raggruppa le funzioni ancora in fase di test/valutazione
-                 (modalità debug), tenute chiuse per default e
-                 fuori dai piedi nell'uso quotidiano. -->
-            <div class="drawer-section">
-                <button type="button" class="btn-action" id="btnToggleFunzioniSperimentali" style="width:100%; background: var(--bg-card-hover); border: 1px solid var(--border); font-weight: 700; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                    <span style="display:flex; align-items:center; gap:8px;"><svg class="ico"><use href="#i-flask"/></svg> Funzioni Sperimentali</span>
-                    <svg class="ico" id="chevronFunzioniSperimentali" style="transition: transform var(--mov-medio) var(--ease-entra); flex-shrink:0;"><use href="#i-chevron-down"/></svg>
-                </button>
-
-                <div id="funzioniSperimentaliBody" style="display:none; flex-direction:column; gap:14px; margin-top:12px;">
-
-                    <!-- MODALITÀ DEBUG -->
-                    <div>
-                        <div class="drawer-section-title"><svg class="ico"><use href="#i-bug"/></svg> Modalità Debug</div>
-
-                        <div class="setting-row" style="margin-top: 11px;">
-                            <div class="setting-text">
-                                <div class="setting-label">Strumenti di Debug</div>
-                                <div class="setting-desc">Mostra pannelli diagnostici avanzati (diagnostica GPS, info di sistema). Tienila spenta durante il lavoro normale.</div>
-                            </div>
-                            <label class="switch setting-control">
-                                <input type="checkbox" id="chkDebugMode">
-                                <span class="switch-visual"></span>
-                            </label>
-                        </div>
-
-                        <div id="debugToolsBox" style="display:none;">
-                            <button class="btn-action" id="btnShowSystemInfo" style="width:100%; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 700; font-size: 12px;">
-                                <svg class="ico"><use href="#i-activity"/></svg> Info Sistema
-                            </button>
-                            <div id="systemInfoBox" style="display:none; font-size:11px; line-height:1.5; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; margin-top:10px; font-family: var(--font-mono); word-break: break-word;"></div>
-                            <div style="font-size:10.5px; color:var(--text-muted); margin-top:10px; line-height:1.5;">
-                                La diagnostica GPS si trova nel menu Posizione GPS Cantiere (icona <svg class="ico" style="width:11px; height:11px;"><use href="#i-pin"/></svg>), disponibile finché questa modalità è attiva.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DIAGNOSTICA NOTE: la prova a vuoto della migrazione delle note al nuovo motore
-                         (Piano_Note_Motore.md, passo 1). Stava in "Spazio occupato", in mezzo ai comandi
-                         di uso quotidiano; qui, con gli strumenti di verifica, è fuori dai piedi. Non
-                         converte niente: legge le note salvate, prova la conversione IN MEMORIA e
-                         riferisce se qualcosa andrebbe perso. Si potrà togliere del tutto quando l'app
-                         smetterà di conservare la copia vecchia delle note (htmlPrimaDelMotore). -->
-                    <div>
-                        <div class="drawer-section-title"><svg class="ico"><use href="#i-note"/></svg> Diagnostica Note</div>
-                        <div class="setting-desc" style="margin-top: 11px;">Prova, solo in memoria, la conversione delle note al nuovo editor e dice se qualcosa andrebbe perso. Non modifica nulla.</div>
-                        <button class="btn-action" id="btnDiagnosticaNote" style="width: 100%; margin-top: 10px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 9px;">
-                            <svg class="ico"><use href="#i-note"/></svg> Controlla note (prova a vuoto)
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- 5. ASPETTO E VISUALIZZAZIONE -->
-            <div class="drawer-section">
-                <div class="drawer-section-title"><svg class="ico"><use href="#i-eye"/></svg> Aspetto &amp; Visualizzazione</div>
-
                 <div class="setting-row">
                     <div class="setting-text">
-                        <div class="setting-label">Tema</div>
-                        <div class="setting-desc">Chiaro per la luce diretta del sole, scuro per interni e sera.</div>
+                        <div class="setting-label">Tasto «Registra»</div>
+                        <div class="setting-desc">Sotto il contatore. Senza, si registra tenendo premuto +1.</div>
                     </div>
-                    <div class="setting-control">
-                        <button class="theme-toggle" id="btnThemeToggle" title="Alterna tema chiaro / scuro" aria-label="Alterna tema chiaro o scuro">
-                            <span class="theme-toggle-track">
-                                <span class="theme-toggle-thumb">
-                                    <svg class="ico theme-ico-moon"><use href="#i-moon"/></svg>
-                                    <svg class="ico theme-ico-sun"><use href="#i-sun"/></svg>
-                                </span>
-                            </span>
-                            <span class="theme-toggle-label" id="lblThemeToggle">Scuro</span>
-                        </button>
-                        <input type="checkbox" id="chkDarkMode" checked style="display:none;">
-                    </div>
+                    <label class="switch setting-control">
+                        <input type="checkbox" id="chkTastoRegistra" checked>
+                        <span class="switch-visual"></span>
+                    </label>
                 </div>
-
-                <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
-                    <div class="setting-text">
-                        <div class="setting-label">Palette Colore</div>
-                        <div class="setting-desc">Il tema sopra decide chiaro/scuro; questa sceglie la tonalità. Vale per tutta l'app.</div>
-                    </div>
-                    <div id="themeHuePicker" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-                </div>
-
             </div>
-
-            <!-- (Fase 3) Via «Registro grafico integrato», doppione del tasto «Grafico» del Registro, e
-                 la sezione Accessibilità con la «Modalità Espansa»: il tasto Registra ora è visibile
-                 di default e si nasconde dal contatore (migrazione 2→3). -->
 
             <!-- 6. SPAZIO OCCUPATO (richiesto esplicitamente: "un posto dove vedere la cartella in
                  cui stanno venendo salvati i dati in locale, quanto sta venendo occupato, lo spazio
@@ -235,6 +154,105 @@
                         <svg class="ico"><use href="#i-upload"/></svg> Importa
                     </button>
                     <input type="file" id="fileImportJson" accept=".json,application/json,.zip,application/zip" style="display:none;">
+                </div>
+            </div>
+
+            <!-- LIBRERIA (Fase 5): template e archivio litologico, condivisi tra i progetti. Prima si
+                 raggiungevano solo dalla Home. -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><svg class="ico"><use href="#i-layers"/></svg> Libreria</div>
+                <button class="btn-action" id="btnDrawerTemplate" style="width: 100%;"><svg class="ico"><use href="#i-layout-pagina"/></svg> Template di report e dell'indice</button>
+                <button class="btn-action" id="btnDrawerArchivio" style="width: 100%;"><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</button>
+            </div>
+
+            <!-- 5. ASPETTO E VISUALIZZAZIONE -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><svg class="ico"><use href="#i-eye"/></svg> Aspetto</div>
+
+                <div class="setting-row">
+                    <div class="setting-text">
+                        <div class="setting-label">Tema</div>
+                        <div class="setting-desc">Chiaro per la luce diretta del sole, scuro per interni e sera.</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="theme-toggle" id="btnThemeToggle" title="Alterna tema chiaro / scuro" aria-label="Alterna tema chiaro o scuro">
+                            <span class="theme-toggle-track">
+                                <span class="theme-toggle-thumb">
+                                    <svg class="ico theme-ico-moon"><use href="#i-moon"/></svg>
+                                    <svg class="ico theme-ico-sun"><use href="#i-sun"/></svg>
+                                </span>
+                            </span>
+                            <span class="theme-toggle-label" id="lblThemeToggle">Scuro</span>
+                        </button>
+                        <input type="checkbox" id="chkDarkMode" checked style="display:none;">
+                    </div>
+                </div>
+
+                <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div class="setting-text">
+                        <div class="setting-label">Palette Colore</div>
+                        <div class="setting-desc">Il tema sopra decide chiaro/scuro; questa sceglie la tonalità. Vale per tutta l'app.</div>
+                    </div>
+                    <div id="themeHuePicker" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                </div>
+
+            </div>
+
+            <!-- (Fase 3) Via «Registro grafico integrato», doppione del tasto «Grafico» del Registro, e
+                 la sezione Accessibilità con la «Modalità Espansa»: il tasto Registra ora è visibile
+                 di default e si nasconde dal contatore (migrazione 2→3). -->
+
+            <!-- FUNZIONI SPERIMENTALI: raggruppa le funzioni ancora in fase di test/valutazione
+                 (modalità debug), tenute chiuse per default e
+                 fuori dai piedi nell'uso quotidiano. -->
+            <div class="drawer-section">
+                <button type="button" class="btn-action" id="btnToggleFunzioniSperimentali" style="width:100%; background: var(--bg-card-hover); border: 1px solid var(--border); font-weight: 700; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                    <span style="display:flex; align-items:center; gap:8px;"><svg class="ico"><use href="#i-flask"/></svg> Funzioni Sperimentali</span>
+                    <svg class="ico" id="chevronFunzioniSperimentali" style="transition: transform var(--mov-medio) var(--ease-entra); flex-shrink:0;"><use href="#i-chevron-down"/></svg>
+                </button>
+
+                <div id="funzioniSperimentaliBody" style="display:none; flex-direction:column; gap:14px; margin-top:12px;">
+
+                    <!-- MODALITÀ DEBUG -->
+                    <div>
+                        <div class="drawer-section-title"><svg class="ico"><use href="#i-bug"/></svg> Modalità Debug</div>
+
+                        <div class="setting-row" style="margin-top: 11px;">
+                            <div class="setting-text">
+                                <div class="setting-label">Strumenti di Debug</div>
+                                <div class="setting-desc">Mostra pannelli diagnostici avanzati (diagnostica GPS, info di sistema). Tienila spenta durante il lavoro normale.</div>
+                            </div>
+                            <label class="switch setting-control">
+                                <input type="checkbox" id="chkDebugMode">
+                                <span class="switch-visual"></span>
+                            </label>
+                        </div>
+
+                        <div id="debugToolsBox" style="display:none;">
+                            <button class="btn-action" id="btnShowSystemInfo" style="width:100%; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 700; font-size: 12px;">
+                                <svg class="ico"><use href="#i-activity"/></svg> Info Sistema
+                            </button>
+                            <div id="systemInfoBox" style="display:none; font-size:11px; line-height:1.5; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; margin-top:10px; font-family: var(--font-mono); word-break: break-word;"></div>
+                            <div style="font-size:10.5px; color:var(--text-muted); margin-top:10px; line-height:1.5;">
+                                La diagnostica GPS si trova nel menu Posizione GPS Cantiere (icona <svg class="ico" style="width:11px; height:11px;"><use href="#i-pin"/></svg>), disponibile finché questa modalità è attiva.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DIAGNOSTICA NOTE: la prova a vuoto della migrazione delle note al nuovo motore
+                         (Piano_Note_Motore.md, passo 1). Stava in "Spazio occupato", in mezzo ai comandi
+                         di uso quotidiano; qui, con gli strumenti di verifica, è fuori dai piedi. Non
+                         converte niente: legge le note salvate, prova la conversione IN MEMORIA e
+                         riferisce se qualcosa andrebbe perso. Si potrà togliere del tutto quando l'app
+                         smetterà di conservare la copia vecchia delle note (htmlPrimaDelMotore). -->
+                    <div>
+                        <div class="drawer-section-title"><svg class="ico"><use href="#i-note"/></svg> Diagnostica Note</div>
+                        <div class="setting-desc" style="margin-top: 11px;">Prova, solo in memoria, la conversione delle note al nuovo editor e dice se qualcosa andrebbe perso. Non modifica nulla.</div>
+                        <button class="btn-action" id="btnDiagnosticaNote" style="width: 100%; margin-top: 10px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 9px;">
+                            <svg class="ico"><use href="#i-note"/></svg> Controlla note (prova a vuoto)
+                        </button>
+                    </div>
+
                 </div>
             </div>
 

@@ -424,6 +424,10 @@
             if (btnNascondiRegistra) btnNascondiRegistra.addEventListener('click', () => impostaTastoRegistraVisibile(false));
             const btnMostraRegistra = document.getElementById('btnMostraRegistra');
             if (btnMostraRegistra) btnMostraRegistra.addEventListener('click', () => impostaTastoRegistraVisibile(true));
+            document.getElementById('chkTastoRegistra').addEventListener('change', (e) => impostaTastoRegistraVisibile(e.target.checked));
+            // Libreria nel cassetto (Fase 5): si chiude il cassetto e si apre la finestra di sempre.
+            document.getElementById('btnDrawerTemplate').addEventListener('click', () => { closeDrawer(); openReportTemplatesModal(); });
+            document.getElementById('btnDrawerArchivio').addEventListener('click', () => { closeDrawer(); openArchiveManager(); });
 
             const chkIntegratedChart = document.getElementById('chkIntegratedChart');
             if (chkIntegratedChart) {
