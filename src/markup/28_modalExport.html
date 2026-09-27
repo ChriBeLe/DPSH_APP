@@ -39,10 +39,10 @@
              distinguevano da questo bottone sono ora una spunta dentro quella schermata). -->
         <div style="background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 13px 14px; margin-bottom: 14px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--on-accent); background: var(--accent); padding: 3px 8px; border-radius: 10px;">Intero progetto</span>
+                <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--on-accent); background: var(--accent); padding: 3px 8px; border-radius: 10px;">Intero progetto</span>
                 <span style="font-weight: 800; font-size: 13.5px; color: var(--accent-ink);"><svg class="ico"><use href="#i-print"/></svg> Report PDF</span>
             </div>
-            <div id="lblExportCompleteDesc" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px;">
+            <div id="lblExportCompleteDesc" style="font-size: 12px; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px;">
                 Report di campo, con le tabelle Parametri Avanzati opzionali — scegli prove e opzioni nella schermata successiva.
             </div>
             <div style="display: flex; gap: 8px;">
@@ -55,7 +55,7 @@
             </div>
         </div>
 
-        <div id="lblExportSingleSurveyScope" style="display:none; align-items:center; gap:6px; font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">
+        <div id="lblExportSingleSurveyScope" style="display:none; align-items:center; gap:6px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 8px;">
             <svg class="ico" style="width:12px; height:12px;"><use href="#i-list"/></svg> Solo questa prova: <span id="lblExportSingleSurveyName" style="color: var(--text-main);"></span>
         </div>
 
@@ -70,7 +70,7 @@
                 <div style="font-weight: 800; font-size: 13px; color: var(--success); display: flex; align-items: center; gap: 6px;">
                     <svg class="ico"><use href="#i-chart"/></svg> Excel (.xlsx)
                 </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.3;">
                     Fogli elettronici formattati con registro penetrometrico.
                 </div>
             </div>
@@ -79,7 +79,7 @@
                 <div style="font-weight: 800; font-size: 13px; color: var(--info); display: flex; align-items: center; gap: 6px;">
                     <svg class="ico"><use href="#i-map"/></svg> KML (Google Earth)
                 </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.3;">
                     Coordinate GPS e segnaposto per GIS e Google Earth.
                 </div>
             </div>
@@ -88,7 +88,7 @@
                 <div style="font-weight: 800; font-size: 13px; color: var(--warning); display: flex; align-items: center; gap: 6px;">
                     <svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere
                 </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3;">
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.3;">
                     Archivio fotografico di cantiere georeferenziato.
                 </div>
             </div>
@@ -105,8 +105,8 @@
                     <button type="button" class="bt bt-tenue" data-parametri="Word">Word</button>
                 </div>
             </div>
-            <div class="export-opt-card" id="btnOptConfrontoProve" style="grid-column: 1 / -1;">
-                <div style="font-weight: 700;"><svg class="ico"><use href="#i-chart"/></svg> Confronto prove</div>
+            <div class="export-opt-card" id="btnOptConfrontoProve" style="grid-column: 1 / -1; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-weight: 800; font-size: 13px; color: var(--accent-ink); display: flex; align-items: center; gap: 6px;"><svg class="ico"><use href="#i-chart"/></svg> Confronto prove</div>
                 <div style="font-size: 12px; color: var(--text-muted);">Grafici affiancati, stessa scala.</div>
             </div>
             <!-- "Condividi" tolto: mandava alle app del telefono solo un riepilogo di testo (nome,
@@ -118,7 +118,7 @@
                     <div style="font-weight: 800; font-size: 13px; color: var(--purple);">
                         <svg class="ico"><use href="#i-file"/></svg> Backup Strutturato (JSON)
                     </div>
-                    <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                         File di backup nativo per importazione e ripristino rapido.
                     </div>
                 </div>
