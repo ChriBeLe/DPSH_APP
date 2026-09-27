@@ -163,6 +163,14 @@
                 // puo' non avere la localita', o le coordinate — e "in agro del Comune di , in
                 // localita' , alle coordinate" sarebbe peggio di niente.
                 metti('coordinate', formattaCoordinateProve(prove), 'Coordinate geografiche', 'GPS delle prove');
+                // Quota del piano campagna dal DTM del progetto (Terreno e sezioni): una sola se le
+                // prove stanno entro mezzo metro, altrimenti l'intervallo.
+                const quoteProve = prove.map(s => quotaDellaProva(proj, s.header)).filter(q => q !== null);
+                const qMin = quoteProve.length ? Math.min(...quoteProve) : null, qMax = quoteProve.length ? Math.max(...quoteProve) : null;
+                metti('quotaPianoCampagna', qMin === null ? '' : (qMax - qMin <= 0.5
+                    ? fmtIT((qMin + qMax) / 2, 1) + ' m s.l.m.'
+                    : 'tra ' + fmtIT(qMin, 1) + ' e ' + fmtIT(qMax, 1) + ' m s.l.m.'),
+                    'Quota del piano campagna', 'DTM del progetto');
 
                 const pezziUbicazione = [];
                 const comuneU = (proj && proj.comune) ? String(proj.comune).trim() : '';

@@ -1580,7 +1580,9 @@ ${bodyConBgcolor}
                 if (hasGps) {
                     const lat = parseFloat(state.header.lat);
                     const lng = parseFloat(state.header.lng);
-                    const altStr = state.header.alt ? ` | Quota: ${Math.round(state.header.alt)}m` : '';
+                    const quotaTerreno = quotaDellaProva(state.projects[state.currentProjectId], state.header);
+                    const altStr = quotaTerreno !== null ? ` | Quota dal DTM: ${numeroConVirgola(quotaTerreno, 1)} m s.l.m.`
+                        : (state.header.alt ? ` | Quota GPS: ${Math.round(state.header.alt)} m` : '');
                     lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${altStr}`;
                     lblModalGpsStatus.style.color = 'var(--accent)';
                 } else {

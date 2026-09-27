@@ -282,3 +282,14 @@
         .guida-fumetto p { margin: 0; line-height: 1.5; color: var(--text-muted); }
         .guida-comandi { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
         .guida-comandi .t-didascalia { flex: 1; }
+
+        /* ---- Terreno e sezioni ---- */
+        .modal.terreno { max-width: 520px; }
+        .modal.terreno p { margin: 0 0 var(--sp-2); line-height: 1.5; }
+        .terreno-fonte { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--sp-3); }
+        .terreno-quote { display: flex; flex-direction: column; margin-bottom: var(--sp-3); border-top: 1px solid var(--border); }
+        .terreno-quote > div { display: flex; justify-content: space-between; align-items: center; min-height: 36px; border-bottom: 1px solid var(--border); }
+        .terreno-quote strong { font-family: var(--font-mono); }
+        .terreno-comandi { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+        .riga-avviso.pericolo { border-color: var(--danger); color: var(--danger); background: transparent; margin-bottom: var(--sp-3); }
+        #btnProgettoConsegna { grid-column: 1 / -1; }

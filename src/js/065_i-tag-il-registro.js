@@ -17,6 +17,7 @@
                 { tipo: 'localita', etichetta: 'Località', gruppo: 'Cantiere', campo: 'localita' , dove: 'prova' },
                 { tipo: 'data', etichetta: 'Data dell\'indagine', gruppo: 'Cantiere' },
                 { tipo: 'coordinate', etichetta: 'Coordinate geografiche', gruppo: 'Cantiere' },
+                { tipo: 'quotaPianoCampagna', etichetta: 'Quota del piano campagna', gruppo: 'Cantiere' },
                 { tipo: 'numeroProve', etichetta: 'Numero di prove', gruppo: 'Indagine' },
                 { tipo: 'elencoProve', etichetta: 'Elenco delle prove', gruppo: 'Indagine' },
                 { tipo: 'profonditaMax', etichetta: 'Profondità massima', gruppo: 'Indagine' },
