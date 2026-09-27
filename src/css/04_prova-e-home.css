@@ -78,7 +78,7 @@
         /* ---- Registro ---- */
         .registro-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); flex-wrap: wrap; }
         .registro-titolo { margin: 0; font-size: 17px; font-weight: 800; color: var(--text-main); }
-        .registro-azioni { display: flex; align-items: center; gap: 6px; }
+        .registro-azioni { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .registro-aiuto { font-size: var(--fs-didascalia); color: var(--text-muted); margin-bottom: var(--sp-2); line-height: 1.4; }
         .registro-legenda { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px var(--sp-2); margin-bottom: var(--sp-2); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 600; }
         .registro-legenda:empty { display: none; }
@@ -90,6 +90,16 @@
         .colpi-passo .bt-icona { width: 56px; height: 56px; font-size: 26px; font-weight: 800; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main); color: var(--text-main); }
         #lblModalOrigine { margin-top: var(--sp-2); }
         #lblModalOrigine:empty { display: none; }
+
+        /* ---- Registro e grafico: poche righe che scorrono, oppure tutte (scelta ricordata) ---- */
+        #viewField.registro-espanso .logs-table-wrapper,
+        #viewField.registro-espanso .chart-box { max-height: none; overflow-y: visible; }
+        .btn-espandi-registro { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin-top: var(--sp-1); }
+
+        /* ---- «Intervalli ↓»: il titolo inverte l'ordine dell'elenco sotto il contatore ---- */
+        .titolo-ordine { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; background: none; border: none; color: inherit; font-family: inherit; cursor: pointer; }
+        .titolo-ordine .ico { width: 18px; height: 18px; transition: transform var(--mov-breve) var(--ease-entra); }
+        .titolo-ordine.crescente .ico { transform: rotate(180deg); }
 
         /* ---- Le due viste della prova (Fase 6): Conta | Registro ---- */
         .schede-prova { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1); padding: var(--sp-1); border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); }

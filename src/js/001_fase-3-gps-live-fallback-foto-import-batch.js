@@ -97,6 +97,8 @@
                 const globalThemeHue = (state.settings && state.settings.themeHue !== undefined) ? state.settings.themeHue : 'antracite';
                 const globalTastoRegistra = !(state.settings && state.settings.tastoRegistraVisibile === false);
                 const globalIntegratedChart = (state.settings && state.settings.integratedChart !== undefined) ? state.settings.integratedChart : true;
+                const globalRegistroEspanso = !!(state.settings && state.settings.registroEspanso === true);
+                const globalRecentiInCima = !!(state.settings && state.settings.intervalliRecentiInCima === true);
 
                 state.currentProjectId = projId;
                 state.currentSurveyId = survId;
@@ -122,6 +124,8 @@
                 delete state.settings.expandedMode;
                 delete state.settings.compactMode;
                 state.settings.integratedChart = globalIntegratedChart;
+                state.settings.registroEspanso = globalRegistroEspanso;
+                state.settings.intervalliRecentiInCima = globalRecentiInCima;
 
                 state.currentCount = surv.currentCount || 0;
                 state.currentDepthStart = surv.currentDepthStart || 0;

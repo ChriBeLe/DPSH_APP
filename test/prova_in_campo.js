@@ -177,7 +177,7 @@ async function apriPrimaProva(app) {
   clic(riaperta, menuAgg.querySelector('.btn-open-bulk-import'));
   t('…che apre la finestra di sempre', $(riaperta, 'modalBulkImport').classList.contains('open') && !menuAgg.classList.contains('open'));
   riaperta.E('closeBulkImportModal()');
-  t('il riconoscimento degli strati sta nel ⋯ del Registro', $(riaperta, 'menuAltroRegistroIntegrated').contains($(riaperta, 'btnAutoStratiIntegrated')) && !nascosto(riaperta.w, $(riaperta, 'menuAltroRegistroIntegrated')));
+  t('il riconoscimento degli strati si vede nel Registro, non più nel ⋯', visibile(riaperta, 'btnAutoStratiIntegrated') && /Riconosci strati/.test($(riaperta, 'btnAutoStratiIntegrated').textContent) && !$(riaperta, 'menuAltroRegistroIntegrated'));
   const ordine = riaperta.E('state.logs.map(l => l.start)');
   t('l\'ordine del Registro non cambia (dall\'alto in basso per profondità)', ordine.every((v, i) => i === 0 || v >= ordine[i - 1]));
 

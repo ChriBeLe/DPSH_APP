@@ -275,7 +275,9 @@
                  è appena registrato senza cambiare vista. Un tocco apre la scheda dell'intervallo. -->
             <div class="card" id="cardUltimiIntervalli">
                 <div class="registro-testata">
-                    <h2 class="registro-titolo">Ultimi intervalli</h2>
+                    <!-- Toccando il titolo si inverte l'ordine di questo elenco (non del Registro né del
+                         grafico); la freccia dice in che verso crescono le profondità. -->
+                    <button type="button" class="registro-titolo titolo-ordine" id="btnOrdineIntervalli">Intervalli <svg class="ico"><use href="#i-arrow-up"/></svg></button>
                     <button type="button" class="bt-link accento" id="btnVaiAlRegistro">Tutto il registro</button>
                 </div>
                 <div id="listaUltimiIntervalli"></div>
@@ -297,12 +299,7 @@
                                 <button type="button" role="menuitem" class="btn-open-bulk-import"><svg class="ico"><use href="#i-list"/></svg>Aggiungi intervalli multipli</button>
                             </div>
                         </div>
-                        <div class="menu-ancora" id="menuAltroRegistroIntegrated" style="display: none;">
-                            <button type="button" class="bt-icona" id="btnAltroRegistroIntegrated" aria-label="Altre azioni sul registro" title="Altre azioni sul registro" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
-                            <div class="menu-azioni" role="menu">
-                                <button type="button" role="menuitem" id="btnAutoStratiIntegrated"><svg class="ico"><use href="#i-search"/></svg>Riconoscimento automatico degli strati</button>
-                            </div>
-                        </div>
+                        <button type="button" class="bt bt-tenue" id="btnAutoStratiIntegrated"><svg class="ico"><use href="#i-sparkles"/></svg>Riconosci strati</button>
                     </div>
                 </div>
 
@@ -324,6 +321,7 @@
                         <!-- Popolato dinamicamente da JS -->
                     </div>
                 </div>
+                <button type="button" class="bt-link accento btn-espandi-registro"></button>
             </div>
 
             <!-- LOG INTERVALLI REGISTRATI CON EDITING (VISTA SEPARATA CLASSICA): tabella e, sotto, il
@@ -340,12 +338,7 @@
                                 <button type="button" role="menuitem" class="btn-open-bulk-import"><svg class="ico"><use href="#i-list"/></svg>Aggiungi intervalli multipli</button>
                             </div>
                         </div>
-                        <div class="menu-ancora" id="menuAltroRegistroChart" style="display: none;">
-                            <button type="button" class="bt-icona" id="btnAltroRegistroChart" aria-label="Altre azioni sul registro" title="Altre azioni sul registro" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
-                            <div class="menu-azioni" role="menu">
-                                <button type="button" role="menuitem" id="btnAutoStratiChart"><svg class="ico"><use href="#i-search"/></svg>Riconoscimento automatico degli strati</button>
-                            </div>
-                        </div>
+                        <button type="button" class="bt bt-tenue" id="btnAutoStratiChart"><svg class="ico"><use href="#i-sparkles"/></svg>Riconosci strati</button>
                     </div>
                 </div>
                 <div class="registro-aiuto">Tocca una riga per correggerla · scorri a sinistra per eliminarla</div>
@@ -365,6 +358,7 @@
                         </tbody>
                     </table>
                 </div>
+                <button type="button" class="bt-link accento btn-espandi-registro"></button>
             </div>
 
             <!-- GRAFICO PROFILO PENETROMETRICO REAL-TIME CON LEGENDA VISIVA (VISTA SEPARATA CLASSICA) -->
@@ -383,6 +377,7 @@
                 <div class="chart-box">
                     <svg id="svgChart" width="100%" height="100%" style="overflow: visible;"></svg>
                 </div>
+                <button type="button" class="bt-link accento btn-espandi-registro"></button>
             </div>
 
             <!-- Hidden file inputs for photo capture (used by floating modal) -->

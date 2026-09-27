@@ -3,7 +3,10 @@
 //  - si entra nella prova su «Conta»: contatore e ultimi 3 intervalli, il registro no;
 //  - gli ultimi 3 sono proprio gli ultimi, in ordine di profondità; un tocco apre la scheda;
 //  - «Registro · N» (e «Tutto il registro») mostra il registro intero e nasconde il contatore;
-//  - il registro non ha più uno scorrimento suo dentro la pagina;
+//  - registro, tabella e grafico scorrono in un riquadro di poche righe, oppure mostrano tutte
+//    le righe («Mostra tutte le righe», scelta ricordata e che non modifica il progetto);
+//  - «Intervalli»: il titolo inverte l'ordine dell'elenco (solo lì), la freccia dice il verso;
+//  - «Riconosci strati» si vede nel Registro, non sta più nel ⋯;
 //  - spariscono il lucchetto che comprimeva il contatore e le due barre (compatta e fissa);
 //  - tornando alla Home e rientrando si riparte da «Conta».
 // Controprove sull'app di prima (riferimento/).
@@ -68,15 +71,42 @@ async function apriPrimaProva(app) {
   t('mostra il registro e nasconde contatore e ultimi', visibile(app, 'cardIntegratedRegister') && !visibile(app, 'cardCounterDashboard') && !visibile(app, 'cardUltimiIntervalli'));
   t('con tutte le righe', $(app, 'tblIntegratedLogsBody').querySelectorAll('.swipe-row-wrapper').length === dopo.length);
   const involucro = $(app, 'cardIntegratedRegister').querySelector('.logs-table-wrapper');
-  const stile = app.w.getComputedStyle(involucro);
-  t('niente scorrimento dentro lo scorrimento', !/auto|scroll/.test(stile.overflowY) && (stile.maxHeight === 'none' || stile.maxHeight === ''));
+  const scorre = el => /auto|scroll/.test(app.w.getComputedStyle(el).overflowY) && app.w.getComputedStyle(el).maxHeight === '480px';
+  t('di base il registro scorre in un riquadro di poche righe', scorre(involucro));
+  const espandi = $(app, 'cardIntegratedRegister').querySelector('.btn-espandi-registro');
+  t('sotto c\'è «Mostra tutte le righe»', visibile(app, 'cardIntegratedRegister') && espandi.textContent === 'Mostra tutte le righe');
+  const modificatoIl = () => JSON.parse(app.salvato()).projects[pid].modificatoIl || null;
+  app.E('saveState()');
+  const modPrima = modificatoIl();
+  clic(app, espandi);
+  t('toccato, mostra tutte le righe senza riquadro', !scorre(involucro) && espandi.textContent === 'Mostra meno righe');
+  t('la scelta resta salvata, e non è una modifica del progetto', JSON.parse(app.salvato()).settings.registroEspanso === true && modificatoIl() === modPrima);
+  t('«Riconosci strati» si vede, non più nel ⋯', visibile(app, 'btnAutoStratiIntegrated') && !$(app, 'menuAltroRegistroIntegrated'));
   clic(app, $(app, 'btnToggleViewIntegrated'));
   await attesa(250); // il cambio di vista è animato (160 ms)
   t('anche la vista col grafico sta nella scheda Registro', visibile(app, 'cardLogsTable') && visibile(app, 'cardChart') && !visibile(app, 'cardCounterDashboard'));
-  t('e la sua tabella non scorre per conto suo', !/auto|scroll/.test(app.w.getComputedStyle($(app, 'cardLogsTable').querySelector('.logs-table-wrapper')).overflowY));
+  const tabella = $(app, 'cardLogsTable').querySelector('.logs-table-wrapper');
+  const grafico = $(app, 'cardChart').querySelector('.chart-box');
+  t('espansi anche tabella e grafico (stessa scelta)', !scorre(tabella) && app.w.getComputedStyle(grafico).maxHeight === 'none');
+  clic(app, $(app, 'cardChart').querySelector('.btn-espandi-registro'));
+  t('e compressi di nuovo, anche dal tasto sotto il grafico', scorre(tabella) && app.w.getComputedStyle(grafico).maxHeight === '480px' && scorre(involucro));
+  t('«Riconosci strati» si vede anche qui', visibile(app, 'btnAutoStratiChart'));
   clic(app, $(app, 'btnToggleViewChart'));
   await attesa(250);
   clic(app, $(app, 'btnVistaConta'));
+  console.log('--- «Intervalli»: l\'ordine dell\'elenco ---');
+  const colpiElenco = () => [...$(app, 'listaUltimiIntervalli').querySelectorAll('.ultimo-intervallo-colpi')].map(e => e.textContent).join(',');
+  const titoloOrdine = $(app, 'btnOrdineIntervalli');
+  const inOrdine = colpiElenco();
+  t('il titolo è «Intervalli», con la freccia verso il basso (profondità crescente)', titoloOrdine.textContent.trim() === 'Intervalli' && titoloOrdine.querySelector('.ico') && titoloOrdine.classList.contains('crescente'));
+  const righeRegistro = () => [...$(app, 'tblIntegratedLogsBody').querySelectorAll('.swipe-content')].map(e => e.getAttribute('data-index')).join(',');
+  const registroPrima = righeRegistro();
+  clic(app, titoloOrdine);
+  t('toccato, l\'elenco si inverte e la freccia si gira', colpiElenco() === inOrdine.split(',').reverse().join(',') && !titoloOrdine.classList.contains('crescente'));
+  t('il Registro e il grafico non si invertono', righeRegistro() === registroPrima && app.E('state.logs.map(l => l.start)').every((v, i, a) => i === 0 || v >= a[i - 1]));
+  t('la scelta resta salvata, e non è una modifica del progetto', JSON.parse(app.salvato()).settings.intervalliRecentiInCima === true && modificatoIl() === modPrima);
+  clic(app, titoloOrdine);
+  t('toccato di nuovo, torna com\'era', colpiElenco() === inOrdine && titoloOrdine.classList.contains('crescente'));
   t('«Conta» riporta al contatore', visibile(app, 'cardCounterDashboard') && !visibile(app, 'cardIntegratedRegister'));
   clic(app, $(app, 'btnVaiAlRegistro'));
   t('«Tutto il registro» porta al Registro', visibile(app, 'cardIntegratedRegister') && $(app, 'btnVistaRegistro').getAttribute('aria-selected') === 'true');

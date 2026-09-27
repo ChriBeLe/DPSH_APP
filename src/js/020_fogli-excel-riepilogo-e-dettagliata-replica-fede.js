@@ -382,6 +382,17 @@ ${bodyConBgcolor}
             document.getElementById('btnVistaConta').addEventListener('click', () => mostraVistaProva('conta'));
             document.getElementById('btnVistaRegistro').addEventListener('click', () => mostraVistaProva('registro'));
             document.getElementById('btnVaiAlRegistro').addEventListener('click', () => mostraVistaProva('registro'));
+            // Preferenze dell'app (004e), non del progetto: cambiarle non lo segna come modificato.
+            document.getElementById('btnOrdineIntervalli').addEventListener('click', () => {
+                state.settings.intervalliRecentiInCima = state.settings.intervalliRecentiInCima !== true;
+                updateUI();
+                saveState();
+            });
+            document.querySelectorAll('.btn-espandi-registro').forEach(b => b.addEventListener('click', () => {
+                state.settings.registroEspanso = state.settings.registroEspanso !== true;
+                updateUI();
+                saveState();
+            }));
 
             function renderUltimiIntervalli() {
                 const box = document.getElementById('listaUltimiIntervalli');
@@ -389,6 +400,13 @@ ${bodyConBgcolor}
                 const logs = state.logs || [];
                 const primo = Math.max(0, logs.length - 3);
                 const ultimi = logs.slice(primo).map((log, k) => ({ log, idx: primo + k })).filter(r => r.log);
+                // Ordine scelto toccando il titolo, ricordato (vale solo per questo elenco).
+                const recentiInCima = state.settings.intervalliRecentiInCima === true;
+                if (recentiInCima) ultimi.reverse();
+                const titolo = document.getElementById('btnOrdineIntervalli');
+                titolo.classList.toggle('crescente', !recentiInCima);
+                titolo.title = recentiInCima ? 'Dal più profondo: tocca per invertire' : 'Dal più superficiale: tocca per invertire';
+                titolo.setAttribute('aria-label', 'Intervalli, ' + titolo.title.toLowerCase());
                 if (!ultimi.length) {
                     box.innerHTML = '<div class="ultimi-vuoto">Ancora nessun intervallo registrato.</div>';
                     return;
@@ -575,6 +593,13 @@ ${bodyConBgcolor}
                 const cardLogsTable = document.getElementById('cardLogsTable');
                 const cardChart = document.getElementById('cardChart');
 
+                // Registro e grafico: poche righe che scorrono, oppure tutte.
+                {
+                    const espanso = state.settings.registroEspanso === true;
+                    document.getElementById('viewField').classList.toggle('registro-espanso', espanso);
+                    document.querySelectorAll('.btn-espandi-registro').forEach(b => { b.textContent = espanso ? 'Mostra meno righe' : 'Mostra tutte le righe'; });
+                }
+
                 // Vista Conta | Registro (Fase 6).
                 const inConta = vistaProva === 'conta';
                 {
@@ -617,13 +642,8 @@ ${bodyConBgcolor}
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
                 const btnAutoStratiIntegratedEl = document.getElementById('btnAutoStratiIntegrated');
                 const btnAutoStratiChartEl = document.getElementById('btnAutoStratiChart');
-                if (btnAutoStratiIntegratedEl) btnAutoStratiIntegratedEl.style.display = hasEnoughLogsForAutoStrati ? 'flex' : 'none';
-                if (btnAutoStratiChartEl) btnAutoStratiChartEl.style.display = hasEnoughLogsForAutoStrati ? 'flex' : 'none';
-                // Il ⋯ del Registro contiene solo il riconoscimento degli strati: senza, sparisce.
-                ['menuAltroRegistroIntegrated', 'menuAltroRegistroChart'].forEach(id => {
-                    const m = document.getElementById(id);
-                    if (m) m.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
-                });
+                if (btnAutoStratiIntegratedEl) btnAutoStratiIntegratedEl.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
+                if (btnAutoStratiChartEl) btnAutoStratiChartEl.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
                 aggiornaHintManiglieStratiGrafico(hasEnoughLogsForAutoStrati);
             }
 
