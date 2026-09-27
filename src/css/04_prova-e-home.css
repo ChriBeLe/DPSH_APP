@@ -126,7 +126,7 @@
         .card-progetto-data { font-size: var(--fs-didascalia); color: var(--text-muted); }
         .card-progetto-altro {
             flex: 0 0 48px; width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;
-            background: transparent; border: none; border-left: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+            background: transparent; border: none; color: var(--text-muted); cursor: pointer;
         }
         .card-progetto-altro .ico { width: 20px; height: 20px; }
         .home-vuota { text-align: center; color: var(--text-muted); padding: 32px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--fs-testo); line-height: 1.5; }

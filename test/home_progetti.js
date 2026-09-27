@@ -64,7 +64,7 @@ const chiudiAvvisi = async app => { for (let i = 0; i < 3 && app.dialogo(); i++)
   t('«Comune · Committente: X», con l\'etichetta', card.querySelector('.card-progetto-luogo').textContent === `${proj.comune} · Committente: ${proj.committente}`);
   t('«N prove · n/N GPS · N foto»', /^\d+ prov[ae] · \d+\/\d+ GPS · \d+ foto$/.test(card.querySelector('.card-progetto-numeri').textContent));
   t('«Modificato il gg/mm/aaaa · riprende dalla Prova N»', /^Modificato il \d\d\/\d\d\/\d{4} · riprende dalla Prova \w+$/.test(card.querySelector('.card-progetto-data').textContent));
-  t('a destra il ⋯, separato da una linea', !!card.querySelector('.card-progetto-altro.btn-project-actions') && card.querySelector('.card-progetto-altro').getAttribute('aria-label') === 'Azioni sul progetto');
+  t('a destra il ⋯', !!card.querySelector('.card-progetto-altro.btn-project-actions') && card.querySelector('.card-progetto-altro').getAttribute('aria-label') === 'Azioni sul progetto');
   t('niente più bottone delle note con l\'icona dei template (i-file) sulla card', !card.querySelector('.btn-project-notes') && !card.innerHTML.includes('#i-file'));
   clic(app, card.querySelector('.btn-project-actions'));
   t('le note sono nel ⋯ del progetto, con l\'icona i-note', $(app, 'modalProjectActions').classList.contains('open') && $(app, 'btnProjActNote').innerHTML.includes('#i-note'));
