@@ -926,9 +926,10 @@
                 txtNewData.value = state.header.date || new Date().toISOString().split('T')[0];
                 txtNewProvaNr.value = nextNr;
                 numNewLunghAsta.value = state.instrument.lunghAsta || '1.00';
-                if (modalNewSurveyOverlay) modalNewSurveyOverlay.classList.add('open');
-                if (modalNewSurvey) modalNewSurvey.classList.add('open');
-                setTimeout(() => txtNewProvaNr.focus(), 150);
+                // Nuova prova con un tocco (Fase 4): N° successivo e dati ereditati, senza domande; si
+                // correggono dopo dalla scheda della prova.
+                confirmNewSurvey();
+                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openCantiereInfoModal() } });
             }
 
             function closeNewSurveyModal() {

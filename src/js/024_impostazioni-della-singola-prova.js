@@ -79,7 +79,17 @@
                 return nuovoId;
             }
 
-            function openSurveySettingsModal(survId) {
+            /** La scheda della prova (Fase 4): linguette Dati e Strumento; da Dati si aprono GPS, foto e falda. */
+            function mostraSchedaProva(scheda) {
+                modalSurveySettings.querySelectorAll('[data-scheda-prova]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.schedaProva === scheda)));
+                modalSurveySettings.querySelectorAll('[data-pannello-prova]').forEach(p => { p.style.display = p.dataset.pannelloProva === scheda ? '' : 'none'; });
+            }
+            modalSurveySettings.querySelectorAll('[data-scheda-prova]').forEach(b => b.addEventListener('click', () => mostraSchedaProva(b.dataset.schedaProva)));
+            modalSurveySettings.querySelectorAll('[data-apri]').forEach(b => b.addEventListener('click', () => {
+                closeSurveySettingsModal();
+                ({ gps: openGpsModal, foto: openSurveyPhotosModal, falda: openQuickFaldaModal })[b.dataset.apri]();
+            }));
+            function openSurveySettingsModal(survId, scheda = 'strumento') {
                 const proj = state.projects && state.projects[state.currentProjectId];
                 if (!proj || !proj.surveys || !proj.surveys[survId]) return;
                 // I campi della modale rispecchiano sempre la prova ATTIVA (state.instrument/state.settings):
@@ -94,7 +104,8 @@
                 }
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
-                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Impostazioni Prova N° ${h.provaNr || '1'}`;
+                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;
+                mostraSchedaProva(scheda);
                 surveySettingsContext = { survId };
                 if (modalSurveySettingsOverlay) modalSurveySettingsOverlay.classList.add('open');
                 if (modalSurveySettings) modalSurveySettings.classList.add('open');

@@ -51,7 +51,7 @@ async function apriPrimaProva(app) {
   const h = app.E('state.header');
   t('il titolo è «Prova N», non il comune', $(app, 'lblSurveySummary').textContent === 'Prova ' + h.provaNr);
   t('sotto: «Nome progetto · Comune»', $(app, 'lblSurveySub').textContent === proj.name + ' · ' + h.comune);
-  t('il titolo si tocca: apre l\'intestazione della prova', (clic(app, $(app, 'btnOpenSurveyDrawer')), $(app, 'modalCantiereInfo').classList.contains('open')));
+  t('il titolo si tocca: apre l\'intestazione della prova', (clic(app, $(app, 'btnOpenSurveyDrawer')), $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'modalSurveySettings').querySelector('[data-scheda-prova="dati"]').getAttribute('aria-selected') === 'true'));
   app.E('closeCantiereInfoModal()');
   t('a sinistra Home, a destra il ⋯', $(app, 'btnHomeView').closest('.testata-riga') && $(app, 'btnHeaderMore').getAttribute('aria-haspopup') === 'menu');
   const voci = [...$(app, 'headerActionsSecondary').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());

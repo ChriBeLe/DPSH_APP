@@ -156,7 +156,9 @@
             }
 
             // INPUT SYNC CANTIERE
-            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; updateUI(); saveState(); });
+            // Committente e comune: della prova (li leggono i report) e anche del progetto, perché la
+            // card della Home li mostra da lì (Fase 4). Le altre prove tengono i loro valori.
+            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); updateUI(); });
             const txtProvincia = document.getElementById('txtProvincia');
             const txtSedeCommittente = document.getElementById('txtSedeCommittente');
             const txtDenominazioneIntervento = document.getElementById('txtDenominazioneIntervento');
@@ -180,7 +182,7 @@
             if (txtProvincia) txtProvincia.addEventListener('input', (e) => scriviDatoProgettoCorrente('provincia', e.target.value));
             if (txtSedeCommittente) txtSedeCommittente.addEventListener('input', (e) => scriviDatoProgettoCorrente('sedeCommittente', e.target.value));
             if (txtDenominazioneIntervento) txtDenominazioneIntervento.addEventListener('input', (e) => scriviDatoProgettoCorrente('denominazioneIntervento', e.target.value));
-            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; updateUI(); saveState(); });
+            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); updateUI(); });
             if (txtLocalita) txtLocalita.addEventListener('input', (e) => { state.header.localita = e.target.value; updateUI(); saveState(); });
             if (txtDataIndagine) txtDataIndagine.addEventListener('change', (e) => { state.header.date = e.target.value; updateUI(); saveState(); });
             if (txtProvaNr) txtProvaNr.addEventListener('input', (e) => {
@@ -353,19 +355,9 @@
             // SINGOLA prova, non preferenze dell'app — vive in una modale a sé, non nel drawer
             // Impostazioni generale, e non esiste alcuna scorciatoia per aprirla da Home (dove non
             // c'è una prova specifica a cui riferirli).
-            const modalCantiereInfoOverlay = document.getElementById('modalCantiereInfoOverlay');
-            const modalCantiereInfo = document.getElementById('modalCantiereInfo');
-            const btnCloseCantiereInfoX = document.getElementById('btnCloseCantiereInfoX');
-            function openCantiereInfoModal() {
-                if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.classList.add('open');
-                if (modalCantiereInfo) modalCantiereInfo.classList.add('open');
-            }
-            function closeCantiereInfoModal() {
-                if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.classList.remove('open');
-                if (modalCantiereInfo) modalCantiereInfo.classList.remove('open');
-            }
-            if (btnCloseCantiereInfoX) btnCloseCantiereInfoX.addEventListener('click', closeCantiereInfoModal);
-            if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.addEventListener('click', closeCantiereInfoModal);
+            // L'intestazione è la linguetta «Dati» della scheda della prova (Fase 4).
+            function openCantiereInfoModal() { openSurveySettingsModal(state.currentSurveyId, 'dati'); }
+            function closeCantiereInfoModal() { closeSurveySettingsModal(); }
 
             if (btnHamburger) btnHamburger.addEventListener('click', openDrawer);
             // Impostazioni dalla Home (Fase 3: la Home ha la sua testata, «Progetti»).

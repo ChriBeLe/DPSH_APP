@@ -224,7 +224,9 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
 9. La barra fissa «Salvataggio sospeso» (Fase 1) copre la testata: deve spingere giù il
    contenuto invece di coprirlo. Visto dal coordinatore nel browser.
 
-### Fase 4 — Un posto per ogni dato (progetto e prova)
+### Fase 4 — Un posto per ogni dato (progetto e prova) ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_4_ESITO.md`. Senza migrazione: vedi «Decisione presa, da confermare».
+
 1. **Dati di progetto modificabili**, nome compreso, in un posto solo: nome, comune, provincia,
    committente, sede, denominazione, data. La card della Home li legge da lì.
 2. **Cosa è del progetto e cosa è della prova**, deciso una volta per tutte:

@@ -53,6 +53,30 @@ const vista = app => app.E('state.uiState.currentView');
   await attesa(60);
   t('toccare una prova la apre', vista(app) === 'field' && app.E('state.currentSurveyId') === altra.dataset.surv);
 
+  console.log('--- Nuova prova con un tocco (Fase 4) ---');
+  const nPrima = app.E('Object.keys(state.projects[state.currentProjectId].surveys).length');
+  const comunePrima = app.E('state.header.comune');
+  const nrAtteso = String(app.E('proveFisiche(Object.values(state.projects[state.currentProjectId].surveys)).length') + 1); // le interpretazioni («3B») non contano
+  clic(app, [...$(app, 'surveySwitcherBar').querySelectorAll('button')].pop());
+  await attesa(60);
+  t('il «+» crea subito la prova, senza finestra', app.E('Object.keys(state.projects[state.currentProjectId].surveys).length') === nPrima + 1
+    && !$(app, 'modalNewSurvey').classList.contains('open') && vista(app) === 'field');
+  t('col N° successivo e i dati ereditati', app.E('state.header.provaNr') === nrAtteso && app.E('state.header.comune') === comunePrima);
+  t('il messaggio offre di aprire la scheda', /creata/.test($(app, 'toastAppTesto').textContent) && $(app, 'toastAppAzione').textContent === 'Scheda');
+  clic(app, $(app, 'toastAppAzione'));
+  t('«Scheda» apre la scheda della prova su «Dati»', $(app, 'modalSurveySettings').classList.contains('open')
+    && $(app, 'modalSurveySettings').querySelector('[data-scheda-prova="dati"]').getAttribute('aria-selected') === 'true' && visibile(app, 'txtComune') && !visibile(app, 'selPenetrometer'));
+  t('«Dati» divisi in «Del progetto» e «Di questa prova»', [...$(app, 'modalSurveySettings').querySelectorAll('.scheda-prova-gruppo')].map(e => e.textContent).join('|') === 'Del progetto|Di questa prova');
+  $(app, 'txtComune').value = 'Nuovo Comune';
+  $(app, 'txtComune').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  t('il comune scritto nella scheda va anche nel progetto (la card della Home lo legge da lì)',
+    app.E('state.header.comune') === 'Nuovo Comune' && app.E('state.projects[state.currentProjectId].comune') === 'Nuovo Comune');
+  clic(app, $(app, 'modalSurveySettings').querySelector('[data-scheda-prova="strumento"]'));
+  t('«Strumento» mostra lo strumento', visibile(app, 'selPenetrometer') && !visibile(app, 'txtComune'));
+  clic(app, $(app, 'modalSurveySettings').querySelector('[data-apri="falda"]'));
+  t('da Dati: «Falda» apre la falda', $(app, 'modalQuickFalda').classList.contains('open') && !$(app, 'modalSurveySettings').classList.contains('open'));
+  app.E('closeQuickFaldaModal()');
+
   console.log('--- Indietro ---');
   app.w.dispatchEvent(new app.w.PopStateEvent('popstate', { state: null }));
   await attesa(60);

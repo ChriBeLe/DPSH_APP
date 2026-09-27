@@ -198,3 +198,7 @@
         .progetto-accessi strong { font-size: var(--fs-campo); }
         .progetto-accessi span { font-size: var(--fs-didascalia); color: var(--text-muted); }
         .progetto-accessi .accento { border-color: var(--accent); background: var(--accent-soft); }
+
+        /* ---- La scheda della prova (Fase 4) ---- */
+        .scheda-prova-rapidi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-3); }
+        .scheda-prova-gruppo { font-weight: 800; text-transform: uppercase; letter-spacing: .4px; margin: var(--sp-2) 0; }

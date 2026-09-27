@@ -33,7 +33,6 @@ markup/21_modalQuickFalda.html
 markup/22_appDialog.html
 markup/23_modalDeleteSurvey.html
 markup/24_modalSurveySettings.html
-markup/25_modalCantiereInfo.html
 markup/26_modalConfirmDelete.html
 markup/27_modalBulkImport.html
 markup/28_modalExport.html
