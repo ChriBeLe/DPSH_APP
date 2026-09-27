@@ -42,6 +42,7 @@
                         : 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
                 }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · ? guida · DPSH ' + APP_VERSIONE;
+                if (vista === 'field') forseGuidaRapida();
             }
 
             document.getElementById('pcPercorso').addEventListener('click', (e) => {

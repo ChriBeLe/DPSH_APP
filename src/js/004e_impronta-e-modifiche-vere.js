@@ -23,7 +23,7 @@
             // passo e al penetrometro: cambiarle non modifica il progetto.
             const IMPOSTAZIONI_DELL_APP = new Set(['darkMode', 'themeHue', 'expandedMode', 'compactMode', 'tastoRegistraVisibile', 'integratedChart',
                 'haptic', 'audio', 'wakeLock', 'debugMode', 'gloveMode', 'disegnoSfondoTipo', 'disegnoSfondoColore',
-                'righeIndiceAnteprima', 'wmsPersonalizzati', 'registroEspanso', 'intervalliRecentiInCima', 'contatoreSuPc']);
+                'righeIndiceAnteprima', 'wmsPersonalizzati', 'registroEspanso', 'intervalliRecentiInCima', 'contatoreSuPc', 'guidaPcVista']);
 
             /** Le costanti di SHA-256 (FIPS 180-4), tenute sulla funzione stessa: niente const a
              * livello di script, quindi niente zona morta se qualcuno la chiama presto. Scritte per

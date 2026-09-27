@@ -272,3 +272,13 @@
         .scorciatoie-gruppi section { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius-md); }
         .scorciatoie-gruppi h3 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
         .scorciatoie-gruppi div { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: 28px; color: var(--text-muted); }
+
+        /* ---- La guida rapida della prima volta sul PC ---- */
+        .guida-rapida { position: fixed; inset: 0; z-index: 400; }
+        .guida-rapida[hidden] { display: none; }
+        .guida-buco { position: fixed; border-radius: var(--radius-md); box-shadow: 0 0 0 9999px rgba(5, 10, 9, 0.62); outline: 2px solid var(--accent); transition: all var(--mov-medio) var(--ease-entra); pointer-events: none; }
+        .guida-fumetto { position: fixed; width: 340px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+        .guida-fumetto strong { font-size: 16px; }
+        .guida-fumetto p { margin: 0; line-height: 1.5; color: var(--text-muted); }
+        .guida-comandi { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
+        .guida-comandi .t-didascalia { flex: 1; }

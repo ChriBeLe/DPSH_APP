@@ -116,6 +116,19 @@
     <footer class="pc-stato" id="pcStato"><span id="pcStatoAiuto"></span><span id="pcStatoVersione"></span></footer>
     <!-- Il menu del tasto destro sulle righe del Registro e sulle barre del grafico (PC). -->
     <div class="menu-azioni menu-contesto" id="menuRiga" role="menu"></div>
+    <!-- La guida rapida della prima volta sul PC: tre passi, col punto evidenziato (pezzo 071e). -->
+    <div class="guida-rapida" id="guidaRapida" hidden>
+        <div class="guida-buco" id="guidaBuco"></div>
+        <div class="guida-fumetto" role="dialog" aria-labelledby="guidaTitolo">
+            <strong id="guidaTitolo"></strong>
+            <p id="guidaTesto"></p>
+            <div class="guida-comandi">
+                <span class="t-didascalia" id="guidaPasso"></span>
+                <button type="button" class="bt-link" id="guidaSalta">Salta</button>
+                <button type="button" class="bt bt-principale" id="guidaAvanti">Avanti</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MAIN APP CONTENT -->
     <main>
