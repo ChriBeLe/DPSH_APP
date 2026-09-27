@@ -175,3 +175,26 @@
                 transform: translateY(0);
             }
         }
+
+        /* ---- La schermata Progetto (Fase 5) ---- */
+        .progetto { display: flex; flex-direction: column; gap: var(--sp-3); }
+        .progetto-barra { display: flex; align-items: center; justify-content: space-between; }
+        .progetto-barra .bt-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 44px; }
+        .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
+        .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
+        .progetto-prove { padding: 0; overflow: hidden; }
+        .progetto-prove > .bt-link { width: 100%; min-height: 56px; display: flex; align-items: center; justify-content: center; gap: var(--sp-1); }
+        .prova-riga { width: 100%; display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: var(--sp-2) var(--sp-3); border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .prova-riga-n { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid var(--border); }
+        .prova-riga.attiva .prova-riga-n { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+        .prova-riga-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .prova-riga-testo strong { font-size: var(--fs-campo); }
+        .prova-riga-testo span { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .prova-riga-stato { flex-shrink: 0; padding: 3px 10px; border-radius: 13px; font-size: var(--fs-didascalia); font-weight: 700; color: var(--success); background: var(--success-soft); }
+        .prova-riga-stato.avviso { color: var(--warning); background: var(--warning-soft); }
+        .progetto-accessi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+        .progetto-accessi button { min-height: 80px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3); color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .progetto-accessi .ico { color: var(--accent); margin-bottom: auto; }
+        .progetto-accessi strong { font-size: var(--fs-campo); }
+        .progetto-accessi span { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .progetto-accessi .accento { border-color: var(--accent); background: var(--accent-soft); }

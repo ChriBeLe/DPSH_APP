@@ -116,7 +116,7 @@
              Riga 3: le prove del progetto (cerchietti da 44) e il «+» per una nuova. -->
         <header class="card unified-header testata-prova" id="testataProva">
             <div class="testata-riga">
-                <button type="button" class="bt-icona" id="btnHomeView" aria-label="Torna ai progetti" title="Torna ai progetti"><svg class="ico"><use href="#i-home"/></svg></button>
+                <button type="button" class="bt-icona" id="btnHomeView" aria-label="Al progetto" title="Al progetto"><svg class="ico"><use href="#i-back"/></svg></button>
                 <button type="button" class="testata-titolo" id="btnOpenSurveyDrawer" title="Intestazione di questa prova">
                     <span class="testata-titolo-prova" id="lblSurveySummary">Prova</span>
                     <span class="testata-titolo-progetto" id="lblSurveySub"></span>
@@ -203,6 +203,34 @@
 
             <!-- LISTA DEI PROGETTI: la riempie renderHomeProjects -->
             <div id="homeProjectsContainer" class="home-progetti"></div>
+        </div>
+
+        <!-- LA SCHERMATA PROGETTO (Fase 5, prototipo «Schermata progetto»). Ci si arriva dalla prova
+             con «‹» in testata; dalla Home «Apri» porta invece all'ultima prova (decisione H).
+             La riempie renderSchermataProgetto. -->
+        <div id="viewProject" class="progetto" style="display: none;">
+            <div class="progetto-barra">
+                <button type="button" class="bt-link" id="btnProgettoAiProgetti"><svg class="ico"><use href="#i-back"/></svg>Progetti</button>
+                <button type="button" class="bt-icona" id="btnProgettoAltro" aria-label="Altre azioni sul progetto" title="Altre azioni sul progetto"><svg class="ico"><use href="#i-more"/></svg></button>
+            </div>
+            <h1 class="progetto-nome" id="lblProgettoNome"></h1>
+            <div class="progetto-sotto" id="lblProgettoSotto"></div>
+            <div class="progetto-sotto" id="lblProgettoStato"></div>
+            <button type="button" class="bt bt-principale bt-campo" id="btnProgettoRiprendi"></button>
+            <div class="registro-testata">
+                <h2 class="registro-titolo">Prove</h2>
+                <span class="t-didascalia" id="lblProgettoConteggio"></span>
+            </div>
+            <div class="card progetto-prove">
+                <div id="listaProveProgetto"></div>
+                <button type="button" class="bt-link accento" id="btnProgettoNuovaProva"><svg class="ico"><use href="#i-plus"/></svg>Nuova prova</button>
+            </div>
+            <div class="progetto-accessi">
+                <button type="button" class="card" id="btnProgettoDati"><svg class="ico"><use href="#i-file"/></svg><strong>Dati del progetto</strong><span>nome, comune, committente</span></button>
+                <button type="button" class="card" id="btnProgettoStrati"><svg class="ico"><use href="#i-stack"/></svg><strong>Strati</strong><span>litologia e parametri</span></button>
+                <button type="button" class="card" id="btnProgettoNote"><svg class="ico"><use href="#i-note"/></svg><strong>Note</strong><span>appunti e immagini</span></button>
+                <button type="button" class="card accento" id="btnProgettoConsegna"><svg class="ico"><use href="#i-download"/></svg><strong>Consegna</strong><span>report, Excel, KML, foto</span></button>
+            </div>
         </div>
 
         <!-- VIEW 2: SCHERMATA CAMPO (DASHBOARD & CONTEGGIO COLPI) -->

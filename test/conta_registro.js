@@ -173,7 +173,7 @@ async function apriPrimaProva(app) {
     await attesa(30);
   }
 
-  console.log('--- Home e ritorno ---');
+  console.log('--- Progetto e ritorno ---');
   clic(app, $(app, 'btnHomeView'));
   await attesa(50);
   app.E('openProject(' + JSON.stringify(pid) + ')');
