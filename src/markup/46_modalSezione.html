@@ -9,6 +9,18 @@
         </div>
         <div class="pillole" id="proveSezione" aria-label="Prove nella sezione"></div>
         <p class="t-didascalia" id="notaSezione"></p>
+        <div class="sezione-comandi">
+            <div class="pillole" id="opzioniSezione" aria-label="Cosa mostrare">
+                <button type="button" class="pillola" data-opzione="correlazioni">Correlazioni</button>
+                <button type="button" class="pillola" data-opzione="etichette">Etichette</button>
+                <button type="button" class="pillola" data-opzione="scale">Scale delle prove</button>
+                <button type="button" class="pillola" data-opzione="grafico">Grafico dei colpi</button>
+            </div>
+            <label class="vista3d-esag">Esagerazione verticale <input type="range" id="rngEsagSezione" min="1" max="50" step="1" value="5"> <strong id="lblEsagSezione">auto</strong>
+                <button type="button" class="bt-link" id="btnEsagAutoSezione">Auto</button></label>
+            <label class="vista3d-esag">Scala orizzontale <input type="range" id="rngScalaHSezione" min="1" max="5" step="0.25" value="1"> <strong id="lblScalaHSezione">×1</strong></label>
+        </div>
+        <p class="t-didascalia">Tocca una colonna per il suo grafico e i suoi dati; il lucchetto tiene il fumetto aperto.</p>
         <div id="graficoSezione"></div>
         <div class="terreno-comandi">
             <button type="button" class="bt" id="btnScaricaSezione"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>

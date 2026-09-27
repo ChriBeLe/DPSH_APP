@@ -302,3 +302,31 @@
         .vista3d-esag input { flex: 1; max-width: 260px; accent-color: var(--accent); }
         #btnApriVista3d:disabled { opacity: .5; cursor: not-allowed; }
         .export-opt-card.spenta { opacity: .45; pointer-events: none; }
+
+        /* ---- Sezione: comandi e riquadro che scorre ---- */
+        .sezione-comandi { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-2) 0; }
+        #graficoSezione { max-height: 68vh; overflow: auto; overscroll-behavior: contain; }
+        #opzioniSezione .pillola[disabled] { opacity: .45; cursor: not-allowed; }
+        .sezione-colonna:hover rect[fill="transparent"] { fill: var(--accent-soft); }
+
+        /* ---- Il fumetto di una prova ---- */
+        .fumetto-prova { position: fixed; z-index: 600; width: 360px; max-width: calc(100vw - 16px); box-sizing: border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 16px 40px rgba(0,0,0,0.35); padding: var(--sp-2) var(--sp-3) var(--sp-3);
+            opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .fumetto-prova.visibile { opacity: 1; transform: none; }
+        .fumetto-prova.bloccato { border-color: var(--accent); }
+        .fumetto-prova.bloccato .fumetto-testa { cursor: move; }
+        .fumetto-testa { display: flex; align-items: center; gap: var(--sp-1); min-height: 36px; }
+        .fumetto-testa strong { flex: 1; font-size: 15px; }
+        .fumetto-testa button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer; }
+        .fumetto-testa button:hover { background: var(--bg-card-hover); color: var(--text-main); }
+        .fumetto-blocca[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+        .fumetto-corpo { display: flex; gap: var(--sp-3); align-items: flex-start; }
+        .fumetto-corpo svg { flex-shrink: 0; color: var(--text-main); }
+        .fumetto-dati { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+        .fumetto-dati > div { display: flex; justify-content: space-between; gap: var(--sp-2); }
+        .fumetto-dati span { color: var(--text-muted); }
+        .fumetto-strati { margin-top: var(--sp-1); display: flex; flex-direction: column; gap: 3px; }
+        .fumetto-strati div { display: flex; align-items: center; gap: 5px; line-height: 1.25; }
+        .fumetto-strati i { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .fumetto-strati span { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+        @media (max-width: 420px) { .fumetto-corpo { flex-direction: column; } }
