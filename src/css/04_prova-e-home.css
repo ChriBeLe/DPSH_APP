@@ -56,7 +56,6 @@
         .btn-touch-cifra { font-size: 36px; font-weight: 800; line-height: 1; }
         .btn-plus .btn-touch-cifra { font-size: 38px; }
         .btn-touch-aiuto { font-size: var(--fs-didascalia); font-weight: 600; opacity: .85; text-align: center; line-height: 1.2; padding: 0 4px; }
-        .counter-quick-toggle.counter-lock-handle { width: 44px; height: 44px; }
 
         /* Registra: 56, a tutta larghezza, col suo intervallo. */
         .registra-blocco { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-3); }
@@ -86,9 +85,17 @@
         .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
         .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
 
-        /* ---- Barra di stato fissa (quando il contatore esce dallo schermo) ---- */
-        .ssb-lbl { font-size: var(--fs-didascalia); text-transform: none; letter-spacing: 0; }
-        .ssb-jump { width: 44px; height: 44px; }
+        /* ---- Le due viste della prova (Fase 6): Conta | Registro ---- */
+        .schede-prova { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1); padding: var(--sp-1); border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); }
+        .schede-prova button { min-height: 44px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-family: inherit; font-size: var(--fs-campo); font-weight: 800; cursor: pointer; }
+        .schede-prova button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+        #listaUltimiIntervalli { display: flex; flex-direction: column; }
+        .ultimo-intervallo { display: grid; grid-template-columns: 116px 44px minmax(0, 1fr); align-items: center; min-height: 44px; padding: 0 var(--sp-1); border: none; border-top: 1px solid var(--border); background: transparent; color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .ultimo-intervallo-prof { font-family: var(--font-mono); font-size: var(--fs-testo); }
+        .ultimo-intervallo-colpi { font-family: var(--font-mono); font-size: var(--fs-campo); font-weight: 800; color: var(--accent); text-align: center; }
+        .ultimo-intervallo-barra { display: block; height: 18px; }
+        .ultimo-intervallo-barra > span { display: block; height: 100%; border-radius: 3px; }
+        .ultimi-vuoto { padding: var(--sp-3) var(--sp-1); color: var(--text-muted); font-size: var(--fs-testo); }
         /* La matita che sblocca i contatti tra strati sul grafico (vista con «Grafico» premuto). */
         #btnToggleModificaStratiGrafico { width: var(--h-bottone); height: var(--h-bottone); }
 

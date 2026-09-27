@@ -370,43 +370,40 @@ ${bodyConBgcolor}
                 return Math.floor((endDepth - 0.0001) / rodLen) + 1;
             }
 
-            // Allinea con precisione la colonna di icone (lucchetto) all'angolo
-            // in alto a sinistra del riquadro scuro (.counter-dashboard), misurando la sua vera
-            // posizione invece di indovinare un offset fisso via CSS — un valore fisso si è
-            // rivelato sbagliato non appena cambiava qualcosa nel layout sopra di esso. A card
-            // compressa il riquadro scuro non esiste più: in quel caso resta l'offset statico
-            // definito in CSS (vedi #cardCounterDashboard.counter-collapsed .counter-quick-toggles-col).
-            function syncCounterLockHandlePosition() {
-                const col = document.querySelector('.counter-quick-toggles-col');
-                const card = document.getElementById('cardCounterDashboard');
-                if (!col || !card) return;
+            // LE DUE VISTE DELLA PROVA (Fase 6): «Conta» (contatore e ultimi 3 intervalli) e
+            // «Registro» (il registro intero). Non si ricorda: entrando in una prova dalla Home si
+            // riparte sempre dal contatore (vedi switchView).
+            let vistaProva = 'conta';
+            function mostraVistaProva(vista) {
+                vistaProva = vista;
+                updateUI();
+                (document.scrollingElement || document.documentElement).scrollTop = 0;
+            }
+            document.getElementById('btnVistaConta').addEventListener('click', () => mostraVistaProva('conta'));
+            document.getElementById('btnVistaRegistro').addEventListener('click', () => mostraVistaProva('registro'));
+            document.getElementById('btnVaiAlRegistro').addEventListener('click', () => mostraVistaProva('registro'));
 
-                if (card.classList.contains('counter-collapsed')) {
-                    // A card compressa non c'è più il riquadro scuro: il lucchetto si allinea
-                    // invece al centro verticale REALE della barra riepilogo (misurato, non
-                    // indovinato — lo stesso motivo per cui l'offset fisso precedente sbagliava),
-                    // cosi resta sempre a filo col testo qualunque sia l'altezza della barra.
-                    const bar = document.getElementById('counterCollapsedBar');
-                    const lockBtn = document.getElementById('btnCounterLockHandle');
-                    if (!bar || !lockBtn) return;
-                    const cardRect = card.getBoundingClientRect();
-                    const barRect = bar.getBoundingClientRect();
-                    const lockRect = lockBtn.getBoundingClientRect();
-                    if (barRect.height === 0 || lockRect.height === 0) return; // non ancora visibile
-                    const barCenterY = barRect.top - cardRect.top + barRect.height / 2;
-                    col.style.top = Math.round(barCenterY - lockRect.height / 2) + 'px';
-                    col.style.left = '8px';
+            function renderUltimiIntervalli() {
+                const box = document.getElementById('listaUltimiIntervalli');
+                if (!box) return;
+                const logs = state.logs || [];
+                const primo = Math.max(0, logs.length - 3);
+                const ultimi = logs.slice(primo).map((log, k) => ({ log, idx: primo + k })).filter(r => r.log);
+                if (!ultimi.length) {
+                    box.innerHTML = '<div class="ultimi-vuoto">Ancora nessun intervallo registrato.</div>';
                     return;
                 }
-
-                const darkBox = document.querySelector('#cardCounterDashboard .counter-dashboard');
-                if (!darkBox) return;
-                const cardRect = card.getBoundingClientRect();
-                const boxRect = darkBox.getBoundingClientRect();
-                if (boxRect.width === 0 && boxRect.height === 0) return; // non ancora renderizzato/visibile
-                const inset = 10;
-                col.style.top = Math.round(boxRect.top - cardRect.top + inset) + 'px';
-                col.style.left = Math.round(boxRect.left - cardRect.left + inset) + 'px';
+                const maxN = Math.max(10, ...logs.map(l => (l && l.colpi) || 0));
+                box.innerHTML = ultimi.map(({ log, idx }) => {
+                    const lit = getEffectiveLithology(idx) || { color: '#f59e0b' };
+                    const larghezza = Math.min(100, Math.max(6, ((Number(log.colpi) || 0) / maxN) * 100));
+                    return `<button type="button" class="ultimo-intervallo" data-index="${idx}">
+                        <span class="ultimo-intervallo-prof">${testoIntervallo(Number(log.start) || 0, Number(log.end) || 0)}</span>
+                        <span class="ultimo-intervallo-colpi">${Number(log.colpi) || 0}</span>
+                        <span class="ultimo-intervallo-barra"><span style="width:${larghezza}%; ${getPatternCss(lit.pattern, lit.color)}"></span></span>
+                    </button>`;
+                }).join('');
+                box.querySelectorAll('.ultimo-intervallo').forEach(b => b.addEventListener('click', () => openViewModal(Number(b.getAttribute('data-index')))));
             }
 
             // IL NUMERONE DEI COLPI REAGISCE QUANDO CAMBIA. È l'elemento più guardato dell'app in
@@ -482,8 +479,6 @@ ${bodyConBgcolor}
                 }
                 ultimoConteggioMostrato = state.currentCount;
                 lblBlowCount.textContent = state.currentCount;
-                if (counterCompactCount) counterCompactCount.textContent = state.currentCount;
-                if (typeof updateStickyStatusBar === 'function') updateStickyStatusBar();
 
                 const stepM = state.settings.stepCm / 100;
                 const endDepth = state.currentDepthStart + stepM;
@@ -492,13 +487,14 @@ ${bodyConBgcolor}
                     const lblRegistra = document.getElementById('lblRegistraIntervallo');
                     if (lblRegistra) lblRegistra.textContent = `Registra ${testoIntervallo(state.currentDepthStart, endDepth)}`;
                 }
-                if (counterCompactDepth) counterCompactDepth.textContent = `${state.currentDepthStart.toFixed(2)}-${endDepth.toFixed(2)}m`;
 
                 // Asta calcolata automaticamente in base allo step futuro
                 state.currentRod = getRodForDepth(endDepth);
                 lblCurrentRod.textContent = String(state.currentRod);
                 if (lblTotalDepth) lblTotalDepth.textContent = state.currentDepthStart.toFixed(2);
                 lblTotalSteps.textContent = `Registro · ${state.logs.length} ${state.logs.length === 1 ? 'intervallo' : 'intervalli'}`;
+                // Anche quello del registro integrato, che nella vista Conta non si ridisegna.
+                document.getElementById('lblIntegratedTotalSteps').textContent = lblTotalSteps.textContent;
 
                 // Testata della prova (Fase 3): «Prova N» e sotto «Nome progetto · Comune».
                 {
@@ -579,8 +575,25 @@ ${bodyConBgcolor}
                 const cardLogsTable = document.getElementById('cardLogsTable');
                 const cardChart = document.getElementById('cardChart');
 
+                // Vista Conta | Registro (Fase 6).
+                const inConta = vistaProva === 'conta';
+                {
+                    const btnConta = document.getElementById('btnVistaConta');
+                    const btnRegistro = document.getElementById('btnVistaRegistro');
+                    btnConta.setAttribute('aria-selected', String(inConta));
+                    btnRegistro.setAttribute('aria-selected', String(!inConta));
+                    btnRegistro.textContent = `Registro · ${state.logs.length}`;
+                    cardCounterDashboard.style.display = inConta ? '' : 'none';
+                    document.getElementById('cardUltimiIntervalli').style.display = inConta ? '' : 'none';
+                    if (inConta) renderUltimiIntervalli();
+                }
+
                 if (cardIntegratedRegister && cardLogsTable && cardChart) {
-                    if (isIntegrated) {
+                    if (inConta) {
+                        cardIntegratedRegister.style.display = 'none';
+                        cardLogsTable.style.display = 'none';
+                        cardChart.style.display = 'none';
+                    } else if (isIntegrated) {
                         cardIntegratedRegister.style.display = 'block';
                         cardLogsTable.style.display = 'none';
                         cardChart.style.display = 'none';
@@ -612,8 +625,6 @@ ${bodyConBgcolor}
                     if (m) m.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
                 });
                 aggiornaHintManiglieStratiGrafico(hasEnoughLogsForAutoStrati);
-
-                syncCounterLockHandlePosition();
             }
 
             /** Testo/visibilità del suggerimento sopra il grafico: quando ci sono maniglie da
@@ -652,7 +663,6 @@ ${bodyConBgcolor}
                     renderChart();
                 });
             }
-            window.addEventListener('resize', syncCounterLockHandlePosition);
 
             // RENDERING REGISTRO GRAFICO INTEGRATO (TABELLA + GRAFICO UNIFICATI PER RIGA)
             function renderIntegratedLogsTable() {
@@ -1488,65 +1498,6 @@ ${bodyConBgcolor}
                     saveState();
                 }
             });
-
-            // MANIGLIA/LUCCHETTO DI COMPRESSIONE DEL CONTATORE: un solo gesto, tieni premuto.
-            // Un tocco distratto non fa nulla; solo tenendo premuto ~550ms un anellino si riempie
-            // attorno all'icona e allo scatto la card si comprime/espande. Rilasciando prima, l'anello si svuota e
-            // non succede nulla — nessuno stato "sbloccato" da gestire, un solo movimento.
-            let counterCollapsed = false;
-            let counterPressStart = 0;
-            let counterPressRAF = null;
-            const COUNTER_PRESS_MS = 550;
-            const COUNTER_RING_CIRC = 106.8; // 2*PI*17, raggio del cerchietto SVG
-
-            function setCounterCollapsed(collapsed) {
-                counterCollapsed = collapsed;
-                if (cardCounterDashboard) cardCounterDashboard.classList.toggle('counter-collapsed', collapsed);
-                if (counterBody) counterBody.classList.toggle('open', !collapsed);
-                triggerVibrate(20);
-                // Riallinea subito il lucchetto al nuovo stato (non solo al prossimo updateUI):
-                // una volta a fine transizione, cosi la misura non cade a metà animazione.
-                if (typeof syncCounterLockHandlePosition === 'function') {
-                    requestAnimationFrame(syncCounterLockHandlePosition);
-                    setTimeout(syncCounterLockHandlePosition, 300);
-                }
-            }
-
-            function updateCounterPressProgress() {
-                if (!counterPressStart) return;
-                const elapsed = performance.now() - counterPressStart;
-                const pct = Math.min(100, (elapsed / COUNTER_PRESS_MS) * 100);
-                if (counterLockProgressRing) counterLockProgressRing.style.strokeDashoffset = (COUNTER_RING_CIRC * (1 - pct / 100)).toFixed(1);
-                if (pct < 100 && counterPressStart) counterPressRAF = requestAnimationFrame(updateCounterPressProgress);
-            }
-
-            function startCounterPressVisual() {
-                if (!btnCounterLockHandle) return;
-                btnCounterLockHandle.classList.add('pressing');
-                counterPressStart = performance.now();
-                updateCounterPressProgress();
-            }
-
-            function cancelCounterPressVisual() {
-                if (!btnCounterLockHandle) return;
-                btnCounterLockHandle.classList.remove('pressing');
-                counterPressStart = 0;
-                if (counterPressRAF) { cancelAnimationFrame(counterPressRAF); counterPressRAF = null; }
-                if (counterLockProgressRing) counterLockProgressRing.style.strokeDashoffset = String(COUNTER_RING_CIRC);
-            }
-
-            if (btnCounterLockHandle) {
-                // L'azione vera e propria passa dall'utility condivisa già usata per +1/-1 (gestisce
-                // in modo robusto touch/mouse e il click "fantasma" a fine pressione). L'anello qui
-                // sotto è solo il feedback visivo, agganciato sugli stessi eventi di inizio/fine.
-                setupLongPress(btnCounterLockHandle, () => {
-                    setCounterCollapsed(!counterCollapsed);
-                    cancelCounterPressVisual();
-                }, COUNTER_PRESS_MS);
-
-                ['touchstart', 'mousedown'].forEach(evt => btnCounterLockHandle.addEventListener(evt, startCounterPressVisual, { passive: true }));
-                ['touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(evt => btnCounterLockHandle.addEventListener(evt, cancelCounterPressVisual, { passive: true }));
-            }
 
             // NOTE RAPIDE TAGS CON CONFERMA
             document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {

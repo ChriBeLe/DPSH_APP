@@ -509,12 +509,6 @@
 
             const btnPlus = document.getElementById('btnPlus');
             const btnMinus = document.getElementById('btnMinus');
-            const btnCounterLockHandle = document.getElementById('btnCounterLockHandle');
-            const counterLockHandleIco = document.getElementById('counterLockHandleIco');
-            const counterLockProgressRing = document.getElementById('counterLockProgressRing');
-            const counterBody = document.getElementById('counterBody');
-            const counterCompactDepth = document.getElementById('counterCompactDepth');
-            const counterCompactCount = document.getElementById('counterCompactCount');
             const btnGetGpsHeader = document.getElementById('btnGetGpsHeader');
             const btnOpenSurveyDrawer = document.getElementById('btnOpenSurveyDrawer');
             

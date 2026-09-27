@@ -688,71 +688,6 @@
             font-weight: 500;
         }
 
-        /* MANIGLIA/LUCCHETTO DI COMPRESSIONE DEL CONTATORE (vedi JS: btnCounterLockHandle).
-           Circolare, senza bordo, sfondo quasi invisibile a riposo (solo un
-           accenno per far capire che è toccabile). Un solo gesto: tieni premuto ~550ms e un
-           anellino pieno si disegna sul cerchio; a rilascio anticipato l'anello si svuota e non succede nulla.
-           Selettore composto (.counter-quick-toggle.counter-lock-handle) per avere la certezza
-           di vincere sulla regola condivisa .counter-quick-toggle indipendentemente dall'ordine
-           di dichiarazione nel foglio di stile. */
-        .counter-quick-toggle.counter-lock-handle {
-            position: relative;
-            touch-action: none;
-            border: none;
-            border-radius: 50%;
-            background: rgba(127, 127, 127, 0.08);
-            color: var(--text-muted);
-        }
-        .counter-lock-progress-ring {
-            position: absolute;
-            inset: -5px;
-            width: calc(100% + 10px);
-            height: calc(100% + 10px);
-            transform: rotate(-90deg);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity var(--mov-breve) var(--ease-entra);
-        }
-        .counter-quick-toggle.counter-lock-handle.pressing .counter-lock-progress-ring { opacity: 1; }
-        .counter-quick-toggle.counter-lock-handle.pressing { color: var(--accent-ink); background: rgba(127, 127, 127, 0.14); }
-        /* Riepilogo compatto mostrato SOLO a card compressa, al posto dell'intero pannello.
-           Reso più sottile su richiesta: meno padding verticale e testo leggermente più
-           piccolo, cosi la barra occupa meno altezza quando il contatore è chiuso. */
-        .counter-collapsed-bar {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 6px 4px;
-        }
-        #cardCounterDashboard.counter-collapsed .counter-collapsed-bar {
-            display: flex;
-            /* Comprimendo la card questa riga compariva dal nulla nello stesso istante in cui il
-               pannello spariva: due cambiamenti simultanei senza nessun legame visivo fra loro.
-               Entrando dall'alto racconta che è ciò che RESTA del pannello, non una cosa nuova. */
-            animation: tplEditorFadeInUp var(--mov-breve) var(--ease-entra);
-        }
-        .counter-compact-info {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            min-width: 0;
-            font-size: 11.5px;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-        .counter-compact-info span:first-child {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .counter-compact-info .cci-count {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--text-main);
-            flex: 0 0 auto;
-        }
-
         /* KEYPAD & TOUCH CONTROLS */
         .controls-grid {
             display: grid;
@@ -867,8 +802,6 @@
 
         /* DATA TABLE / RECENT LOGS */
         .logs-table-wrapper {
-            max-height: 220px;
-            overflow-y: auto;
             border-radius: var(--radius-md);
             border: 1px solid var(--border);
         }
@@ -2512,78 +2445,6 @@
         .tpl-editor-preview-mode .tpl-editor-block-body { border-radius: var(--radius-sm); cursor: default; }
         .tpl-editor-preview-mode #templateEditorA4Line { opacity: 0.35; }
 
-        /* BARRA DI STATO CONTESTUALE (sticky, compare allo scroll) */
-        #stickyStatusBar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 150;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 7px 10px;
-            background: var(--bg-card);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid var(--accent);
-            box-shadow: var(--shadow);
-            transform: translateY(-105%);
-            transition: transform var(--mov-medio) var(--ease-entra);
-            pointer-events: none;
-        }
-        #stickyStatusBar.visible {
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-        /* Il drawer e i modali coprono l'intera schermata: la barra di stato non deve
-           restare sopra di loro (aveva z-index superiore e si sovrapponeva al menu). */
-        body.drawer-open #stickyStatusBar,
-        body.modal-open #stickyStatusBar {
-            transform: translateY(-105%);
-            pointer-events: none;
-        }
-        .ssb-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 1.15;
-            min-width: 0;
-        }
-        .ssb-lbl {
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: var(--text-muted);
-            font-weight: 700;
-        }
-        .ssb-val {
-            font-family: var(--font-mono);
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--text-main);
-        }
-        .ssb-val.ssb-blow { color: var(--accent); font-size: 17px; }
-        .ssb-jump {
-            flex: 0 0 auto;
-            width: 34px;
-            height: 34px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: var(--bg-card-hover);
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-        .ssb-jump .ico { transform: rotate(90deg); }
-        /* 34px in una barra fissa alta ~40px: non c'è spazio per farlo più grande davvero, ma
-           l'area di tocco sì. Solo 5px per lato in orizzontale perché a sinistra c'è il gruppo
-           "Asta" e non deve rubargli il tocco; in verticale resta dentro la barra. */
-        .ssb-jump { position: relative; }
-        .ssb-jump::before { content: ''; position: absolute; inset: -5px; }
-
         /* MODALITÀ GUANTI: ingrandisce i target touch primari per l'uso in cantiere
            con guanti da lavoro o mani bagnate. */
         body.glove-mode .btn-touch {
@@ -2607,10 +2468,6 @@
             min-height: 50px !important;
             font-size: 15px;
         }
-        /* Il tasto "torna ai controlli" della barra di stato fissa: è il modo di risalire al
-           contatore mentre si scorre il registro, quindi in cantiere si usa spesso. Restava a
-           34px anche col guanto perché nessuna regola lo copriva. */
-        body.glove-mode .ssb-jump { width: 44px; height: 44px; }
         body.glove-mode .blow-display { font-size: 68px; }
 
         /* Estensione modalità guanti oltre il contatore di Vista Prova: campi di testo,
@@ -2977,58 +2834,6 @@
             min-width: 44px;
             text-align: left;
         }
-
-        /* TOGGLE COMPATTO NEL PANNELLO CONTEGGIO */
-        .counter-quick-toggles-col {
-            position: absolute;
-            /* A card espansa il riquadro scuro (.counter-dashboard) inizia un po' più in basso
-               del bordo della card (margine dell'accordion + suo padding interno): questo offset
-               porta la colonna di icone davvero dentro quel riquadro, non sopra di esso. A card
-               compressa il riquadro scuro non c'è più (resta solo la barra riepilogo compatta),
-               quindi torna a un angolo più stretto — vedi override sotto. */
-            top: 30px;
-            left: 14px;
-            z-index: 4;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            transition: top var(--mov-medio) var(--ease-entra), left var(--mov-medio) var(--ease-entra);
-        }
-        #cardCounterDashboard.counter-collapsed .counter-quick-toggles-col {
-            top: 8px;
-            left: 8px;
-        }
-        /* A barra compressa il lucchetto si rimpicciolisce insieme al resto (vedi barra più
-           sottile sopra): l'allineamento verticale col testo viene poi rifinito via JS
-           (syncCounterLockHandlePosition), questa è solo la misura di partenza coerente. */
-        #cardCounterDashboard.counter-collapsed .counter-quick-toggle.counter-lock-handle {
-            width: 28px;
-            height: 28px;
-        }
-        #cardCounterDashboard.counter-collapsed .counter-quick-toggle.counter-lock-handle .ico {
-            width: 15px;
-            height: 15px;
-        }
-        .counter-quick-toggle {
-            width: 34px;
-            height: 34px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: var(--bg-card-hover);
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: color var(--mov-breve) var(--ease-entra), background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra);
-        }
-        .counter-quick-toggle .ico { width: 18px; height: 18px; }
-        .counter-quick-toggle.is-active {
-            background: var(--accent-soft);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-        .counter-quick-toggle:active { transform: scale(0.92); }
 
         .modal-title {
             font-size: 16px;

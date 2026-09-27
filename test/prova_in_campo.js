@@ -169,6 +169,7 @@ async function apriPrimaProva(app) {
   t('titolo «Nota sull\'ultimo intervallo»', $(riaperta, 'viewField').querySelector('.note-rapide-titolo').textContent === "Nota sull'ultimo intervallo");
   t('«Personalizzata» è diventata «Altra nota…»', $(riaperta, 'btnCustomNote').textContent.trim() === 'Altra nota…');
   t('le pillole vanno a capo (nessuno scorrimento di lato)', riaperta.w.getComputedStyle($(riaperta, 'viewField').querySelector('.note-tags-row')).flexWrap === 'wrap');
+  clic(riaperta, $(riaperta, 'btnVistaRegistro'));
   t('Registro: «Grafico» e «Aggiungi» con icona e nome', /Grafico/.test($(riaperta, 'btnToggleViewIntegrated').textContent) && $(riaperta, 'btnToggleViewIntegrated').querySelector('.ico') && /Aggiungi/.test($(riaperta, 'btnAggiungiIntegrated').textContent));
   clic(riaperta, $(riaperta, 'btnAggiungiIntegrated'));
   const menuAgg = $(riaperta, 'btnAggiungiIntegrated').parentElement.querySelector('.menu-azioni');
@@ -181,6 +182,7 @@ async function apriPrimaProva(app) {
   t('l\'ordine del Registro non cambia (dall\'alto in basso per profondità)', ordine.every((v, i) => i === 0 || v >= ordine[i - 1]));
 
   console.log('--- Misure: caratteri e bersagli ---');
+  clic(riaperta, $(riaperta, 'btnVistaConta'));
   const radici = [$(riaperta, 'testataProva'), $(riaperta, 'viewField')];
   const piccoli = testiConCarattere(riaperta.w, radici).filter(x => x.px < 12);
   t('niente testo sotto i 12 px in testata e Vista Prova', piccoli.length === 0);

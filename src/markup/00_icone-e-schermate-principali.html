@@ -205,58 +205,17 @@
 
         <!-- VIEW 2: SCHERMATA CAMPO (DASHBOARD & CONTEGGIO COLPI) -->
         <div id="viewField" style="display: none; flex-direction: column; gap: 16px;">
-            <!-- BARRA DI STATO CONTESTUALE: compare solo quando il pannello di conteggio esce dallo
-                 schermo, cosi in cantiere le informazioni critiche (profondità, colpi, asta) restano
-                 sempre leggibili anche scorrendo il registro, senza dover tornare su. -->
-            <div id="stickyStatusBar">
-                <div class="ssb-item">
-                    <span class="ssb-lbl">Prof.</span>
-                    <span class="ssb-val" id="ssbDepth">0.00m</span>
-                </div>
-                <div class="ssb-item">
-                    <span class="ssb-lbl">Colpi</span>
-                    <span class="ssb-val ssb-blow" id="ssbBlows">0</span>
-                </div>
-                <div class="ssb-item">
-                    <span class="ssb-lbl">Asta</span>
-                    <span class="ssb-val" id="ssbRod">1</span>
-                </div>
-                <button class="ssb-jump" id="ssbJumpTop" title="Torna ai controlli di conteggio">
-                    <svg class="ico"><use href="#i-back"/></svg>
-                </button>
+            <!-- LE DUE VISTE DELLA PROVA (Fase 6, prototipo «Registro»): «Conta» col contatore e gli
+                 ultimi intervalli, «Registro» col registro intero. Sostituiscono il lucchetto che
+                 comprimeva il contatore e le due barre (compatta e fissa) che servivano a non perdere
+                 il conto scorrendo il registro. -->
+            <div class="schede-prova" role="tablist" aria-label="Vista della prova">
+                <button type="button" role="tab" id="btnVistaConta" aria-selected="true">Conta</button>
+                <button type="button" role="tab" id="btnVistaRegistro" aria-selected="false">Registro</button>
             </div>
 
             <!-- CARD CONTEGGIO COLPI (MAIN FIELD CONTROLLER) -->
             <div class="card" id="cardCounterDashboard" style="position: relative;">
-                <div class="counter-quick-toggles-col">
-                    <!-- MANIGLIA/LUCCHETTO DI COMPRESSIONE: riusa la stessa colonna di icone
-                         d'angolo, cosi non occupa una riga
-                         dedicata e resta compatta anche a card espansa. A riposo è un lucchetto
-                         (nessuna azione possibile per errore); un tocco la sblocca per 4s e la
-                         trasforma in maniglia trascinabile — un secondo tocco o un trascinamento
-                         entro quella finestra comprime/espande la card, poi si ri-blocca da sola. -->
-                    <button class="counter-quick-toggle counter-lock-handle" id="btnCounterLockHandle" title="Tieni premuto per comprimere/espandere il contatore" aria-label="Comprimi o espandi il contatore, tieni premuto">
-                        <svg class="counter-lock-progress-ring" viewBox="0 0 40 40" aria-hidden="true">
-                            <circle cx="20" cy="20" r="17" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="106.8" id="counterLockProgressRing"/>
-                        </svg>
-                        <svg class="ico" id="counterLockHandleIco"><use href="#i-lock"/></svg>
-                    </button>
-                </div>
-
-                <!-- Riepilogo compatto: appare SOLO a card compressa (vedi #cardCounterDashboard.
-                     counter-collapsed), al posto dell'intero pannello. È una SPIA, non un comando:
-                     mostra profondità e colpi mentre si scorre il registro, e basta.
-                     La scorciatoia "+1 Colpo" che stava qui è stata tolta su richiesta esplicita —
-                     a pannello chiuso non si deve poter segnare un colpo: il rischio è battere un
-                     colpo per sbaglio mentre si scorre, e un colpo in più falsa la prova. Per
-                     contare si riapre il pannello, dove i tasti sono grandi e intenzionali. -->
-                <div class="counter-collapsed-bar" id="counterCollapsedBar">
-                    <div class="counter-compact-info" id="counterCompactInfo">
-                        <span id="counterCompactDepth">0.00m - 0.20m</span>
-                        <span class="cci-count" id="counterCompactCount">0</span>
-                    </div>
-                </div>
-
                 <div class="counter-body expand-region open" id="counterBody">
                 <!-- IL CONTATORE (Fase 3): l'intervallo che si sta contando in mono e l'asta; il numero
                      grande; sotto, cosa sta contando. -->
@@ -312,6 +271,16 @@
                 </div>
             </div>
 
+            <!-- GLI ULTIMI 3 INTERVALLI, sotto il contatore (vista «Conta»): per controllare cosa si
+                 è appena registrato senza cambiare vista. Un tocco apre la scheda dell'intervallo. -->
+            <div class="card" id="cardUltimiIntervalli">
+                <div class="registro-testata">
+                    <h2 class="registro-titolo">Ultimi intervalli</h2>
+                    <button type="button" class="bt-link accento" id="btnVaiAlRegistro">Tutto il registro</button>
+                </div>
+                <div id="listaUltimiIntervalli"></div>
+            </div>
+
             <!-- IL REGISTRO (tabella con le barre allineate riga per riga). L'ordine delle righe non
                  cambia (decisione J). Titolo «Registro · N intervalli»; a destra Grafico, Aggiungi (un
                  intervallo o intervalli multipli) e, nel ⋯, il riconoscimento automatico degli strati.
@@ -345,7 +314,7 @@
                 </div>
 
                 <!-- TABELLA CON BARRE GRAFICHE ALLINEATE -->
-                <div class="logs-table-wrapper" style="max-height: 480px; overflow-y: auto;">
+                <div class="logs-table-wrapper">
                     <div class="registro-intestazione">
                         <div>Prof. (m)</div>
                         <div style="text-align: center;">Colpi</div>

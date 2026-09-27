@@ -196,6 +196,8 @@
                     if (viewHome) viewHome.style.display = 'none';
                     if (viewField) viewField.style.display = 'flex';
                     if (testataProva) testataProva.style.display = '';
+                    // Entrando in una prova dalla Home si parte dal contatore (Fase 6).
+                    if (vistaPrecedente === 'home') vistaProva = 'conta';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'flex';
                     startLiveGpsWatch();
                     updateUI();
