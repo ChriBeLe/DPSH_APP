@@ -153,10 +153,11 @@ async function apriPrimaProva(app) {
   scorri(contenuto(3), -150);
   clic(app, riga(3).querySelector('.riga-azione-elimina'));
   await attesa(30);
-  t('«Elimina» chiede conferma', !!app.dialogo() && /Eliminare l'intervallo/.test(app.dialogo().testo));
-  clic(app, app.dialogo().ok);
-  await attesa(60);
-  t('e toglie proprio quell\'intervallo', app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare));
+  t('«Elimina» non chiede niente: toglie proprio quell\'intervallo e offre Annulla',
+    !app.dialogo() && app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare) && $(app, 'undoNotificationBanner').style.display === 'flex');
+  clic(app, $(app, 'btnUndoDeleteProject'));
+  await attesa(30);
+  t('Annulla lo rimette al suo posto', JSON.stringify(app.E('state.logs[3]')) === daEliminare);
 
   console.log('--- Le spiegazioni dietro la «?» ---');
   t('niente più scritte fisse sui gesti (sotto −1, sotto Registra, sopra il Registro)',

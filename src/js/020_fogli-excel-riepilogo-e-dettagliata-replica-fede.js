@@ -940,18 +940,8 @@ ${bodyConBgcolor}
             // ELIMINAZIONE INTERVALLO (PRESERVA PROFONDITA E ASTE DEGLI ALTRI STEP)
             async function deleteLogStep(idx) {
                 if (idx < 0 || idx >= state.logs.length) return;
-                const item = state.logs[idx];
-
-                // Conferma con la finestra dell'app (non il dialogo nativo del browser).
-                // Dopo l'eliminazione resta comunque disponibile l'annullamento per 10 secondi.
-                const ok = await appConfirmDelete(
-                    `Eliminare l'intervallo ${item.start.toFixed(2)}m - ${item.end.toFixed(2)}m con ${item.colpi} colpi?` +
-                    (item.note ? `\n\nNota associata: ${item.note}` : '')
-                );
-                if (!ok) return;
-
-                // Rileggo l'indice: durante l'attesa della conferma lo stato potrebbe essere cambiato
-                if (idx < 0 || idx >= state.logs.length) return;
+                // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
+                // dell'editor). In più resta la copia automatica.
                 copiaPrimaDi('eliminare un intervallo');
 
                 const backupItem = JSON.parse(JSON.stringify(state.logs[idx]));

@@ -63,9 +63,10 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   clic(app, riga(0));
   tasto('Delete');
   await attesa(30);
-  if (app.dialogo()) clic(app, app.dialogo().ok);
-  await attesa(60);
-  t('Canc elimina la riga scelta, dopo la conferma', app.E('state.logs.length') === n - 1);
+  t('Canc elimina la riga scelta, senza domande (c\'è Annulla)', app.E('state.logs.length') === n - 1 && !app.dialogo());
+  app.d.body.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+  await attesa(30);
+  t('Ctrl Z la rimette', app.E('state.logs.length') === n);
   app.E('openBulkImportModal()');
   const campo = $(app, 'txtBulkImportData');
   const nPrima = app.E('state.logs.length'), quota = app.E('state.currentDepthStart');

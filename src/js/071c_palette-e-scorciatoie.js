@@ -11,6 +11,7 @@
                     ['Ovunque', 'Cerca o esegui un comando', 'Ctrl K', null, false],
                     ['Ovunque', 'Guida e scorciatoie', '?', apriScorciatoie, true],
                     ['Ovunque', 'Chiudi la finestra o il menu', 'Esc', null, false],
+                    ['Ovunque', 'Annulla l\'ultima eliminazione', 'Ctrl Z', null, false],
                     ['Ovunque', 'Vai ai progetti', '', () => switchView('home'), vista !== 'home'],
                     ['Ovunque', 'Nuovo progetto', '', openNewProjectModal, true],
                     ['Ovunque', 'Ricevi un progetto', '', clicSu('btnHomeImportProject'), true],
@@ -115,6 +116,7 @@
                 }
                 if (document.querySelector('.modal.open, .drawer.open')) return;
                 const vista = state.uiState.currentView;
+                if (ctrl && k === 'z' && !staScrivendo(e) && document.getElementById('undoNotificationBanner').style.display === 'flex') { e.preventDefault(); document.getElementById('btnUndoDeleteProject').click(); return; }
                 if (ctrl && k === 'e' && vista !== 'home') { e.preventDefault(); document.getElementById('pcBtnConsegna').click(); return; }
                 if (ctrl && k === 'i' && vista === 'field') { e.preventDefault(); openBulkImportModal(); return; }
                 if (ctrl || e.altKey || staScrivendo(e)) return;
