@@ -28,7 +28,7 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   t('sul PC niente contatore: si vede il Registro', $(app, 'cardCounterDashboard').style.display === 'none' && $(app, 'cardIntegratedRegister').style.display !== 'none');
   const riga = (i) => $(app, 'tblIntegratedLogsBody').querySelector(`.swipe-content[data-index="${i}"]`);
   const evento = (el, tipo, x) => el.dispatchEvent(new app.w.MouseEvent(tipo, Object.assign({ bubbles: true, cancelable: true }, x)));
-  const tasto = (key) => app.d.body.dispatchEvent(new app.w.KeyboardEvent('keydown', { key, bubbles: true }));
+  const tasto = (key) => app.d.body.dispatchEvent(new app.w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
   clic(app, riga(1));
   await attesa(30);
   t('un clic sceglie la riga, senza aprire la scheda', riga(1).parentElement.classList.contains('scelta') && !$(app, 'modalEditStep').classList.contains('open'));
@@ -56,7 +56,7 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   t('doppio clic apre la scheda col cursore nei colpi', $(app, 'modalEditStep').classList.contains('open') && app.d.activeElement === $(app, 'numModalColpi'));
   const colpi = app.E('state.logs[1].colpi');
   $(app, 'numModalColpi').value = String(colpi + 5);
-  $(app, 'numModalColpi').dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  $(app, 'numModalColpi').dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   await attesa(60);
   t('Invio salva la correzione, che resta tracciata', app.E('state.logs[1].colpi') === colpi + 5 && !!app.E('state.logs[1].modificatoIl') && !$(app, 'modalEditStep').classList.contains('open'));
   const n = app.E('state.logs.length');

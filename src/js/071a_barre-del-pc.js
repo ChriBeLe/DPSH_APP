@@ -36,25 +36,27 @@
                     project: 'Clic su una prova per aprirla',
                     field: 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
                 }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
-                document.getElementById('pcStatoVersione').textContent = 'DPSH ' + APP_VERSIONE;
+                document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · ? guida · DPSH ' + APP_VERSIONE;
             }
 
             document.getElementById('pcPercorso').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-vista]');
                 if (b) switchView(b.dataset.vista);
             });
-            document.getElementById('pcLato').addEventListener('click', (e) => {
-                const b = e.target.closest('button');
-                if (!b) return;
-                if (b.dataset.prova) {
-                    if (b.dataset.prova !== state.currentSurveyId) { saveState(); syncProjectToActiveState(state.currentProjectId, b.dataset.prova); }
+            // Apre una prova del progetto aperto, o la schermata di un progetto. Serve anche alla palette.
+            function apriDalLato(id, prova) {
+                if (prova) {
+                    if (prova !== state.currentSurveyId) { saveState(); syncProjectToActiveState(state.currentProjectId, prova); }
                     return switchView('field');
                 }
-                const id = b.dataset.progetto;
                 const surv = ultimaProvaUsata(state.projects[id]);
                 if (!surv) return openProject(id); // la ripara creando la prima prova
                 if (id !== state.currentProjectId) { saveState(); syncProjectToActiveState(id, surv); }
                 switchView('project');
+            }
+            document.getElementById('pcLato').addEventListener('click', (e) => {
+                const b = e.target.closest('button');
+                if (b) apriDalLato(b.dataset.progetto, b.dataset.prova);
             });
             document.getElementById('pcBtnConsegna').addEventListener('click', () => {
                 if (state.uiState.currentView === 'field') document.getElementById('btnExportHeader').click();

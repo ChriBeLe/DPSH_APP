@@ -50,6 +50,7 @@ markup/40_modalNewProject.html
 markup/41_modalNewSurvey.html
 markup/42_drawer.html
 markup/43_modalPortaERicevi.html
+markup/44_modalPalette.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/05_tra-motore-e-app.html
@@ -135,5 +136,6 @@ js/070_impaginazione-reale-di-riepilogo-dettagliata-all.js
 js/071_motore-unificato-di-impaginazione.js
 js/071a_barre-del-pc.js
 js/071b_registro-sul-pc.js
+js/071c_palette-e-scorciatoie.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

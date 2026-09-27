@@ -23,6 +23,13 @@
                 return [...corpo.querySelectorAll('.swipe-row-wrapper[data-index]')].map(el => Number(el.dataset.index));
             }
 
+            // Si sta scrivendo in un campo: i tasti sono caratteri, non comandi. Non conta un campo
+            // dentro una finestra chiusa, dove il fuoco resta dopo Esc. Un tasto già usato dal campo
+            // (Invio che salva e chiude la scheda) conta come scrittura.
+            function staScrivendo(e) {
+                return e.defaultPrevented || !!(e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]') && !e.target.closest('.modal:not(.open)'));
+            }
+
             const menuRiga = document.getElementById('menuRiga');
             function chiudiMenuRiga() { menuRiga.classList.remove('open'); }
             function apriMenuRiga(e, idx) {
@@ -49,7 +56,7 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') return chiudiMenuRiga();
                 if (!suPc() || state.uiState.currentView !== 'field' || e.ctrlKey || e.altKey || e.metaKey) return;
-                if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+                if (staScrivendo(e)) return;
                 if (document.querySelector('.modal.open, .drawer.open')) return;
                 if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                     const righe = righeVisibili();
