@@ -18,11 +18,6 @@
            «GPS» o «Note» avanzano spazio. Ognuna prende quello che le serve e il resto si divide. */
         .spie { display: flex; gap: 4px; padding: 0; }
         .spie .spia { flex: 1 1 auto; padding: 0 6px; gap: 4px; }
-        /* Sul telefono stretto la foto e la falda perdono l'icona: il testo («2 foto», «Falda
-           1,20 m») dice già cosa sono, e lo spazio serve al numero. La spunta del GPS resta. */
-        @media (max-width: 420px) {
-            #btnOpenSurveyPhotosModal .ico, #btnSpiaFalda .ico { display: none; }
-        }
         #liveGpsAccuracyDot { position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; border-radius: 50%; }
         /* La riga delle prove: «Prove», i cerchietti da 44 e il «+» tratteggiato. Scorre di lato se
            le prove sono tante (le dissolvenze ai bordi restano quelle di 01_app.css). */
@@ -161,3 +156,22 @@
 
         /* ---- La striscia «Salvataggio sospeso» (Fase 1) spinge giù il contenuto ---- */
         #barraSalvataggioSospeso { position: sticky; top: 0; }
+
+        /* ---- Sul telefono le finestre sono fogli dal basso (Fase 6, punto 4) ----
+           A tutta larghezza, attaccate al bordo in basso, dove arriva il pollice; salgono invece di
+           ingrandirsi al centro. Restano fuori le schermate intere (editor dei template, indice,
+           anteprima di stampa) e le finestre «Porta» e «Ricevi», che sono già fogli (02_…).
+           Gli !important vincono sulle larghezze scritte nel markup di ogni finestra. */
+        @media (max-width: 760px) {
+            .modal:not(.passaggio):not(#modalTemplateEditor):not(#modalIndicePersonalizza):not(#modalAnteprimaStampaReale) {
+                top: auto; bottom: 0; left: 0;
+                width: 100% !important; max-width: none !important;
+                max-height: 92dvh; overflow-y: auto;
+                border-radius: 20px 20px 0 0; border-bottom: none;
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+                transform: translateY(100%);
+            }
+            .modal.open:not(.passaggio):not(#modalTemplateEditor):not(#modalIndicePersonalizza):not(#modalAnteprimaStampaReale) {
+                transform: translateY(0);
+            }
+        }

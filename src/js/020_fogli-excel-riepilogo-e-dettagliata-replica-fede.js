@@ -384,12 +384,12 @@ ${bodyConBgcolor}
             document.getElementById('btnVaiAlRegistro').addEventListener('click', () => mostraVistaProva('registro'));
             // Preferenze dell'app (004e), non del progetto: cambiarle non lo segna come modificato.
             document.getElementById('btnOrdineIntervalli').addEventListener('click', () => {
-                state.settings.intervalliRecentiInCima = state.settings.intervalliRecentiInCima !== true;
+                if (state.settings.intervalliRecentiInCima === true) delete state.settings.intervalliRecentiInCima; else state.settings.intervalliRecentiInCima = true;
                 updateUI();
                 saveState();
             });
             document.querySelectorAll('.btn-espandi-registro').forEach(b => b.addEventListener('click', () => {
-                state.settings.registroEspanso = state.settings.registroEspanso !== true;
+                if (state.settings.registroEspanso === true) delete state.settings.registroEspanso; else state.settings.registroEspanso = true;
                 updateUI();
                 saveState();
             }));
@@ -487,7 +487,7 @@ ${bodyConBgcolor}
                 const nFoto = (state.photos || []).length;
                 imposta('btnOpenSurveyPhotosModal', nFoto > 0 ? 'quantita' : 'non-ancora', `${nFoto} foto`, 'photoBadgeStatus');
                 const falda = parseFloat(h.faldaDa);
-                imposta('btnSpiaFalda', Number.isFinite(falda) ? 'quantita' : 'non-ancora', Number.isFinite(falda) ? `Falda ${numeroConVirgola(falda)} m` : 'Falda', 'lblSpiaFalda');
+                document.getElementById('lblFaldaMenu').textContent = Number.isFinite(falda) ? `Falda: ${numeroConVirgola(falda)} m` : 'Falda: non impostata';
             }
 
             // Aggiornamento UI

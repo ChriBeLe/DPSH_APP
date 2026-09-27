@@ -124,8 +124,9 @@
                 delete state.settings.expandedMode;
                 delete state.settings.compactMode;
                 state.settings.integratedChart = globalIntegratedChart;
-                state.settings.registroEspanso = globalRegistroEspanso;
-                state.settings.intervalliRecentiInCima = globalRecentiInCima;
+                // Scritte solo se attive: assenti valgono «no», e i dati salvati restano quelli di prima.
+                if (globalRegistroEspanso) state.settings.registroEspanso = true; else delete state.settings.registroEspanso;
+                if (globalRecentiInCima) state.settings.intervalliRecentiInCima = true; else delete state.settings.intervalliRecentiInCima;
 
                 state.currentCount = surv.currentCount || 0;
                 state.currentDepthStart = surv.currentDepthStart || 0;

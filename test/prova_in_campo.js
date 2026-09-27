@@ -1,8 +1,8 @@
 // LA PROVA IN CAMPO (Fase 3, punti 1–3 e decisione G), coi tocchi come li fa l'utente.
 //
 //  - testata: «Prova N» e «Nome progetto · Comune» (mai più «L…»), Home e ⋯ con le azioni rare;
-//  - spie GPS / foto / falda / note: fatto, con quantità, non ancora (tratteggio, mai rosso);
-//  - la falda si imposta dalla sua spia;
+//  - spie GPS / foto / note: fatto, con quantità, non ancora (tratteggio, mai rosso);
+//  - la falda si imposta dal ⋯ della prova, che ne mostra il valore (non è più una spia);
 //  - il tasto Registra è VISIBILE DI DEFAULT, dice quale intervallo registra, si nasconde e la
 //    scelta resta (anche riaprendo l'app); la pressione lunga su +1 registra lo stesso;
 //  - il toast «Registrato … · N colpi» con «Annulla» toglie PROPRIO quell'intervallo, e non tocca
@@ -55,7 +55,7 @@ async function apriPrimaProva(app) {
   app.E('closeCantiereInfoModal()');
   t('a sinistra Home, a destra il ⋯', $(app, 'btnHomeView').closest('.testata-riga') && $(app, 'btnHeaderMore').getAttribute('aria-haspopup') === 'menu');
   const voci = [...$(app, 'headerActionsSecondary').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
-  t('nel ⋯: Strumento e impostazioni della prova, Gestione litologica, Esporta, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci) === JSON.stringify(['Strumento e impostazioni della prova', 'Gestione litologica', 'Esporta', 'Impostazioni', 'Annulla ultimo intervallo']));
+  t('nel ⋯: Strumento e impostazioni della prova, Falda, Gestione litologica, Esporta, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Strumento e impostazioni della prova', 'Falda', 'Gestione litologica', 'Esporta', 'Impostazioni', 'Annulla ultimo intervallo']));
   t('il ⋯ è chiuso finché non lo si tocca', !$(app, 'headerActionsSecondary').classList.contains('open'));
   clic(app, $(app, 'btnHeaderMore'));
   t('toccato si apre (aria-expanded)', $(app, 'headerActionsSecondary').classList.contains('open') && $(app, 'btnHeaderMore').getAttribute('aria-expanded') === 'true');
@@ -73,18 +73,19 @@ async function apriPrimaProva(app) {
   await attesa(30);
   t('GPS mancante: tratteggio, testo «GPS»', spia('btnGetGpsHeader').nonAncora && !spia('btnGetGpsHeader').fatto && spia('btnGetGpsHeader').testo === 'GPS');
   t('0 foto: «0 foto» col tratteggio, niente ❌ né rosso', spia('btnOpenSurveyPhotosModal').testo === '0 foto' && spia('btnOpenSurveyPhotosModal').nonAncora && !/❌/.test($(app, 'testataProva').textContent) && !/ef4444|danger/.test($(app, 'btnOpenSurveyPhotosModal').outerHTML));
-  t('falda non impostata: «Falda» col tratteggio', spia('btnSpiaFalda').testo === 'Falda' && spia('btnSpiaFalda').nonAncora);
+  t('la falda non è più una spia della testata', !$(app, 'btnSpiaFalda') && $(app, 'spieProva').querySelectorAll('.spia').length === 3);
+  t('falda non impostata: il ⋯ dice «Falda: non impostata»', $(app, 'btnFaldaMenu').textContent.trim() === 'Falda: non impostata' && $(app, 'headerActionsSecondary').contains($(app, 'btnFaldaMenu')));
   app.E('state.header.lat = 40.3; state.header.lng = 18.1; state.photos = [{ id: "x1" }, { id: "x2" }]; updateUI(); renderPhotoGallery()');
   await attesa(30);
   t('GPS presente: spia «fatto» con la spunta', spia('btnGetGpsHeader').fatto && $(app, 'icoSpiaGps').innerHTML.includes('#i-check'));
   t('2 foto: «2 foto», neutra (né tratteggio né verde)', spia('btnOpenSurveyPhotosModal').testo === '2 foto' && !spia('btnOpenSurveyPhotosModal').nonAncora && !spia('btnOpenSurveyPhotosModal').fatto);
   app.E('state.photos = []; updateUI()');
-  clic(app, $(app, 'btnSpiaFalda'));
-  t('la spia Falda apre la finestra della falda', $(app, 'modalQuickFalda').classList.contains('open'));
+  clic(app, $(app, 'btnFaldaMenu'));
+  t('la voce Falda apre la finestra della falda', $(app, 'modalQuickFalda').classList.contains('open'));
   $(app, 'numQuickFaldaDa').value = '1.2';
   clic(app, $(app, 'btnQuickFaldaSave'));
   await attesa(30);
-  t('e salvata dice «Falda 1,20 m»', spia('btnSpiaFalda').testo === 'Falda 1,20 m' && !spia('btnSpiaFalda').nonAncora && app.E('state.header.faldaDa') === '1.2');
+  t('e salvata la voce dice «Falda: 1,20 m»', $(app, 'btnFaldaMenu').textContent.trim() === 'Falda: 1,20 m' && app.E('state.header.faldaDa') === '1.2');
   t('la falda non sta più nella barra del Registro', !$(app, 'btnQuickFaldaIntegrated') && !$(app, 'btnQuickFaldaChart'));
   t('la spia Note apre le note del progetto', (clic(app, $(app, 'btnOpenProjectNotesHeader')), await attesa(200), $(app, 'modalProjectNotes').classList.contains('open')));
   app.E('chiudiNoteProgetto && chiudiNoteProgetto()');

@@ -112,7 +112,7 @@
              Riga 1: Home a sinistra; al centro, toccabile, «Prova N» e sotto «Nome progetto · Comune»
              (apre l'intestazione della prova, come prima il titolo); a destra un ⋯ con le azioni meno
              frequenti. Il titolo ha tutta la larghezza che resta: non si riduce più a «L…».
-             Riga 2: le spie di stato GPS, foto, falda, note (aprono le finestre di sempre).
+             Riga 2: le spie di stato GPS, foto, note (aprono le finestre di sempre). La falda sta nel ⋯.
              Riga 3: le prove del progetto (cerchietti da 44) e il «+» per una nuova. -->
         <header class="card unified-header testata-prova" id="testataProva">
             <div class="testata-riga">
@@ -126,6 +126,11 @@
                     <div class="menu-azioni" id="headerActionsSecondary" role="menu">
                         <!-- Prima si apriva solo tenendo premuto il cerchietto della prova. -->
                         <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Strumento e impostazioni della prova</button>
+                        <!-- La falda si indica una volta sola per prova: sta qui, non tra le spie
+                             (osservazione del 27/09/2026). Il valore si legge nella voce stessa e,
+                             impostata, come linea nel Registro; se manca lo dice il controllo prima
+                             dell'export. -->
+                        <button type="button" role="menuitem" id="btnFaldaMenu"><svg class="ico"><use href="#i-droplet"/></svg><span id="lblFaldaMenu">Falda</span></button>
                         <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Gestione litologica</button>
                         <button type="button" role="menuitem" id="btnExportHeader"><svg class="ico"><use href="#i-download"/></svg>Esporta</button>
                         <button type="button" role="menuitem" id="btnHamburger"><svg class="ico"><use href="#i-settings"/></svg>Impostazioni</button>
@@ -144,9 +149,6 @@
                 </button>
                 <button type="button" class="spia non-ancora" id="btnOpenSurveyPhotosModal" title="Foto della prova">
                     <svg class="ico"><use href="#i-camera"/></svg><span id="photoBadgeStatus">0 foto</span>
-                </button>
-                <button type="button" class="spia non-ancora" id="btnSpiaFalda" title="Profondità della falda">
-                    <svg class="ico"><use href="#i-droplet"/></svg><span id="lblSpiaFalda">Falda</span>
                 </button>
                 <button type="button" class="spia" id="btnOpenProjectNotesHeader" title="Note di progetto">
                     <svg class="ico"><use href="#i-note"/></svg><span>Note</span>

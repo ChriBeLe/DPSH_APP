@@ -16,4 +16,4 @@ quando la si affronta, la fase o il commit che la chiude.
 | 27/09/2026 | telefono | Il registro deve scorrere in un riquadro (altrimenti la pagina è lunghissima), oppure espandersi e comprimersi; lo stesso per il grafico. | fatto: poche righe che scorrono, «Mostra tutte le righe» (Fase 6, passo 3) |
 | 27/09/2026 | telefono | Il riconoscimento automatico degli strati non deve stare nascosto nel ⋯. | fatto: tasto «Riconosci strati» (Fase 6, passo 3) |
 | 27/09/2026 | telefono, campo | «Ultimi intervalli» si chiama «Intervalli», con una freccia: toccandolo si inverte l'ordine dell'elenco (non del grafico). | fatto (Fase 6, passo 3) |
-| 27/09/2026 | telefono, campo | La falda ha troppa importanza: si indica una volta sola in tutta la prova. Va messa nella gerarchia giusta. | da studiare |
+| 27/09/2026 | telefono, campo | La falda ha troppa importanza: si indica una volta sola in tutta la prova. Va messa nella gerarchia giusta. | fatto: via la spia, voce «Falda» nel ⋯ della prova (Fase 6) |

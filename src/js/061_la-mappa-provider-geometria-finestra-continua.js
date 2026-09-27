@@ -1569,10 +1569,9 @@
                 if (modalQuickFalda) modalQuickFalda.classList.remove('open');
             }
 
-            // La falda si imposta dalla sua spia nella testata della prova (Fase 3): prima stava nella
-            // barra del Registro, cioè sotto il contatore e spesso fuori dallo schermo.
-            const btnSpiaFalda = document.getElementById('btnSpiaFalda');
-            if (btnSpiaFalda) btnSpiaFalda.addEventListener('click', openQuickFaldaModal);
+            // La falda si imposta dal ⋯ della prova: si indica una volta sola, non merita una spia
+            // accanto a GPS e foto (27/09/2026). Prima ancora stava nella barra del Registro.
+            document.getElementById('btnFaldaMenu').addEventListener('click', openQuickFaldaModal);
             if (btnCloseQuickFaldaX) btnCloseQuickFaldaX.addEventListener('click', closeQuickFaldaModal);
             if (modalQuickFaldaOverlay) modalQuickFaldaOverlay.addEventListener('click', closeQuickFaldaModal);
 
