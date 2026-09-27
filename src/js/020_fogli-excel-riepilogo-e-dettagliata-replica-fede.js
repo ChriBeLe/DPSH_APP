@@ -654,6 +654,7 @@ ${bodyConBgcolor}
                 renderPhotoGallery();
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
                 renderPc();
+                segnaRigaScelta();
 
                 // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
@@ -1074,8 +1075,11 @@ ${bodyConBgcolor}
                     if (Math.abs(diffX) >= 10 || Math.abs(diffY) >= 10) return;
                     const eraAperta = wrapperEl.classList.contains('azioni-aperte');
                     chiudiRigheAperte();
-                    if (!eraAperta) openEditModal(idx, { senzaTastiera: !suPc() });
+                    if (suPc()) return scegliRiga(idx); // sul PC il clic sceglie, il doppio clic modifica
+                    if (!eraAperta) openEditModal(idx, { senzaTastiera: true });
                 });
+                contentEl.addEventListener('dblclick', () => { if (suPc()) openEditModal(idx); });
+                contentEl.addEventListener('contextmenu', (e) => { if (suPc()) apriMenuRiga(e, idx); });
                 wrapperEl.querySelector('.riga-azione-modifica').addEventListener('click', () => { chiudiRigheAperte(); openEditModal(idx); });
                 wrapperEl.querySelector('.riga-azione-elimina').addEventListener('click', () => { chiudiRigheAperte(); deleteLogStep(idx); });
             }
@@ -1311,8 +1315,11 @@ ${bodyConBgcolor}
                 svgChart.querySelectorAll('.chart-bar-group').forEach(group => {
                     group.addEventListener('click', (e) => {
                         const idx = parseInt(group.getAttribute('data-index'));
-                        openEditModal(idx, { senzaTastiera: !suPc() });
+                        if (suPc()) return scegliRiga(idx, true);
+                        openEditModal(idx, { senzaTastiera: true });
                     });
+                    group.addEventListener('dblclick', () => { if (suPc()) openEditModal(parseInt(group.getAttribute('data-index'))); });
+                    group.addEventListener('contextmenu', (e) => { if (suPc()) apriMenuRiga(e, parseInt(group.getAttribute('data-index'))); });
                 });
 
                 // Bind avvio trascinamento sulle maniglie contatto strati

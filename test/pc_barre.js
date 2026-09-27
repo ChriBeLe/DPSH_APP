@@ -43,7 +43,7 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   t('clic sulla prova: la apre e il percorso arriva alla prova',
     app.E('state.uiState.currentView') === 'field' && app.E('state.currentSurveyId') === ultima.dataset.prova && percorso(app).length === 3 && /^Prova /.test(percorso(app)[2]));
   t('la prova aperta è segnata', $(app, 'pcLato').querySelector('[aria-current]').dataset.prova === ultima.dataset.prova);
-  t('barra di stato: aiuto e versione', /registro/.test($(app, 'pcStatoAiuto').textContent) && /^DPSH \d/.test($(app, 'pcStatoVersione').textContent));
+  t('barra di stato: aiuto e versione', /doppio clic/.test($(app, 'pcStatoAiuto').textContent) && /^DPSH \d/.test($(app, 'pcStatoVersione').textContent));
 
   clic(app, $(app, 'pcPercorso').querySelector('[data-vista="project"]'));
   t('il percorso riporta al progetto', app.E('state.uiState.currentView') === 'project');

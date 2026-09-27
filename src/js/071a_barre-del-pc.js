@@ -34,8 +34,8 @@
                 document.getElementById('pcStatoAiuto').textContent = {
                     home: 'Clic su un progetto a sinistra per aprirlo',
                     project: 'Clic su una prova per aprirla',
-                    field: 'Clic su una riga del registro per modificarla'
-                }[vista] + ' · Esc chiude le finestre';
+                    field: 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
+                }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'DPSH ' + APP_VERSIONE;
             }
 

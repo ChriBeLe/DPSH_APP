@@ -134,5 +134,6 @@ js/069_lattesa-delle-mappe.js
 js/070_impaginazione-reale-di-riepilogo-dettagliata-all.js
 js/071_motore-unificato-di-impaginazione.js
 js/071a_barre-del-pc.js
+js/071b_registro-sul-pc.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

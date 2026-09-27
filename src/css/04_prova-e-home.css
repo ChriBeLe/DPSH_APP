@@ -233,4 +233,11 @@
         .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pc-lato button:hover { background: var(--bg-card-hover); }
         .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
+        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 150; transform-origin: top left; }
+        .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
+        .menu-contesto kbd { margin-left: auto; padding-left: var(--sp-4); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+        .menu-contesto .pericolo, .menu-contesto .pericolo .ico { color: var(--danger); }
+        .menu-contesto [role="menuitem"]:hover { background: var(--bg-card-hover); }
+        .swipe-row-wrapper.scelta > .swipe-content { background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); box-shadow: inset 3px 0 0 var(--accent); }
+        .chart-bar-group.scelta .chart-rect-bar { stroke: var(--accent); stroke-width: 3; }
         .pc-lato [aria-current] { background: var(--accent-soft); color: var(--text-main); font-weight: 700; box-shadow: inset 2px 0 0 var(--accent); }
