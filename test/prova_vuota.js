@@ -14,6 +14,8 @@ function corpo(nome){
 }
 const NOMI=['betaTStrumento','betaTCalcolato','nsptDiLog','rpdDiLog','arricchisciLogsConNsptRpd',
             'getLogsPerStratoIn','stratiEffettiviProva','faldaDaHeader','elencoItaliano','formattaCoordinateProve','valoriCantiere','fmtIT','formattaDataIT',
+            // la quota del piano campagna viene dal DTM del progetto (qui assente: null)
+            'quotaDellaProva','quotaDtm',
             // valoriCantiere conta le verticali, non le interpretazioni alternative («3B»)
             'radiceProva','proveFisiche'];
 const api=new Function('state','Math',
