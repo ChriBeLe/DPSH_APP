@@ -387,7 +387,7 @@
                     }
                     return;
                 }
-                if (!e.target.closest('.sezione-colonna, .vista3d-prova')) chiudiFumetti(false);
+                if (!e.target.closest('.sezione-colonna, #graficoVista3d')) chiudiFumetti(false); // nel 3D decide la vista
             });
             // Trascinare un fumetto bloccato per il titolo.
             document.addEventListener('pointerdown', (e) => {

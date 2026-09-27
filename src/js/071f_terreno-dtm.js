@@ -317,6 +317,11 @@
             function quotaDtm(dtm, lat, lng) {
                 if (!dtm || !isFinite(lat) || !isFinite(lng)) return null;
                 const p = puntoNelCrs(dtm.crs, lat, lng);
+                return quotaDtmXY(dtm, p.x, p.y);
+            }
+            /** Come quotaDtm, con le coordinate già nel sistema del DTM. */
+            function quotaDtmXY(dtm, px, py) {
+                const p = { x: px, y: py };
                 const fx = (p.x - dtm.x0) / dtm.dx - 0.5, fy = (dtm.y0 - p.y) / dtm.dy - 0.5;
                 if (fx < -0.5 || fy < -0.5 || fx > dtm.nx - 0.5 || fy > dtm.ny - 0.5) return null;
                 const q = quoteDtm(dtm);

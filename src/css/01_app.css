@@ -916,7 +916,8 @@
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            /* Niente backdrop-filter: la sfocatura si ricalcola a ogni fotogramma di ciò che si
+               muove sopra (3D, editor, trascinamenti) e fa scattare, soprattutto sui telefoni. */
             z-index: 100;
             opacity: 0;
             pointer-events: none;
@@ -1199,7 +1200,7 @@
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            /* Niente backdrop-filter: vedi .drawer-overlay. */
             z-index: 200;
             opacity: 0;
             pointer-events: none;
