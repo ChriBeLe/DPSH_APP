@@ -338,7 +338,7 @@
                     const d = datiVista3dCorrenti, rilievo = Math.max(0.5, d.zMax - d.zMin);
                     const profMax = Math.max(1, ...d.prove.map(p => p.fondo));
                     vista3d.ex = Math.max(1, Math.min(30, Math.round(Math.max(d.lato / 8 / rilievo, d.lato / 6 / profMax))));
-                    vista3d.zoom = 1;
+                    vista3d.zoom = 1.4; // le prove grandi, il terreno ai bordi si può tagliare
                     document.getElementById('rngEsag3d').value = vista3d.ex;
                 }
                 document.getElementById('modalVista3dOverlay').classList.add('open');
