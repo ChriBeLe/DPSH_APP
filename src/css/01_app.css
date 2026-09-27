@@ -1048,12 +1048,14 @@
             z-index: 101;
             display: flex;
             flex-direction: column;
-            transition: transform var(--mov-medio) var(--ease-entra);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            transition: transform var(--mov-medio) var(--ease-entra), box-shadow var(--mov-medio) var(--ease-entra);
         }
 
+        /* L'ombra solo a pannello aperto: da chiuso il pannello sta appena oltre il bordo destro
+           e la sua ombra (30px di sfumatura) rientrava nello schermo come una striscia scura. */
         .drawer.open {
             transform: translateX(0);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
         }
 
         .drawer-header {
