@@ -201,17 +201,25 @@
                 const lblSingleName = document.getElementById('lblExportSingleSurveyName');
                 const lblCompleteDesc = document.getElementById('lblExportCompleteDesc');
 
+                // Consegna (Fase 5): dentro una prova si può scegliere tra la prova e il progetto.
+                const inProva = state.uiState && state.uiState.currentView === 'field' && projIdControllo === state.currentProjectId;
+                document.getElementById('perimetroConsegna').style.display = inProva ? '' : 'none';
+                document.getElementById('btnPerimetroProva').setAttribute('aria-selected', String(targetType !== 'project'));
+                document.getElementById('btnPerimetroProgetto').setAttribute('aria-selected', String(targetType === 'project'));
+                // I parametri avanzati si calcolano sul progetto aperto (elencoProveProgetto).
+                document.getElementById('consegnaParametri').style.display = targetType === 'project' && projIdControllo === state.currentProjectId ? '' : 'none';
+                document.getElementById('btnOptConfrontoProve').style.display = targetType === 'project' ? '' : 'none';
+                if (lblExportModalTitle) lblExportModalTitle.textContent = 'Consegna';
+
                 if (targetType === 'project') {
                     const proj = state.projects ? state.projects[targetId] : null;
                     const projName = proj ? (proj.name || proj.comune || 'Cantiere') : 'Progetto';
-                    if (lblExportModalTitle) lblExportModalTitle.textContent = `Esporta Progetto "${projName}"`;
-                    if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = `Seleziona il formato desiderato per esportare i dati del cantiere "${projName}".`;
+                    if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = projName;
                     if (lblSingleScope) lblSingleScope.style.display = 'none';
                     if (lblCompleteDesc) lblCompleteDesc.textContent = `Report di campo (tabelle Parametri Avanzati opzionali) per tutte le prove del progetto "${projName}".`;
                 } else {
                     const survName = (state.header && state.header.comune) ? `${state.header.comune} (${state.header.codice || 'Prova'})` : 'Prova Corrente';
-                    if (lblExportModalTitle) lblExportModalTitle.textContent = `Esporta Prova "${survName}"`;
-                    if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = `Seleziona il formato desiderato per esportare i dati della prova "${survName}".`;
+                    if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = testiTestataProva().titolo + ' · ' + testiTestataProva().sotto;
                     // Le opzioni qui sotto (Excel, Report PDF, KML, Foto, Backup JSON)
                     // riguardano SOLO questa prova: lo rendiamo esplicito, dato che il Report
                     // Completo qui sopra riguarda invece sempre l'intero progetto.
@@ -231,6 +239,16 @@
             }
 
             if (btnCloseExportX) btnCloseExportX.addEventListener('click', closeExportModal);
+            document.getElementById('btnPerimetroProva').addEventListener('click', () => openExportModal('survey', state.currentSurveyId));
+            document.getElementById('btnPerimetroProgetto').addEventListener('click', () => openExportModal('project', state.currentProjectId));
+            document.querySelectorAll('[data-parametri]').forEach(b => b.addEventListener('click', () => {
+                closeExportModal();
+                document.getElementById('btnExportProcessing' + b.dataset.parametri).click();
+            }));
+            document.getElementById('btnOptConfrontoProve').addEventListener('click', () => {
+                closeExportModal();
+                apriConfrontoProve(exportModalContext.id);
+            });
             if (btnCancelExportModal) btnCancelExportModal.addEventListener('click', closeExportModal);
             if (modalExportOverlay) modalExportOverlay.addEventListener('click', closeExportModal);
 

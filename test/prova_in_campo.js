@@ -55,7 +55,7 @@ async function apriPrimaProva(app) {
   app.E('closeCantiereInfoModal()');
   t('a sinistra Home, a destra il ⋯', $(app, 'btnHomeView').closest('.testata-riga') && $(app, 'btnHeaderMore').getAttribute('aria-haspopup') === 'menu');
   const voci = [...$(app, 'headerActionsSecondary').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
-  t('nel ⋯: Strumento e impostazioni della prova, Falda, Gestione litologica, Esporta, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Strumento e impostazioni della prova', 'Falda', 'Gestione litologica', 'Esporta', 'Impostazioni', 'Annulla ultimo intervallo']));
+  t('nel ⋯: Strumento e impostazioni della prova, Falda, Gestione litologica, Consegna, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Strumento e impostazioni della prova', 'Falda', 'Gestione litologica', 'Consegna', 'Impostazioni', 'Annulla ultimo intervallo']));
   t('il ⋯ è chiuso finché non lo si tocca', !$(app, 'headerActionsSecondary').classList.contains('open'));
   clic(app, $(app, 'btnHeaderMore'));
   t('toccato si apre (aria-expanded)', $(app, 'headerActionsSecondary').classList.contains('open') && $(app, 'btnHeaderMore').getAttribute('aria-expanded') === 'true');
