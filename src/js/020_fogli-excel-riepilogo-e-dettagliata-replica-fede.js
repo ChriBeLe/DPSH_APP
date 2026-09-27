@@ -403,7 +403,7 @@ ${bodyConBgcolor}
                         <span class="ultimo-intervallo-barra"><span style="width:${larghezza}%; ${getPatternCss(lit.pattern, lit.color)}"></span></span>
                     </button>`;
                 }).join('');
-                box.querySelectorAll('.ultimo-intervallo').forEach(b => b.addEventListener('click', () => openViewModal(Number(b.getAttribute('data-index')))));
+                box.querySelectorAll('.ultimo-intervallo').forEach(b => b.addEventListener('click', () => openEditModal(Number(b.getAttribute('data-index')), { senzaTastiera: true })));
             }
 
             // IL NUMERONE DEI COLPI REAGISCE QUANDO CAMBIA. È l'elemento più guardato dell'app in
@@ -742,18 +742,7 @@ ${bodyConBgcolor}
 
                     return `
                         <div class="swipe-row-wrapper" data-index="${idx}" style="border-bottom: 1px solid var(--border);">
-                            <div class="swipe-bg swipe-bg-delete">
-                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                </svg>
-                            </div>
-                            <div class="swipe-bg swipe-bg-edit">
-                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-                                    <path d="M12 20h9"></path>
-                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                                </svg>
-                            </div>
+                            <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
                             <div class="swipe-content" data-index="${idx}" style="grid-template-columns: 14% 12% 74%; padding: 0; min-height: 34px;">
                                 <!-- Colonna Prof: lasciata vuota di proposito. Le quote di profondità
                                      vengono disegnate da renderIntegratedDepthLabels() in un overlay
@@ -803,82 +792,7 @@ ${bodyConBgcolor}
                     });
                 }
 
-                // GESTIONE GESTURE TOUCH SWIPE ED EVENTI CLICK (identica alla Vista Separata Classica,
-                // cosi lo swipe reale con animazione funziona anche nel Registro Integrato)
-                const SWIPE_CLAMP = 140;
-                const SWIPE_ACTION_THRESHOLD = 130;
-
-                tblBody.querySelectorAll('.swipe-content').forEach(contentEl => {
-                    let startX = 0, startY = 0, diffX = 0, diffY = 0;
-                    const idx = parseInt(contentEl.getAttribute('data-index'));
-                    const wrapperEl = contentEl.closest('.swipe-row-wrapper');
-                    const bgDelete = wrapperEl ? wrapperEl.querySelector('.swipe-bg-delete') : null;
-                    const bgEdit = wrapperEl ? wrapperEl.querySelector('.swipe-bg-edit') : null;
-
-                    function resetSwipeBackgrounds() {
-                        if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                        if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                    }
-
-                    contentEl.addEventListener('touchstart', (e) => {
-                        startX = e.touches[0].clientX;
-                        startY = e.touches[0].clientY;
-                        diffX = 0;
-                        diffY = 0;
-                        contentEl.style.transition = 'none';
-                        resetSwipeBackgrounds();
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchmove', (e) => {
-                        const currentX = e.touches[0].clientX;
-                        const currentY = e.touches[0].clientY;
-                        diffX = currentX - startX;
-                        diffY = currentY - startY;
-
-                        if (Math.abs(diffX) > Math.abs(diffY)) {
-                            const clampX = Math.max(-SWIPE_CLAMP, Math.min(SWIPE_CLAMP, diffX));
-                            contentEl.style.transform = `translateX(${clampX}px)`;
-
-                            if (clampX >= SWIPE_ACTION_THRESHOLD) {
-                                if (bgDelete) { bgDelete.classList.add('is-active', 'is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX > 10) {
-                                if (bgDelete) { bgDelete.classList.add('is-active'); bgDelete.classList.remove('is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX <= -SWIPE_ACTION_THRESHOLD) {
-                                if (bgEdit) { bgEdit.classList.add('is-active', 'is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else if (clampX < -10) {
-                                if (bgEdit) { bgEdit.classList.add('is-active'); bgEdit.classList.remove('is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else {
-                                resetSwipeBackgrounds();
-                            }
-                        }
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchend', () => {
-                        contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
-                        contentEl.style.transform = 'translateX(0px)';
-                        resetSwipeBackgrounds();
-
-                        if (diffX >= SWIPE_ACTION_THRESHOLD) {
-                            triggerVibrate(50);
-                            deleteLogStep(idx);
-                        } else if (diffX <= -SWIPE_ACTION_THRESHOLD) {
-                            triggerVibrate(30);
-                            openEditModal(idx);
-                        } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
-
-                    contentEl.addEventListener('click', () => {
-                        if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
-                });
+                tblBody.querySelectorAll('.swipe-content').forEach(el => collegaRigaRegistro(el, parseInt(el.getAttribute('data-index'))));
 
                 renderIntegratedDepthLabels();
             }
@@ -1061,21 +975,7 @@ ${bodyConBgcolor}
                         <tr>
                             <td colspan="5" style="padding:0; border:none;">
                                 <div class="swipe-row-wrapper" data-index="${actualIdx}">
-                                    <div class="swipe-bg swipe-bg-delete">
-                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; width:28px; height:28px;">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-                                            <path d="M10 11v6"></path>
-                                            <path d="M14 11v6"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="swipe-bg swipe-bg-edit">
-                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; width:28px; height:28px;">
-                                            <path d="M12 20h9"></path>
-                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                                        </svg>
-                                    </div>
+                                    <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
                                     <div class="swipe-content" data-index="${actualIdx}">
                                         <div style="font-family: var(--font-mono); font-weight: 600;">${startVal.toFixed(2)} - ${endVal.toFixed(2)}m</div>
                                         <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--accent);">${colpiVal}</div>
@@ -1089,90 +989,58 @@ ${bodyConBgcolor}
                     `;
                 }).join('');
 
-                // GESTIONE GESTURE TOUCH SWIPE ED EVENTI CLICK
-                const SWIPE_CLAMP = 140;              // Escursione massima visiva del riquadro
-                const SWIPE_ACTION_THRESHOLD = 130;   // Soglia "swipe completo": azione eseguita solo qui
+                tblLogsBody.querySelectorAll('.swipe-content').forEach(el => collegaRigaRegistro(el, parseInt(el.getAttribute('data-index'))));
+            }
 
-                document.querySelectorAll('.swipe-content').forEach(contentEl => {
-                    let startX = 0, startY = 0, diffX = 0, diffY = 0, isDragging = false;
-                    const idx = parseInt(contentEl.getAttribute('data-index'));
-                    const wrapperEl = contentEl.closest('.swipe-row-wrapper');
-                    const bgDelete = wrapperEl ? wrapperEl.querySelector('.swipe-bg-delete') : null;
-                    const bgEdit = wrapperEl ? wrapperEl.querySelector('.swipe-bg-edit') : null;
-
-                    function resetSwipeBackgrounds() {
-                        if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                        if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                    }
-
-                    contentEl.addEventListener('touchstart', (e) => {
-                        startX = e.touches[0].clientX;
-                        startY = e.touches[0].clientY;
-                        diffX = 0;
-                        diffY = 0;
-                        isDragging = false;
-                        contentEl.style.transition = 'none';
-                        resetSwipeBackgrounds();
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchmove', (e) => {
-                        const currentX = e.touches[0].clientX;
-                        const currentY = e.touches[0].clientY;
-                        diffX = currentX - startX;
-                        diffY = currentY - startY;
-
-                        // Se lo scorrimento è prevalentemente orizzontale
-                        if (Math.abs(diffX) > Math.abs(diffY)) {
-                            isDragging = true;
-                            const clampX = Math.max(-SWIPE_CLAMP, Math.min(SWIPE_CLAMP, diffX));
-                            contentEl.style.transform = `translateX(${clampX}px)`;
-
-                            // Mostra il riquadro corretto, "armandolo" solo a swipe pressoché completo
-                            if (clampX >= SWIPE_ACTION_THRESHOLD) {
-                                if (bgDelete) { bgDelete.classList.add('is-active', 'is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX > 10) {
-                                if (bgDelete) { bgDelete.classList.add('is-active'); bgDelete.classList.remove('is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX <= -SWIPE_ACTION_THRESHOLD) {
-                                if (bgEdit) { bgEdit.classList.add('is-active', 'is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else if (clampX < -10) {
-                                if (bgEdit) { bgEdit.classList.add('is-active'); bgEdit.classList.remove('is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else {
-                                resetSwipeBackgrounds();
-                            }
-                        }
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchend', (e) => {
-                        contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
-                        contentEl.style.transform = 'translateX(0px)';
-                        resetSwipeBackgrounds();
-
-                        if (diffX >= SWIPE_ACTION_THRESHOLD) {
-                            // Swipe a Destra completato ➡️: Elimina (Rosso 🗑️)
-                            triggerVibrate(50);
-                            deleteLogStep(idx);
-                        } else if (diffX <= -SWIPE_ACTION_THRESHOLD) {
-                            // Swipe a Sinistra completato ⬅️: Modifica (Giallo ✏️)
-                            triggerVibrate(30);
-                            openEditModal(idx);
-                        } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            // Vero tocco: nessun movimento significativo in nessuna direzione
-                            // (uno scroll verticale o uno swipe incompleto NON aprono la scheda)
-                            openViewModal(idx);
-                        }
-                    });
-
-                    // Click desktop fallback
-                    contentEl.addEventListener('click', (e) => {
-                        if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
+            // LE RIGHE DEL REGISTRO (Fase 6, punto 3), uguali nelle due viste del registro. Un tocco
+            // apre la scheda dell'intervallo, già modificabile. Scorrendo a sinistra la riga resta
+            // aperta e mostra Modifica ed Elimina; un tocco sulla riga la richiude. Non c'è più
+            // «scorri a destra = elimina»: bastava un gesto un po' largo per cancellare un intervallo.
+            const LARGHEZZA_AZIONI_RIGA = 176;
+            function chiudiRigheAperte(tranne) {
+                document.querySelectorAll('.swipe-row-wrapper.azioni-aperte').forEach(w => {
+                    if (w === tranne) return;
+                    w.classList.remove('azioni-aperte');
+                    const c = w.querySelector('.swipe-content');
+                    if (c) c.style.transform = '';
                 });
+            }
+            function collegaRigaRegistro(contentEl, idx) {
+                const wrapperEl = contentEl.closest('.swipe-row-wrapper');
+                let startX = 0, startY = 0, diffX = 0, diffY = 0, base = 0;
+                contentEl.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    diffX = 0;
+                    diffY = 0;
+                    base = wrapperEl.classList.contains('azioni-aperte') ? -LARGHEZZA_AZIONI_RIGA : 0;
+                    contentEl.style.transition = 'none';
+                }, { passive: true });
+                contentEl.addEventListener('touchmove', (e) => {
+                    diffX = e.touches[0].clientX - startX;
+                    diffY = e.touches[0].clientY - startY;
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        contentEl.style.transform = `translateX(${Math.max(-LARGHEZZA_AZIONI_RIGA, Math.min(0, base + diffX))}px)`;
+                    }
+                }, { passive: true });
+                contentEl.addEventListener('touchend', () => {
+                    contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
+                    if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) return; // un tocco: lo gestisce il click
+                    // Scorrendo in verticale la riga resta com'era; in orizzontale si apre oltre metà corsa.
+                    const aperta = Math.abs(diffX) > Math.abs(diffY) ? base + diffX < -LARGHEZZA_AZIONI_RIGA / 2 : base !== 0;
+                    if (aperta) chiudiRigheAperte(wrapperEl);
+                    if (aperta && base === 0) triggerVibrate(20);
+                    wrapperEl.classList.toggle('azioni-aperte', aperta);
+                    contentEl.style.transform = aperta ? `translateX(-${LARGHEZZA_AZIONI_RIGA}px)` : '';
+                });
+                contentEl.addEventListener('click', () => {
+                    if (Math.abs(diffX) >= 10 || Math.abs(diffY) >= 10) return;
+                    const eraAperta = wrapperEl.classList.contains('azioni-aperte');
+                    chiudiRigheAperte();
+                    if (!eraAperta) openEditModal(idx, { senzaTastiera: true });
+                });
+                wrapperEl.querySelector('.riga-azione-modifica').addEventListener('click', () => { chiudiRigheAperte(); openEditModal(idx); });
+                wrapperEl.querySelector('.riga-azione-elimina').addEventListener('click', () => { chiudiRigheAperte(); deleteLogStep(idx); });
             }
 
             // RENDERING GRAFICO PROFILO IN TEMPO REALE CON LEGENDA VISIVA DINAMICA
@@ -1406,7 +1274,7 @@ ${bodyConBgcolor}
                 svgChart.querySelectorAll('.chart-bar-group').forEach(group => {
                     group.addEventListener('click', (e) => {
                         const idx = parseInt(group.getAttribute('data-index'));
-                        openViewModal(idx);
+                        openEditModal(idx, { senzaTastiera: true });
                     });
                 });
 

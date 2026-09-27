@@ -49,8 +49,8 @@ async function apriPrimaProva(app) {
     r.querySelector('.ultimo-intervallo-prof').textContent === `${virgola(attese[k].start)}–${virgola(attese[k].end)} m`
     && r.querySelector('.ultimo-intervallo-colpi').textContent === String(attese[k].colpi)));
   clic(app, righe[2]);
-  t('un tocco apre la scheda di quell\'intervallo', $(app, 'modalViewStep').classList.contains('open') && app.E('viewingIndex') === logs.length - 1);
-  app.E('closeViewModal()');
+  t('un tocco apre la scheda di quell\'intervallo, già modificabile', $(app, 'modalEditStep').classList.contains('open') && app.E('editingIndex') === logs.length - 1);
+  app.E('closeModal()');
   await attesa(20);
   const colpiPrima = app.E('state.currentCount');
   clic(app, $(app, 'btnPlus'));
@@ -81,6 +81,53 @@ async function apriPrimaProva(app) {
   clic(app, $(app, 'btnVaiAlRegistro'));
   t('«Tutto il registro» porta al Registro', visibile(app, 'cardIntegratedRegister') && $(app, 'btnVistaRegistro').getAttribute('aria-selected') === 'true');
 
+  console.log('--- Le righe del Registro ---');
+  const tocco = (el, tipo, x, y) => { const e = new app.w.Event(tipo, { bubbles: true }); e.touches = [{ clientX: x, clientY: y }]; el.dispatchEvent(e); };
+  const scorri = (el, dx, dy = 0) => { tocco(el, 'touchstart', 200, 100); tocco(el, 'touchmove', 200 + dx, 100 + dy); tocco(el, 'touchend', 200 + dx, 100 + dy); };
+  const riga = i => $(app, 'tblIntegratedLogsBody').querySelectorAll('.swipe-row-wrapper')[i];
+  const contenuto = i => riga(i).querySelector('.swipe-content');
+  const nPrima = app.E('state.logs.length');
+  scorri(contenuto(2), 150);
+  t('scorrere a destra non elimina più niente', app.E('state.logs.length') === nPrima && !app.dialogo() && !riga(2).classList.contains('azioni-aperte'));
+  scorri(contenuto(2), -40);
+  t('un piccolo scorrimento a sinistra non apre le azioni', !riga(2).classList.contains('azioni-aperte'));
+  scorri(contenuto(2), -150);
+  t('scorrere a sinistra apre Modifica ed Elimina', riga(2).classList.contains('azioni-aperte')
+    && [...riga(2).querySelectorAll('.riga-azioni button')].map(b => b.textContent).join('|') === 'Modifica|Elimina');
+  scorri(contenuto(2), 5, 60);
+  t('scorrendo in verticale resta aperta', riga(2).classList.contains('azioni-aperte'));
+  scorri(contenuto(4), -150);
+  t('aprendone un\'altra, la prima si chiude', riga(4).classList.contains('azioni-aperte') && !riga(2).classList.contains('azioni-aperte'));
+  // Un tocco vero sul telefono: inizio e fine del tocco nello stesso punto, poi il click.
+  scorri(contenuto(4), 0); clic(app, contenuto(4));
+  t('un tocco sulla riga aperta la richiude, senza aprire la scheda', !riga(4).classList.contains('azioni-aperte') && !$(app, 'modalEditStep').classList.contains('open'));
+  clic(app, contenuto(1));
+  t('un tocco apre la scheda di quella riga', $(app, 'modalEditStep').classList.contains('open') && app.E('editingIndex') === 1);
+  t('senza chiamare la tastiera', app.d.activeElement !== $(app, 'numModalColpi'));
+  const c1 = app.E('state.logs[1].colpi');
+  clic(app, $(app, 'btnModalColpiPiu')); clic(app, $(app, 'btnModalColpiPiu')); clic(app, $(app, 'btnModalColpiMeno'));
+  t('− e + correggono i colpi nella scheda', $(app, 'numModalColpi').value === String(c1 + 1));
+  app.E('closeModal()');
+  t('chiudendo senza salvare non cambia niente', app.E('state.logs[1].colpi') === c1);
+  clic(app, contenuto(nPrima - 1));
+  t('la scheda dice come è stato registrato l\'intervallo', /^Registrato col contatore il \d{2}\/\d{2}\/\d{4} alle \d{2}:\d{2}$/.test($(app, 'lblModalOrigine').textContent));
+  app.E('closeModal()');
+  clic(app, contenuto(0));
+  t('per gli intervalli vecchi, senza data, non inventa nulla', $(app, 'lblModalOrigine').textContent === '');
+  app.E('closeModal()');
+  scorri(contenuto(3), -150);
+  clic(app, riga(3).querySelector('.riga-azione-modifica'));
+  t('«Modifica» apre la scheda', $(app, 'modalEditStep').classList.contains('open') && app.E('editingIndex') === 3 && !riga(3).classList.contains('azioni-aperte'));
+  app.E('closeModal()');
+  const daEliminare = JSON.stringify(app.E('state.logs[3]'));
+  scorri(contenuto(3), -150);
+  clic(app, riga(3).querySelector('.riga-azione-elimina'));
+  await attesa(30);
+  t('«Elimina» chiede conferma', !!app.dialogo() && /Eliminare l'intervallo/.test(app.dialogo().testo));
+  clic(app, app.dialogo().ok);
+  await attesa(60);
+  t('e toglie proprio quell\'intervallo', app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare));
+
   console.log('--- Home e ritorno ---');
   clic(app, $(app, 'btnHomeView'));
   await attesa(50);
@@ -101,6 +148,13 @@ async function apriPrimaProva(app) {
   t('(controprova) non c\'erano le schede Conta | Registro', !vecchia.d.getElementById('btnVistaConta'));
   t('(controprova) c\'erano il lucchetto e la barra fissa', !!vecchia.d.getElementById('btnCounterLockHandle') && !!vecchia.d.getElementById('stickyStatusBar'));
   t('(controprova) contatore e registro stavano insieme', !nascosto(vecchia.w, vecchia.d.getElementById('cardCounterDashboard')) && !nascosto(vecchia.w, vecchia.d.getElementById('cardIntegratedRegister')));
+  {
+    const el = vecchia.d.getElementById('tblIntegratedLogsBody').querySelector('.swipe-content');
+    const tocco = (tipo, x) => { const e = new vecchia.w.Event(tipo, { bubbles: true }); e.touches = [{ clientX: x, clientY: 100 }]; el.dispatchEvent(e); };
+    tocco('touchstart', 200); tocco('touchmove', 350); tocco('touchend', 350);
+    await attesa(30);
+    t('(controprova) scorrere a destra chiedeva di eliminare', !!vecchia.dialogo() && /Eliminare/.test(vecchia.dialogo().testo));
+  }
   vecchia.chiudi();
 
   console.log(`\n${ok} ok, ${ko} KO`);

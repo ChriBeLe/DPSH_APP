@@ -839,44 +839,11 @@
             width: 100%;
         }
 
-        .swipe-bg {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            opacity: 0;
-            transform: scale(0.85);
-            transition: opacity var(--mov-istante) var(--ease-entra), transform var(--mov-istante) var(--ease-entra), filter var(--mov-istante) var(--ease-entra);
-        }
-
-        .swipe-bg.is-active {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        /* Quando lo swipe raggiunge il completamento (rettangolo rivelato del tutto) */
-        .swipe-bg.is-armed {
-            transform: scale(1.25);
-            filter: brightness(1.2);
-        }
-
-        /* Rivelato quando si trascina il dito verso DESTRA -> Elimina (Rosso <svg class="ico"><use href="#i-trash"/></svg>) */
-        .swipe-bg-delete {
-            left: 0;
-            background: var(--danger);
-            color: #ffffff;
-        }
-
-        /* Rivelato quando si trascina il dito verso SINISTRA -> Modifica (Giallo <svg class="ico"><use href="#i-edit"/></svg>) */
-        .swipe-bg-edit {
-            right: 0;
-            background: var(--warning);
-            color: var(--on-solid);
-        }
+        /* Le azioni dietro la riga (Fase 6): si vedono scorrendo la riga a sinistra. */
+        .riga-azioni { position: absolute; top: 0; bottom: 0; right: 0; width: 176px; display: flex; }
+        .riga-azioni button { flex: 1; border: none; font-family: inherit; font-size: var(--fs-testo); font-weight: 800; cursor: pointer; }
+        .riga-azione-modifica { background: var(--bg-card-hover); color: var(--text-main); }
+        .riga-azione-elimina { background: var(--danger); color: #ffffff; }
 
         .swipe-content {
             position: relative;

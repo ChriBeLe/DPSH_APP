@@ -85,6 +85,12 @@
         .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
         .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
 
+        /* ---- Scheda dell'intervallo (Fase 6): − e + attorno ai colpi ---- */
+        .colpi-passo { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; gap: var(--sp-2); align-items: center; }
+        .colpi-passo .bt-icona { width: 56px; height: 56px; font-size: 26px; font-weight: 800; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main); color: var(--text-main); }
+        #lblModalOrigine { margin-top: var(--sp-2); }
+        #lblModalOrigine:empty { display: none; }
+
         /* ---- Le due viste della prova (Fase 6): Conta | Registro ---- */
         .schede-prova { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1); padding: var(--sp-1); border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); }
         .schede-prova button { min-height: 44px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-family: inherit; font-size: var(--fs-campo); font-weight: 800; cursor: pointer; }
