@@ -719,32 +719,44 @@
                 if (modalBulkImport) modalBulkImport.classList.remove('open');
             }
 
+            // Una riga con tabulazioni o «;» (Excel, CSV), o con quote decimali («0.20 4», «0,20 4»,
+            // «0.00,0.20,4»), è una riga di tabella: i colpi sono l'ultima colonna e le quote non contano.
+            // Le altre righe sono sequenze di colpi («5 8 12», «5, 8, 12», «5,8,12»). La prima riga senza
+            // numeri è un'intestazione e si salta; ogni altro valore che non è un intero ≥ 0 si segnala
+            // invece di sparire in silenzio.
             function parseBulkImportNumbers(text) {
-                if (!text) return [];
-                const rawTokens = text.split(/[\s,;\n]+/);
-                const numbers = [];
-                rawTokens.forEach(t => {
-                    const cleaned = t.trim();
-                    if (cleaned !== '') {
-                        const num = parseInt(cleaned, 10);
-                        if (!isNaN(num) && num >= 0) {
-                            numbers.push(num);
-                        }
+                const numeri = [], scartati = [];
+                let primaRiga = true;
+                String(text || '').split(/\r?\n/).forEach((riga, i) => {
+                    if (!riga.trim()) return;
+                    let campi;
+                    if (/[\t;]/.test(riga) || /\d\.\d/.test(riga) || (/\d,\d/.test(riga) && /\s/.test(riga.trim()))) {
+                        campi = riga.split(/[\t;]|\s+/).filter(c => c.trim());
+                        if (campi.length === 1) campi = campi[0].split(',');
+                        campi = [campi.pop().trim()];
+                    } else {
+                        campi = riga.split(/[\s,]+/).filter(Boolean);
                     }
+                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c));
+                    primaRiga = false;
+                    if (intestazione) return;
+                    campi.forEach(c => /^\d+$/.test(c) ? numeri.push(parseInt(c, 10)) : scartati.push({ riga: i + 1, testo: c }));
                 });
-                return numbers;
+                return { numeri, scartati };
             }
 
             function updateBulkImportCount() {
                 if (!txtBulkImportData || !lblBulkImportCount) return;
-                const numbers = parseBulkImportNumbers(txtBulkImportData.value);
-                lblBulkImportCount.textContent = `${numbers.length} colpi trovati`;
-                if (lblBulkImportDepth) {
-                    const stepM = (state.settings.stepCm || 20) / 100;
-                    const startDepth = getBulkImportStartDepth();
-                    const endDepth = startDepth + numbers.length * stepM;
-                    lblBulkImportDepth.textContent = `${startDepth.toFixed(2)}m → ${endDepth.toFixed(2)}m`;
-                }
+                const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData.value);
+                lblBulkImportCount.textContent = `${numbers.length} ${numbers.length === 1 ? 'intervallo' : 'intervalli'}`;
+                const stepM = (state.settings.stepCm || 20) / 100;
+                const startDepth = getBulkImportStartDepth();
+                if (lblBulkImportDepth) lblBulkImportDepth.textContent = `${numeroConVirgola(startDepth)} → ${numeroConVirgola(startDepth + numbers.length * stepM)} m`;
+                const anteprima = document.getElementById('anteprimaBulkImport');
+                anteprima.innerHTML = scartati.map(s => `<div class="anteprima-scartato">Riga ${s.riga}: «${escapeHtmlDidascalia(s.testo)}» non è un numero di colpi</div>`).join('')
+                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${n}</strong></div>`).join('');
+                btnConfirmBulkImport.disabled = !numbers.length || scartati.length > 0;
+                btnConfirmBulkImport.innerHTML = `<svg class="ico"><use href="#i-list"/></svg> ${scartati.length ? 'Correggi le righe segnate' : (numbers.length ? 'Aggiungi ' + lblBulkImportCount.textContent : 'Aggiungi')}`;
             }
 
             if (txtBulkImportData) {
@@ -768,11 +780,8 @@
 
             if (btnConfirmBulkImport) {
                 btnConfirmBulkImport.addEventListener('click', () => {
-                    const numbers = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
-                    if (numbers.length === 0) {
-                        alert('Nessun numero valido trovato nel testo incollato. Inserisci una sequenza di cifre (es. 5 8 12 15).');
-                        return;
-                    }
+                    const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
+                    if (numbers.length === 0 || scartati.length) return; // il bottone è già spento
 
                     const selectedOpt = document.querySelector('input[name="optImportMode"]:checked');
                     const mode = selectedOpt ? selectedOpt.value : 'append';

@@ -66,6 +66,17 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   if (app.dialogo()) clic(app, app.dialogo().ok);
   await attesa(60);
   t('Canc elimina la riga scelta, dopo la conferma', app.E('state.logs.length') === n - 1);
+  app.E('openBulkImportModal()');
+  const campo = $(app, 'txtBulkImportData');
+  const nPrima = app.E('state.logs.length'), quota = app.E('state.currentDepthStart');
+  campo.value = 'Da\tA\tColpi\n0,00\t0,20\t4\n0,20\t0,40\t6';
+  campo.dispatchEvent(new app.w.Event('input'));
+  const anteprima = [...$(app, 'anteprimaBulkImport').children].map(d => d.textContent);
+  t('Aggiungi: le righe di Excel diventano un\'anteprima dalla quota della prova, intestazione saltata',
+    anteprima.length === 2 && anteprima[0].startsWith(app.E(`numeroConVirgola(${quota})`)) && anteprima[1].endsWith('6') && !$(app, 'btnConfirmBulkImport').disabled);
+  clic(app, $(app, 'btnConfirmBulkImport'));
+  await attesa(30);
+  t('e si scrivono', app.E('state.logs.length') === nPrima + 2 && app.E('state.logs[state.logs.length - 1].colpi') === 6);
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

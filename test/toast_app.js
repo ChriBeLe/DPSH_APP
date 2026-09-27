@@ -71,9 +71,10 @@ async function aggiungiIntervalliMultipli(app, testo) {
   t('un esito con qualcosa da leggere resta un dialogo, col testo intero', app.dialogo() && /Importazione completata\s+2 foto citate/.test(app.dialogo().testo));
   clic(app, app.dialogo().ok);
   await attesa(30);
-  await aggiungiIntervalliMultipli(app, 'nessun numero');
-  t('un errore resta un dialogo', !!app.dialogo() && /Nessun numero valido/.test(app.dialogo().testo));
-  if (app.dialogo()) clic(app, app.dialogo().ok);
+  await aggiungiIntervalliMultipli(app, '5 8 dodici');
+  t('un valore non capito non apre dialoghi: si segna accanto al dato e il bottone si spegne',
+    !app.dialogo() && /Riga 1: «dodici»/.test(app.d.getElementById('anteprimaBulkImport').textContent) && app.d.getElementById('btnConfirmBulkImport').disabled && app.d.getElementById('modalBulkImport').classList.contains('open'));
+  app.E('closeBulkImportModal()');
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('      ', app.errori.slice(0, 3));
   app.chiudi();

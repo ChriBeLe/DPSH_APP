@@ -241,3 +241,10 @@
         .swipe-row-wrapper.scelta > .swipe-content { background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); box-shadow: inset 3px 0 0 var(--accent); }
         .chart-bar-group.scelta .chart-rect-bar { stroke: var(--accent); stroke-width: 3; }
         .pc-lato [aria-current] { background: var(--accent-soft); color: var(--text-main); font-weight: 700; box-shadow: inset 2px 0 0 var(--accent); }
+
+        /* ---- Aggiungi intervalli: l'anteprima di cosa si scrive (prototipo PC, passo 3) ---- */
+        .anteprima-intervalli { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; font-family: var(--font-mono); font-size: 13px; }
+        .anteprima-intervalli:empty { display: none; }
+        .anteprima-intervalli > div { display: flex; justify-content: space-between; gap: var(--sp-3); padding: 3px 0; border-top: 1px solid var(--border); }
+        .anteprima-intervalli .anteprima-scartato { color: var(--danger); font-family: var(--font-sans); font-weight: 700; }
+        #btnConfirmBulkImport:disabled { opacity: .5; cursor: not-allowed; }
