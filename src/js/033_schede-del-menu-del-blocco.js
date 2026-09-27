@@ -142,8 +142,11 @@
                 const figli = figliTutti;
                 // Testa e coda restano SEMPRE visibili: la maniglia serve a ridimensionare il
                 // pannello da qualunque scheda, il nome del blocco dice su cosa stai agendo, e
-                // "Rimuovi blocco" non deve nascondersi dentro una scheda a caso.
-                const testa = figli.filter(el => el.classList.contains('tpl-editor-block-menu-drag-handle') || el === figli[1]);
+                // "Rimuovi blocco" non deve nascondersi dentro una scheda a caso. Anche la tendina
+                // del ⋮ (Sposta / Rimuovi) è testa: smistata nella prima scheda, dalle altre il ⋮
+                // si apriva su un pannello nascosto e sembrava non fare niente (27/09/2026).
+                const testa = figli.filter(el => el.classList.contains('tpl-editor-block-menu-drag-handle') || el === figli[1]
+                    || el.classList.contains('tpl-editor-menu-altro'));
                 const coda = figli.filter(el => el.classList.contains('tpl-editor-menu-remove'));
                 const daSmistare = figli.filter(el => !testa.includes(el) && !coda.includes(el));
                 if (daSmistare.length === 0) return;
