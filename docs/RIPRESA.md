@@ -78,6 +78,8 @@ inventario in `docs/INVENTARIO_EDITOR_TEMPLATE.md`.
 2. Inventario della schermata di acquisizione (`docs/INVENTARIO_ACQUISIZIONE.md`): le mie scelte.
 3. Editor dei template: le «storture» da screenshot.
 4. Le cose «non fatte, e perché» negli esiti delle fasi 4, 5, 7, 8, se servono.
+5. Prototipo PC (`docs/PROTOTIPO_PC.md`, tela https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg):
+   da approvare, poi 6 passi.
 
 Parti chiedendomi se ho provato l'app sul telefono e cosa ho notato. Poi proponimi il prossimo pezzo con il suo peso.
 
