@@ -104,6 +104,16 @@
         </defs>
     </svg>
 
+    <!-- IL PC (prototipo PC, passo 1): barra in alto col percorso, barra laterale con progetti e
+         prove, barra di stato. Nascoste sotto i 1024 px; le riempie renderPc. -->
+    <nav class="pc-barra" id="pcBarra" aria-label="Percorso">
+        <ol class="pc-percorso" id="pcPercorso"></ol>
+        <button type="button" class="bt" id="pcBtnConsegna"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
+        <button type="button" class="bt-icona" id="pcBtnImpostazioni" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
+    </nav>
+    <aside class="pc-lato" id="pcLato" aria-label="Progetti e prove"></aside>
+    <footer class="pc-stato" id="pcStato"><span id="pcStatoAiuto"></span><span id="pcStatoVersione"></span></footer>
+
     <!-- MAIN APP CONTENT -->
     <main>
 

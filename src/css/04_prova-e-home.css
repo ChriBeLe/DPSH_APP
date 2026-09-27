@@ -206,6 +206,7 @@
         /* ---- Il PC, per la post-produzione (Fase 7, da 1024 px) ----
            Niente contatore né schede Conta | Registro: il Registro e, nella vista «Grafico», tabella e
            grafico affiancati. Gli !important vincono sugli stili scritti dallo script. */
+        .pc-barra, .pc-lato, .pc-stato { display: none; }
         @media (min-width: 1024px) {
             #viewField { flex-direction: row !important; flex-wrap: wrap; align-items: flex-start; }
             #viewField > * { flex: 1 1 100%; }
@@ -213,4 +214,23 @@
             #viewField > .schede-prova, #cardCounterDashboard, #cardUltimiIntervalli { display: none !important; }
             #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
             main { max-width: 1200px; }
+
+            /* Barre del PC (prototipo PC, passo 1). Il percorso e la barra laterale sostituiscono
+               «‹» e la riga delle prove del telefono. */
+            body { padding: 52px 0 30px 260px; }
+            .pc-barra { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 40; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--border); }
+            .pc-lato { position: fixed; top: 52px; bottom: 30px; left: 0; width: 260px; z-index: 40; box-sizing: border-box; overflow-y: auto; padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; gap: 2px; background: var(--bg-card); border-right: 1px solid var(--border); }
+            .pc-stato { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-4); font-size: 12px; color: var(--text-muted); background: var(--bg-card); border-top: 1px solid var(--border); }
+            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome { display: none !important; }
+            #btnProgettoAltro { margin-left: auto; }
         }
+        .pc-percorso { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }
+        .pc-percorso li + li::before { content: "/"; margin-right: 6px; color: var(--text-muted); }
+        .pc-percorso button { border: none; background: none; padding: 4px 6px; border-radius: 6px; font: inherit; color: var(--text-muted); cursor: pointer; }
+        .pc-percorso button:hover { color: var(--text-main); background: var(--bg-card-hover); }
+        .pc-percorso [aria-current] { color: var(--text-main); padding: 4px 6px; }
+        .pc-lato-titolo { padding: 0 var(--sp-2) var(--sp-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
+        .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pc-lato button:hover { background: var(--bg-card-hover); }
+        .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
+        .pc-lato [aria-current] { background: var(--accent-soft); color: var(--text-main); font-weight: 700; box-shadow: inset 2px 0 0 var(--accent); }

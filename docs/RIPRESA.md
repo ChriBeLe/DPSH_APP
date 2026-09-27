@@ -79,7 +79,7 @@ inventario in `docs/INVENTARIO_EDITOR_TEMPLATE.md`.
 3. Editor dei template: le «storture» da screenshot.
 4. Le cose «non fatte, e perché» negli esiti delle fasi 4, 5, 7, 8, se servono.
 5. Prototipo PC (`docs/PROTOTIPO_PC.md`, tela https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg):
-   da approvare, poi 6 passi.
+   approvato; passo 1 di 6 fatto.
 
 Parti chiedendomi se ho provato l'app sul telefono e cosa ho notato. Poi proponimi il prossimo pezzo con il suo peso.
 

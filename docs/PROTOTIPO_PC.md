@@ -1,6 +1,6 @@
 # Prototipo PC — post-produzione
 
-Tela: https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg (privata, da approvare).
+Tela: https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg (approvata il 27/09/2026; si può ritoccare).
 
 Il PC serve alla post-produzione (decisione I). Il contatore resta disponibile con un interruttore.
 
@@ -28,7 +28,7 @@ Il PC serve alla post-produzione (decisione I). Il contatore resta disponibile c
 
 ## Realizzazione proposta (6 passi)
 
-1. Struttura: barra in alto, barra laterale, barra di stato.
+1. ✅ Struttura: barra in alto, barra laterale, barra di stato (`src/js/071a_barre-del-pc.js`, test `pc_barre.js`).
 2. Registro e grafico collegati; tasto destro e doppio clic.
 3. Aggiungi intervalli con incolla da Excel/CSV e anteprima.
 4. Palette comandi (Ctrl K) e guida delle scorciatoie.

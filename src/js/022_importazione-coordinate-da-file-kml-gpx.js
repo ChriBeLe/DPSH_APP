@@ -233,6 +233,7 @@
                     }
                 }
                 viewTransitionsEnabled = true;
+                renderPc();
 
                 saveState();
             }

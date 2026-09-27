@@ -426,6 +426,7 @@
                 homeProjectsContainer.innerHTML = '';
 
                 const projKeys = Object.keys(state.projects || {});
+                renderPc();
                 renderPromemoriaBackup();
                 if (typeof aggiornaConteggiHome === 'function') aggiornaConteggiHome();
                 const boxRicercaProgetti = document.getElementById('homeRicercaProgetti');

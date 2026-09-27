@@ -653,6 +653,7 @@ ${bodyConBgcolor}
 
                 renderPhotoGallery();
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
+                renderPc();
 
                 // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
