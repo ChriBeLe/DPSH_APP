@@ -18,6 +18,9 @@
                     ? `<li><span aria-current="page">${esc(p[1])}</span></li>`
                     : `<li><button type="button" data-vista="${p[0]}">${esc(p[1])}</button></li>`).join('');
                 document.getElementById('pcBtnConsegna').style.display = proj ? '' : 'none';
+                const btnContatore = document.getElementById('pcBtnContatore');
+                btnContatore.style.display = vista === 'field' ? '' : 'none';
+                btnContatore.setAttribute('aria-pressed', String(state.settings.contatoreSuPc === true));
 
                 const righe = ['<div class="pc-lato-titolo">Progetti</div>'];
                 Object.keys(progetti).sort((a, b) => (progetti[b].updatedAt || 0) - (progetti[a].updatedAt || 0)).forEach(id => {
@@ -34,7 +37,9 @@
                 document.getElementById('pcStatoAiuto').textContent = {
                     home: 'Clic su un progetto a sinistra per aprirlo',
                     project: 'Clic su una prova per aprirla',
-                    field: 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
+                    field: state.settings.contatoreSuPc === true
+                        ? 'Contatore: Spazio un colpo · Backspace toglie · Invio registra · F2 modifica la riga scelta · C spegne'
+                        : 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
                 }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · ? guida · DPSH ' + APP_VERSIONE;
             }

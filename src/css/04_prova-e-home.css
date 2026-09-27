@@ -211,7 +211,10 @@
             #viewField { flex-direction: row !important; flex-wrap: wrap; align-items: flex-start; }
             #viewField > * { flex: 1 1 100%; }
             #viewField > #cardLogsTable, #viewField > #cardChart { flex: 1 1 calc(50% - 8px); min-width: 0; }
-            #viewField > .schede-prova, #cardCounterDashboard, #cardUltimiIntervalli { display: none !important; }
+            #viewField > .schede-prova, #cardUltimiIntervalli { display: none !important; }
+            /* Il contatore acceso (passo 5) sta a sinistra del Registro. */
+            #viewField > #cardCounterDashboard { flex: 0 0 380px; }
+            #viewField > #cardIntegratedRegister { flex: 1 1 400px; min-width: 0; }
             #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
             main { max-width: 1200px; }
 

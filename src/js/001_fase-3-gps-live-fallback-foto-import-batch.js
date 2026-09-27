@@ -98,6 +98,7 @@
                 const globalTastoRegistra = !(state.settings && state.settings.tastoRegistraVisibile === false);
                 const globalIntegratedChart = (state.settings && state.settings.integratedChart !== undefined) ? state.settings.integratedChart : true;
                 const globalRegistroEspanso = !!(state.settings && state.settings.registroEspanso === true);
+                const globalContatoreSuPc = !!(state.settings && state.settings.contatoreSuPc === true);
                 const globalRecentiInCima = !!(state.settings && state.settings.intervalliRecentiInCima === true);
 
                 state.currentProjectId = projId;
@@ -126,6 +127,7 @@
                 state.settings.integratedChart = globalIntegratedChart;
                 // Scritte solo se attive: assenti valgono «no», e i dati salvati restano quelli di prima.
                 if (globalRegistroEspanso) state.settings.registroEspanso = true; else delete state.settings.registroEspanso;
+                if (globalContatoreSuPc) state.settings.contatoreSuPc = true; else delete state.settings.contatoreSuPc;
                 if (globalRecentiInCima) state.settings.intervalliRecentiInCima = true; else delete state.settings.intervalliRecentiInCima;
 
                 state.currentCount = surv.currentCount || 0;

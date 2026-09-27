@@ -28,8 +28,12 @@
                     ['Prova', 'Foto della prova', '', clicSu('btnOpenSurveyPhotosModal'), inProva],
                     ['Prova', 'Posizione GPS', '', clicSu('btnGetGpsHeader'), inProva],
                     ['Prova', 'Strumento della prova', '', () => openSurveySettingsModal(state.currentSurveyId, 'strumento'), inProva],
+                    ['Contatore sul PC', 'Accendi o spegni il contatore', 'C', interruttoreContatorePc, inProva],
+                    ['Contatore sul PC', 'Un colpo', 'Spazio', null, false],
+                    ['Contatore sul PC', 'Togli un colpo', 'Backspace', null, false],
+                    ['Contatore sul PC', 'Registra l\'intervallo', 'Invio', null, false],
                     ['Registro', 'Scegli la riga sopra o sotto', '↑ ↓', null, false],
-                    ['Registro', 'Modifica la riga scelta', 'Invio o F2', null, false],
+                    ['Registro', 'Modifica la riga scelta', 'F2 o Invio', null, false],
                     ['Registro', 'Azioni sulla riga', 'Tasto destro', null, false],
                     ['Registro', 'Elimina la riga scelta', 'Canc', null, false]
                 ];

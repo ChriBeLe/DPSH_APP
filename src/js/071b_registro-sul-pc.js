@@ -65,7 +65,7 @@
                     const qui = righe.indexOf(rigaScelta);
                     const dove = qui < 0 ? 0 : Math.max(0, Math.min(righe.length - 1, qui + (e.key === 'ArrowDown' ? 1 : -1)));
                     scegliRiga(righe[dove], true);
-                } else if (rigaScelta >= 0 && (e.key === 'Enter' || e.key === 'F2')) {
+                } else if (rigaScelta >= 0 && (e.key === 'F2' || (e.key === 'Enter' && state.settings.contatoreSuPc !== true))) {
                     e.preventDefault();
                     chiudiMenuRiga();
                     openEditModal(rigaScelta);

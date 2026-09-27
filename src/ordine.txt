@@ -137,5 +137,6 @@ js/071_motore-unificato-di-impaginazione.js
 js/071a_barre-del-pc.js
 js/071b_registro-sul-pc.js
 js/071c_palette-e-scorciatoie.js
+js/071d_contatore-sul-pc.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

@@ -32,7 +32,7 @@ Il PC serve alla post-produzione (decisione I). Il contatore resta disponibile c
 2. ✅ Registro e grafico collegati; tasto destro e doppio clic; ↑ ↓ Invio Canc (`071b_registro-sul-pc.js`). «Inserisci sopra/sotto» non c'è: gli intervalli sono contigui per quota.
 3. ✅ Aggiungi intervalli con incolla da Excel/CSV e anteprima; un valore non capito si segna con la riga e spegne il bottone.
 4. ✅ Palette comandi (Ctrl K) e guida delle scorciatoie (?); Ctrl I aggiungi, Ctrl E consegna, F falda (`071c_palette-e-scorciatoie.js`).
-5. Contatore sul PC con interruttore.
+5. ✅ Contatore sul PC con interruttore in alto o tasto C, accanto al Registro; Spazio, Backspace, Invio (`071d_contatore-sul-pc.js`). Preferenza dell'app `contatoreSuPc`.
 6. Consegna, strati e confronto nel nuovo schema.
 
 Ogni passo: peso dichiarato prima, test del pezzo, suite completa alla fine.

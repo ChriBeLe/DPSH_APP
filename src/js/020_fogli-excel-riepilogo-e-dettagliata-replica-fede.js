@@ -624,7 +624,8 @@ ${bodyConBgcolor}
                     btnConta.setAttribute('aria-selected', String(inConta));
                     btnRegistro.setAttribute('aria-selected', String(!inConta));
                     btnRegistro.textContent = `Registro · ${state.logs.length}`;
-                    cardCounterDashboard.style.display = inConta ? '' : 'none';
+                    // Sul PC il contatore si accende con l'interruttore in alto (prototipo PC, passo 5).
+                    cardCounterDashboard.style.display = inConta || (suPc() && state.settings.contatoreSuPc === true) ? '' : 'none';
                     document.getElementById('cardUltimiIntervalli').style.display = inConta ? '' : 'none';
                     if (inConta) renderUltimiIntervalli();
                 }
