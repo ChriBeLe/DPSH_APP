@@ -13,7 +13,6 @@ markup/01_modalPhoto.html
 markup/02_modalGps.html
 markup/03_modal.html
 markup/04_modalCustomNote.html
-markup/05_modalView.html
 markup/06_modalStrati.html
 markup/07_modalArchivePicker.html
 markup/08_modalArchiveManager.html

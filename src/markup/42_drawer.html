@@ -16,29 +16,8 @@
         </div>
         <div class="drawer-body">
             
-            <!-- 1. DATI CANTIERE & INDAGINE: spostati nella modale "Intestazione Cantiere" (vedi
-                 #modalCantiereInfo), raggiungibile toccando la card in alto in Vista Prova — sono
-                 dati della SINGOLA prova, non preferenze generali dell'app, e per lo stesso motivo
-                 quella card/scorciatoia non esiste affatto in Home (dove non c'è una prova aperta
-                 a cui riferirli). Gli id (txtCommittente, txtComune, ecc.) sono invariati, solo
-                 spostati altrove in HTML. -->
-
-            <!-- 2. CONDIZIONI FALDA ACQUIFERA: rimosso da qui, ora c'è un tasto Falda dedicato
-                 nell'header del Registro Misurazioni (vedi #btnQuickFaldaIntegrated/Chart), sempre
-                 a un tocco di distanza mentre si lavora sulla prova — non serve più duplicarlo qui
-                 nelle impostazioni globali. NOTA: una versione precedente di questo commento
-                 diceva che gli input txtFaldaDa/txtFaldaA e il tasto btnResetFalda "restano negli
-                 altri punti dell'app" — non era vero, non esistevano più da nessuna parte, e il
-                 codice che li cercava non veniva mai eseguito. Ora sono stati rimossi anche da lì.
-                 La falda si imposta ESCLUSIVAMENTE dalla modale rapida (#modalQuickFalda, campi
-                 numQuickFaldaDa/numQuickFaldaA). -->
-
-            <!-- 3. DATI STRUMENTO & PENETROMETRO: spostati nella modale "Impostazioni Prova"
-                 (vedi #modalSurveySettings), raggiungibile tenendo premuto sulla singola prova
-                 nella barra in Vista Prova — sono dati della SINGOLA prova, non preferenze
-                 generali dell'app, quindi non hanno più senso dentro questo drawer globale. Gli
-                 elementi con lo stesso id (selPenetrometer, numPesoMassa, ecc.) esistono ancora,
-                 solo spostati altrove: tutta la logica di lettura/scrittura invariata. -->
+            <!-- I dati della prova (intestazione, strumento) stanno nella scheda della prova; la falda nel
+                 suo ⋯. Qui solo preferenze dell'app. -->
 
             <!-- 4. PREFERENZE DI CAMPO -->
             <div class="drawer-section">

@@ -230,7 +230,7 @@
                     if (typeof switchView === 'function') switchView('home');
                 } catch (e) {
                     console.error('Import JSON/ZIP error:', e);
-                    alert('⚠️ Errore durante l\'importazione del file:\n\n' + e.message);
+                    alert('Errore durante l\'importazione del file:\n\n' + e.message);
                 } finally {
                     if (fileImportProjectJson) fileImportProjectJson.value = '';
                 }

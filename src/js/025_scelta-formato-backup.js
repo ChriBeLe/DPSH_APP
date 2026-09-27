@@ -42,7 +42,7 @@
                         }
                     } catch (e) {
                         console.error('Export JSON error:', e);
-                        alert('⚠️ Errore durante la creazione del backup JSON:\n\n' + e.message);
+                        alert('Errore durante la creazione del backup JSON:\n\n' + e.message);
                     }
                 });
             }
@@ -60,7 +60,7 @@
                         }
                     } catch (e) {
                         console.error('Export ZIP error:', e);
-                        alert('⚠️ Errore durante la creazione dello ZIP:\n\n' + e.message);
+                        alert('Errore durante la creazione dello ZIP:\n\n' + e.message);
                     }
                 });
             }

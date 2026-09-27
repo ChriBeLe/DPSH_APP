@@ -85,7 +85,7 @@
                         return;
                     }
                     if (!navigator.geolocation) {
-                        alert('⚠️ Geolocalizzazione non supportata da questo browser.');
+                        alert('Geolocalizzazione non supportata da questo browser.');
                         return;
                     }
                     if (lblPhotoGpsLiveStatus) lblPhotoGpsLiveStatus.textContent = '⏳ Ricerca GPS in corso...';
@@ -93,7 +93,7 @@
                         (pos) => applyGpsToFallbackPhoto(pos.coords.latitude, pos.coords.longitude, 'live'),
                         (err) => {
                             if (lblPhotoGpsLiveStatus) lblPhotoGpsLiveStatus.textContent = 'Non disponibile al momento';
-                            alert('⚠️ Impossibile acquisire il GPS: ' + ((err && err.message) || 'errore sconosciuto') + '\n\nProva con "Scegli sulla mappa" o "Incolla coordinate".');
+                            alert('Impossibile acquisire il GPS: ' + ((err && err.message) || 'errore sconosciuto') + '\n\nProva con "Scegli sulla mappa" o "Incolla coordinate".');
                         },
                         { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
                     );
@@ -106,7 +106,7 @@
                 btnPhotoGpsApplyPaste.addEventListener('click', () => {
                     const parsed = parsePastedCoords(txtPhotoGpsPasteCoords.value);
                     if (!parsed) {
-                        alert('⚠️ Coordinate non riconosciute. Formati accettati: "41.845912, 12.562424" oppure un link Google Maps.');
+                        alert('Coordinate non riconosciute. Formati accettati: "41.845912, 12.562424" oppure un link Google Maps.');
                         return;
                     }
                     applyGpsToFallbackPhoto(parsed.lat, parsed.lng, 'incollate');
@@ -118,7 +118,7 @@
                 try {
                     await ensureLeafletLoaded();
                 } catch (e) {
-                    alert('⚠️ ' + e.message);
+                    alert('' + e.message);
                     showPhotoGpsFallbackStep('choices');
                     return;
                 }
@@ -549,7 +549,7 @@
                     avvisaFotoMancantiNelBackup(mancanti);
                     return true;
                 } catch(e) {
-                    alert('⚠️ Errore durante l\'esportazione del backup JSON: ' + e.message);
+                    alert('Errore durante l\'esportazione del backup JSON: ' + e.message);
                     return false;
                 }
             }
@@ -561,7 +561,7 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (!imported || (!imported.state && !imported.projects)) {
-                            alert('⚠️ Il file selezionato non è un backup valido di DPSH Field Collector!');
+                            alert('Il file selezionato non è un backup valido di DPSH Field Collector!');
                             return;
                         }
 
@@ -573,7 +573,7 @@
                         if (targetState.projects) targetState.projects = migraProgettiImportati(targetState.projects, VERSIONE_SCHEMA_DATI);
                         // Controllo di integrità su ciò che arriva (004c): si dice alla fine, non blocca.
                         const integrita = verificaIntegrita({ projects: targetState.projects || {} }, { correggi: true });
-                        if (await appConfirm('⚠️ IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
+                        if (await appConfirm('IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                             // L'unione sovrascrive i progetti con lo stesso id: prima una copia.
                             copiaPrimaDi('importare un archivio');
                             registraCorrezioni(state, integrita.correzioni, 'import');
@@ -622,7 +622,7 @@
                             triggerVibrate([50, 50, 50]);
                         }
                     } catch(err) {
-                        alert('⚠️ Impossibile leggere il file JSON: ' + err.message);
+                        alert('Impossibile leggere il file JSON: ' + err.message);
                     }
                 };
                 reader.readAsText(file);
@@ -634,7 +634,7 @@
             async function importGlobalZipBackup(file) {
                 if (!file) return;
                 try {
-                    if (!await appConfirm('⚠️ IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
+                    if (!await appConfirm('IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                         return;
                     }
                     copiaPrimaDi('importare un archivio');
@@ -650,7 +650,7 @@
                     triggerVibrate([50, 50, 50]);
                 } catch (err) {
                     console.error('Import ZIP error:', err);
-                    alert('⚠️ Impossibile leggere il file ZIP:\n\n' + err.message);
+                    alert('Impossibile leggere il file ZIP:\n\n' + err.message);
                 }
             }
 

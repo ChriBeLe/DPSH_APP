@@ -723,7 +723,7 @@
                 const titolo = `Note — ${proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto'}`;
                 try {
                     const printWindow = window.open('', '_blank');
-                    if (!printWindow) { alert('⚠️ Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
+                    if (!printWindow) { alert('Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
                     const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
                     const dataStr = new Date().toLocaleDateString('it-IT');
                     const fullDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>

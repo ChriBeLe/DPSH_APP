@@ -42,7 +42,7 @@
                         const parsed = JSON.parse(text);
                         const incoming = parsed.lithologyArchive || (parsed.type === 'dpsh_lithology_archive' ? {} : null);
                         if (!incoming || typeof incoming !== 'object' || Object.keys(incoming).length === 0) {
-                            appAlert('⚠️ Il file non contiene un archivio litologico valido.');
+                            appAlert('Il file non contiene un archivio litologico valido.');
                             return;
                         }
                         const { imported, renamed } = mergeLithologyArchiveInto(incoming);
@@ -52,7 +52,7 @@
                         toastODialogo(`Importate ${imported} ${imported === 1 ? 'voce' : 'voci'} nell'archivio litologico`,
                             renamed > 0 ? `${renamed} avevano lo stesso ID di una voce già presente: salvate come copia con "(Importato)" nel nome.` : '');
                     } catch (err) {
-                        appAlert('⚠️ Errore durante l\'importazione: ' + err.message);
+                        appAlert('Errore durante l\'importazione: ' + err.message);
                     } finally {
                         fileImportArchive.value = '';
                     }

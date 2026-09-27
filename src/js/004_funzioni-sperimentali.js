@@ -488,10 +488,10 @@
                     ? 'SPAZIO ESAURITO: da questo momento i dati NON vengono più salvati.\n\n'
                       + 'Non continuare a lavorare: tutto quello che aggiungerai andrebbe perso alla chiusura dell\'app.\n\n'
                       + 'Cosa fare, in questo ordine:\n'
-                      + '1) Menu ☰ → Backup Completo → Esporta (mette al sicuro quello che hai già)\n'
-                      + '2) Menu ☰ → Spazio occupato → "Foto orfane" (libera spazio senza perdere niente)'
+                      + '1) Impostazioni → Backup Completo → Esporta (mette al sicuro quello che hai già)\n'
+                      + '2) Impostazioni → Spazio occupato → "Foto orfane" (libera spazio senza perdere niente)'
                     : 'Non è stato possibile salvare i dati su questo dispositivo.\n\n'
-                      + 'Non continuare a lavorare prima di aver fatto un backup: Menu ☰ → Backup Completo → Esporta.\n\n'
+                      + 'Non continuare a lavorare prima di aver fatto un backup: Impostazioni → Backup Completo → Esporta.\n\n'
                       + 'Dettaglio tecnico: ' + ((e && e.message) || e);
                 appAlert(messaggio);
             }
@@ -554,20 +554,6 @@
             const btnCustomNoteSave = document.getElementById('btnCustomNoteSave');
             const selModalLithology = document.getElementById('selModalLithology');
             const btnCloseEditModalX = document.getElementById('btnCloseEditModalX');
-
-            // Modal Scheda Dettaglio (Read-Only)
-            const modalViewOverlay = document.getElementById('modalViewOverlay');
-            const modalViewStep = document.getElementById('modalViewStep');
-            const lblViewStepNum = document.getElementById('lblViewStepNum');
-            const txtViewStart = document.getElementById('txtViewStart');
-            const txtViewEnd = document.getElementById('txtViewEnd');
-            const txtViewColpi = document.getElementById('txtViewColpi');
-            const txtViewAsta = document.getElementById('txtViewAsta');
-            const txtViewLithology = document.getElementById('txtViewLithology');
-            const txtViewRpd = document.getElementById('txtViewRpd');
-            const txtViewNote = document.getElementById('txtViewNote');
-            const btnViewSwitchToEdit = document.getElementById('btnViewSwitchToEdit');
-            const btnViewClose = document.getElementById('btnViewClose');
 
             // Drawer & Archive Elements
             const drawerMenu = document.getElementById('drawerMenu');

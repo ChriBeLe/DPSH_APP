@@ -306,7 +306,9 @@ Da 1024 px in su (decisione I):
 4. **Editor dei template** a tutto schermo, senza cambiare il suo funzionamento interno.
 5. Scorciatoie da tastiera documentate (tasto `?`) e un menu ⋯ al posto dei gesti touch.
 
-### Fase 8 — Sistema visivo e pulizia
+### Fase 8 — Sistema visivo e pulizia ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_8_ESITO.md`. 53/53 suite. La migrazione completa degli stili resta da fare man mano.
+
 1. **Regole di stile comuni (token):**
    - scala dei caratteri 12 · 14 · 16 · 20 · 28, più quella del contatore;
    - bottoni alti 36 · 44 · 56;

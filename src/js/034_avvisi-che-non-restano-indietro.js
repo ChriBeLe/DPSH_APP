@@ -1281,8 +1281,8 @@
                          concreti: nel menu normale la sezione occupa una riga invece di mezzo
                          pannello, e il riassunto dice già quante pagine servono senza doverla aprire. -->
                     <button type="button" class="tpl-editor-interr-riepilogo" data-action="espandi-interruzioni" title="Apri l'elenco delle categorie per scegliere dove spezzare la tabella">
-                        <span class="tpl-editor-interr-riepilogo-titolo">⚡ Interruzioni di pagina</span>
-                        <span class="tpl-editor-interr-riepilogo-valore">${Math.max(1, segmentiPagina.length)} pagin${Math.max(1, segmentiPagina.length) === 1 ? 'a' : 'e'}${avvisiOverflowBlocco.some(g => g.supera) ? ' <span style="color:#f87171;">⚠</span>' : ''}</span>
+                        <span class="tpl-editor-interr-riepilogo-titolo">Interruzioni di pagina</span>
+                        <span class="tpl-editor-interr-riepilogo-valore">${Math.max(1, segmentiPagina.length)} pagin${Math.max(1, segmentiPagina.length) === 1 ? 'a' : 'e'}${avvisiOverflowBlocco.some(g => g.supera) ? ' <span style="color:#f87171;"></span>' : ''}</span>
                         <span class="tpl-editor-interr-riepilogo-freccia">›</span>
                     </button>
                     <!-- PAGINA 2: compare al posto del resto del menu, scorrendo da destra. -->
@@ -1341,7 +1341,7 @@
                                                  per calcolare i tagli sono già tutti misurati, chiedere
                                                  all'utente di indovinarli era lavoro inutile. -->
                                             ${limitePaginaMenuMm > 0 ? `<div style="display:flex; gap:5px; flex-wrap:wrap;">
-                                                <button type="button" class="tpl-editor-dividi-btn" data-action="dividi-gruppo" data-gruppo-da="${gruppoInizioQui.da}" data-gruppo-a="${gruppoInizioQui.a}" title="Calcola dai millimetri già misurati dove cadono i tagli e inserisce le interruzioni">✂ Dividi tu al posto mio</button>
+                                                <button type="button" class="tpl-editor-dividi-btn" data-action="dividi-gruppo" data-gruppo-da="${gruppoInizioQui.da}" data-gruppo-a="${gruppoInizioQui.a}" title="Calcola dai millimetri già misurati dove cadono i tagli e inserisce le interruzioni">Dividi tu al posto mio</button>
                                                 <button type="button" class="tpl-editor-dividi-btn" data-action="condensa-blocco" title="Prova impostazioni di altezza righe e carattere via via più strette, misurandole davvero, e sceglie la meno aggressiva che fa stare il blocco nel minor numero di pagine">🗜 Condensa al minimo</button>
                                             </div>` : ''}
                                         </div>
@@ -1353,7 +1353,7 @@
                                 const catNonEntraDaSola = mmCat !== null && limitePaginaMenuMm > 0 && mmCat > limitePaginaMenuMm;
                                 const badgeMm = mmCat === null ? '' : `<span class="tpl-editor-interr-mm" style="flex-shrink:0; font-size:9px; font-weight:700; color:${catNonEntraDaSola ? '#b91c1c' : 'var(--text-muted)'};" title="${catNonEntraDaSola
                                     ? `Questa categoria da sola misura ${Math.round(mmCat)}mm e non entra in una pagina (${Math.round(limitePaginaMenuMm)}mm utili): nessuna interruzione può risolverlo, serve ridurre altezza righe o dimensione testo`
-                                    : `Questa categoria occupa ${Math.round(mmCat)}mm dei ${Math.round(limitePaginaMenuMm)}mm utili di una pagina`}">${catNonEntraDaSola ? '⚠ ' : ''}${mmCat < 1 ? '&lt;1' : Math.round(mmCat)}mm</span>`;
+                                    : `Questa categoria occupa ${Math.round(mmCat)}mm dei ${Math.round(limitePaginaMenuMm)}mm utili di una pagina`}">${catNonEntraDaSola ? '' : ''}${mmCat < 1 ? '&lt;1' : Math.round(mmCat)}mm</span>`;
                                 const chip = `<div class="tpl-editor-interr-chip" style="display:flex; align-items:center; gap:6px; padding:4px 7px; border-radius:5px; background:#${colore}2E; border-left:4px solid #${colore};">
                                     <span class="tpl-editor-interr-badge" style="flex-shrink:0; font-size:9px; font-weight:800; color:var(--text-muted); background:var(--bg-card); border:1px solid var(--border); border-radius:999px; padding:1px 6px;" title="Questa categoria finisce sulla pagina ${paginaCorrenteMenu} del blocco">P.${paginaCorrenteMenu}</span>
                                     <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--text-main);">${escapeHtmlDidascalia(c.etichetta)}</span>
@@ -1374,7 +1374,7 @@
                                         ? `<div class="tpl-editor-interr-divider" style="display:flex; align-items:center; gap:5px; margin:3px 0; font-size:9.5px; color:#2563eb; font-weight:600;">
                                             <span style="flex:1; border-top:1.5px dashed #2563eb;"></span>
                                             ${riempimento}
-                                            <span>✂ pagina ${paginaCorrenteMenu} (manuale)</span>
+                                            <span>pagina ${paginaCorrenteMenu} (manuale)</span>
                                             <button type="button" class="tpl-editor-interr-remove-btn" data-action="rimuovi-forza-pagina" data-categoria-indice="${c.indice}" title="Rimuovi questa interruzione manuale" style="border:none; background:none; cursor:pointer; color:#2563eb; font-size:12px; line-height:1; padding:1px 3px; flex-shrink:0;">✕</button>
                                             <span style="flex:1; border-top:1.5px dashed #2563eb;"></span>
                                         </div>`
@@ -1396,7 +1396,7 @@
                         })()}
                     </div>
                     ${elencoCategorieFlowable.length > 1 ? `<div style="font-size:10px; color:var(--text-muted); margin-top:3px; text-align:right;">Totale: ${Math.max(1, segmentiPagina.length)} pagin${Math.max(1, segmentiPagina.length) === 1 ? 'a' : 'e'} per questo blocco${(mmTotaliBlocco > 0 && limitePaginaMenuMm > 0) ? ` · ${Math.round(mmTotaliBlocco)}mm di contenuto, ${Math.ceil(mmTotaliBlocco / limitePaginaMenuMm)} pagin${Math.ceil(mmTotaliBlocco / limitePaginaMenuMm) === 1 ? 'a' : 'e'} nel caso migliore` : ''}</div>` : ''}
-                    ${avvisiOverflowBlocco.some(g => g.supera) ? `<div style="font-size:10px; color:#b91c1c; font-weight:700; margin-top:2px; text-align:right;">⚠ almeno ${avvisiOverflowBlocco.reduce((s, g) => s + g.paginePreviste, 0)} pagine fisiche reali probabili (misurate)</div>` : ''}
+                    ${avvisiOverflowBlocco.some(g => g.supera) ? `<div style="font-size:10px; color:#b91c1c; font-weight:700; margin-top:2px; text-align:right;">almeno ${avvisiOverflowBlocco.reduce((s, g) => s + g.paginePreviste, 0)} pagine fisiche reali probabili (misurate)</div>` : ''}
                     </div>
                     </div>
                     ` : ''}

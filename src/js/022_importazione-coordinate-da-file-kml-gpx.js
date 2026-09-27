@@ -105,7 +105,7 @@
                             });
                         }
                     } catch (err) {
-                        appAlert('⚠️ Errore durante la lettura del file: ' + err.message);
+                        appAlert('Errore durante la lettura del file: ' + err.message);
                     } finally {
                         fileImportGpsKml.value = '';
                     }

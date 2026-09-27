@@ -845,7 +845,7 @@
                 btnConfirmNewProject.addEventListener('click', () => {
                     const comune = txtProjComune ? txtProjComune.value.trim() : '';
                     if (!comune) {
-                        alert('⚠️ Il campo "Comune" è obbligatorio per creare il progetto!');
+                        alert('Il campo "Comune" è obbligatorio per creare il progetto!');
                         txtProjComune.focus();
                         return;
                     }
@@ -1065,7 +1065,7 @@
                     }
 
                     if (!placemarksXml) {
-                        alert('⚠️ Nessuna prova in questo progetto ha coordinate GPS valide per l\'esportazione KML!');
+                        alert('Nessuna prova in questo progetto ha coordinate GPS valide per l\'esportazione KML!');
                         return;
                     }
 
@@ -1089,7 +1089,7 @@
                     URL.revokeObjectURL(url);
                 } catch(e) {
                     console.error('exportProjectKML error:', e);
-                    alert('⚠️ Si è verificato un errore durante l\'esportazione KML: ' + e.message);
+                    alert('Si è verificato un errore durante l\'esportazione KML: ' + e.message);
                 }
             }
 
@@ -1101,7 +1101,7 @@
                     const photos = state.photos || [];
                     
                     if (h.lat === null || h.lng === null || isNaN(h.lat) || isNaN(h.lng)) {
-                        alert('⚠️ La prova corrente non ha coordinate GPS valide per l\'esportazione KML! Acquisisci prima la posizione GPS.');
+                        alert('La prova corrente non ha coordinate GPS valide per l\'esportazione KML! Acquisisci prima la posizione GPS.');
                         return;
                     }
 
@@ -1161,7 +1161,7 @@
                     URL.revokeObjectURL(url);
                 } catch(e) {
                     console.error('exportSingleSurveyKML error:', e);
-                    alert('⚠️ Errore durante l\'esportazione KML della prova: ' + e.message);
+                    alert('Errore durante l\'esportazione KML della prova: ' + e.message);
                 }
             }
 
@@ -1170,11 +1170,11 @@
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
-                        alert('⚠️ Progetto non trovato!');
+                        alert('Progetto non trovato!');
                         return;
                     }
                     if (typeof XLSX === 'undefined') {
-                        alert('⚠️ La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
+                        alert('La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
                         return;
                     }
 
@@ -1264,7 +1264,7 @@
 
                         if (photos.length > 0) {
                             sheetData.push([]);
-                            sheetData.push(["📸 REGISTRO FOTO CANTIERE GEOREFERENZIATE (ZERO COMPRESSIONE - INTEGRALI HD)"]);
+                            sheetData.push(["REGISTRO FOTO CANTIERE GEOREFERENZIATE (ZERO COMPRESSIONE - INTEGRALI HD)"]);
                             sheetData.push(["N° Foto", "Nome / Didascalia", "Data / Ora Scatto", "Coordinate GPS Foto", "Stato Foto", "Riferimento ID / DataURL (Excel Spec Compliant)"]);
 
                             for (let pIdx = 0; pIdx < photos.length; pIdx++) {
@@ -1283,7 +1283,7 @@
                                     p.name || `Foto Cantiere ${pIdx + 1}`,
                                     p.timestamp || 'N.D.',
                                     gpsText,
-                                    fullDataUrl ? '📸 Foto HD Integrale Presente' : 'Assente',
+                                    fullDataUrl ? 'Foto HD Integrale Presente' : 'Assente',
                                     safePreview
                                 ]);
                             }
@@ -1298,7 +1298,7 @@
                     XLSX.writeFile(wb, fileName);
                 } catch(e) {
                     console.error('exportProjectExcel error:', e);
-                    alert('⚠️ Errore durante l\'esportazione Excel del progetto: ' + e.message);
+                    alert('Errore durante l\'esportazione Excel del progetto: ' + e.message);
                 }
             }
 

@@ -1422,63 +1422,6 @@ ${bodyConBgcolor}
                 });
             });
 
-            // MODAL DETTAGLIO SCHEDA INTERVALLO (READ-ONLY)
-            let viewingIndex = -1;
-
-            function openViewModal(idx) {
-                if (idx < 0 || idx >= state.logs.length) return;
-                viewingIndex = idx;
-                const item = state.logs[idx];
-                lblViewStepNum.textContent = `#${idx + 1}`;
-                txtViewStart.value = item.start.toFixed(2);
-                txtViewEnd.value = item.end.toFixed(2);
-                txtViewColpi.value = item.colpi;
-                txtViewAsta.value = `Asta N° ${item.asta}`;
-                txtViewNote.value = item.note || '-';
-
-                // Litologia effettiva (con ereditarietà)
-                const litObj = getEffectiveLithology(idx);
-                if (txtViewLithology) {
-                    txtViewLithology.value = litObj ? litObj.name : '-';
-                    if (txtViewLithology) txtViewLithology.style.background = litObj ? litObj.color + '33' : '';
-                }
-
-                // Calcolo Rpd istantaneo per la scheda
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
-                const M_prime = (item.asta * pesoAsta) + pesoSistema;
-                if (item.colpi > 0) {
-                    const rpd = (M * M * H * item.colpi) / (A * deltaS * (M + M_prime));
-                    txtViewRpd.value = `${rpd.toFixed(2)} kg/cm²`;
-                } else {
-                    txtViewRpd.value = '-';
-                }
-
-                modalViewOverlay.classList.add('open');
-                modalViewStep.classList.add('open');
-            }
-
-            function closeViewModal() {
-                modalViewOverlay.classList.remove('open');
-                modalViewStep.classList.remove('open');
-                viewingIndex = -1;
-            }
-
-            if (btnViewClose) btnViewClose.addEventListener('click', closeViewModal);
-            if (modalViewOverlay) modalViewOverlay.addEventListener('click', closeViewModal);
-
-            if (btnViewSwitchToEdit) {
-                btnViewSwitchToEdit.addEventListener('click', () => {
-                    const idx = viewingIndex;
-                    closeViewModal();
-                    if (idx >= 0) openEditModal(idx);
-                });
-            }
-
             // HANDLERS NOTA PERSONALIZZATA
             if (btnCustomNote) {
                 btnCustomNote.addEventListener('click', () => {
@@ -1763,7 +1706,7 @@ ${bodyConBgcolor}
 
             function fetchGpsPositionModal() {
                 if (!navigator.geolocation) {
-                    alert('⚠️ Geolocalizzazione non supportata dal tuo browser.');
+                    alert('Geolocalizzazione non supportata dal tuo browser.');
                     return;
                 }
 
@@ -1772,7 +1715,7 @@ ${bodyConBgcolor}
                 // sistema (impostazioni telefono) abilitati. Su desktop molti browser sono
                 // più permissivi (es. con file://), motivo per cui lì può sembrare funzionare.
                 if (window.isSecureContext === false) {
-                    alert('⚠️ GPS bloccato dal browser: questa pagina non è aperta in un contesto sicuro (HTTPS).\n\nAnche con i permessi di localizzazione attivi nelle impostazioni del telefono, i browser mobile impediscono l\'accesso al GPS a pagine caricate via file:// o http:// non protetto.\n\nSoluzione: carica/apri l\'app da un indirizzo HTTPS (es. tramite hosting, o installandola come PWA da un sito servito in HTTPS).');
+                    alert('GPS bloccato dal browser: questa pagina non è aperta in un contesto sicuro (HTTPS).\n\nAnche con i permessi di localizzazione attivi nelle impostazioni del telefono, i browser mobile impediscono l\'accesso al GPS a pagine caricate via file:// o http:// non protetto.\n\nSoluzione: carica/apri l\'app da un indirizzo HTTPS (es. tramite hosting, o installandola come PWA da un sito servito in HTTPS).');
                     return;
                 }
 
@@ -1814,7 +1757,7 @@ ${bodyConBgcolor}
                         (err) => {
                             if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
                             updateModalGpsStatusText();
-                            alert(`⚠️ Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
+                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
                         },
                         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
                     );
@@ -1827,7 +1770,7 @@ ${bodyConBgcolor}
                         // subito a bassa precisione: mostriamo l'errore chiaro all'utente.
                         if (err && err.code === 1) {
                             if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            alert(`⚠️ Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
+                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
                             return;
                         }
                         tryLowAccuracy();
@@ -1860,7 +1803,7 @@ ${bodyConBgcolor}
                     try {
                         await ensureLeafletLoaded();
                     } catch (e) {
-                        alert('⚠️ ' + e.message);
+                        alert('' + e.message);
                         closeAllGpsAccordion();
                         return;
                     }
@@ -2060,7 +2003,7 @@ ${bodyConBgcolor}
                         (err) => {
                             btnGpsMapGoToMe.disabled = false;
                             btnGpsMapGoToMe.innerHTML = `${ico('satellite')} Vai alla Mia Posizione`;
-                            appAlert('⚠️ Impossibile ottenere la posizione attuale: ' + ((err && err.message) || 'errore sconosciuto'));
+                            appAlert('Impossibile ottenere la posizione attuale: ' + ((err && err.message) || 'errore sconosciuto'));
                         },
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
                     );

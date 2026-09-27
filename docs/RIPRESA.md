@@ -69,14 +69,15 @@ Prototipo approvato (lavagna): https://claude.ai/artifact/4wQitcFLA5y6gWHj4fThJY
 - Il pacchetto telefono ↔ PC è una copia esatta.
 - Niente «Condividi», niente cloud, niente service worker.
 
-**Cosa resta, in ordine di utilità:**
-1. **Editor dei template** (fase nuova, chiesta il 27/09/2026): storture, uso poco scorrevole,
-   mancano i menù per eliminare, spostare ecc. i blocchi. Si parte da un inventario e dai miei
-   screenshot.
-2. **Fase 4, Scheda prova unica** (Dati · Strumento · Falda · GPS · Foto): peso grande. Da fare solo se dopo l'uso serve ancora.
-3. **Fase 5:** schermata Progetto, Consegna unica, Impostazioni riordinate.
-4. **Fase 7:** layout a colonne per il PC.
-5. **Fase 8:** allineare le schermate vecchie allo stile (elenco nel §6 di `FASE_3_ESITO.md`).
+**Stato al 27/09/2026 (sera):** tutte le fasi 0–8 fatte sul ramo `claude/epic-davinci-19p1z9`
+(da unire in `main`), esiti in `docs/fasi/`. 53/53 suite verdi. Editor dei template: ritocchi fatti,
+inventario in `docs/INVENTARIO_EDITOR_TEMPLATE.md`.
+
+**Cosa resta:**
+1. Le mie osservazioni dall'uso delle fasi 4–8 (`docs/OSSERVAZIONI.md`).
+2. Inventario della schermata di acquisizione (`docs/INVENTARIO_ACQUISIZIONE.md`): le mie scelte.
+3. Editor dei template: le «storture» da screenshot.
+4. Le cose «non fatte, e perché» negli esiti delle fasi 4, 5, 7, 8, se servono.
 
 Parti chiedendomi se ho provato l'app sul telefono e cosa ho notato. Poi proponimi il prossimo pezzo con il suo peso.
 

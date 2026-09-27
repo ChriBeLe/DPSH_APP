@@ -38,7 +38,7 @@
                     return;
                 }
                 lblAutoStratiPreview.style.display = 'block';
-                lblAutoStratiPreview.textContent = `📊 Con questi parametri verrebbero rilevati ${segs.length} strat${segs.length === 1 ? 'o' : 'i'}.`;
+                lblAutoStratiPreview.textContent = `Con questi parametri verrebbero rilevati ${segs.length} strat${segs.length === 1 ? 'o' : 'i'}.`;
             }
 
             function openAutoStratiParamsModal() {

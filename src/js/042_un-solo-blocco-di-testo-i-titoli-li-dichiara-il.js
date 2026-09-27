@@ -876,7 +876,7 @@
                 const ctx = templateEditorState.ctx;
                 const senzaGps = usaInquadramento && ctx && !ctx.gpsInfo;
                 if (senzaGps) {
-                    lbl.textContent = '⚠ Questa prova non ha GPS: il blocco Inquadramento è più corto del reale';
+                    lbl.textContent = 'Questa prova non ha GPS: il blocco Inquadramento è più corto del reale';
                     lbl.style.display = '';
                 } else {
                     lbl.style.display = 'none';
