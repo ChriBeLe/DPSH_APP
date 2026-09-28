@@ -1,0 +1,25 @@
+    <!-- VISTA 3D: il terreno del DTM e le colonne stratigrafiche delle prove, ruotabili col mouse o
+         col dito. Disegnata in SVG, senza librerie. La riempie il pezzo 071h. -->
+    <div class="modal-overlay" id="modalVista3dOverlay"></div>
+    <div class="modal sezione" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span id="titoloVista3d">Vista 3D</span>
+            <button type="button" class="chiudi-x" id="btnChiudiVista3d" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <p class="t-didascalia">Trascina per girare e inclinare. Per avvicinarti: due dita, la rotella o + −; da tastiera anche ← → ↑ ↓. Tocca una colonna per il suo fumetto.</p>
+        <div class="pillole" id="livelliVista3d" aria-label="Livelli">
+            <button type="button" class="pillola" data-livello="terreno">Terreno</button>
+            <button type="button" class="pillola" data-livello="colonne">Colonne</button>
+            <button type="button" class="pillola" data-livello="pannelli">Pannelli di correlazione</button>
+            <button type="button" class="pillola" data-livello="superfici">Superfici di contatto</button>
+            <button type="button" class="pillola" data-livello="giaciture">Giaciture</button>
+            <button type="button" class="pillola" data-livello="nomi">Nomi</button>
+            <button type="button" class="pillola" data-livello="misure">Misure</button>
+        </div>
+        <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
+        <div class="terreno-comandi" style="align-items: center;">
+            <label class="vista3d-esag">Esagerazione verticale <input type="range" id="rngEsag3d" min="1" max="30" step="1" value="5"> <strong id="lblEsag3d">×5</strong></label>
+            <button type="button" class="bt" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>
+            <button type="button" class="bt" id="btnScaricaObj3d" title="Terreno, colonne, pannelli e superfici in metri veri, per Blender, MeshLab, QGIS"><svg class="ico"><use href="#i-download"/></svg>Modello 3D (OBJ)</button>
+        </div>
+    </div>

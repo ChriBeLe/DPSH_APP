@@ -13,7 +13,6 @@ markup/01_modalPhoto.html
 markup/02_modalGps.html
 markup/03_modal.html
 markup/04_modalCustomNote.html
-markup/05_modalView.html
 markup/06_modalStrati.html
 markup/07_modalArchivePicker.html
 markup/08_modalArchiveManager.html
@@ -33,7 +32,6 @@ markup/21_modalQuickFalda.html
 markup/22_appDialog.html
 markup/23_modalDeleteSurvey.html
 markup/24_modalSurveySettings.html
-markup/25_modalCantiereInfo.html
 markup/26_modalConfirmDelete.html
 markup/27_modalBulkImport.html
 markup/28_modalExport.html
@@ -52,6 +50,10 @@ markup/40_modalNewProject.html
 markup/41_modalNewSurvey.html
 markup/42_drawer.html
 markup/43_modalPortaERicevi.html
+markup/44_modalPalette.html
+markup/45_modalTerreno.html
+markup/46_modalSezione.html
+markup/47_modalVista3d.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/05_tra-motore-e-app.html
@@ -135,5 +137,13 @@ js/068_compressione-foto-per-lexport-pdf.js
 js/069_lattesa-delle-mappe.js
 js/070_impaginazione-reale-di-riepilogo-dettagliata-all.js
 js/071_motore-unificato-di-impaginazione.js
+js/071a_barre-del-pc.js
+js/071b_registro-sul-pc.js
+js/071c_palette-e-scorciatoie.js
+js/071d_contatore-sul-pc.js
+js/071e_guida-rapida-pc.js
+js/071f_terreno-dtm.js
+js/071g_sezione.js
+js/071h_vista-3d.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

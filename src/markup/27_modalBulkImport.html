@@ -3,11 +3,12 @@
     <div class="modal-overlay" id="modalBulkImportOverlay"></div>
     <div class="modal" id="modalBulkImport">
         <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <span><svg class="ico"><use href="#i-list"/></svg> Importa Intervalli Multipli</span>
+            <span><svg class="ico"><use href="#i-list"/></svg> Aggiungi intervalli</span>
             <button class="btn-icon" id="btnCloseBulkImportX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px;"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
-            Incolla qui una sequenza di colpi (es: <code>5 8 12 15 20</code> oppure separati da virgole o a capo). Verranno generati automaticamente gli intervalli consecutivi.
+            Scrivi i colpi (<code>5 8 12 15</code>, anche con virgole o a capo) o incolla le righe da Excel o da un CSV:
+            i colpi sono l'ultima colonna. Si parte dalla quota a cui è arrivata la prova, un passo per numero.
         </p>
 
         <div style="margin-bottom: 10px;">
@@ -16,13 +17,15 @@
 
         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Conteggio Rilevato:</span>
-                <span id="lblBulkImportCount" style="font-size: 12px; font-weight: 800; color: var(--accent);">0 colpi trovati</span>
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Da aggiungere</span>
+                <span id="lblBulkImportCount" style="font-size: 12px; font-weight: 800; color: var(--accent);">0 intervalli</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Profondità Raggiunta:</span>
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Quote</span>
                 <span id="lblBulkImportDepth" style="font-size: 12px; font-weight: 800; color: var(--accent);">0.00m</span>
             </div>
+            <!-- Cosa verrà scritto, riga per riga, e cosa non si è capito (prototipo PC, passo 3). -->
+            <div id="anteprimaBulkImport" class="anteprima-intervalli"></div>
         </div>
 
         <div class="form-group" style="margin-bottom: 16px;">

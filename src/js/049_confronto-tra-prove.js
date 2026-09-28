@@ -228,12 +228,12 @@
 
                 if (elDettaglio) {
                     elDettaglio.innerHTML = [
-                        `📄 Progetti, prove e template: <strong>${formattaByte(s.localStorageBytes)}</strong>`,
-                        `📷 Foto: <strong>${formattaByte(s.fotoBytes)}</strong> (${s.fotoCount})`,
-                        s.noteCount > 0 ? `🖼️ Immagini nelle note: <strong>${formattaByte(s.noteBytes)}</strong> (${s.noteCount})` : '',
-                        copieAutomatiche.indice.length > 0 ? `🕘 Copie automatiche: <strong>${formattaByte(copieAutomatiche.indice.reduce((n, v) => n + (v.byte || 0), 0))}</strong> (${copieAutomatiche.indice.length})` : '',
+                        `Progetti, prove e template: <strong>${formattaByte(s.localStorageBytes)}</strong>`,
+                        `Foto: <strong>${formattaByte(s.fotoBytes)}</strong> (${s.fotoCount})`,
+                        s.noteCount > 0 ? `Immagini nelle note: <strong>${formattaByte(s.noteBytes)}</strong> (${s.noteCount})` : '',
+                        copieAutomatiche.indice.length > 0 ? `Copie automatiche: <strong>${formattaByte(copieAutomatiche.indice.reduce((n, v) => n + (v.byte || 0), 0))}</strong> (${copieAutomatiche.indice.length})` : '',
                         s.orfaneCount > 0
-                            ? `<span style="color:var(--danger); font-weight:700;">🗑️ Recuperabili: ${formattaByte(s.orfaneBytes)} in ${s.orfaneCount} immagini di progetti eliminati</span>`
+                            ? `<span style="color:var(--danger); font-weight:700;">Recuperabili: ${formattaByte(s.orfaneBytes)} in ${s.orfaneCount} immagini di progetti eliminati</span>`
                             : `<span style="color:var(--success);">✓ Nessuna immagine da recuperare</span>`
                     ].filter(Boolean).join('<br>');
                 }
@@ -279,8 +279,8 @@
                         `Testo complessivo: ${(r.caratteri / 1024).toFixed(1)} KB`,
                         '',
                         r.conPerdite.length === 0
-                            ? `✅ Conversione senza perdite su tutte e ${r.senzaPerdite} le note.`
-                            : `⚠️ ${r.conPerdite.length} note perderebbero qualcosa:`
+                            ? `Conversione senza perdite su tutte e ${r.senzaPerdite} le note.`
+                            : `${r.conPerdite.length} note perderebbero qualcosa:`
                     ];
                     r.conPerdite.slice(0, 6).forEach(p => righe.push(`• ${p.progetto}: ${p.perdite.join('; ')}`));
                     if (r.conPerdite.length > 6) righe.push(`…e altre ${r.conPerdite.length - 6}.`);

@@ -14,6 +14,78 @@
             </span>
             <button class="btn-icon" id="btnCloseSurveySettingsX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
+        <!-- LA SCHEDA DELLA PROVA (Fase 4): unisce «Intestazione Cantiere» e «Impostazioni Prova». I campi
+             sono gli stessi di prima (stessi id, stessi gestori): cambia solo dove stanno. -->
+        <div class="schede-prova" role="tablist" style="margin-bottom: 12px;">
+            <button type="button" role="tab" data-scheda-prova="dati">Dati</button>
+            <button type="button" role="tab" data-scheda-prova="strumento">Strumento</button>
+        </div>
+        <div data-pannello-prova="dati">
+            <div class="scheda-prova-rapidi">
+                <button type="button" class="bt bt-tenue" data-apri="gps"><svg class="ico"><use href="#i-pin"/></svg>GPS</button>
+                <button type="button" class="bt bt-tenue" data-apri="foto"><svg class="ico"><use href="#i-camera"/></svg>Foto</button>
+                <button type="button" class="bt bt-tenue" data-apri="falda"><svg class="ico"><use href="#i-droplet"/></svg>Falda</button>
+            </div>
+        <div class="t-didascalia scheda-prova-gruppo">Del progetto</div>
+        <!-- Il nome del progetto: prima si sceglieva solo alla creazione e non si poteva più cambiare. -->
+        <div class="form-group">
+            <label>Nome del progetto</label>
+            <input type="text" id="txtNomeProgetto" class="form-control" placeholder="es. Scuola Via Roma">
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Cliente / Committente</label>
+                <input type="text" id="txtCommittente" class="form-control" placeholder="es. Mario Rossi">
+            </div>
+            <div class="form-group">
+                <label>Comune</label>
+                <input type="text" id="txtComune" class="form-control" placeholder="es. Genzano">
+            </div>
+        </div>
+
+
+        <!-- DUE DATI DEL CANTIERE, NON DELLA PROVA. Servono all'apertura della relazione
+             ("per conto della ditta X, con sede a Y, a corredo dell'intervento denominato Z") e
+             sono uguali per tutte le prove dello stesso cantiere: si scrivono una volta e
+             valgono per il progetto intero, come gia' fanno comune, committente e localita'. -->
+        <div class="form-group">
+            <label>Provincia</label>
+            <input type="text" id="txtProvincia" class="form-control" placeholder="es. TA" maxlength="30">
+            <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Compare nell&rsquo;ubicazione del sito: &laquo;in agro del Comune di Sava (TA)&raquo;.</div>
+        </div>
+        <div class="form-group">
+            <label>Sede del committente</label>
+            <input type="text" id="txtSedeCommittente" class="form-control" placeholder="es. S.P. Sava-San Marzano, Zona Industriale di Sava (TA)">
+        </div>
+        <div class="form-group">
+            <label>Denominazione dell'intervento</label>
+            <input type="text" id="txtDenominazioneIntervento" class="form-control" placeholder="es. Interventi previsti nell'Area industriale di Taranto…">
+        </div>
+
+        <div class="t-didascalia scheda-prova-gruppo">Di questa prova</div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Località / Indirizzo</label>
+                <input type="text" id="txtLocalita" class="form-control" placeholder="es. Via Roma 10">
+            </div>
+            <div class="form-group">
+                <label>Data Indagine</label>
+                <input type="date" id="txtDataIndagine" class="form-control">
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+            <div class="form-group">
+                <label>Prova N°</label>
+                <input type="text" id="txtProvaNr" class="form-control" placeholder="es. 1" value="1">
+            </div>
+            <div class="form-group">
+                <label>Lunghezza Asta (m)</label>
+                <input type="number" id="numHeaderLunghAsta" class="form-control" placeholder="es. 1.00" value="1.00" step="0.1">
+            </div>
+        </div>
+        </div>
+        <div data-pannello-prova="strumento">
         <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px;">
             Penetrometro e geometria strumento usati per QUESTA prova. Ogni prova può avere i suoi, indipendentemente dalle altre — non influenzano il resto del progetto.
         </div>
@@ -128,6 +200,8 @@
                     laboratorio te lo impone, e sappi che nella relazione i due numeri divergeranno.
                 </div>
             </div>
+        </div>
+
         </div>
 
         <!-- DUPLICA COME INTERPRETAZIONE: una seconda versione della stessa prova, per interpretare

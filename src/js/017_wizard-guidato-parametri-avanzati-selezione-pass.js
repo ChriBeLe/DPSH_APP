@@ -491,7 +491,7 @@
                             : '';
                         const voceCompatibilita = c.suggerito ? `<div class="wiz-voce"><b>Perché è compatibile:</b> ${c.spiegazione}</div>` : '';
                         const voceScientifica = nota ? `<div class="wiz-voce"><b>Base scientifica (${gruppo.autore}):</b> ${nota.testo} ${fonteTag}</div>` : '';
-                        const voceAvviso = nota?.avviso ? `<div class="wiz-voce"><b>⚠ Attenzione:</b> ${nota.avviso}</div>` : '';
+                        const voceAvviso = nota?.avviso ? `<div class="wiz-voce"><b>Attenzione:</b> ${nota.avviso}</div>` : '';
                         const contenutoPannello = voceCompatibilita + voceScientifica + voceAvviso || '<div class="wiz-voce">Nessuna nota disponibile per questa variante.</div>';
 
                         const haQualcosaDaSpiegare = c.suggerito || nota;
@@ -525,7 +525,7 @@
 
                 const numTipici = CATEGORIE.filter(c=>categoriaTipicaPerStrato(c, strato)).length;
 
-                const hintPallini = mostraHintPallini ? `<div class="wiz-dots-hint">👆 Tocca o scorri i pallini per saltare tra i parametri</div>` : '';
+                const hintPallini = mostraHintPallini ? `<div class="wiz-dots-hint">Tocca o scorri i pallini per saltare tra i parametri</div>` : '';
 
                 const avvisoNonTipico = (!tipica && motivoNonTipico) ? `
                     <button type="button" class="wiz-avviso-non-tipico" data-wiz-avviso-non-tipico-toggle="${chiaveAvvisoNonTipico}">

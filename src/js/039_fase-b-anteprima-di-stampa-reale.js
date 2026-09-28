@@ -384,7 +384,7 @@
                             // resta visibile in console per poterlo diagnosticare, e la miniatura lo
                             // segnala esplicitamente invece di sembrare semplicemente vuota.
                             console.error('[renderTemplateEditorPagesStrip] Errore nel render della miniatura pagina', idx, err);
-                            miniHtml = `<div style="padding:8px; font-size:9px; color:#dc2626; text-align:center;">⚠ errore anteprima</div>`;
+                            miniHtml = `<div style="padding:8px; font-size:9px; color:#dc2626; text-align:center;">errore anteprima</div>`;
                         }
                         miniHtml = neutralizzaIdentificatoriMiniatura(miniHtml);
                         // FASE D (vedi Piano_Riscrittura_Layout_Export.md): confronto reale, calcolato

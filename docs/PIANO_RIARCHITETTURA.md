@@ -224,7 +224,9 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
 9. La barra fissa «Salvataggio sospeso» (Fase 1) copre la testata: deve spingere giù il
    contenuto invece di coprirlo. Visto dal coordinatore nel browser.
 
-### Fase 4 — Un posto per ogni dato (progetto e prova)
+### Fase 4 — Un posto per ogni dato (progetto e prova) ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_4_ESITO.md`. Senza migrazione: vedi «Decisione presa, da confermare».
+
 1. **Dati di progetto modificabili**, nome compreso, in un posto solo: nome, comune, provincia,
    committente, sede, denominazione, data. La card della Home li legge da lì.
 2. **Cosa è del progetto e cosa è della prova**, deciso una volta per tutte:
@@ -244,7 +246,9 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
    `syncStateToProject` / `syncProjectToActiveState`. Due copie sono una fonte classica di dati
    che si contraddicono: proponi se e come arrivare a una copia sola.
 
-### Fase 5 — Gerarchia e navigazione
+### Fase 5 — Gerarchia e navigazione ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_5_ESITO.md`. 52/52 suite.
+
 1. **Schermata Progetto:**
    - testata con nome e stato;
    - lista delle prove con N°, profondità raggiunta, n° intervalli, spie GPS/foto/falda e
@@ -273,7 +277,11 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
    - *Info e versione*;
    - *Sperimentali*.
 
-### Fase 6 — Il campo, sul telefono
+### Fase 6 — Il campo, sul telefono ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_6_ESITO.md`. 48/48 suite. Corretta dalle osservazioni dell'utente sul telefono:
+il Registro scorre in un riquadro con «Mostra tutte le righe» (invece di niente riquadro), l'ordine si
+inverte solo nell'elenco «Intervalli», la falda è passata dalle spie al ⋯ della prova.
+
 1. La prova ha due viste, **Conta | Registro**. Sotto il contatore si vedono gli ultimi 3
    intervalli. Il lucchetto e le barre doppie spariscono (una sola soluzione).
 2. Il Registro non ha più uno scorrimento dentro lo scorrimento. **L'ordine resta quello di
@@ -284,7 +292,9 @@ Gli interventi 1–8 del §5 dell'analisi, più la decisione G, secondo il proto
    dietro una «?».
 5. Note rapide su più righe, senza scorrimento orizzontale.
 
-### Fase 7 — Il PC, per la post-produzione
+### Fase 7 — Il PC, per la post-produzione ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_7_ESITO.md`. Versione minima; il resto dopo l'uso.
+
 Da 1024 px in su (decisione I):
 1. **Layout a colonne:** progetti e prove a sinistra, al centro il Registro con il grafico
    affiancato, a destra la scheda prova oppure gli strati. Tra 761 e 1023 px, due colonne.
@@ -296,7 +306,9 @@ Da 1024 px in su (decisione I):
 4. **Editor dei template** a tutto schermo, senza cambiare il suo funzionamento interno.
 5. Scorciatoie da tastiera documentate (tasto `?`) e un menu ⋯ al posto dei gesti touch.
 
-### Fase 8 — Sistema visivo e pulizia
+### Fase 8 — Sistema visivo e pulizia ✅ (ramo `claude/epic-davinci-19p1z9`, 27/09/2026, da unire)
+Esito: `docs/fasi/FASE_8_ESITO.md`. 53/53 suite. La migrazione completa degli stili resta da fare man mano.
+
 1. **Regole di stile comuni (token):**
    - scala dei caratteri 12 · 14 · 16 · 20 · 28, più quella del contatore;
    - bottoni alti 36 · 44 · 56;

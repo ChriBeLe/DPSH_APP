@@ -79,7 +79,17 @@
                 return nuovoId;
             }
 
-            function openSurveySettingsModal(survId) {
+            /** La scheda della prova (Fase 4): linguette Dati e Strumento; da Dati si aprono GPS, foto e falda. */
+            function mostraSchedaProva(scheda) {
+                modalSurveySettings.querySelectorAll('[data-scheda-prova]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.schedaProva === scheda)));
+                modalSurveySettings.querySelectorAll('[data-pannello-prova]').forEach(p => { p.style.display = p.dataset.pannelloProva === scheda ? '' : 'none'; });
+            }
+            modalSurveySettings.querySelectorAll('[data-scheda-prova]').forEach(b => b.addEventListener('click', () => mostraSchedaProva(b.dataset.schedaProva)));
+            modalSurveySettings.querySelectorAll('[data-apri]').forEach(b => b.addEventListener('click', () => {
+                closeSurveySettingsModal();
+                ({ gps: openGpsModal, foto: openSurveyPhotosModal, falda: openQuickFaldaModal })[b.dataset.apri]();
+            }));
+            function openSurveySettingsModal(survId, scheda = 'strumento') {
                 const proj = state.projects && state.projects[state.currentProjectId];
                 if (!proj || !proj.surveys || !proj.surveys[survId]) return;
                 // I campi della modale rispecchiano sempre la prova ATTIVA (state.instrument/state.settings):
@@ -94,7 +104,8 @@
                 }
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
-                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Impostazioni Prova N° ${h.provaNr || '1'}`;
+                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;
+                mostraSchedaProva(scheda);
                 surveySettingsContext = { survId };
                 if (modalSurveySettingsOverlay) modalSurveySettingsOverlay.classList.add('open');
                 if (modalSurveySettings) modalSurveySettings.classList.add('open');
@@ -139,10 +150,12 @@
             // (che la richiama in continuazione, es. ad ogni colpo battuto) — altrimenti la barra
             // scatterebbe al centro mentre l'utente sta provando a scorrerla per sbirciare altro.
             let lastSurveySwitcherScrollId = null;
+            // La barra si ricostruisce solo se cambia qualcosa che mostra: updateUI la chiama a ogni
+            // colpo del contatore, e ricostruirla (e misurarla) ogni volta faceva scattare il +1.
+            let firmaBarraProve = '';
 
             function renderSurveySwitcherBar() {
                 if (!surveySwitcherBar) return;
-                surveySwitcherBar.innerHTML = '';
 
                 // BUG STORICO: questa funzione mostrava la barra Prova1/Prova2/+Nuova Prova ogni
                 // volta che veniva chiamata (es. da updateUI() dopo QUALSIASI cambio impostazione),
@@ -159,6 +172,10 @@
                 surveySwitcherBar.style.display = 'flex';
                 const proj = state.projects[state.currentProjectId];
                 const surveys = proj.surveys || {};
+                const firma = JSON.stringify([state.currentProjectId, state.currentSurveyId, Object.keys(surveys).map(id => id + ':' + ((surveys[id].header || {}).provaNr || ''))]);
+                if (firma === firmaBarraProve && surveySwitcherBar.childElementCount) return;
+                firmaBarraProve = firma;
+                surveySwitcherBar.innerHTML = '';
                 // Ordinate per numero prova crescente (non per ordine di creazione): assegnare o
                 // modificare il N° di una prova la sposta subito al suo posto nella barra.
                 const keys = Object.keys(surveys).sort((a, b) => {
@@ -272,7 +289,9 @@
                     });
                 }
 
-                updateSurveySwitcherFade();
+                // Al fotogramma dopo: misurare adesso costringerebbe a reimpaginare la pagina a metà
+                // del cambio di vista (era il costo maggiore nell'aprire un progetto).
+                requestAnimationFrame(updateSurveySwitcherFade);
             }
 
             /** Accende/spegne le dissolvenze ai bordi della barra prove in base allo scroll REALE
@@ -415,6 +434,7 @@
                 homeProjectsContainer.innerHTML = '';
 
                 const projKeys = Object.keys(state.projects || {});
+                renderPc();
                 renderPromemoriaBackup();
                 if (typeof aggiornaConteggiHome === 'function') aggiornaConteggiHome();
                 const boxRicercaProgetti = document.getElementById('homeRicercaProgetti');

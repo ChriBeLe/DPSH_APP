@@ -48,6 +48,16 @@ Prototipo approvato (lavagna): https://claude.ai/artifact/4wQitcFLA5y6gWHj4fThJY
   - il nome del progetto si modifica dall'«Intestazione Cantiere» (commit 2329a78);
   - «Strumento e impostazioni della prova» si apre dal ⋯ della prova (commit d3a8db4).
 - Test: 47/47 verdi a fine Fase 3.
+- ✅ **Fase 6** (27/09/2026, sessione cloud, ramo `claude/epic-davinci-19p1z9`, da unire in `main`):
+  - due viste Conta | Registro;
+  - righe del Registro: tocco = scheda modificabile, scorri a sinistra = Modifica/Elimina;
+  - registro compatto con «Mostra tutte le righe»;
+  - finestre come fogli dal basso;
+  - falda nel ⋯ della prova.
+
+  Esito in `docs/fasi/FASE_6_ESITO.md`. Test: 48/48.
+- Inventario della schermata di acquisizione in `docs/INVENTARIO_ACQUISIZIONE.md`: aspetta le mie
+  scelte riga per riga.
 
 
 **Le mie decisioni:**
@@ -59,12 +69,18 @@ Prototipo approvato (lavagna): https://claude.ai/artifact/4wQitcFLA5y6gWHj4fThJY
 - Il pacchetto telefono ↔ PC è una copia esatta.
 - Niente «Condividi», niente cloud, niente service worker.
 
-**Cosa resta, in ordine di utilità:**
-1. **Fase 6, Conta | Registro:** due viste sulla prova, per ridare spazio al Registro. Peso medio.
-2. **Fase 4, Scheda prova unica** (Dati · Strumento · Falda · GPS · Foto): peso grande. Da fare solo se dopo l'uso serve ancora.
-3. **Fase 5:** schermata Progetto, Consegna unica, Impostazioni riordinate.
-4. **Fase 7:** layout a colonne per il PC.
-5. **Fase 8:** allineare le schermate vecchie allo stile (elenco nel §6 di `FASE_3_ESITO.md`).
+**Stato al 27/09/2026 (sera):** tutte le fasi 0–8 fatte sul ramo `claude/epic-davinci-19p1z9`
+(da unire in `main`), esiti in `docs/fasi/`. 53/53 suite verdi. Editor dei template: ritocchi fatti,
+inventario in `docs/INVENTARIO_EDITOR_TEMPLATE.md`.
+
+**Cosa resta:**
+1. Le mie osservazioni dall'uso delle fasi 4–8 (`docs/OSSERVAZIONI.md`).
+2. Inventario della schermata di acquisizione (`docs/INVENTARIO_ACQUISIZIONE.md`): le mie scelte.
+3. Editor dei template: le «storture» da screenshot.
+4. Le cose «non fatte, e perché» negli esiti delle fasi 4, 5, 7, 8, se servono.
+5. Prototipo PC (`docs/PROTOTIPO_PC.md`, tela https://claude.ai/artifact/3ssSnswgptKV7QvfLKxZfg):
+   approvato e realizzato (6 passi); cosa manca è in fondo a quel documento.
+6. Terreno e sezioni (`docs/TERRENO_DTM.md`): DTM, quote, sezione 2D, vista 3D fatti; WMS/WCS aspettano gli indirizzi dei servizi.
 
 Parti chiedendomi se ho provato l'app sul telefono e cosa ho notato. Poi proponimi il prossimo pezzo con il suo peso.
 

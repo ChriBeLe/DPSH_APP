@@ -641,13 +641,13 @@
                 const progressEl = document.getElementById('lblBatchImportProgress');
                 if (progressEl) {
                     progressEl.style.display = 'block';
-                    progressEl.textContent = `📸 Analisi 0/${files.length} foto in corso...`;
+                    progressEl.textContent = `Analisi 0/${files.length} foto in corso...`;
                 }
 
                 const entries = [];
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    if (progressEl) progressEl.textContent = `📸 Analisi ${i + 1}/${files.length} foto in corso...`;
+                    if (progressEl) progressEl.textContent = `Analisi ${i + 1}/${files.length} foto in corso...`;
 
                     const arrBuf = await file.arrayBuffer();
                     let exifData = { lat: null, lng: null, dateTimeOriginal: null };

@@ -736,7 +736,14 @@
                 let stato = null;
                 bodyEl.addEventListener('pointerdown', (e) => {
                     if (templateEditorState.previewMode) return;
-                    stato = { startX: e.clientX, startY: e.clientY, moved: false };
+                    stato = { startX: e.clientX, startY: e.clientY, moved: false, lungo: false };
+                    // Tocco prolungato = menu (richiesto il 27/09/2026, insieme al tasto destro).
+                    const questo = stato;
+                    questo.timer = setTimeout(() => {
+                        if (stato !== questo || questo.moved) return;
+                        questo.lungo = true;
+                        apriMenuDaGesto();
+                    }, 550);
                     // Riscontro visivo immediato al tocco (richiesto esplicitamente): un piccolo
                     // schiacciamento che si annulla da solo, indipendente dall'esito del gesto
                     // (tap → seleziona, doppio tap → menu, spostamento → pan/drag) — stesso
@@ -748,13 +755,20 @@
                     if (!stato) return;
                     if (Math.abs(e.clientX - stato.startX) > 8 || Math.abs(e.clientY - stato.startY) > 8) {
                         stato.moved = true;
+                        clearTimeout(stato.timer);
                     }
                 });
+                const apriMenuDaGesto = () => {
+                    selezionaBloccoEditor(blockId);
+                    apriMenuBloccoEditor(blockId);
+                    triggerVibrate(12);
+                };
                 const fine = () => {
                     if (!stato) return;
-                    const eraFermo = !stato.moved;
+                    clearTimeout(stato.timer);
+                    const eraFermo = !stato.moved && !stato.lungo;
                     stato = null;
-                    if (!eraFermo) return; // un trascinamento non è mai un tap, singolo o doppio
+                    if (!eraFermo) return; // un trascinamento o un tocco prolungato non sono un tap
                     selezionaBloccoEditor(blockId);
                     const ora = Date.now();
                     if (ultimoTapSelezioneBlocco.blockId === blockId && (ora - ultimoTapSelezioneBlocco.t) < 350) {
@@ -766,7 +780,15 @@
                     }
                 };
                 bodyEl.addEventListener('pointerup', fine);
-                bodyEl.addEventListener('pointercancel', () => { stato = null; });
+                bodyEl.addEventListener('pointercancel', () => { if (stato) clearTimeout(stato.timer); stato = null; });
+                bodyEl.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (templateEditorState.previewMode) return;
+                    // Su Android il tocco prolungato manda anche contextmenu: il menu è già aperto.
+                    const menu = document.getElementById('templateEditorBlockMenu');
+                    if (menu && menu.dataset.blockId === blockId) return;
+                    apriMenuDaGesto();
+                });
             }
 
             /** Etichetta del blocco selezionato: trascinarla riusa esattamente lo stesso motore di

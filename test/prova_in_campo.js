@@ -1,8 +1,8 @@
 // LA PROVA IN CAMPO (Fase 3, punti 1–3 e decisione G), coi tocchi come li fa l'utente.
 //
 //  - testata: «Prova N» e «Nome progetto · Comune» (mai più «L…»), Home e ⋯ con le azioni rare;
-//  - spie GPS / foto / falda / note: fatto, con quantità, non ancora (tratteggio, mai rosso);
-//  - la falda si imposta dalla sua spia;
+//  - spie GPS / foto / note: fatto, con quantità, non ancora (tratteggio, mai rosso);
+//  - la falda si imposta dal ⋯ della prova, che ne mostra il valore (non è più una spia);
 //  - il tasto Registra è VISIBILE DI DEFAULT, dice quale intervallo registra, si nasconde e la
 //    scelta resta (anche riaprendo l'app); la pressione lunga su +1 registra lo stesso;
 //  - il toast «Registrato … · N colpi» con «Annulla» toglie PROPRIO quell'intervallo, e non tocca
@@ -51,11 +51,11 @@ async function apriPrimaProva(app) {
   const h = app.E('state.header');
   t('il titolo è «Prova N», non il comune', $(app, 'lblSurveySummary').textContent === 'Prova ' + h.provaNr);
   t('sotto: «Nome progetto · Comune»', $(app, 'lblSurveySub').textContent === proj.name + ' · ' + h.comune);
-  t('il titolo si tocca: apre l\'intestazione della prova', (clic(app, $(app, 'btnOpenSurveyDrawer')), $(app, 'modalCantiereInfo').classList.contains('open')));
+  t('il titolo si tocca: apre l\'intestazione della prova', (clic(app, $(app, 'btnOpenSurveyDrawer')), $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'modalSurveySettings').querySelector('[data-scheda-prova="dati"]').getAttribute('aria-selected') === 'true'));
   app.E('closeCantiereInfoModal()');
   t('a sinistra Home, a destra il ⋯', $(app, 'btnHomeView').closest('.testata-riga') && $(app, 'btnHeaderMore').getAttribute('aria-haspopup') === 'menu');
   const voci = [...$(app, 'headerActionsSecondary').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
-  t('nel ⋯: Gestione litologica, Esporta, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci) === JSON.stringify(['Gestione litologica', 'Esporta', 'Impostazioni', 'Annulla ultimo intervallo']));
+  t('nel ⋯: Strumento e impostazioni della prova, Falda, Gestione litologica, Consegna, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Strumento e impostazioni della prova', 'Falda', 'Gestione litologica', 'Consegna', 'Impostazioni', 'Annulla ultimo intervallo']));
   t('il ⋯ è chiuso finché non lo si tocca', !$(app, 'headerActionsSecondary').classList.contains('open'));
   clic(app, $(app, 'btnHeaderMore'));
   t('toccato si apre (aria-expanded)', $(app, 'headerActionsSecondary').classList.contains('open') && $(app, 'btnHeaderMore').getAttribute('aria-expanded') === 'true');
@@ -73,18 +73,19 @@ async function apriPrimaProva(app) {
   await attesa(30);
   t('GPS mancante: tratteggio, testo «GPS»', spia('btnGetGpsHeader').nonAncora && !spia('btnGetGpsHeader').fatto && spia('btnGetGpsHeader').testo === 'GPS');
   t('0 foto: «0 foto» col tratteggio, niente ❌ né rosso', spia('btnOpenSurveyPhotosModal').testo === '0 foto' && spia('btnOpenSurveyPhotosModal').nonAncora && !/❌/.test($(app, 'testataProva').textContent) && !/ef4444|danger/.test($(app, 'btnOpenSurveyPhotosModal').outerHTML));
-  t('falda non impostata: «Falda» col tratteggio', spia('btnSpiaFalda').testo === 'Falda' && spia('btnSpiaFalda').nonAncora);
+  t('la falda non è più una spia della testata', !$(app, 'btnSpiaFalda') && $(app, 'spieProva').querySelectorAll('.spia').length === 3);
+  t('falda non impostata: il ⋯ dice «Falda: non impostata»', $(app, 'btnFaldaMenu').textContent.trim() === 'Falda: non impostata' && $(app, 'headerActionsSecondary').contains($(app, 'btnFaldaMenu')));
   app.E('state.header.lat = 40.3; state.header.lng = 18.1; state.photos = [{ id: "x1" }, { id: "x2" }]; updateUI(); renderPhotoGallery()');
   await attesa(30);
   t('GPS presente: spia «fatto» con la spunta', spia('btnGetGpsHeader').fatto && $(app, 'icoSpiaGps').innerHTML.includes('#i-check'));
   t('2 foto: «2 foto», neutra (né tratteggio né verde)', spia('btnOpenSurveyPhotosModal').testo === '2 foto' && !spia('btnOpenSurveyPhotosModal').nonAncora && !spia('btnOpenSurveyPhotosModal').fatto);
   app.E('state.photos = []; updateUI()');
-  clic(app, $(app, 'btnSpiaFalda'));
-  t('la spia Falda apre la finestra della falda', $(app, 'modalQuickFalda').classList.contains('open'));
+  clic(app, $(app, 'btnFaldaMenu'));
+  t('la voce Falda apre la finestra della falda', $(app, 'modalQuickFalda').classList.contains('open'));
   $(app, 'numQuickFaldaDa').value = '1.2';
   clic(app, $(app, 'btnQuickFaldaSave'));
   await attesa(30);
-  t('e salvata dice «Falda 1,20 m»', spia('btnSpiaFalda').testo === 'Falda 1,20 m' && !spia('btnSpiaFalda').nonAncora && app.E('state.header.faldaDa') === '1.2');
+  t('e salvata la voce dice «Falda: 1,20 m»', $(app, 'btnFaldaMenu').textContent.trim() === 'Falda: 1,20 m' && app.E('state.header.faldaDa') === '1.2');
   t('la falda non sta più nella barra del Registro', !$(app, 'btnQuickFaldaIntegrated') && !$(app, 'btnQuickFaldaChart'));
   t('la spia Note apre le note del progetto', (clic(app, $(app, 'btnOpenProjectNotesHeader')), await attesa(200), $(app, 'modalProjectNotes').classList.contains('open')));
   app.E('chiudiNoteProgetto && chiudiNoteProgetto()');
@@ -96,7 +97,7 @@ async function apriPrimaProva(app) {
   t('il tasto Registra si vede', visibile(app, 'btnConfirmStepAction') && !visibile(app, 'rigaRegistraNascosto'));
   t('e dice cosa registra: «Registra da–a m»', $(app, 'btnConfirmStepAction').textContent.trim() === 'Registra ' + atteso(d0, d0 + passo));
   t('l\'intervallo del contatore è lo stesso, in mono', $(app, 'lblDepthRange').textContent === atteso(d0, d0 + passo));
-  t('sotto: «Oppure tieni premuto +1» e «Nascondi questo tasto»', /Oppure tieni premuto \+1/.test($(app, 'directActionButtonsRow').textContent) && $(app, 'btnNascondiRegistra').textContent === 'Nascondi questo tasto');
+  t('sotto: la «?» e «Nascondi questo tasto»', !!$(app, 'directActionButtonsRow').querySelector('.btn-aiuto-prova') && $(app, 'btnNascondiRegistra').textContent === 'Nascondi questo tasto');
   const n0 = app.E('state.logs.length');
   for (let i = 0; i < 14; i++) clic(app, $(app, 'btnPlus'));
   clic(app, $(app, 'btnConfirmStepAction'));
@@ -169,6 +170,7 @@ async function apriPrimaProva(app) {
   t('titolo «Nota sull\'ultimo intervallo»', $(riaperta, 'viewField').querySelector('.note-rapide-titolo').textContent === "Nota sull'ultimo intervallo");
   t('«Personalizzata» è diventata «Altra nota…»', $(riaperta, 'btnCustomNote').textContent.trim() === 'Altra nota…');
   t('le pillole vanno a capo (nessuno scorrimento di lato)', riaperta.w.getComputedStyle($(riaperta, 'viewField').querySelector('.note-tags-row')).flexWrap === 'wrap');
+  clic(riaperta, $(riaperta, 'btnVistaRegistro'));
   t('Registro: «Grafico» e «Aggiungi» con icona e nome', /Grafico/.test($(riaperta, 'btnToggleViewIntegrated').textContent) && $(riaperta, 'btnToggleViewIntegrated').querySelector('.ico') && /Aggiungi/.test($(riaperta, 'btnAggiungiIntegrated').textContent));
   clic(riaperta, $(riaperta, 'btnAggiungiIntegrated'));
   const menuAgg = $(riaperta, 'btnAggiungiIntegrated').parentElement.querySelector('.menu-azioni');
@@ -176,11 +178,12 @@ async function apriPrimaProva(app) {
   clic(riaperta, menuAgg.querySelector('.btn-open-bulk-import'));
   t('…che apre la finestra di sempre', $(riaperta, 'modalBulkImport').classList.contains('open') && !menuAgg.classList.contains('open'));
   riaperta.E('closeBulkImportModal()');
-  t('il riconoscimento degli strati sta nel ⋯ del Registro', $(riaperta, 'menuAltroRegistroIntegrated').contains($(riaperta, 'btnAutoStratiIntegrated')) && !nascosto(riaperta.w, $(riaperta, 'menuAltroRegistroIntegrated')));
+  t('il riconoscimento degli strati si vede nel Registro, non più nel ⋯', visibile(riaperta, 'btnAutoStratiIntegrated') && /Riconosci strati/.test($(riaperta, 'btnAutoStratiIntegrated').textContent) && !$(riaperta, 'menuAltroRegistroIntegrated'));
   const ordine = riaperta.E('state.logs.map(l => l.start)');
   t('l\'ordine del Registro non cambia (dall\'alto in basso per profondità)', ordine.every((v, i) => i === 0 || v >= ordine[i - 1]));
 
   console.log('--- Misure: caratteri e bersagli ---');
+  clic(riaperta, $(riaperta, 'btnVistaConta'));
   const radici = [$(riaperta, 'testataProva'), $(riaperta, 'viewField')];
   const piccoli = testiConCarattere(riaperta.w, radici).filter(x => x.px < 12);
   t('niente testo sotto i 12 px in testata e Vista Prova', piccoli.length === 0);

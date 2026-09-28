@@ -484,7 +484,7 @@
                 if (paletteElReset) { paletteElReset.style.opacity = ''; paletteElReset.style.pointerEvents = ''; }
 
                 const lbl = document.getElementById('lblTemplateEditorTitle');
-                if (lbl) lbl.textContent = `Modifica "${tpl.name}"`;
+                if (lbl) lbl.textContent = tpl.name;
 
                 renderTemplateEditorPreviewProjectSelector();
                 renderTemplateEditorPreviewSurveySelector();
@@ -624,7 +624,7 @@
                 templateEditorState.templateId = newId;
                 templateEditorState.savedSnapshot = istantaneaTemplate();
                 const lbl = document.getElementById('lblTemplateEditorTitle');
-                if (lbl) lbl.textContent = `Modifica "${nome}"`;
+                if (lbl) lbl.textContent = nome;
                 renderReportTemplatesList();
             }
 
@@ -876,7 +876,7 @@
                 const ctx = templateEditorState.ctx;
                 const senzaGps = usaInquadramento && ctx && !ctx.gpsInfo;
                 if (senzaGps) {
-                    lbl.textContent = '⚠ Questa prova non ha GPS: il blocco Inquadramento è più corto del reale';
+                    lbl.textContent = 'Questa prova non ha GPS: il blocco Inquadramento è più corto del reale';
                     lbl.style.display = '';
                 } else {
                     lbl.style.display = 'none';

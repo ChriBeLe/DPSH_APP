@@ -118,7 +118,7 @@
                                 ${opzioniHtml}
                             </select>
                             ${suggeritiHtml}
-                            ${selNota ? `<div style="font-size:10px; color:${WIZ_TESTO_SU_COLORE}; opacity:.8; margin-top:4px; line-height:1.4;">${selNota.v?'':'⚠ '}${selNota.testo}</div>` : ''}
+                            ${selNota ? `<div style="font-size:10px; color:${WIZ_TESTO_SU_COLORE}; opacity:.8; margin-top:4px; line-height:1.4;">${selNota.v?'':''}${selNota.testo}</div>` : ''}
                         </div>`;
                 }).join('');
 

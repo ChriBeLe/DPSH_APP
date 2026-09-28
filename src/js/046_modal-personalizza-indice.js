@@ -719,32 +719,44 @@
                 if (modalBulkImport) modalBulkImport.classList.remove('open');
             }
 
+            // Una riga con tabulazioni o «;» (Excel, CSV), o con quote decimali («0.20 4», «0,20 4»,
+            // «0.00,0.20,4»), è una riga di tabella: i colpi sono l'ultima colonna e le quote non contano.
+            // Le altre righe sono sequenze di colpi («5 8 12», «5, 8, 12», «5,8,12»). La prima riga senza
+            // numeri è un'intestazione e si salta; ogni altro valore che non è un intero ≥ 0 si segnala
+            // invece di sparire in silenzio.
             function parseBulkImportNumbers(text) {
-                if (!text) return [];
-                const rawTokens = text.split(/[\s,;\n]+/);
-                const numbers = [];
-                rawTokens.forEach(t => {
-                    const cleaned = t.trim();
-                    if (cleaned !== '') {
-                        const num = parseInt(cleaned, 10);
-                        if (!isNaN(num) && num >= 0) {
-                            numbers.push(num);
-                        }
+                const numeri = [], scartati = [];
+                let primaRiga = true;
+                String(text || '').split(/\r?\n/).forEach((riga, i) => {
+                    if (!riga.trim()) return;
+                    let campi;
+                    if (/[\t;]/.test(riga) || /\d\.\d/.test(riga) || (/\d,\d/.test(riga) && /\s/.test(riga.trim()))) {
+                        campi = riga.split(/[\t;]|\s+/).filter(c => c.trim());
+                        if (campi.length === 1) campi = campi[0].split(',');
+                        campi = [campi.pop().trim()];
+                    } else {
+                        campi = riga.split(/[\s,]+/).filter(Boolean);
                     }
+                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c));
+                    primaRiga = false;
+                    if (intestazione) return;
+                    campi.forEach(c => /^\d+$/.test(c) ? numeri.push(parseInt(c, 10)) : scartati.push({ riga: i + 1, testo: c }));
                 });
-                return numbers;
+                return { numeri, scartati };
             }
 
             function updateBulkImportCount() {
                 if (!txtBulkImportData || !lblBulkImportCount) return;
-                const numbers = parseBulkImportNumbers(txtBulkImportData.value);
-                lblBulkImportCount.textContent = `${numbers.length} colpi trovati`;
-                if (lblBulkImportDepth) {
-                    const stepM = (state.settings.stepCm || 20) / 100;
-                    const startDepth = getBulkImportStartDepth();
-                    const endDepth = startDepth + numbers.length * stepM;
-                    lblBulkImportDepth.textContent = `${startDepth.toFixed(2)}m → ${endDepth.toFixed(2)}m`;
-                }
+                const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData.value);
+                lblBulkImportCount.textContent = `${numbers.length} ${numbers.length === 1 ? 'intervallo' : 'intervalli'}`;
+                const stepM = (state.settings.stepCm || 20) / 100;
+                const startDepth = getBulkImportStartDepth();
+                if (lblBulkImportDepth) lblBulkImportDepth.textContent = `${numeroConVirgola(startDepth)} → ${numeroConVirgola(startDepth + numbers.length * stepM)} m`;
+                const anteprima = document.getElementById('anteprimaBulkImport');
+                anteprima.innerHTML = scartati.map(s => `<div class="anteprima-scartato">Riga ${s.riga}: «${escapeHtmlDidascalia(s.testo)}» non è un numero di colpi</div>`).join('')
+                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${n}</strong></div>`).join('');
+                btnConfirmBulkImport.disabled = !numbers.length || scartati.length > 0;
+                btnConfirmBulkImport.innerHTML = `<svg class="ico"><use href="#i-list"/></svg> ${scartati.length ? 'Correggi le righe segnate' : (numbers.length ? 'Aggiungi ' + lblBulkImportCount.textContent : 'Aggiungi')}`;
             }
 
             if (txtBulkImportData) {
@@ -768,11 +780,8 @@
 
             if (btnConfirmBulkImport) {
                 btnConfirmBulkImport.addEventListener('click', () => {
-                    const numbers = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
-                    if (numbers.length === 0) {
-                        alert('Nessun numero valido trovato nel testo incollato. Inserisci una sequenza di cifre (es. 5 8 12 15).');
-                        return;
-                    }
+                    const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
+                    if (numbers.length === 0 || scartati.length) return; // il bottone è già spento
 
                     const selectedOpt = document.querySelector('input[name="optImportMode"]:checked');
                     const mode = selectedOpt ? selectedOpt.value : 'append';
@@ -845,7 +854,7 @@
                 btnConfirmNewProject.addEventListener('click', () => {
                     const comune = txtProjComune ? txtProjComune.value.trim() : '';
                     if (!comune) {
-                        alert('⚠️ Il campo "Comune" è obbligatorio per creare il progetto!');
+                        alert('Il campo "Comune" è obbligatorio per creare il progetto!');
                         txtProjComune.focus();
                         return;
                     }
@@ -926,9 +935,10 @@
                 txtNewData.value = state.header.date || new Date().toISOString().split('T')[0];
                 txtNewProvaNr.value = nextNr;
                 numNewLunghAsta.value = state.instrument.lunghAsta || '1.00';
-                if (modalNewSurveyOverlay) modalNewSurveyOverlay.classList.add('open');
-                if (modalNewSurvey) modalNewSurvey.classList.add('open');
-                setTimeout(() => txtNewProvaNr.focus(), 150);
+                // Nuova prova con un tocco (Fase 4): N° successivo e dati ereditati, senza domande; si
+                // correggono dopo dalla scheda della prova.
+                confirmNewSurvey();
+                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openCantiereInfoModal() } });
             }
 
             function closeNewSurveyModal() {
@@ -1010,12 +1020,13 @@
             if (btnNewSurveyConfirm) btnNewSurveyConfirm.addEventListener('click', confirmNewSurvey);
 
             // MOTORE ESPORTAZIONE KML MULTI-PROVA CON FOTO IN MAPPA (QGIS / GOOGLE EARTH)
-            async function exportProjectKML(projId) {
+            // soloProve: Set degli id delle prove da consegnare (null = tutte).
+            async function exportProjectKML(projId, soloProve) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) return;
 
-                    const surveys = Object.values(proj.surveys || {});
+                    const surveys = Object.values(proj.surveys || {}).filter(s => !soloProve || soloProve.has(s.id));
                     let placemarksXml = '';
 
                     for (let surv of surveys) {
@@ -1064,7 +1075,7 @@
                     }
 
                     if (!placemarksXml) {
-                        alert('⚠️ Nessuna prova in questo progetto ha coordinate GPS valide per l\'esportazione KML!');
+                        alert('Nessuna prova in questo progetto ha coordinate GPS valide per l\'esportazione KML!');
                         return;
                     }
 
@@ -1088,7 +1099,7 @@
                     URL.revokeObjectURL(url);
                 } catch(e) {
                     console.error('exportProjectKML error:', e);
-                    alert('⚠️ Si è verificato un errore durante l\'esportazione KML: ' + e.message);
+                    alert('Si è verificato un errore durante l\'esportazione KML: ' + e.message);
                 }
             }
 
@@ -1100,7 +1111,7 @@
                     const photos = state.photos || [];
                     
                     if (h.lat === null || h.lng === null || isNaN(h.lat) || isNaN(h.lng)) {
-                        alert('⚠️ La prova corrente non ha coordinate GPS valide per l\'esportazione KML! Acquisisci prima la posizione GPS.');
+                        alert('La prova corrente non ha coordinate GPS valide per l\'esportazione KML! Acquisisci prima la posizione GPS.');
                         return;
                     }
 
@@ -1160,20 +1171,20 @@
                     URL.revokeObjectURL(url);
                 } catch(e) {
                     console.error('exportSingleSurveyKML error:', e);
-                    alert('⚠️ Errore durante l\'esportazione KML della prova: ' + e.message);
+                    alert('Errore durante l\'esportazione KML della prova: ' + e.message);
                 }
             }
 
             // MOTORE ESPORTAZIONE EXCEL MULTI-FOGLIO (.xlsx) VIA SHEETJS CON FOTO AD ALTA RISOLUZIONE INTEGRALI (0% COMPRESSIONE)
-            async function exportProjectExcel(projId) {
+            async function exportProjectExcel(projId, soloProve) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
-                        alert('⚠️ Progetto non trovato!');
+                        alert('Progetto non trovato!');
                         return;
                     }
                     if (typeof XLSX === 'undefined') {
-                        alert('⚠️ La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
+                        alert('La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
                         return;
                     }
 
@@ -1192,7 +1203,7 @@
                         ["N° Prova", "Profondità Max (m)", "Totale Colpi N", "Quota Falda (m)", "N° Foto Allegate", "Latitudine", "Longitudine", "Accuratezza GPS (m)", "Data Prova"]
                     ];
 
-                    const surveys = Object.values(proj.surveys || {});
+                    const surveys = Object.values(proj.surveys || {}).filter(s => !soloProve || soloProve.has(s.id));
                     surveys.forEach(surv => {
                         const h = surv.header || {};
                         const logs = surv.logs || [];
@@ -1263,7 +1274,7 @@
 
                         if (photos.length > 0) {
                             sheetData.push([]);
-                            sheetData.push(["📸 REGISTRO FOTO CANTIERE GEOREFERENZIATE (ZERO COMPRESSIONE - INTEGRALI HD)"]);
+                            sheetData.push(["REGISTRO FOTO CANTIERE GEOREFERENZIATE (ZERO COMPRESSIONE - INTEGRALI HD)"]);
                             sheetData.push(["N° Foto", "Nome / Didascalia", "Data / Ora Scatto", "Coordinate GPS Foto", "Stato Foto", "Riferimento ID / DataURL (Excel Spec Compliant)"]);
 
                             for (let pIdx = 0; pIdx < photos.length; pIdx++) {
@@ -1282,7 +1293,7 @@
                                     p.name || `Foto Cantiere ${pIdx + 1}`,
                                     p.timestamp || 'N.D.',
                                     gpsText,
-                                    fullDataUrl ? '📸 Foto HD Integrale Presente' : 'Assente',
+                                    fullDataUrl ? 'Foto HD Integrale Presente' : 'Assente',
                                     safePreview
                                 ]);
                             }
@@ -1297,7 +1308,7 @@
                     XLSX.writeFile(wb, fileName);
                 } catch(e) {
                     console.error('exportProjectExcel error:', e);
-                    alert('⚠️ Errore durante l\'esportazione Excel del progetto: ' + e.message);
+                    alert('Errore durante l\'esportazione Excel del progetto: ' + e.message);
                 }
             }
 

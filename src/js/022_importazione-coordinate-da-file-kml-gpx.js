@@ -105,7 +105,7 @@
                             });
                         }
                     } catch (err) {
-                        appAlert('⚠️ Errore durante la lettura del file: ' + err.message);
+                        appAlert('Errore durante la lettura del file: ' + err.message);
                     } finally {
                         fileImportGpsKml.value = '';
                     }
@@ -184,7 +184,21 @@
                 // Fase 3: la Home ha la sua testata («Progetti», dentro #viewHome) e la testata della
                 // prova esiste solo in Vista Prova. Niente più bottoni da accendere e spegnere uno a uno.
                 const testataProva = document.getElementById('testataProva');
-                if (viewName === 'home') {
+                const viewProject = document.getElementById('viewProject');
+                if (viewName === 'project' && !(state.projects && state.projects[state.currentProjectId])) viewName = state.uiState.currentView = 'home';
+                viewProject.style.display = viewName === 'project' ? 'flex' : 'none';
+                // Tasto indietro di Android (Fase 5): una voce nella cronologia finché non si è in Home.
+                if (viewName !== 'home' && !(history.state && history.state.dpsh)) history.pushState({ dpsh: true }, '');
+                if (viewName === 'home' && history.state && history.state.dpsh) history.back();
+                if (viewName === 'project') {
+                    if (viewHome) viewHome.style.display = 'none';
+                    if (viewField) viewField.style.display = 'none';
+                    if (testataProva) testataProva.style.display = 'none';
+                    if (surveySwitcherBar) surveySwitcherBar.style.display = 'none';
+                    stopLiveGpsWatch();
+                    saveState(); // la prova aperta torna nel progetto prima di contarne intervalli e avvisi
+                    renderSchermataProgetto();
+                } else if (viewName === 'home') {
                     if (viewHome) viewHome.style.display = 'flex';
                     if (viewField) viewField.style.display = 'none';
                     if (testataProva) testataProva.style.display = 'none';
@@ -196,6 +210,8 @@
                     if (viewHome) viewHome.style.display = 'none';
                     if (viewField) viewField.style.display = 'flex';
                     if (testataProva) testataProva.style.display = '';
+                    // Entrando in una prova (dalla Home o dal Progetto) si parte dal contatore (Fase 6).
+                    if (vistaPrecedente !== 'field') vistaProva = 'conta';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'flex';
                     startLiveGpsWatch();
                     updateUI();
@@ -205,7 +221,7 @@
                 // cambiata vista (non su chiamate ridondanti a switchView con lo stesso nome) e non
                 // al primo giro (avvio app: non c'è una schermata precedente da cui "arrivare").
                 if (cambioVistaReale && viewTransitionsEnabled) {
-                    const vistaEntrante = viewName === 'home' ? viewHome : viewField;
+                    const vistaEntrante = viewName === 'home' ? viewHome : (viewName === 'project' ? viewProject : viewField);
                     if (vistaEntrante) {
                         vistaEntrante.classList.remove('screen-nav-enter');
                         void vistaEntrante.offsetWidth; // forza il reflow per poter ri-innescare l'animazione
@@ -217,6 +233,7 @@
                     }
                 }
                 viewTransitionsEnabled = true;
+                renderPc();
 
                 saveState();
             }
@@ -234,9 +251,58 @@
 
             if (btnHomeView) {
                 btnHomeView.addEventListener('click', () => {
-                    switchView('home');
+                    switchView('project');
                 });
             }
+
+            // Indietro (Android, o del browser): prova → progetto → Home.
+            window.addEventListener('popstate', () => {
+                const vista = state.uiState && state.uiState.currentView;
+                if (vista === 'field') switchView('project');
+                else if (vista === 'project') switchView('home');
+            });
+
+            /** La schermata Progetto: prove con profondità, intervalli, spie e avvisi, e gli accessi a
+             * dati, strati, note e consegna. Legge il progetto aperto. */
+            function renderSchermataProgetto() {
+                const proj = state.projects[state.currentProjectId];
+                const $ = id => document.getElementById(id);
+                $('lblProgettoNome').textContent = proj.name || proj.comune || 'Progetto';
+                $('lblProgettoSotto').textContent = [proj.comune, proj.committente ? 'Committente: ' + proj.committente : ''].filter(Boolean).join(' · ');
+                const stato = STATI_PROGETTO.find(s => s.id === proj.stato);
+                $('lblProgettoStato').textContent = [stato ? stato.etichetta : '', proj.modificatoIl ? 'Modificato il ' + formattaDataIT(new Date(proj.modificatoIl).toISOString()) : ''].filter(Boolean).join(' · ');
+                const prove = Object.values(proj.surveys || {}).sort((a, b) => String((a.header || {}).provaNr).localeCompare(String((b.header || {}).provaNr), 'it', { numeric: true }));
+                const attiva = proj.surveys[state.currentSurveyId];
+                $('btnProgettoRiprendi').textContent = attiva ? `Riprendi la Prova ${(attiva.header || {}).provaNr || ''}` : 'Apri la prova';
+                const avvisi = new Map(avvisiPrimaExport(proj).map(r => [r.id, r.avvisi.length]));
+                $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '');
+                $('listaProveProgetto').innerHTML = prove.map(s => {
+                    const h = s.header || {};
+                    const logs = s.logs || [];
+                    const fondo = logs.reduce((m, l) => Math.max(m, Number(l && l.end) || 0), 0);
+                    const haGps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
+                    const falda = parseFloat(h.faldaDa);
+                    const n = avvisi.get(s.id) || 0;
+                    return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${s.id}">
+                        <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
+                        <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
+                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${(s.photos || []).length} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                        <span class="prova-riga-stato${n ? ' avviso' : ''}">${n ? n + (n === 1 ? ' avviso' : ' avvisi') : 'Pronta'}</span>
+                    </button>`;
+                }).join('');
+                $('listaProveProgetto').querySelectorAll('.prova-riga').forEach(b => b.addEventListener('click', () => {
+                    if (b.dataset.surv !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, b.dataset.surv);
+                    switchView('field');
+                }));
+            }
+            document.getElementById('btnProgettoAiProgetti').addEventListener('click', () => switchView('home'));
+            document.getElementById('btnProgettoAltro').addEventListener('click', () => openProjectActionsModal(state.currentProjectId));
+            document.getElementById('btnProgettoRiprendi').addEventListener('click', () => switchView('field'));
+            document.getElementById('btnProgettoNuovaProva').addEventListener('click', () => openNewSurveyModal());
+            document.getElementById('btnProgettoDati').addEventListener('click', () => openCantiereInfoModal());
+            document.getElementById('btnProgettoStrati').addEventListener('click', () => openStratiModal());
+            document.getElementById('btnProgettoNote').addEventListener('click', () => apriNoteProgetto(state.currentProjectId));
+            document.getElementById('btnProgettoConsegna').addEventListener('click', () => openExportModal('project', state.currentProjectId));
 
             if (btnHomeNewProject) {
                 btnHomeNewProject.addEventListener('click', () => {

@@ -85,7 +85,7 @@
                         return;
                     }
                     if (!navigator.geolocation) {
-                        alert('⚠️ Geolocalizzazione non supportata da questo browser.');
+                        alert('Geolocalizzazione non supportata da questo browser.');
                         return;
                     }
                     if (lblPhotoGpsLiveStatus) lblPhotoGpsLiveStatus.textContent = '⏳ Ricerca GPS in corso...';
@@ -93,7 +93,7 @@
                         (pos) => applyGpsToFallbackPhoto(pos.coords.latitude, pos.coords.longitude, 'live'),
                         (err) => {
                             if (lblPhotoGpsLiveStatus) lblPhotoGpsLiveStatus.textContent = 'Non disponibile al momento';
-                            alert('⚠️ Impossibile acquisire il GPS: ' + ((err && err.message) || 'errore sconosciuto') + '\n\nProva con "Scegli sulla mappa" o "Incolla coordinate".');
+                            alert('Impossibile acquisire il GPS: ' + ((err && err.message) || 'errore sconosciuto') + '\n\nProva con "Scegli sulla mappa" o "Incolla coordinate".');
                         },
                         { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 }
                     );
@@ -106,7 +106,7 @@
                 btnPhotoGpsApplyPaste.addEventListener('click', () => {
                     const parsed = parsePastedCoords(txtPhotoGpsPasteCoords.value);
                     if (!parsed) {
-                        alert('⚠️ Coordinate non riconosciute. Formati accettati: "41.845912, 12.562424" oppure un link Google Maps.');
+                        alert('Coordinate non riconosciute. Formati accettati: "41.845912, 12.562424" oppure un link Google Maps.');
                         return;
                     }
                     applyGpsToFallbackPhoto(parsed.lat, parsed.lng, 'incollate');
@@ -118,7 +118,7 @@
                 try {
                     await ensureLeafletLoaded();
                 } catch (e) {
-                    alert('⚠️ ' + e.message);
+                    alert('' + e.message);
                     showPhotoGpsFallbackStep('choices');
                     return;
                 }
@@ -156,7 +156,9 @@
             }
 
             // INPUT SYNC CANTIERE
-            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; updateUI(); saveState(); });
+            // Committente e comune: della prova (li leggono i report) e anche del progetto, perché la
+            // card della Home li mostra da lì (Fase 4). Le altre prove tengono i loro valori.
+            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); updateUI(); });
             const txtProvincia = document.getElementById('txtProvincia');
             const txtSedeCommittente = document.getElementById('txtSedeCommittente');
             const txtDenominazioneIntervento = document.getElementById('txtDenominazioneIntervento');
@@ -180,7 +182,7 @@
             if (txtProvincia) txtProvincia.addEventListener('input', (e) => scriviDatoProgettoCorrente('provincia', e.target.value));
             if (txtSedeCommittente) txtSedeCommittente.addEventListener('input', (e) => scriviDatoProgettoCorrente('sedeCommittente', e.target.value));
             if (txtDenominazioneIntervento) txtDenominazioneIntervento.addEventListener('input', (e) => scriviDatoProgettoCorrente('denominazioneIntervento', e.target.value));
-            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; updateUI(); saveState(); });
+            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); updateUI(); });
             if (txtLocalita) txtLocalita.addEventListener('input', (e) => { state.header.localita = e.target.value; updateUI(); saveState(); });
             if (txtDataIndagine) txtDataIndagine.addEventListener('change', (e) => { state.header.date = e.target.value; updateUI(); saveState(); });
             if (txtProvaNr) txtProvaNr.addEventListener('input', (e) => {
@@ -353,19 +355,9 @@
             // SINGOLA prova, non preferenze dell'app — vive in una modale a sé, non nel drawer
             // Impostazioni generale, e non esiste alcuna scorciatoia per aprirla da Home (dove non
             // c'è una prova specifica a cui riferirli).
-            const modalCantiereInfoOverlay = document.getElementById('modalCantiereInfoOverlay');
-            const modalCantiereInfo = document.getElementById('modalCantiereInfo');
-            const btnCloseCantiereInfoX = document.getElementById('btnCloseCantiereInfoX');
-            function openCantiereInfoModal() {
-                if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.classList.add('open');
-                if (modalCantiereInfo) modalCantiereInfo.classList.add('open');
-            }
-            function closeCantiereInfoModal() {
-                if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.classList.remove('open');
-                if (modalCantiereInfo) modalCantiereInfo.classList.remove('open');
-            }
-            if (btnCloseCantiereInfoX) btnCloseCantiereInfoX.addEventListener('click', closeCantiereInfoModal);
-            if (modalCantiereInfoOverlay) modalCantiereInfoOverlay.addEventListener('click', closeCantiereInfoModal);
+            // L'intestazione è la linguetta «Dati» della scheda della prova (Fase 4).
+            function openCantiereInfoModal() { openSurveySettingsModal(state.currentSurveyId, 'dati'); }
+            function closeCantiereInfoModal() { closeSurveySettingsModal(); }
 
             if (btnHamburger) btnHamburger.addEventListener('click', openDrawer);
             // Impostazioni dalla Home (Fase 3: la Home ha la sua testata, «Progetti»).
@@ -424,6 +416,10 @@
             if (btnNascondiRegistra) btnNascondiRegistra.addEventListener('click', () => impostaTastoRegistraVisibile(false));
             const btnMostraRegistra = document.getElementById('btnMostraRegistra');
             if (btnMostraRegistra) btnMostraRegistra.addEventListener('click', () => impostaTastoRegistraVisibile(true));
+            document.getElementById('chkTastoRegistra').addEventListener('change', (e) => impostaTastoRegistraVisibile(e.target.checked));
+            // Libreria nel cassetto (Fase 5): si chiude il cassetto e si apre la finestra di sempre.
+            document.getElementById('btnDrawerTemplate').addEventListener('click', () => { closeDrawer(); openReportTemplatesModal(); });
+            document.getElementById('btnDrawerArchivio').addEventListener('click', () => { closeDrawer(); openArchiveManager(); });
 
             const chkIntegratedChart = document.getElementById('chkIntegratedChart');
             if (chkIntegratedChart) {
@@ -553,7 +549,7 @@
                     avvisaFotoMancantiNelBackup(mancanti);
                     return true;
                 } catch(e) {
-                    alert('⚠️ Errore durante l\'esportazione del backup JSON: ' + e.message);
+                    alert('Errore durante l\'esportazione del backup JSON: ' + e.message);
                     return false;
                 }
             }
@@ -565,7 +561,7 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (!imported || (!imported.state && !imported.projects)) {
-                            alert('⚠️ Il file selezionato non è un backup valido di DPSH Field Collector!');
+                            alert('Il file selezionato non è un backup valido di DPSH Field Collector!');
                             return;
                         }
 
@@ -577,7 +573,7 @@
                         if (targetState.projects) targetState.projects = migraProgettiImportati(targetState.projects, VERSIONE_SCHEMA_DATI);
                         // Controllo di integrità su ciò che arriva (004c): si dice alla fine, non blocca.
                         const integrita = verificaIntegrita({ projects: targetState.projects || {} }, { correggi: true });
-                        if (await appConfirm('⚠️ IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
+                        if (await appConfirm('IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                             // L'unione sovrascrive i progetti con lo stesso id: prima una copia.
                             copiaPrimaDi('importare un archivio');
                             registraCorrezioni(state, integrita.correzioni, 'import');
@@ -626,7 +622,7 @@
                             triggerVibrate([50, 50, 50]);
                         }
                     } catch(err) {
-                        alert('⚠️ Impossibile leggere il file JSON: ' + err.message);
+                        alert('Impossibile leggere il file JSON: ' + err.message);
                     }
                 };
                 reader.readAsText(file);
@@ -638,7 +634,7 @@
             async function importGlobalZipBackup(file) {
                 if (!file) return;
                 try {
-                    if (!await appConfirm('⚠️ IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
+                    if (!await appConfirm('IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                         return;
                     }
                     copiaPrimaDi('importare un archivio');
@@ -654,7 +650,7 @@
                     triggerVibrate([50, 50, 50]);
                 } catch (err) {
                     console.error('Import ZIP error:', err);
-                    alert('⚠️ Impossibile leggere il file ZIP:\n\n' + err.message);
+                    alert('Impossibile leggere il file ZIP:\n\n' + err.message);
                 }
             }
 

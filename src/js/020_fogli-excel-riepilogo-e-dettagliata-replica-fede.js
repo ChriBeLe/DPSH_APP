@@ -370,43 +370,73 @@ ${bodyConBgcolor}
                 return Math.floor((endDepth - 0.0001) / rodLen) + 1;
             }
 
-            // Allinea con precisione la colonna di icone (lucchetto) all'angolo
-            // in alto a sinistra del riquadro scuro (.counter-dashboard), misurando la sua vera
-            // posizione invece di indovinare un offset fisso via CSS — un valore fisso si è
-            // rivelato sbagliato non appena cambiava qualcosa nel layout sopra di esso. A card
-            // compressa il riquadro scuro non esiste più: in quel caso resta l'offset statico
-            // definito in CSS (vedi #cardCounterDashboard.counter-collapsed .counter-quick-toggles-col).
-            function syncCounterLockHandlePosition() {
-                const col = document.querySelector('.counter-quick-toggles-col');
-                const card = document.getElementById('cardCounterDashboard');
-                if (!col || !card) return;
+            // LE DUE VISTE DELLA PROVA (Fase 6): «Conta» (contatore e ultimi 3 intervalli) e
+            // «Registro» (il registro intero). Non si ricorda: entrando in una prova dalla Home si
+            // riparte sempre dal contatore (vedi switchView).
+            let vistaProva = 'conta';
+            // Sul PC (Fase 7, decisione I) niente contatore: si lavora sul Registro, si inserisce con
+            // «Aggiungi» e si corregge da tastiera.
+            const suPc = () => window.matchMedia('(min-width: 1024px)').matches;
+            function mostraVistaProva(vista) {
+                vistaProva = vista;
+                updateUI();
+                (document.scrollingElement || document.documentElement).scrollTop = 0;
+            }
+            document.getElementById('btnVistaConta').addEventListener('click', () => mostraVistaProva('conta'));
+            document.getElementById('btnVistaRegistro').addEventListener('click', () => mostraVistaProva('registro'));
+            document.getElementById('btnVaiAlRegistro').addEventListener('click', () => mostraVistaProva('registro'));
+            // I gesti della prova, spiegati in un posto solo dietro la «?» (Fase 6, punto 4): prima erano
+            // scritte fisse sotto −1, sotto Registra e sopra il Registro.
+            const AIUTO_PROVA = 'Contatore\n'
+                + '• +1 aggiunge un colpo; tenuto premuto registra l\'intervallo.\n'
+                + '• −1 toglie un colpo; tenuto premuto annulla l\'ultimo intervallo.\n'
+                + '• Dopo aver registrato, «Annulla» nel messaggio in basso toglie proprio quell\'intervallo.\n\n'
+                + 'Registro\n'
+                + '• Tocca una riga per correggerla.\n'
+                + '• Scorri una riga a sinistra per Modifica ed Elimina.\n'
+                + '• «Mostra tutte le righe» apre il registro per intero.';
+            document.querySelectorAll('.btn-aiuto-prova').forEach(b => b.addEventListener('click', () => appDialog(AIUTO_PROVA, { title: 'Come si usa' })));
 
-                if (card.classList.contains('counter-collapsed')) {
-                    // A card compressa non c'è più il riquadro scuro: il lucchetto si allinea
-                    // invece al centro verticale REALE della barra riepilogo (misurato, non
-                    // indovinato — lo stesso motivo per cui l'offset fisso precedente sbagliava),
-                    // cosi resta sempre a filo col testo qualunque sia l'altezza della barra.
-                    const bar = document.getElementById('counterCollapsedBar');
-                    const lockBtn = document.getElementById('btnCounterLockHandle');
-                    if (!bar || !lockBtn) return;
-                    const cardRect = card.getBoundingClientRect();
-                    const barRect = bar.getBoundingClientRect();
-                    const lockRect = lockBtn.getBoundingClientRect();
-                    if (barRect.height === 0 || lockRect.height === 0) return; // non ancora visibile
-                    const barCenterY = barRect.top - cardRect.top + barRect.height / 2;
-                    col.style.top = Math.round(barCenterY - lockRect.height / 2) + 'px';
-                    col.style.left = '8px';
+            // Preferenze dell'app (004e), non del progetto: cambiarle non lo segna come modificato.
+            document.getElementById('btnOrdineIntervalli').addEventListener('click', () => {
+                if (state.settings.intervalliRecentiInCima === true) delete state.settings.intervalliRecentiInCima; else state.settings.intervalliRecentiInCima = true;
+                updateUI();
+                saveState();
+            });
+            document.querySelectorAll('.btn-espandi-registro').forEach(b => b.addEventListener('click', () => {
+                if (state.settings.registroEspanso === true) delete state.settings.registroEspanso; else state.settings.registroEspanso = true;
+                updateUI();
+                saveState();
+            }));
+
+            function renderUltimiIntervalli() {
+                const box = document.getElementById('listaUltimiIntervalli');
+                if (!box) return;
+                const logs = state.logs || [];
+                const primo = Math.max(0, logs.length - 3);
+                const ultimi = logs.slice(primo).map((log, k) => ({ log, idx: primo + k })).filter(r => r.log);
+                // Ordine scelto toccando il titolo, ricordato (vale solo per questo elenco).
+                const recentiInCima = state.settings.intervalliRecentiInCima === true;
+                if (recentiInCima) ultimi.reverse();
+                const titolo = document.getElementById('btnOrdineIntervalli');
+                titolo.classList.toggle('crescente', !recentiInCima);
+                titolo.title = recentiInCima ? 'Dal più profondo: tocca per invertire' : 'Dal più superficiale: tocca per invertire';
+                titolo.setAttribute('aria-label', 'Intervalli, ' + titolo.title.toLowerCase());
+                if (!ultimi.length) {
+                    box.innerHTML = '<div class="ultimi-vuoto">Ancora nessun intervallo registrato.</div>';
                     return;
                 }
-
-                const darkBox = document.querySelector('#cardCounterDashboard .counter-dashboard');
-                if (!darkBox) return;
-                const cardRect = card.getBoundingClientRect();
-                const boxRect = darkBox.getBoundingClientRect();
-                if (boxRect.width === 0 && boxRect.height === 0) return; // non ancora renderizzato/visibile
-                const inset = 10;
-                col.style.top = Math.round(boxRect.top - cardRect.top + inset) + 'px';
-                col.style.left = Math.round(boxRect.left - cardRect.left + inset) + 'px';
+                const maxN = Math.max(10, ...logs.map(l => (l && l.colpi) || 0));
+                box.innerHTML = ultimi.map(({ log, idx }) => {
+                    const lit = getEffectiveLithology(idx) || { color: '#f59e0b' };
+                    const larghezza = Math.min(100, Math.max(6, ((Number(log.colpi) || 0) / maxN) * 100));
+                    return `<button type="button" class="ultimo-intervallo" data-index="${idx}">
+                        <span class="ultimo-intervallo-prof">${testoIntervallo(Number(log.start) || 0, Number(log.end) || 0)}</span>
+                        <span class="ultimo-intervallo-colpi">${Number(log.colpi) || 0}</span>
+                        <span class="ultimo-intervallo-barra"><span style="width:${larghezza}%; ${getPatternCss(lit.pattern, lit.color)}"></span></span>
+                    </button>`;
+                }).join('');
+                box.querySelectorAll('.ultimo-intervallo').forEach(b => b.addEventListener('click', () => openEditModal(Number(b.getAttribute('data-index')), { senzaTastiera: true })));
             }
 
             // IL NUMERONE DEI COLPI REAGISCE QUANDO CAMBIA. È l'elemento più guardato dell'app in
@@ -472,7 +502,7 @@ ${bodyConBgcolor}
                 const nFoto = (state.photos || []).length;
                 imposta('btnOpenSurveyPhotosModal', nFoto > 0 ? 'quantita' : 'non-ancora', `${nFoto} foto`, 'photoBadgeStatus');
                 const falda = parseFloat(h.faldaDa);
-                imposta('btnSpiaFalda', Number.isFinite(falda) ? 'quantita' : 'non-ancora', Number.isFinite(falda) ? `Falda ${numeroConVirgola(falda)} m` : 'Falda', 'lblSpiaFalda');
+                document.getElementById('lblFaldaMenu').textContent = Number.isFinite(falda) ? `Falda: ${numeroConVirgola(falda)} m` : 'Falda: non impostata';
             }
 
             // Aggiornamento UI
@@ -482,8 +512,6 @@ ${bodyConBgcolor}
                 }
                 ultimoConteggioMostrato = state.currentCount;
                 lblBlowCount.textContent = state.currentCount;
-                if (counterCompactCount) counterCompactCount.textContent = state.currentCount;
-                if (typeof updateStickyStatusBar === 'function') updateStickyStatusBar();
 
                 const stepM = state.settings.stepCm / 100;
                 const endDepth = state.currentDepthStart + stepM;
@@ -492,13 +520,14 @@ ${bodyConBgcolor}
                     const lblRegistra = document.getElementById('lblRegistraIntervallo');
                     if (lblRegistra) lblRegistra.textContent = `Registra ${testoIntervallo(state.currentDepthStart, endDepth)}`;
                 }
-                if (counterCompactDepth) counterCompactDepth.textContent = `${state.currentDepthStart.toFixed(2)}-${endDepth.toFixed(2)}m`;
 
                 // Asta calcolata automaticamente in base allo step futuro
                 state.currentRod = getRodForDepth(endDepth);
                 lblCurrentRod.textContent = String(state.currentRod);
                 if (lblTotalDepth) lblTotalDepth.textContent = state.currentDepthStart.toFixed(2);
                 lblTotalSteps.textContent = `Registro · ${state.logs.length} ${state.logs.length === 1 ? 'intervallo' : 'intervalli'}`;
+                // Anche quello del registro integrato, che nella vista Conta non si ridisegna.
+                document.getElementById('lblIntegratedTotalSteps').textContent = lblTotalSteps.textContent;
 
                 // Testata della prova (Fase 3): «Prova N» e sotto «Nome progetto · Comune».
                 {
@@ -562,6 +591,7 @@ ${bodyConBgcolor}
                     const riga = document.getElementById('rigaRegistraNascosto');
                     if (blocco) blocco.style.display = visibile ? 'flex' : 'none';
                     if (riga) riga.style.display = visibile ? 'none' : 'flex';
+                    document.getElementById('chkTastoRegistra').checked = visibile;
                 }
 
                 // Theme Mode (chiaro/scuro) + Palette Colore (7 varianti, vedi THEME_HUES)
@@ -579,8 +609,33 @@ ${bodyConBgcolor}
                 const cardLogsTable = document.getElementById('cardLogsTable');
                 const cardChart = document.getElementById('cardChart');
 
+                // Registro e grafico: poche righe che scorrono, oppure tutte.
+                {
+                    const espanso = state.settings.registroEspanso === true;
+                    document.getElementById('viewField').classList.toggle('registro-espanso', espanso);
+                    document.querySelectorAll('.btn-espandi-registro').forEach(b => { b.textContent = espanso ? 'Mostra meno righe' : 'Mostra tutte le righe'; });
+                }
+
+                // Vista Conta | Registro (Fase 6).
+                const inConta = vistaProva === 'conta' && !suPc();
+                {
+                    const btnConta = document.getElementById('btnVistaConta');
+                    const btnRegistro = document.getElementById('btnVistaRegistro');
+                    btnConta.setAttribute('aria-selected', String(inConta));
+                    btnRegistro.setAttribute('aria-selected', String(!inConta));
+                    btnRegistro.textContent = `Registro · ${state.logs.length}`;
+                    // Sul PC il contatore si accende con l'interruttore in alto (prototipo PC, passo 5).
+                    cardCounterDashboard.style.display = inConta || (suPc() && state.settings.contatoreSuPc === true) ? '' : 'none';
+                    document.getElementById('cardUltimiIntervalli').style.display = inConta ? '' : 'none';
+                    if (inConta) renderUltimiIntervalli();
+                }
+
                 if (cardIntegratedRegister && cardLogsTable && cardChart) {
-                    if (isIntegrated) {
+                    if (inConta) {
+                        cardIntegratedRegister.style.display = 'none';
+                        cardLogsTable.style.display = 'none';
+                        cardChart.style.display = 'none';
+                    } else if (isIntegrated) {
                         cardIntegratedRegister.style.display = 'block';
                         cardLogsTable.style.display = 'none';
                         cardChart.style.display = 'none';
@@ -599,21 +654,16 @@ ${bodyConBgcolor}
 
                 renderPhotoGallery();
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
+                renderPc();
+                segnaRigaScelta();
 
                 // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
                 const btnAutoStratiIntegratedEl = document.getElementById('btnAutoStratiIntegrated');
                 const btnAutoStratiChartEl = document.getElementById('btnAutoStratiChart');
-                if (btnAutoStratiIntegratedEl) btnAutoStratiIntegratedEl.style.display = hasEnoughLogsForAutoStrati ? 'flex' : 'none';
-                if (btnAutoStratiChartEl) btnAutoStratiChartEl.style.display = hasEnoughLogsForAutoStrati ? 'flex' : 'none';
-                // Il ⋯ del Registro contiene solo il riconoscimento degli strati: senza, sparisce.
-                ['menuAltroRegistroIntegrated', 'menuAltroRegistroChart'].forEach(id => {
-                    const m = document.getElementById(id);
-                    if (m) m.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
-                });
+                if (btnAutoStratiIntegratedEl) btnAutoStratiIntegratedEl.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
+                if (btnAutoStratiChartEl) btnAutoStratiChartEl.style.display = hasEnoughLogsForAutoStrati ? '' : 'none';
                 aggiornaHintManiglieStratiGrafico(hasEnoughLogsForAutoStrati);
-
-                syncCounterLockHandlePosition();
             }
 
             /** Testo/visibilità del suggerimento sopra il grafico: quando ci sono maniglie da
@@ -652,7 +702,6 @@ ${bodyConBgcolor}
                     renderChart();
                 });
             }
-            window.addEventListener('resize', syncCounterLockHandlePosition);
 
             // RENDERING REGISTRO GRAFICO INTEGRATO (TABELLA + GRAFICO UNIFICATI PER RIGA)
             function renderIntegratedLogsTable() {
@@ -732,18 +781,7 @@ ${bodyConBgcolor}
 
                     return `
                         <div class="swipe-row-wrapper" data-index="${idx}" style="border-bottom: 1px solid var(--border);">
-                            <div class="swipe-bg swipe-bg-delete">
-                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                </svg>
-                            </div>
-                            <div class="swipe-bg swipe-bg-edit">
-                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-                                    <path d="M12 20h9"></path>
-                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                                </svg>
-                            </div>
+                            <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
                             <div class="swipe-content" data-index="${idx}" style="grid-template-columns: 14% 12% 74%; padding: 0; min-height: 34px;">
                                 <!-- Colonna Prof: lasciata vuota di proposito. Le quote di profondità
                                      vengono disegnate da renderIntegratedDepthLabels() in un overlay
@@ -793,82 +831,7 @@ ${bodyConBgcolor}
                     });
                 }
 
-                // GESTIONE GESTURE TOUCH SWIPE ED EVENTI CLICK (identica alla Vista Separata Classica,
-                // cosi lo swipe reale con animazione funziona anche nel Registro Integrato)
-                const SWIPE_CLAMP = 140;
-                const SWIPE_ACTION_THRESHOLD = 130;
-
-                tblBody.querySelectorAll('.swipe-content').forEach(contentEl => {
-                    let startX = 0, startY = 0, diffX = 0, diffY = 0;
-                    const idx = parseInt(contentEl.getAttribute('data-index'));
-                    const wrapperEl = contentEl.closest('.swipe-row-wrapper');
-                    const bgDelete = wrapperEl ? wrapperEl.querySelector('.swipe-bg-delete') : null;
-                    const bgEdit = wrapperEl ? wrapperEl.querySelector('.swipe-bg-edit') : null;
-
-                    function resetSwipeBackgrounds() {
-                        if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                        if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                    }
-
-                    contentEl.addEventListener('touchstart', (e) => {
-                        startX = e.touches[0].clientX;
-                        startY = e.touches[0].clientY;
-                        diffX = 0;
-                        diffY = 0;
-                        contentEl.style.transition = 'none';
-                        resetSwipeBackgrounds();
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchmove', (e) => {
-                        const currentX = e.touches[0].clientX;
-                        const currentY = e.touches[0].clientY;
-                        diffX = currentX - startX;
-                        diffY = currentY - startY;
-
-                        if (Math.abs(diffX) > Math.abs(diffY)) {
-                            const clampX = Math.max(-SWIPE_CLAMP, Math.min(SWIPE_CLAMP, diffX));
-                            contentEl.style.transform = `translateX(${clampX}px)`;
-
-                            if (clampX >= SWIPE_ACTION_THRESHOLD) {
-                                if (bgDelete) { bgDelete.classList.add('is-active', 'is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX > 10) {
-                                if (bgDelete) { bgDelete.classList.add('is-active'); bgDelete.classList.remove('is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX <= -SWIPE_ACTION_THRESHOLD) {
-                                if (bgEdit) { bgEdit.classList.add('is-active', 'is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else if (clampX < -10) {
-                                if (bgEdit) { bgEdit.classList.add('is-active'); bgEdit.classList.remove('is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else {
-                                resetSwipeBackgrounds();
-                            }
-                        }
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchend', () => {
-                        contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
-                        contentEl.style.transform = 'translateX(0px)';
-                        resetSwipeBackgrounds();
-
-                        if (diffX >= SWIPE_ACTION_THRESHOLD) {
-                            triggerVibrate(50);
-                            deleteLogStep(idx);
-                        } else if (diffX <= -SWIPE_ACTION_THRESHOLD) {
-                            triggerVibrate(30);
-                            openEditModal(idx);
-                        } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
-
-                    contentEl.addEventListener('click', () => {
-                        if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
-                });
+                tblBody.querySelectorAll('.swipe-content').forEach(el => collegaRigaRegistro(el, parseInt(el.getAttribute('data-index'))));
 
                 renderIntegratedDepthLabels();
             }
@@ -977,18 +940,8 @@ ${bodyConBgcolor}
             // ELIMINAZIONE INTERVALLO (PRESERVA PROFONDITA E ASTE DEGLI ALTRI STEP)
             async function deleteLogStep(idx) {
                 if (idx < 0 || idx >= state.logs.length) return;
-                const item = state.logs[idx];
-
-                // Conferma con la finestra dell'app (non il dialogo nativo del browser).
-                // Dopo l'eliminazione resta comunque disponibile l'annullamento per 10 secondi.
-                const ok = await appConfirmDelete(
-                    `Eliminare l'intervallo ${item.start.toFixed(2)}m - ${item.end.toFixed(2)}m con ${item.colpi} colpi?` +
-                    (item.note ? `\n\nNota associata: ${item.note}` : '')
-                );
-                if (!ok) return;
-
-                // Rileggo l'indice: durante l'attesa della conferma lo stato potrebbe essere cambiato
-                if (idx < 0 || idx >= state.logs.length) return;
+                // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
+                // dell'editor). In più resta la copia automatica.
                 copiaPrimaDi('eliminare un intervallo');
 
                 const backupItem = JSON.parse(JSON.stringify(state.logs[idx]));
@@ -1051,21 +1004,7 @@ ${bodyConBgcolor}
                         <tr>
                             <td colspan="5" style="padding:0; border:none;">
                                 <div class="swipe-row-wrapper" data-index="${actualIdx}">
-                                    <div class="swipe-bg swipe-bg-delete">
-                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; width:28px; height:28px;">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-                                            <path d="M10 11v6"></path>
-                                            <path d="M14 11v6"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="swipe-bg swipe-bg-edit">
-                                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; width:28px; height:28px;">
-                                            <path d="M12 20h9"></path>
-                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                                        </svg>
-                                    </div>
+                                    <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
                                     <div class="swipe-content" data-index="${actualIdx}">
                                         <div style="font-family: var(--font-mono); font-weight: 600;">${startVal.toFixed(2)} - ${endVal.toFixed(2)}m</div>
                                         <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--accent);">${colpiVal}</div>
@@ -1079,90 +1018,61 @@ ${bodyConBgcolor}
                     `;
                 }).join('');
 
-                // GESTIONE GESTURE TOUCH SWIPE ED EVENTI CLICK
-                const SWIPE_CLAMP = 140;              // Escursione massima visiva del riquadro
-                const SWIPE_ACTION_THRESHOLD = 130;   // Soglia "swipe completo": azione eseguita solo qui
+                tblLogsBody.querySelectorAll('.swipe-content').forEach(el => collegaRigaRegistro(el, parseInt(el.getAttribute('data-index'))));
+            }
 
-                document.querySelectorAll('.swipe-content').forEach(contentEl => {
-                    let startX = 0, startY = 0, diffX = 0, diffY = 0, isDragging = false;
-                    const idx = parseInt(contentEl.getAttribute('data-index'));
-                    const wrapperEl = contentEl.closest('.swipe-row-wrapper');
-                    const bgDelete = wrapperEl ? wrapperEl.querySelector('.swipe-bg-delete') : null;
-                    const bgEdit = wrapperEl ? wrapperEl.querySelector('.swipe-bg-edit') : null;
-
-                    function resetSwipeBackgrounds() {
-                        if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                        if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                    }
-
-                    contentEl.addEventListener('touchstart', (e) => {
-                        startX = e.touches[0].clientX;
-                        startY = e.touches[0].clientY;
-                        diffX = 0;
-                        diffY = 0;
-                        isDragging = false;
-                        contentEl.style.transition = 'none';
-                        resetSwipeBackgrounds();
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchmove', (e) => {
-                        const currentX = e.touches[0].clientX;
-                        const currentY = e.touches[0].clientY;
-                        diffX = currentX - startX;
-                        diffY = currentY - startY;
-
-                        // Se lo scorrimento è prevalentemente orizzontale
-                        if (Math.abs(diffX) > Math.abs(diffY)) {
-                            isDragging = true;
-                            const clampX = Math.max(-SWIPE_CLAMP, Math.min(SWIPE_CLAMP, diffX));
-                            contentEl.style.transform = `translateX(${clampX}px)`;
-
-                            // Mostra il riquadro corretto, "armandolo" solo a swipe pressoché completo
-                            if (clampX >= SWIPE_ACTION_THRESHOLD) {
-                                if (bgDelete) { bgDelete.classList.add('is-active', 'is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX > 10) {
-                                if (bgDelete) { bgDelete.classList.add('is-active'); bgDelete.classList.remove('is-armed'); }
-                                if (bgEdit) bgEdit.classList.remove('is-active', 'is-armed');
-                            } else if (clampX <= -SWIPE_ACTION_THRESHOLD) {
-                                if (bgEdit) { bgEdit.classList.add('is-active', 'is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else if (clampX < -10) {
-                                if (bgEdit) { bgEdit.classList.add('is-active'); bgEdit.classList.remove('is-armed'); }
-                                if (bgDelete) bgDelete.classList.remove('is-active', 'is-armed');
-                            } else {
-                                resetSwipeBackgrounds();
-                            }
-                        }
-                    }, { passive: true });
-
-                    contentEl.addEventListener('touchend', (e) => {
-                        contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
-                        contentEl.style.transform = 'translateX(0px)';
-                        resetSwipeBackgrounds();
-
-                        if (diffX >= SWIPE_ACTION_THRESHOLD) {
-                            // Swipe a Destra completato ➡️: Elimina (Rosso 🗑️)
-                            triggerVibrate(50);
-                            deleteLogStep(idx);
-                        } else if (diffX <= -SWIPE_ACTION_THRESHOLD) {
-                            // Swipe a Sinistra completato ⬅️: Modifica (Giallo ✏️)
-                            triggerVibrate(30);
-                            openEditModal(idx);
-                        } else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            // Vero tocco: nessun movimento significativo in nessuna direzione
-                            // (uno scroll verticale o uno swipe incompleto NON aprono la scheda)
-                            openViewModal(idx);
-                        }
-                    });
-
-                    // Click desktop fallback
-                    contentEl.addEventListener('click', (e) => {
-                        if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-                            openViewModal(idx);
-                        }
-                    });
+            // LE RIGHE DEL REGISTRO (Fase 6, punto 3), uguali nelle due viste del registro. Un tocco
+            // apre la scheda dell'intervallo, già modificabile. Scorrendo a sinistra la riga resta
+            // aperta e mostra Modifica ed Elimina; un tocco sulla riga la richiude. Non c'è più
+            // «scorri a destra = elimina»: bastava un gesto un po' largo per cancellare un intervallo.
+            const LARGHEZZA_AZIONI_RIGA = 176;
+            function chiudiRigheAperte(tranne) {
+                document.querySelectorAll('.swipe-row-wrapper.azioni-aperte').forEach(w => {
+                    if (w === tranne) return;
+                    w.classList.remove('azioni-aperte');
+                    const c = w.querySelector('.swipe-content');
+                    if (c) c.style.transform = '';
                 });
+            }
+            function collegaRigaRegistro(contentEl, idx) {
+                const wrapperEl = contentEl.closest('.swipe-row-wrapper');
+                let startX = 0, startY = 0, diffX = 0, diffY = 0, base = 0;
+                contentEl.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    diffX = 0;
+                    diffY = 0;
+                    base = wrapperEl.classList.contains('azioni-aperte') ? -LARGHEZZA_AZIONI_RIGA : 0;
+                    contentEl.style.transition = 'none';
+                }, { passive: true });
+                contentEl.addEventListener('touchmove', (e) => {
+                    diffX = e.touches[0].clientX - startX;
+                    diffY = e.touches[0].clientY - startY;
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        contentEl.style.transform = `translateX(${Math.max(-LARGHEZZA_AZIONI_RIGA, Math.min(0, base + diffX))}px)`;
+                    }
+                }, { passive: true });
+                contentEl.addEventListener('touchend', () => {
+                    contentEl.style.transition = 'transform var(--mov-medio) var(--ease-entra)';
+                    if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) return; // un tocco: lo gestisce il click
+                    // Scorrendo in verticale la riga resta com'era; in orizzontale si apre oltre metà corsa.
+                    const aperta = Math.abs(diffX) > Math.abs(diffY) ? base + diffX < -LARGHEZZA_AZIONI_RIGA / 2 : base !== 0;
+                    if (aperta) chiudiRigheAperte(wrapperEl);
+                    if (aperta && base === 0) triggerVibrate(20);
+                    wrapperEl.classList.toggle('azioni-aperte', aperta);
+                    contentEl.style.transform = aperta ? `translateX(-${LARGHEZZA_AZIONI_RIGA}px)` : '';
+                });
+                contentEl.addEventListener('click', () => {
+                    if (Math.abs(diffX) >= 10 || Math.abs(diffY) >= 10) return;
+                    const eraAperta = wrapperEl.classList.contains('azioni-aperte');
+                    chiudiRigheAperte();
+                    if (suPc()) return scegliRiga(idx); // sul PC il clic sceglie, il doppio clic modifica
+                    if (!eraAperta) openEditModal(idx, { senzaTastiera: true });
+                });
+                contentEl.addEventListener('dblclick', () => { if (suPc()) openEditModal(idx); });
+                contentEl.addEventListener('contextmenu', (e) => { if (suPc()) apriMenuRiga(e, idx); });
+                wrapperEl.querySelector('.riga-azione-modifica').addEventListener('click', () => { chiudiRigheAperte(); openEditModal(idx); });
+                wrapperEl.querySelector('.riga-azione-elimina').addEventListener('click', () => { chiudiRigheAperte(); deleteLogStep(idx); });
             }
 
             // RENDERING GRAFICO PROFILO IN TEMPO REALE CON LEGENDA VISIVA DINAMICA
@@ -1396,8 +1306,11 @@ ${bodyConBgcolor}
                 svgChart.querySelectorAll('.chart-bar-group').forEach(group => {
                     group.addEventListener('click', (e) => {
                         const idx = parseInt(group.getAttribute('data-index'));
-                        openViewModal(idx);
+                        if (suPc()) return scegliRiga(idx, true);
+                        openEditModal(idx, { senzaTastiera: true });
                     });
+                    group.addEventListener('dblclick', () => { if (suPc()) openEditModal(parseInt(group.getAttribute('data-index'))); });
+                    group.addEventListener('contextmenu', (e) => { if (suPc()) apriMenuRiga(e, parseInt(group.getAttribute('data-index'))); });
                 });
 
                 // Bind avvio trascinamento sulle maniglie contatto strati
@@ -1489,65 +1402,6 @@ ${bodyConBgcolor}
                 }
             });
 
-            // MANIGLIA/LUCCHETTO DI COMPRESSIONE DEL CONTATORE: un solo gesto, tieni premuto.
-            // Un tocco distratto non fa nulla; solo tenendo premuto ~550ms un anellino si riempie
-            // attorno all'icona e allo scatto la card si comprime/espande. Rilasciando prima, l'anello si svuota e
-            // non succede nulla — nessuno stato "sbloccato" da gestire, un solo movimento.
-            let counterCollapsed = false;
-            let counterPressStart = 0;
-            let counterPressRAF = null;
-            const COUNTER_PRESS_MS = 550;
-            const COUNTER_RING_CIRC = 106.8; // 2*PI*17, raggio del cerchietto SVG
-
-            function setCounterCollapsed(collapsed) {
-                counterCollapsed = collapsed;
-                if (cardCounterDashboard) cardCounterDashboard.classList.toggle('counter-collapsed', collapsed);
-                if (counterBody) counterBody.classList.toggle('open', !collapsed);
-                triggerVibrate(20);
-                // Riallinea subito il lucchetto al nuovo stato (non solo al prossimo updateUI):
-                // una volta a fine transizione, cosi la misura non cade a metà animazione.
-                if (typeof syncCounterLockHandlePosition === 'function') {
-                    requestAnimationFrame(syncCounterLockHandlePosition);
-                    setTimeout(syncCounterLockHandlePosition, 300);
-                }
-            }
-
-            function updateCounterPressProgress() {
-                if (!counterPressStart) return;
-                const elapsed = performance.now() - counterPressStart;
-                const pct = Math.min(100, (elapsed / COUNTER_PRESS_MS) * 100);
-                if (counterLockProgressRing) counterLockProgressRing.style.strokeDashoffset = (COUNTER_RING_CIRC * (1 - pct / 100)).toFixed(1);
-                if (pct < 100 && counterPressStart) counterPressRAF = requestAnimationFrame(updateCounterPressProgress);
-            }
-
-            function startCounterPressVisual() {
-                if (!btnCounterLockHandle) return;
-                btnCounterLockHandle.classList.add('pressing');
-                counterPressStart = performance.now();
-                updateCounterPressProgress();
-            }
-
-            function cancelCounterPressVisual() {
-                if (!btnCounterLockHandle) return;
-                btnCounterLockHandle.classList.remove('pressing');
-                counterPressStart = 0;
-                if (counterPressRAF) { cancelAnimationFrame(counterPressRAF); counterPressRAF = null; }
-                if (counterLockProgressRing) counterLockProgressRing.style.strokeDashoffset = String(COUNTER_RING_CIRC);
-            }
-
-            if (btnCounterLockHandle) {
-                // L'azione vera e propria passa dall'utility condivisa già usata per +1/-1 (gestisce
-                // in modo robusto touch/mouse e il click "fantasma" a fine pressione). L'anello qui
-                // sotto è solo il feedback visivo, agganciato sugli stessi eventi di inizio/fine.
-                setupLongPress(btnCounterLockHandle, () => {
-                    setCounterCollapsed(!counterCollapsed);
-                    cancelCounterPressVisual();
-                }, COUNTER_PRESS_MS);
-
-                ['touchstart', 'mousedown'].forEach(evt => btnCounterLockHandle.addEventListener(evt, startCounterPressVisual, { passive: true }));
-                ['touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(evt => btnCounterLockHandle.addEventListener(evt, cancelCounterPressVisual, { passive: true }));
-            }
-
             // NOTE RAPIDE TAGS CON CONFERMA
             document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {
                 tagBtn.addEventListener('click', async (e) => {
@@ -1566,63 +1420,6 @@ ${bodyConBgcolor}
                     }
                 });
             });
-
-            // MODAL DETTAGLIO SCHEDA INTERVALLO (READ-ONLY)
-            let viewingIndex = -1;
-
-            function openViewModal(idx) {
-                if (idx < 0 || idx >= state.logs.length) return;
-                viewingIndex = idx;
-                const item = state.logs[idx];
-                lblViewStepNum.textContent = `#${idx + 1}`;
-                txtViewStart.value = item.start.toFixed(2);
-                txtViewEnd.value = item.end.toFixed(2);
-                txtViewColpi.value = item.colpi;
-                txtViewAsta.value = `Asta N° ${item.asta}`;
-                txtViewNote.value = item.note || '-';
-
-                // Litologia effettiva (con ereditarietà)
-                const litObj = getEffectiveLithology(idx);
-                if (txtViewLithology) {
-                    txtViewLithology.value = litObj ? litObj.name : '-';
-                    if (txtViewLithology) txtViewLithology.style.background = litObj ? litObj.color + '33' : '';
-                }
-
-                // Calcolo Rpd istantaneo per la scheda
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
-                const M_prime = (item.asta * pesoAsta) + pesoSistema;
-                if (item.colpi > 0) {
-                    const rpd = (M * M * H * item.colpi) / (A * deltaS * (M + M_prime));
-                    txtViewRpd.value = `${rpd.toFixed(2)} kg/cm²`;
-                } else {
-                    txtViewRpd.value = '-';
-                }
-
-                modalViewOverlay.classList.add('open');
-                modalViewStep.classList.add('open');
-            }
-
-            function closeViewModal() {
-                modalViewOverlay.classList.remove('open');
-                modalViewStep.classList.remove('open');
-                viewingIndex = -1;
-            }
-
-            if (btnViewClose) btnViewClose.addEventListener('click', closeViewModal);
-            if (modalViewOverlay) modalViewOverlay.addEventListener('click', closeViewModal);
-
-            if (btnViewSwitchToEdit) {
-                btnViewSwitchToEdit.addEventListener('click', () => {
-                    const idx = viewingIndex;
-                    closeViewModal();
-                    if (idx >= 0) openEditModal(idx);
-                });
-            }
 
             // HANDLERS NOTA PERSONALIZZATA
             if (btnCustomNote) {
@@ -1783,7 +1580,9 @@ ${bodyConBgcolor}
                 if (hasGps) {
                     const lat = parseFloat(state.header.lat);
                     const lng = parseFloat(state.header.lng);
-                    const altStr = state.header.alt ? ` | Quota: ${Math.round(state.header.alt)}m` : '';
+                    const quotaTerreno = quotaDellaProva(state.projects[state.currentProjectId], state.header);
+                    const altStr = quotaTerreno !== null ? ` | Quota dal DTM: ${numeroConVirgola(quotaTerreno, 1)} m s.l.m.`
+                        : (state.header.alt ? ` | Quota GPS: ${Math.round(state.header.alt)} m` : '');
                     lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${altStr}`;
                     lblModalGpsStatus.style.color = 'var(--accent)';
                 } else {
@@ -1908,7 +1707,7 @@ ${bodyConBgcolor}
 
             function fetchGpsPositionModal() {
                 if (!navigator.geolocation) {
-                    alert('⚠️ Geolocalizzazione non supportata dal tuo browser.');
+                    alert('Geolocalizzazione non supportata dal tuo browser.');
                     return;
                 }
 
@@ -1917,7 +1716,7 @@ ${bodyConBgcolor}
                 // sistema (impostazioni telefono) abilitati. Su desktop molti browser sono
                 // più permissivi (es. con file://), motivo per cui lì può sembrare funzionare.
                 if (window.isSecureContext === false) {
-                    alert('⚠️ GPS bloccato dal browser: questa pagina non è aperta in un contesto sicuro (HTTPS).\n\nAnche con i permessi di localizzazione attivi nelle impostazioni del telefono, i browser mobile impediscono l\'accesso al GPS a pagine caricate via file:// o http:// non protetto.\n\nSoluzione: carica/apri l\'app da un indirizzo HTTPS (es. tramite hosting, o installandola come PWA da un sito servito in HTTPS).');
+                    alert('GPS bloccato dal browser: questa pagina non è aperta in un contesto sicuro (HTTPS).\n\nAnche con i permessi di localizzazione attivi nelle impostazioni del telefono, i browser mobile impediscono l\'accesso al GPS a pagine caricate via file:// o http:// non protetto.\n\nSoluzione: carica/apri l\'app da un indirizzo HTTPS (es. tramite hosting, o installandola come PWA da un sito servito in HTTPS).');
                     return;
                 }
 
@@ -1959,7 +1758,7 @@ ${bodyConBgcolor}
                         (err) => {
                             if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
                             updateModalGpsStatusText();
-                            alert(`⚠️ Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
+                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
                         },
                         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
                     );
@@ -1972,7 +1771,7 @@ ${bodyConBgcolor}
                         // subito a bassa precisione: mostriamo l'errore chiaro all'utente.
                         if (err && err.code === 1) {
                             if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            alert(`⚠️ Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
+                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
                             return;
                         }
                         tryLowAccuracy();
@@ -2005,7 +1804,7 @@ ${bodyConBgcolor}
                     try {
                         await ensureLeafletLoaded();
                     } catch (e) {
-                        alert('⚠️ ' + e.message);
+                        alert('' + e.message);
                         closeAllGpsAccordion();
                         return;
                     }
@@ -2205,7 +2004,7 @@ ${bodyConBgcolor}
                         (err) => {
                             btnGpsMapGoToMe.disabled = false;
                             btnGpsMapGoToMe.innerHTML = `${ico('satellite')} Vai alla Mia Posizione`;
-                            appAlert('⚠️ Impossibile ottenere la posizione attuale: ' + ((err && err.message) || 'errore sconosciuto'));
+                            appAlert('Impossibile ottenere la posizione attuale: ' + ((err && err.message) || 'errore sconosciuto'));
                         },
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
                     );

@@ -388,7 +388,7 @@
                 }
                 sezione.style.display = 'block';
                 cont.innerHTML = risultati.map((r, i) => {
-                    const testo = r.azione === 'affianca' ? `↔ Affianca: ${r.pattern.label}` : `⚖️ Ottimizza: ${r.pattern.label}`;
+                    const testo = r.azione === 'affianca' ? `Affianca: ${r.pattern.label}` : `Ottimizza: ${r.pattern.label}`;
                     return `<button type="button" class="btn-action" data-suggerimento-idx="${i}" style="width:100%; font-size:11px; padding:6px 8px; text-align:left;">${escapeHtmlDidascalia(testo)}</button>`;
                 }).join('');
                 cont.querySelectorAll('[data-suggerimento-idx]').forEach(btn => {

@@ -18,11 +18,6 @@
            «GPS» o «Note» avanzano spazio. Ognuna prende quello che le serve e il resto si divide. */
         .spie { display: flex; gap: 4px; padding: 0; }
         .spie .spia { flex: 1 1 auto; padding: 0 6px; gap: 4px; }
-        /* Sul telefono stretto la foto e la falda perdono l'icona: il testo («2 foto», «Falda
-           1,20 m») dice già cosa sono, e lo spazio serve al numero. La spunta del GPS resta. */
-        @media (max-width: 420px) {
-            #btnOpenSurveyPhotosModal .ico, #btnSpiaFalda .ico { display: none; }
-        }
         #liveGpsAccuracyDot { position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; border-radius: 50%; }
         /* La riga delle prove: «Prove», i cerchietti da 44 e il «+» tratteggiato. Scorre di lato se
            le prove sono tante (le dissolvenze ai bordi restano quelle di 01_app.css). */
@@ -55,8 +50,7 @@
         .btn-minus { border-color: rgba(239, 68, 68, 0.7); color: var(--pericolo-testo); }
         .btn-touch-cifra { font-size: 36px; font-weight: 800; line-height: 1; }
         .btn-plus .btn-touch-cifra { font-size: 38px; }
-        .btn-touch-aiuto { font-size: var(--fs-didascalia); font-weight: 600; opacity: .85; text-align: center; line-height: 1.2; padding: 0 4px; }
-        .counter-quick-toggle.counter-lock-handle { width: 44px; height: 44px; }
+        .bt-aiuto { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: inherit; font-size: var(--fs-campo); font-weight: 800; cursor: pointer; }
 
         /* Registra: 56, a tutta larghezza, col suo intervallo. */
         .registra-blocco { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-3); }
@@ -79,16 +73,40 @@
         /* ---- Registro ---- */
         .registro-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); flex-wrap: wrap; }
         .registro-titolo { margin: 0; font-size: 17px; font-weight: 800; color: var(--text-main); }
-        .registro-azioni { display: flex; align-items: center; gap: 6px; }
-        .registro-aiuto { font-size: var(--fs-didascalia); color: var(--text-muted); margin-bottom: var(--sp-2); line-height: 1.4; }
+        .registro-azioni { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .registro-azioni .bt-aiuto { margin-left: auto; }
         .registro-legenda { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px var(--sp-2); margin-bottom: var(--sp-2); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 600; }
         .registro-legenda:empty { display: none; }
         .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
         .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
 
-        /* ---- Barra di stato fissa (quando il contatore esce dallo schermo) ---- */
-        .ssb-lbl { font-size: var(--fs-didascalia); text-transform: none; letter-spacing: 0; }
-        .ssb-jump { width: 44px; height: 44px; }
+        /* ---- Scheda dell'intervallo (Fase 6): − e + attorno ai colpi ---- */
+        .colpi-passo { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; gap: var(--sp-2); align-items: center; }
+        .colpi-passo .bt-icona { width: 56px; height: 56px; font-size: 26px; font-weight: 800; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main); color: var(--text-main); }
+        #lblModalOrigine { margin-top: var(--sp-2); }
+        #lblModalOrigine:empty { display: none; }
+
+        /* ---- Registro e grafico: poche righe che scorrono, oppure tutte (scelta ricordata) ---- */
+        #viewField.registro-espanso .logs-table-wrapper,
+        #viewField.registro-espanso .chart-box { max-height: none; overflow-y: visible; }
+        .btn-espandi-registro { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin-top: var(--sp-1); }
+
+        /* ---- «Intervalli ↓»: il titolo inverte l'ordine dell'elenco sotto il contatore ---- */
+        .titolo-ordine { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; background: none; border: none; color: inherit; font-family: inherit; cursor: pointer; }
+        .titolo-ordine .ico { width: 18px; height: 18px; transition: transform var(--mov-breve) var(--ease-entra); }
+        .titolo-ordine.crescente .ico { transform: rotate(180deg); }
+
+        /* ---- Le due viste della prova (Fase 6): Conta | Registro ---- */
+        .schede-prova { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-1); padding: var(--sp-1); border-radius: var(--radius-md); background: var(--bg-card); border: 1px solid var(--border); }
+        .schede-prova button { min-height: 44px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-family: inherit; font-size: var(--fs-campo); font-weight: 800; cursor: pointer; }
+        .schede-prova button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+        #listaUltimiIntervalli { display: flex; flex-direction: column; }
+        .ultimo-intervallo { display: grid; grid-template-columns: 116px 44px minmax(0, 1fr); align-items: center; min-height: 44px; padding: 0 var(--sp-1); border: none; border-top: 1px solid var(--border); background: transparent; color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .ultimo-intervallo-prof { font-family: var(--font-mono); font-size: var(--fs-testo); }
+        .ultimo-intervallo-colpi { font-family: var(--font-mono); font-size: var(--fs-campo); font-weight: 800; color: var(--accent); text-align: center; }
+        .ultimo-intervallo-barra { display: block; height: 18px; }
+        .ultimo-intervallo-barra > span { display: block; height: 100%; border-radius: 3px; }
+        .ultimi-vuoto { padding: var(--sp-3) var(--sp-1); color: var(--text-muted); font-size: var(--fs-testo); }
         /* La matita che sblocca i contatti tra strati sul grafico (vista con «Grafico» premuto). */
         #btnToggleModificaStratiGrafico { width: var(--h-bottone); height: var(--h-bottone); }
 
@@ -126,7 +144,7 @@
         .card-progetto-data { font-size: var(--fs-didascalia); color: var(--text-muted); }
         .card-progetto-altro {
             flex: 0 0 48px; width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;
-            background: transparent; border: none; border-left: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+            background: transparent; border: none; color: var(--text-muted); cursor: pointer;
         }
         .card-progetto-altro .ico { width: 20px; height: 20px; }
         .home-vuota { text-align: center; color: var(--text-muted); padding: 32px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--fs-testo); line-height: 1.5; }
@@ -138,3 +156,191 @@
 
         /* ---- La striscia «Salvataggio sospeso» (Fase 1) spinge giù il contenuto ---- */
         #barraSalvataggioSospeso { position: sticky; top: 0; }
+
+        /* ---- Sul telefono le finestre sono fogli dal basso (Fase 6, punto 4) ----
+           A tutta larghezza, attaccate al bordo in basso, dove arriva il pollice; salgono invece di
+           ingrandirsi al centro. Restano fuori le schermate intere (editor dei template, indice,
+           anteprima di stampa) e le finestre «Porta» e «Ricevi», che sono già fogli (02_…).
+           Gli !important vincono sulle larghezze scritte nel markup di ogni finestra. */
+        @media (max-width: 760px) {
+            .modal:not(.passaggio):not(#modalTemplateEditor):not(#modalIndicePersonalizza):not(#modalAnteprimaStampaReale) {
+                top: auto; bottom: 0; left: 0;
+                width: 100% !important; max-width: none !important;
+                max-height: 92dvh; overflow-y: auto;
+                border-radius: 20px 20px 0 0; border-bottom: none;
+                padding-bottom: max(20px, env(safe-area-inset-bottom));
+                transform: translateY(100%);
+            }
+            .modal.open:not(.passaggio):not(#modalTemplateEditor):not(#modalIndicePersonalizza):not(#modalAnteprimaStampaReale) {
+                transform: translateY(0);
+            }
+        }
+
+        /* ---- La schermata Progetto (Fase 5) ---- */
+        .progetto { display: flex; flex-direction: column; gap: var(--sp-3); }
+        .progetto-barra { display: flex; align-items: center; justify-content: space-between; }
+        .progetto-barra .bt-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 44px; }
+        .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
+        .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
+        .progetto-prove { padding: 0; overflow: hidden; }
+        .progetto-prove > .bt-link { width: 100%; min-height: 56px; display: flex; align-items: center; justify-content: center; gap: var(--sp-1); }
+        .prova-riga { width: 100%; display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: var(--sp-2) var(--sp-3); border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .prova-riga-n { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid var(--border); }
+        .prova-riga.attiva .prova-riga-n { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+        .prova-riga-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .prova-riga-testo strong { font-size: var(--fs-campo); }
+        .prova-riga-testo span { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .prova-riga-stato { flex-shrink: 0; padding: 3px 10px; border-radius: 13px; font-size: var(--fs-didascalia); font-weight: 700; color: var(--success); background: var(--success-soft); }
+        .prova-riga-stato.avviso { color: var(--warning); background: var(--warning-soft); }
+        .progetto-accessi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+        .progetto-accessi button { min-height: 80px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3); color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .progetto-accessi .ico { color: var(--accent); margin-bottom: auto; }
+        .progetto-accessi strong { font-size: var(--fs-campo); }
+        .progetto-accessi span { font-size: var(--fs-didascalia); color: var(--text-muted); }
+        .progetto-accessi .accento { border-color: var(--accent); background: var(--accent-soft); }
+
+        /* ---- La scheda della prova (Fase 4) ---- */
+        .scheda-prova-rapidi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-3); }
+        .scheda-prova-gruppo { font-weight: 800; text-transform: uppercase; letter-spacing: .4px; margin: var(--sp-2) 0; }
+
+        /* ---- Il PC, per la post-produzione (Fase 7, da 1024 px) ----
+           Niente contatore né schede Conta | Registro: il Registro e, nella vista «Grafico», tabella e
+           grafico affiancati. Gli !important vincono sugli stili scritti dallo script. */
+        .pc-barra, .pc-lato, .pc-stato { display: none; }
+        @media (min-width: 1024px) {
+            #viewField { flex-direction: row !important; flex-wrap: wrap; align-items: flex-start; }
+            #viewField > * { flex: 1 1 100%; }
+            #viewField > #cardLogsTable, #viewField > #cardChart { flex: 1 1 calc(50% - 8px); min-width: 0; }
+            #viewField > .schede-prova, #cardUltimiIntervalli { display: none !important; }
+            /* Il contatore acceso (passo 5) sta a sinistra del Registro. */
+            #viewField > #cardCounterDashboard { flex: 0 0 380px; }
+            #viewField > #cardIntegratedRegister { flex: 1 1 400px; min-width: 0; }
+            #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
+            /* Consegna e Confronto più larghi sul PC (passo 6): il confronto è una figura, più spazio più leggibile. */
+            #modalExportFormats { max-width: 640px !important; }
+            #modalConfrontoProve { max-width: 820px !important; }
+            #confrontoGrafico svg { max-width: none !important; max-height: 64vh; }
+            main { max-width: 1200px; }
+
+            /* Barre del PC (prototipo PC, passo 1). Il percorso e la barra laterale sostituiscono
+               «‹» e la riga delle prove del telefono. */
+            body { padding: 52px 0 30px 260px; }
+            .pc-barra { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 40; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--border); }
+            .pc-lato { position: fixed; top: 52px; bottom: 30px; left: 0; width: 260px; z-index: 40; box-sizing: border-box; overflow-y: auto; padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; gap: 2px; background: var(--bg-card); border-right: 1px solid var(--border); }
+            .pc-stato { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-4); font-size: 12px; color: var(--text-muted); background: var(--bg-card); border-top: 1px solid var(--border); }
+            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome { display: none !important; }
+            #btnProgettoAltro { margin-left: auto; }
+        }
+        .pc-percorso { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }
+        .pc-percorso li + li::before { content: "/"; margin-right: 6px; color: var(--text-muted); }
+        .pc-percorso button { border: none; background: none; padding: 4px 6px; border-radius: 6px; font: inherit; color: var(--text-muted); cursor: pointer; }
+        .pc-percorso button:hover { color: var(--text-main); background: var(--bg-card-hover); }
+        .pc-percorso [aria-current] { color: var(--text-main); padding: 4px 6px; }
+        .pc-lato-titolo { padding: 0 var(--sp-2) var(--sp-2); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
+        .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pc-lato button:hover { background: var(--bg-card-hover); }
+        .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
+        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 150; transform-origin: top left; }
+        .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
+        .menu-contesto kbd { margin-left: auto; padding-left: var(--sp-4); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+        .menu-contesto .pericolo, .menu-contesto .pericolo .ico { color: var(--danger); }
+        .menu-contesto [role="menuitem"]:hover { background: var(--bg-card-hover); }
+        .swipe-row-wrapper.scelta > .swipe-content { background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); box-shadow: inset 3px 0 0 var(--accent); }
+        .chart-bar-group.scelta .chart-rect-bar { stroke: var(--accent); stroke-width: 3; }
+        .pc-lato [aria-current] { background: var(--accent-soft); color: var(--text-main); font-weight: 700; box-shadow: inset 2px 0 0 var(--accent); }
+
+        /* ---- Aggiungi intervalli: l'anteprima di cosa si scrive (prototipo PC, passo 3) ---- */
+        .anteprima-intervalli { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; font-family: var(--font-mono); font-size: 13px; }
+        .anteprima-intervalli:empty { display: none; }
+        .anteprima-intervalli > div { display: flex; justify-content: space-between; gap: var(--sp-3); padding: 3px 0; border-top: 1px solid var(--border); }
+        .anteprima-intervalli .anteprima-scartato { color: var(--danger); font-family: var(--font-sans); font-weight: 700; }
+        #btnConfirmBulkImport:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ---- Palette dei comandi e guida delle scorciatoie (prototipo PC, passo 4) ---- */
+        .modal.palette { max-width: 620px; top: 12vh !important; transform: translateX(-50%); display: flex; flex-direction: column; gap: var(--sp-2); }
+        .modal.palette.open { transform: translateX(-50%); } /* in alto e ferma mentre la lista si accorcia */
+        .palette-lista { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+        .palette-lista button { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: 0 var(--sp-3); border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-main); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+        .palette-lista button span { flex: 1; }
+        .palette-lista button small { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+        .palette-lista button:hover, .palette-lista [aria-selected] { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+        .palette-lista kbd, .scorciatoie kbd { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--bg-card-hover); color: var(--text-main); white-space: nowrap; }
+        .palette-vuota { padding: var(--sp-4); color: var(--text-muted); text-align: center; }
+        .palette-piede { text-align: right; }
+        .modal.scorciatoie { max-width: 900px; }
+        .scorciatoie-gruppi { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
+        .scorciatoie-gruppi section { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius-md); }
+        .scorciatoie-gruppi h3 { margin: 0 0 4px; font-size: 14px; color: var(--accent); }
+        .scorciatoie-gruppi div { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: 28px; color: var(--text-muted); }
+
+        /* ---- La guida rapida della prima volta sul PC ---- */
+        .guida-rapida { position: fixed; inset: 0; z-index: 400; }
+        .guida-rapida[hidden] { display: none; }
+        .guida-buco { position: fixed; border-radius: var(--radius-md); box-shadow: 0 0 0 9999px rgba(5, 10, 9, 0.62); outline: 2px solid var(--accent); transition: all var(--mov-medio) var(--ease-entra); pointer-events: none; }
+        .guida-fumetto { position: fixed; width: 340px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+        .guida-fumetto strong { font-size: 16px; }
+        .guida-fumetto p { margin: 0; line-height: 1.5; color: var(--text-muted); }
+        .guida-comandi { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-2); }
+        .guida-comandi .t-didascalia { flex: 1; }
+
+        /* ---- Terreno e sezioni ---- */
+        .modal.terreno { max-width: 520px; }
+        .modal.terreno p { margin: 0 0 var(--sp-2); line-height: 1.5; }
+        .terreno-fonte { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--sp-3); }
+        .terreno-quote { display: flex; flex-direction: column; margin-bottom: var(--sp-3); border-top: 1px solid var(--border); }
+        .terreno-quote > div { display: flex; justify-content: space-between; align-items: center; min-height: 36px; border-bottom: 1px solid var(--border); }
+        .terreno-quote strong { font-family: var(--font-mono); }
+        .terreno-comandi { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+        .riga-avviso.pericolo { border-color: var(--danger); color: var(--danger); background: transparent; margin-bottom: var(--sp-3); }
+        #btnProgettoConsegna { grid-column: 1 / -1; }
+        .modal.sezione { max-width: 1100px; width: 96vw; max-height: 94vh; overflow-y: auto; }
+        #graficoSezione { color: var(--text-main); margin: var(--sp-2) 0; }
+        #proveSezione .pillola[disabled] { opacity: .5; cursor: not-allowed; }
+        #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
+        #graficoVista3d:focus-visible { outline: 2px solid var(--accent); }
+        .vista3d-esag { display: flex; align-items: center; gap: var(--sp-2); flex: 1; font-weight: 600; }
+        .vista3d-esag input { flex: 1; max-width: 260px; accent-color: var(--accent); }
+        #btnApriVista3d:disabled { opacity: .5; cursor: not-allowed; }
+        .export-opt-card.spenta { opacity: .45; pointer-events: none; }
+
+        /* ---- Sezione: comandi e riquadro che scorre ---- */
+        .sezione-comandi { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-2) 0; }
+        #graficoSezione { max-height: 68vh; overflow: auto; overscroll-behavior: contain; }
+        #opzioniSezione .pillola[disabled] { opacity: .45; cursor: not-allowed; }
+        .sezione-colonna:hover rect[fill="transparent"] { fill: var(--accent-soft); }
+
+        /* ---- Il fumetto di una prova ---- */
+        .fumetto-prova { position: fixed; z-index: 600; width: 360px; max-width: calc(100vw - 16px); box-sizing: border-box; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 16px 40px rgba(0,0,0,0.35); padding: var(--sp-2) var(--sp-3) var(--sp-3);
+            opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .fumetto-prova.visibile { opacity: 1; transform: none; }
+        .fumetto-prova.bloccato { border-color: var(--accent); }
+        .fumetto-prova.bloccato .fumetto-testa { cursor: move; }
+        .fumetto-testa { display: flex; align-items: center; gap: var(--sp-1); min-height: 36px; }
+        .fumetto-testa strong { flex: 1; font-size: 15px; }
+        .fumetto-testa button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer; }
+        .fumetto-testa button:hover { background: var(--bg-card-hover); color: var(--text-main); }
+        .fumetto-blocca[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+        .fumetto-corpo { display: flex; gap: var(--sp-3); align-items: flex-start; }
+        .fumetto-corpo svg { flex-shrink: 0; color: var(--text-main); }
+        .fumetto-dati { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+        .fumetto-dati > div { display: flex; justify-content: space-between; gap: var(--sp-2); }
+        .fumetto-dati span { color: var(--text-muted); }
+        .fumetto-strati { margin-top: var(--sp-1); display: flex; flex-direction: column; gap: 3px; }
+        .fumetto-strati div { display: flex; align-items: center; gap: 5px; line-height: 1.25; }
+        .fumetto-strati i { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .fumetto-strati span { margin-left: auto; font-family: var(--font-mono); white-space: nowrap; }
+        @media (max-width: 420px) { .fumetto-corpo { flex-direction: column; } }
+        #graficoVista3d canvas { display: block; touch-action: none; cursor: grab; }
+
+        /* ---- Fluidità: le finestre chiuse fuori dall'impaginazione ----
+           Sono quasi due terzi degli elementi della pagina e, chiuse, sono solo trasparenti: ogni
+           cambio di vista le reimpaginava tutte (misurato: aprire un progetto 72 → 28 ms).
+           content-visibility le salta finché sono chiuse; con allow-discrete il contenuto resta
+           fino alla fine della dissolvenza di chiusura. Fuori le finestre che misurano il proprio
+           contenuto prima di aprirsi (editor dei template, note, disegno, mappa, ritaglio, foto, GPS)
+           e il cassetto, che si apre scorrendo: impaginarlo all'apertura ne frenava il primo passo. */
+        .modal:not(.open):not(#modalTemplateEditor):not(#modalTplTextEditor):not(#modalAnteprimaStampaReale):not(#modalIndicePersonalizza):not(#modalProjectNotes):not(#modalComposizioneMappa):not(#modalNoteDraw):not(#modalStileTesto):not(#modalRitaglio):not(#modalPhoto):not(#modalGpsSettings) { content-visibility: hidden; }
+        .modal { transition: opacity var(--mov-medio) var(--ease-entra), transform var(--mov-medio) var(--ease-entra), content-visibility var(--mov-medio) allow-discrete; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+        }

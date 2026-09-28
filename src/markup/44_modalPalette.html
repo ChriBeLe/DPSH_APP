@@ -1,0 +1,21 @@
+    <!-- PALETTE DEI COMANDI (Ctrl K) E GUIDA DELLE SCORCIATOIE (tasto ?), prototipo PC passo 4.
+         Le riempie il pezzo 071c, dallo stesso elenco di comandi. -->
+    <div class="modal-overlay" id="modalPaletteOverlay"></div>
+    <div class="modal palette" id="modalPalette" role="dialog" aria-label="Cerca o esegui un comando">
+        <label class="campo-cerca">
+            <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" id="txtPalette" placeholder="Cerca un comando, un progetto o una prova" aria-label="Cerca un comando, un progetto o una prova" autocomplete="off">
+        </label>
+        <div class="palette-lista" id="listaPalette" role="listbox"></div>
+        <div class="t-didascalia palette-piede">↑ ↓ scegli · Invio esegui · Esc chiudi · ? tutte le scorciatoie</div>
+    </div>
+
+    <div class="modal-overlay" id="modalScorciatoieOverlay"></div>
+    <div class="modal scorciatoie" id="modalScorciatoie" role="dialog" aria-labelledby="titoloScorciatoie">
+        <div class="modal-title"><span id="titoloScorciatoie">Guida e scorciatoie</span></div>
+        <p class="t-didascalia">Col mouse: clic sceglie, doppio clic modifica, tasto destro mostra le azioni. Ogni comando si trova anche con Ctrl K.</p>
+        <div class="scorciatoie-gruppi" id="gruppiScorciatoie"></div>
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; margin-top: 12px;">
+            <button type="button" class="bt" id="btnRivediGuida">Rivedi la guida rapida</button>
+        </div>
+    </div>

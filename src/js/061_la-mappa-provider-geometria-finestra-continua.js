@@ -723,7 +723,7 @@
                 const titolo = `Note — ${proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto'}`;
                 try {
                     const printWindow = window.open('', '_blank');
-                    if (!printWindow) { alert('⚠️ Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
+                    if (!printWindow) { alert('Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
                     const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
                     const dataStr = new Date().toLocaleDateString('it-IT');
                     const fullDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>
@@ -1389,7 +1389,9 @@
             });
 
             // MODAL EDITING MANUALE COMPLETO (DA, A, COLPI, NOTE)
-            function openEditModal(idx) {
+            // senzaTastiera: aperta toccando una riga (Fase 6) la scheda non chiama la tastiera; per
+            // correggere un colpo bastano − e +.
+            function openEditModal(idx, { senzaTastiera = false } = {}) {
                 editingIndex = idx;
                 const item = state.logs[idx];
                 if (!item) return;
@@ -1405,10 +1407,12 @@
                 // Popola dropdown strati e seleziona litologia specifica dello step
                 populateStratiDropdown();
                 if (selModalLithology) selModalLithology.value = item.lithology || '';
+                document.getElementById('lblModalOrigine').textContent = origineIntervallo(item);
 
                 modalOverlay.classList.add('open');
                 modalEditStep.classList.add('open');
 
+                if (senzaTastiera) return;
                 // Focus e selezione istantanea del campo Numero Colpi per apertura tastierino immediato
                 setTimeout(() => {
                     if (numModalColpi) {
@@ -1417,6 +1421,26 @@
                     }
                 }, 150);
             }
+
+            // «Registrato col contatore il 26/09/2026 alle 11:42 · corretto il …» (tracciabilità, 004d).
+            // Gli intervalli di prima della Fase 1 non hanno la data: non si inventa.
+            function origineIntervallo(item) {
+                const quando = iso => {
+                    const d = new Date(iso);
+                    return isNaN(d) ? '' : `il ${d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} alle ${d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+                };
+                const come = { 'contatore': 'col contatore', 'inserimento-multiplo': 'con Aggiungi intervalli', 'modifica-manuale': 'a mano', 'import': 'da un file importato' }[item.origine];
+                const parti = [];
+                if (item.registratoIl) parti.push(['Registrato', come, quando(item.registratoIl)].filter(Boolean).join(' '));
+                if (item.modificatoIl) parti.push(['corretto', quando(item.modificatoIl)].filter(Boolean).join(' '));
+                return parti.join(' · ');
+            }
+            [['btnModalColpiMeno', -1], ['btnModalColpiPiu', 1]].forEach(([id, passo]) => {
+                document.getElementById(id).addEventListener('click', () => {
+                    numModalColpi.value = Math.max(0, (parseInt(numModalColpi.value, 10) || 0) + passo);
+                    triggerVibrate(20);
+                });
+            });
 
             // Premendo Invio/Enter nel campo Numero Colpi -> Salva e chiudi istantaneo
             if (numModalColpi) {
@@ -1545,10 +1569,9 @@
                 if (modalQuickFalda) modalQuickFalda.classList.remove('open');
             }
 
-            // La falda si imposta dalla sua spia nella testata della prova (Fase 3): prima stava nella
-            // barra del Registro, cioè sotto il contatore e spesso fuori dallo schermo.
-            const btnSpiaFalda = document.getElementById('btnSpiaFalda');
-            if (btnSpiaFalda) btnSpiaFalda.addEventListener('click', openQuickFaldaModal);
+            // La falda si imposta dal ⋯ della prova: si indica una volta sola, non merita una spia
+            // accanto a GPS e foto (27/09/2026). Prima ancora stava nella barra del Registro.
+            document.getElementById('btnFaldaMenu').addEventListener('click', openQuickFaldaModal);
             if (btnCloseQuickFaldaX) btnCloseQuickFaldaX.addEventListener('click', closeQuickFaldaModal);
             if (modalQuickFaldaOverlay) modalQuickFaldaOverlay.addEventListener('click', closeQuickFaldaModal);
 

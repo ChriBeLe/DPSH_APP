@@ -167,7 +167,7 @@
                         gpsMapSearchResults.appendChild(item);
                     });
                 } catch (e) {
-                    showGpsMapSearchMessage('⚠️ Ricerca non riuscita (serve connessione internet). Puoi comunque spostare il pin a mano sulla mappa.');
+                    showGpsMapSearchMessage('Ricerca non riuscita (serve connessione internet). Puoi comunque spostare il pin a mano sulla mappa.');
                 }
             }
 
