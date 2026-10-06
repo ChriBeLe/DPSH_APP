@@ -1,7 +1,7 @@
 // VISTA 3D: col DTM, terreno ombreggiato e colonne «DPSH N»; pannelli di correlazione tra prove
 // vicine, superfici di contatto con la giacitura (esatta su un piano noto), misure; ogni livello
 // si spegne. Si gira con le frecce (e trascinando), l'esagerazione cambia la figura, il nord ruota.
-// Clic su una colonna: il fumetto. Senza DTM il bottone è spento. Si scarica in SVG e in OBJ.
+// Clic su una colonna: il fumetto. Senza DTM le prove stanno sul piano campagna. Si scarica in SVG e in OBJ.
 const fs = require('fs');
 const path = require('path');
 const { avviaApp, attesa, telefonoV0 } = require('./dati/app_in_jsdom');
@@ -21,9 +21,19 @@ const $ = (app, id) => app.d.getElementById(id);
   const P = `state.projects[${JSON.stringify(idNardo)}]`;
   app.E(`openProject(${JSON.stringify(idNardo)}); switchView('project')`);
   clic(app, $(app, 'btnProgettoTerreno'));
-  t('senza DTM il bottone «Vista 3D» è spento, e dice perché', $(app, 'btnApriVista3d').disabled && /Serve un DTM/.test($(app, 'btnApriVista3d').title));
-  app.E('apriVista3d()');
-  t('(e la vista, se aperta dalla palette, dice cosa serve)', /serve un DTM/.test($(app, 'graficoVista3d').textContent));
+  t('senza DTM il bottone «Vista 3D» è acceso, e dice che le prove partono dal piano campagna', !$(app, 'btnApriVista3d').disabled && /piano campagna/.test($(app, 'btnApriVista3d').title));
+  clic(app, $(app, 'btnApriVista3d'));
+  {
+    const div = app.d.createElement('div'); div.innerHTML = app.E('svgDaScena(ultimaScena3d)');
+    const sv = div.firstElementChild, quante = sel => sv.querySelectorAll(sel).length;
+    const nomi = [...sv.querySelectorAll('.vista3d-nome')].map(e => e.textContent).sort();
+    t(`senza DTM: piano campagna, colonne delle prove col GPS (${nomi.join(', ')}), pannelli e distanza`, quante('.vista3d-faccia') > 0 && nomi.join() === 'DPSH 1,DPSH 2' && quante('.vista3d-pannello') > 0 && quante('.vista3d-distanza') === 1);
+    t('(e lo dice nella figura)', /senza DTM: prove tutte dal piano campagna/.test(sv.textContent));
+    const obj = app.E('modelloObj(datiVista3dCorrenti).obj');
+    t('(il modello OBJ si scarica lo stesso, con il piano campagna)', /o Piano_campagna/.test(obj) && /o DPSH_1/.test(obj) && /quota dal piano campagna/.test(obj));
+  }
+  app.E(`(() => { const S = Object.values(${P}.surveys), salvate = S.map(s => [s.header.lat, s.header.lng]); S.forEach(s => { s.header.lat = ''; s.header.lng = ''; }); apriVista3d(); S.forEach((s, i) => { [s.header.lat, s.header.lng] = salvate[i]; }); })()`);
+  t('senza prove col GPS la vista dice cosa serve', /almeno una prova col GPS/.test($(app, 'graficoVista3d').textContent));
 
   const buf = fs.readFileSync(path.join(__dirname, 'dati', 'dtm', 'utm33_lzw_pred3.tif'));
   const file = new app.w.File([buf], 'dtm.tif');

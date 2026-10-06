@@ -26,7 +26,7 @@
                     ['Progetto', 'Nuova prova', '', openNewSurveyModal, conProgetto],
                     ['Progetto', 'Terreno e sezioni (DTM)', '', apriTerreno, conProgetto],
                     ['Progetto', 'Sezione tra le prove', '', apriSezione, conProgetto],
-                    ['Progetto', 'Vista 3D del terreno', '', apriVista3d, conProgetto && !!state.projects[state.currentProjectId].dtm],
+                    ['Progetto', 'Vista 3D del terreno', '', apriVista3d, conProgetto],
                     ['Prova', 'Aggiungi intervalli', 'Ctrl I', openBulkImportModal, inProva],
                     ['Prova', 'Falda', 'F', openQuickFaldaModal, inProva],
                     ['Prova', 'Foto della prova', '', clicSu('btnOpenSurveyPhotosModal'), inProva],

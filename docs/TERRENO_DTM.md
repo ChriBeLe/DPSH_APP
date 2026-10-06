@@ -27,6 +27,7 @@ Dal Progetto, «Terreno e sezioni» (anche con Ctrl K).
   - superfici di contatto: tetto degli strati comuni a tre prove, piano per tre punti, con la giacitura reale (immersione/inclinazione);
   - misure: quote e distanze.
   - Ogni livello si spegne. Solo le prove eseguite davvero.
+  - Anche senza DTM: le prove col GPS partono tutte dal piano campagna (quota 0, un piano orizzontale), come nella sezione.
   - Si scarica in SVG e come **modello 3D OBJ + MTL** (metri veri, Y in alto, origine scritta nel file) per Blender, MeshLab, QGIS.
 
 ## Da fare
