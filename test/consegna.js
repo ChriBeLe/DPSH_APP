@@ -58,7 +58,7 @@ const visibile = (app, id) => !!$(app, id) && !nascosto(app.w, $(app, id));
   const pillole = () => [...$(app, 'pilloleProveConsegna').querySelectorAll('[data-prova]')];
   t('la consegna del progetto elenca le prove, tutte accese', visibile(app, 'sceltaProveConsegna') && pillole().length > 1 && pillole().every(b => b.getAttribute('aria-pressed') === 'true') && /Tutte le prove/.test($(app, 'lblProveConsegna').textContent));
   const tolta = pillole()[0];
-  const nrTolta = tolta.textContent;
+  const nrTolta = tolta.title;
   clic(app, tolta);
   t('togliendone una lo dice: per Excel, KML e foto; il PDF sceglie dopo', pillole()[0].getAttribute('aria-pressed') === 'false' && /su \d+ per Excel, KML e foto/.test($(app, 'lblProveConsegna').textContent));
   const n0 = app.scaricati.length;

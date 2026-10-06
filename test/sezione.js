@@ -27,7 +27,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const svg = () => $(app, 'graficoSezione').querySelector('svg');
   const etichette = () => [...svg().querySelectorAll('.sezione-etichetta')].map(e => e.textContent);
   t('dal Terreno si apre la sezione: tre prove col GPS, la 3B (interpretazione) spenta', $(app, 'modalSezione').classList.contains('open') && etichette().join() === 'DPSH 1,DPSH 2,DPSH 3'
-    && $(app, 'proveSezione').querySelector('[aria-pressed="false"]').textContent === 'DPSH 3B');
+    && $(app, 'proveSezione').querySelector('[aria-pressed="false"]').textContent === '3B');
   t('senza DTM lo dice, e le quote sono dal piano campagna', /Senza DTM/.test($(app, 'notaSezione').textContent) && /m dal piano campagna/.test(svg().textContent));
   t('le prove sono in fila lungo la direzione principale, con la scala delle distanze e l\'esagerazione verticale', /esagerazione verticale ×\d/.test(svg().textContent));
   t('strati uniti tra prove vicine', svg().querySelectorAll('.sezione-unione').length > 0);
@@ -46,7 +46,7 @@ const $ = (app, id) => app.d.getElementById(id);
 
   clic(app, $(app, 'proveSezione').querySelector('[aria-pressed="true"]'));
   t('spegnere una prova la toglie dalla sezione', etichette().join() === 'DPSH 2,DPSH 3');
-  clic(app, [...$(app, 'proveSezione').querySelectorAll('button')].find(b => b.getAttribute('aria-pressed') === 'true' && b.textContent === 'DPSH 2'));
+  clic(app, [...$(app, 'proveSezione').querySelectorAll('button')].find(b => b.getAttribute('aria-pressed') === 'true' && b.title === 'DPSH 2'));
   t('con una sola prova dice cosa fare', !svg() && /almeno due prove/.test($(app, 'graficoSezione').textContent) && $(app, 'btnScaricaSezione').disabled);
   app.E('apriSezione()');
   clic(app, $(app, 'btnScaricaSezione'));

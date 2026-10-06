@@ -246,10 +246,11 @@
                 const proj = state.projects[state.currentProjectId];
                 const tutte = proveDellaSezione(proj);
                 document.getElementById('proveSezione').innerHTML = tutte.map(({ s, gps }) =>
-                    `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${gps && !sezioneStato.escluse.has(s.id)}"${gps ? '' : ' disabled title="Senza GPS: non si sa dove metterla"'}>${escapeHtmlDidascalia(nomeDpsh(s))}</button>`).join('');
+                    `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${gps && !sezioneStato.escluse.has(s.id)}"${gps ? ` title="${escapeHtmlDidascalia(nomeDpsh(s))}"` : ' disabled title="Senza GPS: non si sa dove metterla"'}>${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}</button>`).join('');
                 document.querySelectorAll('#opzioniSezione [data-opzione]').forEach(b => b.setAttribute('aria-pressed', String(sezioneStato[b.dataset.opzione])));
                 document.getElementById('opzioniSezione').querySelector('[data-opzione="etichette"]').disabled = !sezioneStato.correlazioni;
                 const scelte = tutte.filter(v => v.gps && !sezioneStato.escluse.has(v.s.id)).map(v => v.s);
+                document.getElementById('lblProveSezioneBreve').textContent = `${scelte.length} su ${tutte.filter(v => v.gps).length}`;
                 const note = [];
                 const senzaGps = tutte.filter(v => !v.gps).length;
                 if (senzaGps) note.push(`${senzaGps === 1 ? 'Una prova è' : senzaGps + ' prove sono'} senza GPS e ${senzaGps === 1 ? 'resta' : 'restano'} fuori.`);
@@ -287,6 +288,7 @@
                 // Di partenza le prove eseguite davvero: le interpretazioni alternative («3B») spente.
                 const proj = state.projects[state.currentProjectId];
                 sezioneStato.escluse = new Set(proveDellaSezione(proj).filter(v => !v.fisica).map(v => v.s.id));
+                document.getElementById('sceltaProveSezione').open = proveDellaSezione(proj).length <= 8;
                 document.getElementById('modalSezioneOverlay').classList.add('open');
                 document.getElementById('modalSezione').classList.add('open');
                 renderSezione();
@@ -299,6 +301,11 @@
                 if (!b || b.disabled) return;
                 if (sezioneStato.escluse.has(b.dataset.prova)) sezioneStato.escluse.delete(b.dataset.prova);
                 else sezioneStato.escluse.add(b.dataset.prova);
+                renderSezione();
+            });
+            document.getElementById('btnProveSezioneTutte').addEventListener('click', () => { sezioneStato.escluse = new Set(); renderSezione(); });
+            document.getElementById('btnProveSezioneNessuna').addEventListener('click', () => {
+                sezioneStato.escluse = new Set(proveDellaSezione(state.projects[state.currentProjectId]).map(v => v.s.id));
                 renderSezione();
             });
             document.getElementById('opzioniSezione').addEventListener('click', (e) => {
