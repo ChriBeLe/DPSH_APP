@@ -100,6 +100,28 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`Delaunay: 5 punti (quadrato e centro) → 4 triangoli (${tri.length})`, tri.length === 4);
   t('(punti in fila: nessun triangolo)', app.E('triangolaDelaunay([{x:0,y:0},{x:10,y:0},{x:20,y:0}])').length === 0);
 
+  // MODELLO SOLIDO: tre prove; la sabbia c'è in A e C e manca in B (lì si assottiglia a zero).
+  const so = app.E(`(() => {
+    const F = (nome, da, a) => ({ nome, da, a, colore: '#123456' });
+    const prova = (x, y, fasce) => ({ x, y, z: 100, fasce, fondo: Math.max(...fasce.map(f => f.a)), occ: occorrenzeFasce(fasce), s: { header: { provaNr: 'x' } } });
+    const d = { prove: [prova(0, 0, [F('Limo', 0, 1), F('Sabbia', 1, 3)]), prova(10, 0, [F('Limo', 0, 2), F('Argilla', 2, 4)]), prova(0, 10, [F('Limo', 0, 1), F('Sabbia', 1, 2), F('Argilla', 2, 3)])],
+      triangoli: [[0, 1, 2]], lati: [[0, 1], [1, 2], [2, 0]], zSuolo: () => NaN };
+    const m = modelloSolido(d), inA = colonnaSolido(d, m, 0, 0), meta = colonnaSolido(d, m, 5, 0);
+    const quadrato = ritagliaPoligono([[0, 0], [10, 0], [10, 10], [0, 10]], p => p[0] - 5);
+    return { strati: m.strati.map(s => s.nome), basiB: m.basi[1], inA: inA.basi, z: inA.z, sabbiaMeta: meta.basi[1] - meta.basi[0],
+      strato: stratoAProfondita(inA, 2), involucro: m.involucro.length, quadrato: quadrato.map(p => p.join(',')).join(' ') };
+  })()`);
+  t(`modello solido: ordine degli strati dalle colonne (${so.strati.join(', ')})`, so.strati.join() === 'Limo,Sabbia,Argilla,Non indagato');
+  t('dove uno strato manca ha spessore zero, sotto il fondo «Non indagato»', so.basiB.join() === '2,2,4,4' && so.inA.join() === '1,3,3,4');
+  t(`a metà strada lo spessore si interpola (${so.sabbiaMeta} m di sabbia, 2 in A e 0 in B)`, so.sabbiaMeta > 0 && so.sabbiaMeta < 2);
+  t('in un punto: la quota (dalle prove, senza DTM) e lo strato a una profondità', so.z === 100 && so.strato === 1 && so.involucro === 3);
+  t('il taglio di un poligono tiene la metà giusta', so.quadrato === '5,0 10,0 10,10 5,10');
+  app.E('vista3d.livelli.solido = true; renderVista3d()');
+  t('acceso, il corpo chiuso prende il posto di pannelli e superfici', conta('.vista3d-solido') > 0 && conta('.vista3d-pannello') === 0);
+  app.E("vista3d.taglio = { dir: 'ns', pos: 0.5, lato: 1, prof: 1 }; renderVista3d()");
+  t('tagliato di lato e in profondità: si vede il contorno del taglio', conta('.vista3d-solido') > 0 && conta('.vista3d-taglio') > 0);
+  app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
+
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

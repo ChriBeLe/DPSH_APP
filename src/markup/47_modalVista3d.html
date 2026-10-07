@@ -8,6 +8,7 @@
         </div>
         <p class="t-didascalia">Trascina per girare in ogni direzione, anche sotto l'orizzonte. Per spostare la scena: tasto destro, Maiusc + trascina o due dita. Per avvicinarti: due dita, la rotella o + −. Da tastiera ← → ↑ ↓ (con Maiusc spostano). Tocca una colonna per il suo fumetto.</p>
         <div class="pillole" id="livelliVista3d" aria-label="Livelli">
+            <button type="button" class="pillola" data-livello="solido">Modello solido</button>
             <button type="button" class="pillola" data-livello="terreno">Terreno</button>
             <button type="button" class="pillola" data-livello="colonne">Colonne</button>
             <button type="button" class="pillola" data-livello="pannelli">Pannelli di correlazione</button>
@@ -15,6 +16,22 @@
             <button type="button" class="pillola" data-livello="giaciture">Giaciture</button>
             <button type="button" class="pillola" data-livello="nomi">Nomi</button>
             <button type="button" class="pillola" data-livello="misure">Misure</button>
+        </div>
+        <!-- I tagli del modello solido: un piano verticale che scorre (Nord–Sud o Est–Ovest) e uno
+             in profondità. Toccarli accende il modello solido. -->
+        <div class="vista3d-tagli" id="tagliVista3d">
+            <div class="vista3d-taglio-riga">
+                <span class="vista3d-taglio-nome">Taglio laterale</span>
+                <div class="pillole" id="direzioneTaglio3d" aria-label="Direzione del taglio">
+                    <button type="button" class="pillola" data-taglio-dir="">Nessuno</button>
+                    <button type="button" class="pillola" data-taglio-dir="ns">Nord–Sud</button>
+                    <button type="button" class="pillola" data-taglio-dir="eo">Est–Ovest</button>
+                </div>
+                <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
+                <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+            </div>
+            <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
+                <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
         </div>
         <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
         <div class="terreno-comandi" style="align-items: center;">

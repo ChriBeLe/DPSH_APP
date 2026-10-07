@@ -304,6 +304,10 @@
         #proveSezione .pillola[disabled] { opacity: .5; cursor: not-allowed; }
         #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
         #graficoVista3d:focus-visible { outline: 2px solid var(--accent); }
+        .vista3d-tagli { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; }
+        .vista3d-taglio-riga { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-weight: 600; }
+        .vista3d-taglio-nome { min-width: 150px; }
+        .vista3d-taglio-riga input[type="range"] { flex: 1; min-width: 140px; max-width: 320px; accent-color: var(--accent); }
         .vista3d-esag { display: flex; align-items: center; gap: var(--sp-2); flex: 1; font-weight: 600; }
         .vista3d-esag input { flex: 1; max-width: 260px; accent-color: var(--accent); }
         #btnApriVista3d:disabled { opacity: .5; cursor: not-allowed; }
