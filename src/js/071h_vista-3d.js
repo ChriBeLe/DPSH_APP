@@ -14,7 +14,7 @@
             // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
-            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, trascina: null, mosso: 0,
+            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, panX: 0, panY: 0, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomi: true, misure: true } };
 
             /** Triangolazione di Delaunay (Bowyer-Watson) dei punti {x, y}: terne di indici. */
@@ -195,7 +195,7 @@
                 const k = Math.min(W, H) / 2.15 / R * vista3d.zoom;
                 const P = (x, y, z) => {
                     const X = x * ca - y * sa, Yd = x * sa + y * ca, Z = (z - zRif) * ex;
-                    return [W / 2 + X * k, H / 2 + (-Z * ce - Yd * se) * k, Yd * ce - Z * se];
+                    return [W / 2 + X * k + vista3d.panX, H / 2 + (-Z * ce - Yd * se) * k + vista3d.panY, Yd * ce - Z * se];
                 };
                 const pezzi = [], sopra = [], colonne = [];
                 const poli = (pp, extra) => pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
@@ -376,12 +376,18 @@
                     const d = datiVista3dCorrenti, rilievo = Math.max(0.5, d.zMax - d.zMin);
                     const profMax = Math.max(1, ...d.prove.map(p => p.fondo));
                     vista3d.ex = Math.max(1, Math.min(30, Math.round(Math.max(d.senzaDtm ? 0 : d.lato / 8 / rilievo, d.lato / 6 / profMax))));
-                    vista3d.zoom = 1.4; // le prove grandi, il terreno ai bordi si può tagliare
+                    vistaIniziale3d();
                     document.getElementById('rngEsag3d').value = vista3d.ex;
                 }
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
                 renderVista3d();
+            }
+
+            /** Il punto di vista di partenza: da sopra, di sbieco, la scena al centro. */
+            function vistaIniziale3d() {
+                vista3d.az = -0.6; vista3d.el = 0.62; vista3d.panX = 0; vista3d.panY = 0;
+                vista3d.zoom = 1.4; // le prove grandi, il terreno ai bordi si può tagliare
             }
 
             const box3d = document.getElementById('graficoVista3d');
@@ -392,31 +398,36 @@
                 attesaDisegno3d = true;
                 requestAnimationFrame(() => { attesaDisegno3d = false; renderVista3d(!!(vista3d.trascina || vista3d.pizzico)); });
             }
-            // Un dito o il mouse girano; due dita avvicinano e allontanano.
+            // MASSIMA LIBERTÀ (richiesto: «devo poter vedere sotto all'orizzonte»). Un dito o il
+            // mouse girano in ogni direzione, senza fermi: si passa sotto il piano campagna e si
+            // guardano le colonne da sotto. Tasto destro, Maiusc + trascina o due dita spostano la
+            // scena; due dita avvicinano e allontanano. «Vista iniziale» rimette tutto a posto.
             const dita3d = new Map();
-            const distanzaDita = () => { const [a, b] = [...dita3d.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+            const pizzicoDita = () => { const [a, b] = [...dita3d.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+            box3d.addEventListener('contextmenu', (e) => e.preventDefault());
             box3d.addEventListener('pointerdown', (e) => {
                 dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
-                vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY } : null;
-                vista3d.pizzico = dita3d.size === 2 ? distanzaDita() : null;
+                vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY, sposta: e.button === 2 || e.shiftKey } : null;
+                vista3d.pizzico = dita3d.size === 2 ? pizzicoDita() : null;
                 vista3d.mosso = 0;
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
             });
             box3d.addEventListener('pointermove', (e) => {
                 if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (vista3d.pizzico && dita3d.size === 2) {
-                    const d = distanzaDita();
-                    zoom3d(d / vista3d.pizzico);
-                    vista3d.pizzico = d;
+                    const p = pizzicoDita(), prima = vista3d.pizzico;
+                    vista3d.panX += p.x - prima.x; vista3d.panY += p.y - prima.y;
+                    zoom3d(prima.d ? p.d / prima.d : 1);
+                    vista3d.pizzico = p;
                     vista3d.mosso += 10;
                     return;
                 }
                 if (!vista3d.trascina) return;
                 const dx = e.clientX - vista3d.trascina.x, dy = e.clientY - vista3d.trascina.y;
                 vista3d.mosso += Math.abs(dx) + Math.abs(dy);
-                vista3d.az += dx * 0.008;
-                vista3d.el = Math.max(0.12, Math.min(1.5, vista3d.el + dy * 0.006));
-                vista3d.trascina = { x: e.clientX, y: e.clientY };
+                if (vista3d.trascina.sposta) { vista3d.panX += dx; vista3d.panY += dy; }
+                else { vista3d.az += dx * 0.008; vista3d.el += dy * 0.006; }
+                vista3d.trascina = { x: e.clientX, y: e.clientY, sposta: vista3d.trascina.sposta };
                 ridisegna3d();
             });
             ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, (e) => {
@@ -444,11 +455,12 @@
                 const mosse = { ArrowLeft: [-0.15, 0], ArrowRight: [0.15, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[e.key];
                 if (!mosse) return;
                 e.preventDefault();
-                vista3d.az += mosse[0];
-                vista3d.el = Math.max(0.12, Math.min(1.5, vista3d.el + mosse[1]));
+                // Con Maiusc le frecce spostano la scena invece di girarla.
+                if (e.shiftKey) { vista3d.panX -= mosse[0] * 200; vista3d.panY += mosse[1] * 300; }
+                else { vista3d.az += mosse[0]; vista3d.el += mosse[1]; }
                 renderVista3d();
             });
-            function zoom3d(f) { vista3d.zoom = Math.max(0.5, Math.min(8, vista3d.zoom * f)); ridisegna3d(); }
+            function zoom3d(f) { vista3d.zoom = Math.max(0.1, Math.min(40, vista3d.zoom * f)); ridisegna3d(); }
             box3d.addEventListener('wheel', (e) => { e.preventDefault(); zoom3d(Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
             document.getElementById('rngEsag3d').addEventListener('input', (e) => { vista3d.ex = Number(e.target.value); ridisegna3d(); });
             document.getElementById('livelliVista3d').addEventListener('click', (e) => {
@@ -458,6 +470,7 @@
                 renderVista3d();
             });
             document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
+            document.getElementById('btnVistaIniziale3d').addEventListener('click', () => { vistaIniziale3d(); renderVista3d(); });
             // Dal Confronto prove si passa alla vista 3D delle stesse prove. Il confronto si può
             // aprire anche dalla Home per un progetto non aperto: la 3D lavora sul progetto aperto,
             // quindi prima si apre quello.
