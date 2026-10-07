@@ -98,6 +98,8 @@ t('si scarica in SVG, PNG e PDF', ['svg', 'png', 'pdf'].every(f => src.includes(
 t('la finestra è grande: quasi tutto lo schermo', /\.modal\.confronto \{ max-width: 1680px; width: 97vw;/.test(src));
 t('con meno di due prove confrontabili lo dice invece di aprire una figura vuota',
   /prove\.length < 2\) \{\s*appAlert\('Per confrontare servono almeno due prove/.test(src));
+t('dal confronto si passa alla vista 3D delle stesse prove, anche col progetto chiuso',
+  src.includes('id="btnConfronto3d"') && /btnConfronto3d'\)\.addEventListener\('click', \(\) => \{\s*if \(confrontoStato\.projId !== state\.currentProjectId\) \{ openProject\(confrontoStato\.projId\); switchView\('project'\); \}\s*apriVista3d\(\);/.test(src));
 
 console.log('\n' + ok + ' ok, ' + ko + ' KO');
 process.exit(ko?1:0);

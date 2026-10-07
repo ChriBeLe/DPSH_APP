@@ -458,6 +458,13 @@
                 renderVista3d();
             });
             document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
+            // Dal Confronto prove si passa alla vista 3D delle stesse prove. Il confronto si può
+            // aprire anche dalla Home per un progetto non aperto: la 3D lavora sul progetto aperto,
+            // quindi prima si apre quello.
+            document.getElementById('btnConfronto3d').addEventListener('click', () => {
+                if (confrontoStato.projId !== state.currentProjectId) { openProject(confrontoStato.projId); switchView('project'); }
+                apriVista3d();
+            });
             document.getElementById('btnChiudiVista3d').addEventListener('click', closeAnyOpenModal);
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
