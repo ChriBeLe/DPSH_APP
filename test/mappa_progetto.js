@@ -56,15 +56,15 @@ const $ = (app, id) => app.d.getElementById(id);
   t('la scheda dice «spostata a mano»', /Spostata a mano di \d+ m/.test(scheda.textContent));
 
   console.log('--- Modifica dati e apri ---');
-  app.E(`syncProjectToActiveState(${JSON.stringify(pid)}, ${JSON.stringify(id('1'))}); document.getElementById('modalMappaProgetto').classList.add('open'); mappaProgetto.scelta = ${JSON.stringify(id2)}; renderSchedaProvaMappa()`);
+  app.E(`syncProjectToActiveState(${JSON.stringify(pid)}, ${JSON.stringify(id('1'))}); document.getElementById('modalVista3d').classList.add('open'); mappaProgetto.scelta = ${JSON.stringify(id2)}; renderSchedaProvaMappa()`);
   clic(app, scheda.querySelector('[data-mappa-azione="dati"]'));
   await attesa(30);
-  t('«Modifica dati» chiude la mappa e apre la scheda «Dati» di quella prova (numero compreso)', !$(app, 'modalMappaProgetto').classList.contains('open') && $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'txtProvaNr').value === '2' && app.E('state.currentSurveyId') === id2);
+  t('«Modifica dati» chiude la mappa e apre la scheda «Dati» di quella prova (numero compreso)', !$(app, 'modalVista3d').classList.contains('open') && $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'txtProvaNr').value === '2' && app.E('state.currentSurveyId') === id2);
   app.E('closeSurveySettingsModal()');
-  app.E(`syncProjectToActiveState(${JSON.stringify(pid)}, ${JSON.stringify(id('1'))}); switchView('project'); document.getElementById('modalMappaProgetto').classList.add('open'); mappaProgetto.scelta = ${JSON.stringify(id2)}; renderSchedaProvaMappa()`);
+  app.E(`syncProjectToActiveState(${JSON.stringify(pid)}, ${JSON.stringify(id('1'))}); switchView('project'); document.getElementById('modalVista3d').classList.add('open'); mappaProgetto.scelta = ${JSON.stringify(id2)}; renderSchedaProvaMappa()`);
   clic(app, scheda.querySelector('[data-mappa-azione="apri"]'));
   await attesa(50);
-  t('«Apri la prova» la apre nella schermata della prova', app.E('state.currentSurveyId') === id2 && app.E('state.uiState.currentView') === 'field' && !$(app, 'modalMappaProgetto').classList.contains('open'));
+  t('«Apri la prova» la apre nella schermata della prova', app.E('state.currentSurveyId') === id2 && app.E('state.uiState.currentView') === 'field' && !$(app, 'modalVista3d').classList.contains('open'));
 
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));

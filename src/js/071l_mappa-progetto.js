@@ -49,7 +49,7 @@
                 box.hidden = !s;
                 box.innerHTML = s ? schedaProvaMappaHtml(proj, s) : '';
                 // La prova scelta resta in vista, sopra la scheda.
-                if (s && mappaProgetto.mappa) mappaProgetto.mappa.panInside([parseFloat(s.header.lat), parseFloat(s.header.lng)], { paddingTopLeft: [20, 40], paddingBottomRight: [20, box.offsetHeight + 30] });
+                if (s && mappaProgetto.mappa && areaMappa.modo === 'mappa') mappaProgetto.mappa.panInside([parseFloat(s.header.lat), parseFloat(s.header.lng)], { paddingTopLeft: [20, 40], paddingBottomRight: [20, box.offsetHeight + 30] });
             }
 
             /** Le prove (quella scelta in blu, più grande; trascinabile mentre la si sposta) e le tracce. */
@@ -58,15 +58,17 @@
                 if (!m.mappa || !proj) return;
                 if (m.livelli) m.livelli.remove();
                 m.livelli = L.layerGroup().addTo(m.mappa);
-                (proj.sezioniTracciate || []).forEach(t => {
-                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 3, interactive: false }).addTo(m.livelli);
+                if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).forEach(t => {
+                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4 }).addTo(m.livelli)
+                        .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
+                        .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
                     estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
                         L.marker([p.lat, p.lng], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
-                proveFisiche(proveConCoordinate(proj)).forEach(s => {
+                proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
                     const h = s.header, nr = escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
                     // Spostata a mano: dov'era prima, tratteggiato.
                     if (sp) {
@@ -75,7 +77,8 @@
                         L.polyline([[sp.da.lat, sp.da.lng], [parseFloat(h.lat), parseFloat(h.lng)]], stile).addTo(m.livelli);
                     }
                     const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: scelta ? gpsMiaProvaIcon(nr) : gpsAltraProvaIcon(nr), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?') }).addTo(m.livelli);
-                    mk.on('click', () => scegliProvaMappa(s.id));
+                    mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
+                    mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
                     if (m.spostando === s.id) mk.on('dragend', () => spostaProvaDallaMappa(s.id, mk.getLatLng()));
                 });
             }
@@ -97,6 +100,7 @@
                 }
                 await confermaSpostamentoProva({ lat: ll.lat, lng: ll.lng });
                 mappaProgetto.spostando = null;
+                if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sel');
                 disegnaProveMappa();
                 renderSchedaProvaMappa();
             }
@@ -114,45 +118,52 @@
                 if (stile === 'hybrid') m.etichette = L.tileLayer(GPS_MAP_TILE_SOURCES.hybridLabels.url, GPS_MAP_TILE_SOURCES.hybridLabels.options).addTo(m.mappa);
             }
 
-            async function apriMappaProgetto() {
+            /** La mappa 2D dell'area di lavoro (il modo «Mappa»): Leaflet si carica e si crea la prima volta;
+             * la prima volta che si mostra inquadra tutte le prove e le tracce. */
+            async function mostraMappa2d() {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return;
-                saveState();
+                const lbl = document.getElementById('lblMappaProgetto');
+                const conGps = proveFisiche(proveConCoordinate(proj)), senza = Object.keys(proj.surveys || {}).length - proveConCoordinate(proj).length;
+                lbl.textContent = (conGps.length ? '' : 'Nessuna prova ha ancora il GPS.') + (senza > 0 ? ` ${senza} ${senza === 1 ? 'prova senza GPS non compare' : 'prove senza GPS non compaiono'}.` : '');
+                try { await ensureLeafletLoaded(); await caricaRotazioneMappa(); } catch (e) { lbl.textContent = e.message; return; }
+                const m = mappaProgetto, nuova = !m.mappa || m.progetto !== state.currentProjectId;
+                if (!m.mappa) {
+                    m.mappa = L.map('mappaProgettoEl', { zoomControl: false, rotate: true, bearing: 0, touchRotate: true, rotateControl: false, attributionControl: true, zoomSnap: 0.5, maxZoom: 20 });
+                    m.mappa.on('click', (e) => { if (!clicStrumentoMappa2d(e) && !m.spostando) { m.scelta = null; disegnaProveMappa(); renderSchedaProvaMappa(); } });
+                    agganciaMappa2d(m.mappa);
+                }
+                m.progetto = state.currentProjectId;
+                sfondoMappaProgetto(m.stile);
+                // Dopo che la scena si è mostrata: Leaflet misura il riquadro.
+                setTimeout(() => {
+                    m.mappa.invalidateSize();
+                    if (nuova) inquadraTutteMappa2d();
+                    disegnaProveMappa();
+                    aggiornaBussola2d();
+                }, 60);
+            }
+            function inquadraTutteMappa2d() {
+                const m = mappaProgetto, proj = state.projects[state.currentProjectId];
+                if (!m.mappa || !proj) return;
+                const punti = proveFisiche(proveConCoordinate(proj)).map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)])
+                    .concat((proj.sezioniTracciate || []).flatMap(t => [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]));
+                if (punti.length > 1) m.mappa.fitBounds(L.latLngBounds(punti).pad(0.25), { maxZoom: 19 });
+                else if (punti.length) m.mappa.setView(punti[0], 18);
+                else m.mappa.setView([41.87, 12.57], 6);
+            }
+            function apriMappaProgetto() {
                 mappaProgetto.scelta = null;
                 mappaProgetto.spostando = null;
                 renderSchedaProvaMappa();
-                document.getElementById('modalMappaProgettoOverlay').classList.add('open');
-                document.getElementById('modalMappaProgetto').classList.add('open');
-                const lbl = document.getElementById('lblMappaProgetto');
-                const conGps = proveFisiche(proveConCoordinate(proj)), senza = Object.keys(proj.surveys || {}).length - proveConCoordinate(proj).length;
-                lbl.textContent = (conGps.length ? 'Tocca una prova per la sua scheda.' : 'Nessuna prova ha ancora il GPS.') + (senza > 0 ? ` ${senza} ${senza === 1 ? 'prova senza GPS non compare' : 'prove senza GPS non compaiono'}.` : '');
-                try { await ensureLeafletLoaded(); } catch (e) { lbl.textContent = e.message; return; }
-                const m = mappaProgetto;
-                if (!m.mappa) {
-                    m.mappa = L.map('mappaProgettoEl', { zoomControl: true });
-                    m.mappa.on('click', () => { if (!m.spostando) { m.scelta = null; disegnaProveMappa(); renderSchedaProvaMappa(); } });
-                }
-                sfondoMappaProgetto(m.stile);
-                // Dopo che la finestra si è aperta: Leaflet misura il riquadro.
-                setTimeout(() => {
-                    m.mappa.invalidateSize();
-                    const punti = conGps.map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)])
-                        .concat((proj.sezioniTracciate || []).flatMap(t => [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]));
-                    if (punti.length > 1) m.mappa.fitBounds(L.latLngBounds(punti).pad(0.25), { maxZoom: 19 });
-                    else if (punti.length) m.mappa.setView(punti[0], 18);
-                    else m.mappa.setView([41.87, 12.57], 6);
-                    disegnaProveMappa();
-                }, 60);
+                apriVista3d('mappa');
             }
             function chiudiMappaProgetto() {
                 mappaProgetto.spostando = null;
-                document.getElementById('modalMappaProgettoOverlay').classList.remove('open');
-                document.getElementById('modalMappaProgetto').classList.remove('open');
+                closeAnyOpenModal();
             }
 
             document.getElementById('btnProgettoMappa').addEventListener('click', apriMappaProgetto);
-            document.getElementById('btnChiudiMappaProgetto').addEventListener('click', chiudiMappaProgetto);
-            document.getElementById('modalMappaProgettoOverlay').addEventListener('click', chiudiMappaProgetto);
             document.getElementById('sfondoMappaProgetto').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-layer]');
                 if (b) sfondoMappaProgetto(b.dataset.layer);
@@ -162,6 +173,8 @@
                 if (!b || !id) return;
                 const azione = b.dataset.mappaAzione;
                 if (azione === 'chiudi') { scegliProvaMappa(null); return; }
+                // Spostare si fa sulla mappa 2D, trascinando il segnaposto: dal 3D ci si passa.
+                if (azione === 'sposta' && areaMappa.modo !== 'mappa') modoAreaMappa('mappa');
                 if (azione === 'sposta' || azione === 'annulla') {
                     mappaProgetto.spostando = azione === 'sposta' ? id : null;
                     disegnaProveMappa();

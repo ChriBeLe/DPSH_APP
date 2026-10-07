@@ -48,6 +48,7 @@
                     testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome' });
                     testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome' });
                 });
+                misuraNellaScena3d(d, P, sopra, testo);
             }
 
             /** Il punto del piano della scena sotto il cursore (vista senza prospettiva). */
@@ -69,8 +70,9 @@
                 proj.sezioniTracciate = tracceDelProgetto().concat({ id: 'sez_' + Date.now().toString(36), nome: prossimoNomeTraccia(false), a: ga, b: gb });
                 vista3d.disegno = null;
                 saveState();
+                scegliStrumentoMappa('sel');
+                infoAreaMappa();
                 renderVista3d();
-                renderElencoSezioni3d();
             }
             function seguiTracciaSezione3d(e) {
                 const dis = vista3d.disegno;
@@ -201,9 +203,9 @@
             function renderElencoSezioni3d() {
                 const box = document.getElementById('elencoSezioni3d');
                 if (!box) return;
-                const bt = document.getElementById('btnTracciaSezione3d');
-                bt.setAttribute('aria-pressed', String(!!vista3d.disegno));
-                bt.textContent = vista3d.disegno ? 'Annulla la traccia' : 'Traccia una sezione';
+                const bt = document.getElementById('btnTracciaSezione3d'), traccia = areaMappa.strumento === 'profilo';
+                bt.setAttribute('aria-pressed', String(traccia));
+                bt.textContent = traccia ? 'Annulla la traccia' : 'Traccia una sezione';
                 const d = datiVista3dCorrenti, tracce = tracceDelProgetto();
                 box.innerHTML = tracce.length ? tracce.map(t => `<div class="vista3d-sezione-riga" data-id="${t.id}">
                         <input type="text" class="form-control" data-nome-sezione value="${String(t.nome).replace(/"/g, '&quot;')}" aria-label="Nome della sezione">
@@ -221,16 +223,8 @@
                 if (!t || !datiVista3dCorrenti) { box.innerHTML = ''; return; }
                 box.innerHTML = svgSezioneTracciata(datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), Math.max(480, box.clientWidth || 900)).svg;
             }
-            document.getElementById('btnTracciaSezione3d').addEventListener('click', () => {
-                if (vista3d.disegno) { vista3d.disegno = null; renderVista3d(); }
-                else {
-                    // Si traccia sulla pianta: dall'alto e senza prospettiva, il clic cade dove si vede.
-                    vista3d.disegno = { a: null, cursore: null };
-                    vista3d.prospettiva = false;
-                    vaiAVista3d({ el: Math.PI / 2 });
-                }
-                renderElencoSezioni3d();
-            });
+            // «Traccia una sezione» è lo strumento Profilo della barra (nel 3D si traccia dall'alto).
+            document.getElementById('btnTracciaSezione3d').addEventListener('click', () => scegliStrumentoMappa(areaMappa.strumento === 'profilo' ? 'sel' : 'profilo'));
             document.getElementById('btnCreaGriglia3d').addEventListener('click', () => {
                 const v = id => Number(document.getElementById(id).value);
                 creaGrigliaSezioni3d(v('numGrigliaDir3d') || 0, Math.max(1, v('numGrigliaPasso3d') || 25), Math.max(1, Math.min(26, Math.round(v('numGrigliaN3d') || 1))), document.getElementById('chkGrigliaIncrociata3d').checked);

@@ -77,7 +77,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const nome = app.E('ultimaScena3d.sopra.find(f => f.cls === "vista3d-nome")');
   t('a schermo è un canvas', !!$(app, 'graficoVista3d').querySelector('canvas'));
   $(app, 'graficoVista3d').querySelector('canvas').dispatchEvent(new app.w.MouseEvent('click', { bubbles: true, clientX: nome.x, clientY: nome.y - 5 }));
-  t('clic su una prova: il suo fumetto', !!app.d.querySelector('.fumetto-prova') && /^DPSH \d/.test(app.d.querySelector('.fumetto-prova strong').textContent));
+  t('clic su una prova: la sua scheda (la stessa della mappa 2D)', !$(app, 'schedaProvaMappa').hidden && /Prova \d/.test($(app, 'schedaProvaMappa').textContent));
 
   // Con la terza prova col GPS c'è un triangolo: superfici di contatto e giaciture.
   app.E(`(() => { const s = Object.values(${P}.surveys).find(s => s.header.provaNr == '3'); s.header.lat = 40.19690; s.header.lng = 17.99320; })()`);
@@ -114,7 +114,7 @@ const $ = (app, id) => app.d.getElementById(id);
     t('un gruppo si richiude (e lo ricorda)', app.d.querySelector('#livelliVista3d [data-corpo="strati"]').classList.contains('chiuso') && /strati/.test(app.w.localStorage.getItem('dpsh.livelli3dGruppiChiusi')));
     clic(app, app.d.querySelector('#livelliVista3d [data-apri-gruppo="strati"]'));
     clic(app, $(app, 'btnLivelli3d'));
-    t('il pannello si richiude in una pillola', $(app, 'pannelloLivelli3d').classList.contains('chiuso'));
+    t('il pannello si riduce alla sua testata', $(app, 'pannelloLivelli3d').classList.contains('red'));
     clic(app, $(app, 'btnLivelli3d'));
   }
   const n0 = app.scaricati.length;
@@ -166,7 +166,7 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
 
   // I COMANDI DELLA VISTA
-  t('quattro schede: Vista, Modello e tagli, Immagine, Sezioni (i livelli stanno nel pannello sulla figura)', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Modello e tagli,Immagine,Sezioni' && !!app.d.querySelector('.vista3d-scena #pannelloLivelli3d #livelliVista3d'));
+  t('quattro schede: Vista, Modello e tagli, Immagine, Sezioni (i livelli stanno nel pannello sulla figura)', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Modello e tagli,Immagine,Sezioni' && !!app.d.querySelector('#scenaAreaMappa #pannelloLivelli3d #livelliVista3d'));
   clic(app, app.d.querySelector('[data-scheda3d="immagine"]'));
   t('una scheda alla volta', !app.d.querySelector('[data-pannello3d="immagine"]').hidden && app.d.querySelector('[data-pannello3d="vista"]').hidden);
   clic(app, app.d.querySelector('[data-scheda3d="vista"]'));

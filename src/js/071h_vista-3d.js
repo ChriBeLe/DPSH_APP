@@ -358,9 +358,10 @@
             // si è toccata. La disegnano sia il canvas (a schermo, veloce) sia l'SVG (il file).
             // Forme: {t:'poli', p, fill, fo, stroke, sw, dash}, {t:'linea', x1, y1, x2, y2, stroke, sw},
             // {t:'testo', x, y, s, size, bold, anchor, alone}, {t:'cerchio', x, y, r, fill}; con cls e title.
-            function scena3d(d, larghezza, leggera, file) {
+            function scena3d(d, larghezza, leggera, file, altezza) {
                 const L = vista3d.livelli;
-                const W = Math.max(320, Math.round(larghezza || 1000)), H = Math.round(Math.max(300, Math.min(620, W * 0.62)));
+                // Nell'area di lavoro la figura riempie la scena: alta quanto lei; altrimenti (file, test) in proporzione.
+                const W = Math.max(320, Math.round(larghezza || 1000)), H = altezza > 150 ? Math.round(altezza) : Math.round(Math.max(300, Math.min(620, W * 0.62)));
                 const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), ce = Math.cos(vista3d.el), se = Math.sin(vista3d.el);
                 const zRif = (d.zMin + d.zMax) / 2, ex = vista3d.ex;
                 // Scala fissa (dal raggio della scena), così girando la figura non cambia grandezza.
@@ -713,6 +714,8 @@
                 renderLivelli3d();
                 document.querySelectorAll('#modalVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
                 sincronizzaCursori3d();
+                // Nel modo Mappa la figura 3D non si vede: si aggiorna la mappa 2D.
+                if (areaMappa.modo === 'mappa') { disegnaProveMappa(); return; }
                 const tg = vista3d.taglio, so = datiVista3dCorrenti && modelloSolido(datiVista3dCorrenti);
                 document.querySelectorAll('#direzioneTaglio3d [data-taglio-dir]').forEach(b => b.setAttribute('aria-pressed', String((tg.dir || '') === b.dataset.taglioDir)));
                 document.getElementById('rngTaglioV3d').disabled = !tg.dir;
@@ -728,11 +731,11 @@
                 }
                 let canvas = box.querySelector('canvas');
                 if (!canvas) { box.innerHTML = '<canvas aria-label="Vista 3D del terreno e delle prove" role="img"></canvas>'; canvas = box.querySelector('canvas'); }
-                ultimaScena3d = scena3d(datiVista3dCorrenti, box.clientWidth, leggera);
+                ultimaScena3d = scena3d(datiVista3dCorrenti, box.clientWidth, leggera, false, box.clientHeight);
                 disegnaScena(canvas, ultimaScena3d);
             }
 
-            function apriVista3d() {
+            function apriVista3d(modo) {
                 saveState();
                 closeAnyOpenModal();
                 const proj = state.projects[state.currentProjectId];
@@ -751,7 +754,7 @@
                 riempiSceltaSfondo3d();
                 vista3d.disegno = null;
                 renderElencoSezioni3d();
-                renderVista3d();
+                modoAreaMappa(typeof modo === 'string' ? modo : '3d');
                 aggiornaStatoSfondo3d();
             }
 
@@ -826,9 +829,9 @@
             box3d.addEventListener('click', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
                 if (vista3d.disegno) { clicTracciaSezione3d(e); return; }
-                const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
-                if (id) apriFumettoProva(id, e.clientX, e.clientY);
-                else chiudiFumetti(false);
+                if (clicStrumentoMappa3d(e)) return;
+                // Seleziona: la scheda della prova, la stessa della mappa 2D.
+                scegliProvaMappa(provaNelPunto(ultimaScena3d, ...puntoCanvas(e)) || null);
             });
             // Col mouse sopra una colonna, la manina.
             box3d.addEventListener('pointermove', (e) => {
@@ -911,10 +914,17 @@
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
                         liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»') ] }
                 ];
+                // Nel modo Mappa: le prove, le sezioni e lo sfondo della mappa (uno solo alla volta).
+                if (areaMappa.modo === 'mappa') {
+                    gruppi.splice(1, 2);
+                    gruppi[1] = { id: 'riferimenti', nome: 'Riferimenti', righe: gruppi[1].righe.filter(r => /sezioni/.test(r.attr)) };
+                    gruppi[2] = { id: 'sfondo2d', nome: 'Sfondo', righe: [['satellite', 'Satellite (Esri)'], ['street', 'Strade (OpenStreetMap)'], ['hybrid', 'Satellite con nomi']].map(([k, nome]) =>
+                        riga(`data-sfondo2d="${k}"`, mappaProgetto.stile === k, ico(k === 'street' ? 'map' : 'satellite'), nome, '', 'Lo sfondo della mappa')) };
+                }
                 albero.innerHTML = gruppi.filter(g => g.righe.length).map(g => {
                     const chiuso = !!livelliChiusi3d[g.id], tutti = g.righe.every(r => r.acceso);
                     return `<div class="liv-gruppo${chiuso ? ' chiuso' : ''}" data-gruppo="${g.id}"><button type="button" data-apri-gruppo="${g.id}" title="Apri o chiudi il gruppo">${ico('chevron-down')}</button>`
-                        + `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo"><span>${g.nome}</span></div>`
+                        + (g.id === 'sfondo2d' ? '' : `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo">`) + `<span>${g.nome}</span></div>`
                         + `<div class="liv-gruppo-corpo${chiuso ? ' chiuso' : ''}" data-corpo="${g.id}"><div class="liv-gruppo-dentro">`
                         + g.righe.map(r => `<div class="liv-riga${r.acceso ? '' : ' spento'}" ${r.attr} data-gruppo="${g.id}"${r.titolo ? ` title="${r.titolo}"` : ''}>`
                             + `<input type="checkbox"${r.acceso ? ' checked' : ''} tabindex="-1" aria-label="Mostra o nascondi ${escapeHtmlDidascalia(String(r.nome))}"><span class="liv-simbolo">${r.simbolo}</span>`
@@ -922,15 +932,7 @@
                         + '</div></div>';
                 }).join('');
             }
-            const pannelloLivelli3d = document.getElementById('pannelloLivelli3d');
-            try {
-                const ridotto = localStorage.getItem('dpsh.livelli3dRidotto');
-                if (ridotto === '1' || (ridotto === null && window.innerWidth < 760)) pannelloLivelli3d.classList.add('chiuso');
-            } catch (_) { /* aperto */ }
-            document.getElementById('btnLivelli3d').addEventListener('click', () => {
-                pannelloLivelli3d.classList.toggle('chiuso');
-                try { localStorage.setItem('dpsh.livelli3dRidotto', pannelloLivelli3d.classList.contains('chiuso') ? '1' : '0'); } catch (_) { /* solo per questa volta */ }
-            });
+            // (il pannello si apre, si riduce, si aggancia e si sposta come tutti i pannelli della mappa: 071m)
             document.getElementById('livelliVista3d').addEventListener('click', (e) => {
                 const g = e.target.closest('[data-apri-gruppo]');
                 if (g) {
@@ -942,6 +944,8 @@
                     document.querySelector(`#livelliVista3d [data-corpo="${id}"]`).classList.toggle('chiuso', livelliChiusi3d[id]);
                     return;
                 }
+                const sfondo2d = e.target.closest('[data-sfondo2d]');
+                if (sfondo2d) { sfondoMappaProgetto(sfondo2d.dataset.sfondo2d); renderLivelli3d(); return; }
                 const tuttoGruppo = e.target.closest('[data-gruppo3d]');
                 const righe = tuttoGruppo ? [...document.querySelectorAll(`#livelliVista3d .liv-riga[data-gruppo="${tuttoGruppo.dataset.gruppo3d}"]`)] : [e.target.closest('.liv-riga')].filter(Boolean);
                 if (!righe.length) return;
@@ -1298,6 +1302,14 @@
                     const t = moto3d.tasti, v = moto3d.veloce ? 3 : 1, f = moto3d.fotogramma++;
                     if (!moto3d.leva && !t.size) { moto3d.attivo = false; renderVista3d(); return; }
                     if (moto3d.leva) sposta3d(-moto3d.leva[0] * 9 * v, -moto3d.leva[1] * 9 * v);
+                    // Tastiera (da HyperGram): W S avanti e indietro nella direzione in cui si guarda, A D di lato,
+                    // Q Z su e giù; si sposta il punto attorno a cui si gira, di un passo che segue lo zoom.
+                    const d0 = datiVista3dCorrenti, passoM = d0 ? d0.lato / 2.15 / vista3d.zoom * 0.012 * v : 0;
+                    const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), c = vista3d.centro;
+                    if (t.has('w') || t.has('s')) { const k = t.has('w') ? passoM : -passoM; c[0] += sa * k; c[1] += ca * k; }
+                    if (t.has('a') || t.has('d')) { const k = t.has('d') ? passoM : -passoM; c[0] += ca * k; c[1] -= sa * k; }
+                    if (t.has('q')) c[2] += passoM / Math.max(1, vista3d.ex) * 2;
+                    if (t.has('z')) c[2] -= passoM / Math.max(1, vista3d.ex) * 2;
                     if (t.has('giras')) vista3d.az += 0.025 * v;
                     if (t.has('girad')) vista3d.az -= 0.025 * v;
                     if (t.has('piu')) vista3d.zoom = Math.min(ZOOM_MAX, vista3d.zoom * (1 + 0.025 * v));
@@ -1399,7 +1411,6 @@
                 vista3d.taglio.prof = so ? so.fondo * Number(e.target.value) / 100 : 0;
                 conSolido(); ridisegna3d();
             });
-            document.getElementById('btnVistaIniziale3d').addEventListener('click', () => { vistaIniziale3d(); renderVista3d(); });
             // Dal Confronto prove si passa alla vista 3D delle stesse prove. Il confronto si può
             // aprire anche dalla Home per un progetto non aperto: la 3D lavora sul progetto aperto,
             // quindi prima si apre quello.
@@ -1411,7 +1422,7 @@
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
                 if (!ultimaScena3d) return;
-                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
+                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
                 scaricaBlobFile(new Blob([testo], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}.svg`);
             });
 

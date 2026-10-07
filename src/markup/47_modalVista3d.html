@@ -1,122 +1,182 @@
-    <!-- VISTA 3D: il terreno del DTM e le colonne stratigrafiche delle prove, ruotabili col mouse o
-         col dito. Disegnata su canvas (e in SVG per il file), senza librerie. La riempie il pezzo 071h.
-         Sulla figura la bussola (anello, leva, zoom, inclinazione, esagerazione). I livelli stanno nel pannello sopra la figura, come in HyperGram. Gli altri comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
-         in vista: Vista (da dove si guarda), Livelli (cosa si vede), Modello e tagli, Immagine. -->
+    <!-- MAPPA DEL PROGETTO (presa da HyperGram 6.0b): un'area di lavoro sola con due modi, Mappa (2D,
+         Leaflet) e 3D (canvas, 071h). A sinistra la barra degli strumenti, in mezzo la scena, sopra la
+         scena i pannelli (Livelli; Comandi con le schede Vista, Modello e tagli, Immagine, Sezioni) che si
+         agganciano a sinistra o a destra, galleggiano, si fissano o si nascondono (071m); sotto la barra di
+         stato con le coordinate sotto il mouse. La scheda della prova è la stessa nei due modi (071l). -->
     <div class="modal-overlay" id="modalVista3dOverlay"></div>
-    <div class="modal sezione" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
-            <span id="titoloVista3d">Vista 3D</span>
-            <button type="button" class="chiudi-x" id="btnChiudiVista3d" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
-        </div>
-
-        <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
-            <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
-            <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
-            <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
-            <button type="button" role="tab" data-scheda3d="sezioni" aria-selected="false">Sezioni</button>
-        </div>
-
-        <!-- VISTA: da dove si guarda. Le viste pronte, poi i cursori che le regolano a mano. -->
-        <div class="vista3d-pannello" data-pannello3d="vista" role="tabpanel">
-            <div class="pillole vista3d-preset" id="presetVista3d" aria-label="Viste pronte">
-                <button type="button" class="pillola" data-preset3d="alto">Dall'alto</button>
-                <button type="button" class="pillola" data-preset3d="iso">Isometrica</button>
-                <button type="button" class="pillola" data-preset3d="nord">Da Nord</button>
-                <button type="button" class="pillola" data-preset3d="est">Da Est</button>
-                <button type="button" class="pillola" data-preset3d="sud">Da Sud</button>
-                <button type="button" class="pillola" data-preset3d="ovest">Da Ovest</button>
-                <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
+    <div class="modal area-mappa" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d" data-modo="3d">
+        <div class="am-testa">
+            <span id="titoloVista3d" class="am-titolo">Mappa del progetto</span>
+            <div class="am-modi" role="tablist" aria-label="Modo della mappa">
+                <button type="button" role="tab" data-modo-mappa="mappa"><svg class="ico"><use href="#i-map"/></svg>Mappa</button>
+                <button type="button" role="tab" data-modo-mappa="3d"><svg class="ico"><use href="#i-layers"/></svg>3D</button>
             </div>
-            <div class="vista3d-cursori">
-                <div class="vista3d-cursore"><span>Prospettiva</span>
-                    <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
-                    <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
-                    <strong id="lblFov3d"></strong></div>
-            </div>
-            <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro o centrale (o Maiusc, o due dita) per spostarti, e poi giri attorno a lì; la rotella avvicina verso il punto sotto il cursore. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per il suo fumetto.</p>
+            <span class="am-spazio"></span>
+            <button type="button" class="bt bt-tenue am-solo-3d" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>SVG</button>
+            <button type="button" class="bt bt-tenue am-solo-3d" id="btnScaricaObj3d" title="Terreno, colonne, pannelli e superfici in metri veri, per Blender, MeshLab, QGIS"><svg class="ico"><use href="#i-download"/></svg>OBJ</button>
+            <button type="button" class="chiudi-x" id="btnChiudiVista3d" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-
-        <!-- MODELLO E TAGLI: il corpo chiuso tra le prove e i due piani che lo tagliano. Toccare un
-             taglio accende il modello solido. -->
-        <div class="vista3d-pannello" data-pannello3d="tagli" role="tabpanel" hidden>
-            <div class="vista3d-tagli" id="tagliVista3d">
-                <div class="vista3d-taglio-riga">
-                    <span class="vista3d-taglio-nome">Modello solido</span>
-                    <button type="button" class="pillola" data-livello="solido">Mostra il corpo chiuso</button>
-                </div>
-                <div class="vista3d-taglio-riga">
-                    <span class="vista3d-taglio-nome">Taglio laterale</span>
-                    <div class="pillole" id="direzioneTaglio3d" aria-label="Direzione del taglio">
-                        <button type="button" class="pillola" data-taglio-dir="">Nessuno</button>
-                        <button type="button" class="pillola" data-taglio-dir="ns">Nord–Sud</button>
-                        <button type="button" class="pillola" data-taglio-dir="eo">Est–Ovest</button>
+        <div class="am-corpo">
+            <nav class="mappa-rail" id="railMappa" aria-label="Strumenti della mappa">
+                <button type="button" class="mappa-rt attivo" data-rt="sel" title="Seleziona: clic su una prova per la sua scheda"><svg class="ico"><use href="#i-cursore"/></svg><span>Seleziona</span></button>
+                <button type="button" class="mappa-rt am-solo-3d" data-rt="orbita" title="Orbita: trascina per girare, tasto destro per spostare, rotella per avvicinare; i clic non scelgono niente"><svg class="ico"><use href="#i-reset"/></svg><span>Orbita</span></button>
+                <button type="button" class="mappa-rt" data-rt="sposta" title="Sposta la prova scelta: trascina il segnaposto, doppia conferma"><svg class="ico"><use href="#i-move-y"/></svg><span>Sposta</span></button>
+                <button type="button" class="mappa-rt" data-rt="profilo" title="Profilo: due clic, inizio (A) e fine (A'): diventa una sezione tracciata"><svg class="ico"><use href="#i-shape-line-h"/></svg><span>Profilo</span></button>
+                <button type="button" class="mappa-rt" data-rt="misura" title="Distanza: clic sui punti, la lunghezza segue il mouse; doppio clic o Invio per finire, Esc per togliere"><svg class="ico"><use href="#i-ruler"/></svg><span>Misura</span></button>
+                <button type="button" class="mappa-rt am-solo-mappa" data-rt="area" title="Area: clic sui vertici, area e perimetro seguono il mouse; doppio clic o Invio per chiudere"><svg class="ico"><use href="#i-poligono"/></svg><span>Area</span></button>
+                <span class="mappa-rail-spazio"></span>
+                <span class="mappa-rail-sep"></span>
+                <button type="button" class="mappa-rt" data-rt="tutti" title="Tutti: inquadra tutte le prove"><svg class="ico"><use href="#i-maximize"/></svg><span>Tutti</span></button>
+                <button type="button" class="mappa-rt am-solo-3d" data-rt="iniziale" title="Torna alla vista iniziale (anche doppio clic o tasto H)"><svg class="ico"><use href="#i-home"/></svg><span>Iniziale</span></button>
+                <button type="button" class="mappa-rt am-solo-3d" data-rt="alto" title="Guarda dall'alto, dritto in giù (U)"><svg class="ico"><use href="#i-arrow-up"/></svg><span>Dall'alto</span></button>
+                <button type="button" class="mappa-rt am-solo-3d" data-rt="tasti" aria-haspopup="true" title="Scorciatoie del 3D"><svg class="ico"><use href="#i-type"/></svg><span>Tasti</span></button>
+            </nav>
+            <div class="am-scena" id="scenaAreaMappa">
+                <div class="am-vista">
+                    <!-- la bussola (presa da HyperGram) sta sopra la figura, in alto a sinistra; la riempie il 071h -->
+                    <div class="vista3d-scena">
+                        <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
+                        <div id="bussola3d" class="bussola" aria-label="Navigazione 3D"></div>
                     </div>
-                    <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
-                    <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+                    <div class="mappa2d-scena">
+                        <div id="mappaProgettoEl"></div>
+                        <div id="bussola2d" class="bussola" aria-label="Navigazione della mappa"></div>
+                    </div>
+                    <div id="schedaProvaMappa" class="mappa-progetto-scheda card" hidden></div>
                 </div>
-                <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
-                    <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
-            </div>
-            <p class="t-didascalia" id="notaTagli3d" hidden>Il modello solido serve almeno tre prove col GPS, non in fila.</p>
-        </div>
-
-        <!-- IMMAGINE: quella stesa sul terreno. Google, Esri, OpenStreetMap o un WMS; la scelta si
-             ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
-        <div class="vista3d-pannello" data-pannello3d="immagine" role="tabpanel" hidden>
-            <div class="vista3d-taglio-riga">
-                <span class="vista3d-taglio-nome">Immagine sul terreno</span>
-                <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
-                <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
-            </div>
-            <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
-                <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
-                <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">
-                <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
-                <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
-            </div>
-            <p class="t-didascalia" id="lblSfondo3d"></p>
-        </div>
-
-        <!-- SEZIONI: tracce disegnate sulla figura (due clic, dall'alto) o a griglia, con un nome
-             (A-A', 1-1'…); per ciascuna la sezione lungo la linea, il PDF con la vista dal satellite,
-             e il GeoPackage di tutte. Le riempie il 071j (il GeoPackage il 071k). -->
-        <div class="vista3d-pannello" data-pannello3d="sezioni" role="tabpanel" hidden>
-            <div class="vista3d-taglio-riga">
-                <button type="button" class="pillola" id="btnTracciaSezione3d" aria-pressed="false">Traccia una sezione</button>
-                <span class="t-didascalia">Due clic sulla figura (dall'alto): inizio e fine. Il nome si cambia nell'elenco.</span>
-            </div>
-            <div class="vista3d-taglio-riga vista3d-griglia">
-                <span class="vista3d-taglio-nome">Griglia</span>
-                <label>Direzione <input type="number" id="numGrigliaDir3d" class="form-control" min="0" max="359" step="5" value="0"> °</label>
-                <label>Passo <input type="number" id="numGrigliaPasso3d" class="form-control" min="1" step="5" value="25"> m</label>
-                <label>Linee <input type="number" id="numGrigliaN3d" class="form-control" min="1" max="26" value="3"></label>
-                <label><input type="checkbox" id="chkGrigliaIncrociata3d"> anche di traverso (1-1', 2-2'…)</label>
-                <button type="button" class="bt" id="btnCreaGriglia3d">Crea la griglia</button>
-            </div>
-            <div id="elencoSezioni3d" class="vista3d-sezioni"></div>
-            <div class="vista3d-taglio-riga">
-                <label>Prove entro <input type="number" id="numFasciaSezione3d" class="form-control" min="0" step="5" value="25"> m dalla traccia</label>
-                <button type="button" class="bt" id="btnPdfSezioni3d"><svg class="ico"><use href="#i-print"/></svg>PDF delle sezioni</button>
-                <button type="button" class="bt" id="btnGpkgSezioni3d"><svg class="ico"><use href="#i-download"/></svg>GeoPackage (.gpkg)</button>
-            </div>
-            <div id="vistaSezioneTracciata"></div>
-        </div>
-
-        <!-- la bussola (presa da HyperGram) sta sopra la figura, in alto a sinistra; la riempie il 071h -->
-        <div class="vista3d-scena">
-            <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
-            <div id="bussola3d" class="bussola" aria-label="Navigazione 3D"></div>
-            <!-- il pannello dei livelli (preso da HyperGram, come in QGIS): lo riempie renderLivelli3d (071h) -->
-            <div id="pannelloLivelli3d" class="vista3d-livelli">
-                <div class="mappa-livelli-testa">
-                    <button type="button" class="mappa-livelli-titolo" id="btnLivelli3d" title="Apri o richiudi i livelli"><svg class="ico"><use href="#i-layers"/></svg><span>Livelli</span><svg class="ico chevron"><use href="#i-chevron-down"/></svg></button>
+                <!-- il pannello dei livelli (preso da HyperGram, come in QGIS): lo riempie renderLivelli3d (071h) -->
+                <div id="pannelloLivelli3d" class="vista3d-livelli am-pnl" data-pnl="liv">
+                    <div class="mappa-livelli-testa am-pnl-testa">
+                        <button type="button" class="mappa-livelli-titolo" id="btnLivelli3d" title="Apri o richiudi i livelli"><svg class="ico"><use href="#i-layers"/></svg><span>Livelli</span><svg class="ico chevron"><use href="#i-chevron-down"/></svg></button>
+                        <span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="pin" title="Fissa o lascia nascondere al bordo"><svg class="ico"><use href="#i-pin"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="lato" title="Aggancia a sinistra, a destra o lascia libero (si può anche trascinare dalla testata)"><svg class="ico"><use href="#i-flusso-dx"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
+                    </div>
+                    <div id="livelliVista3d" class="mappa-livelli-albero" aria-label="Livelli"></div>
                 </div>
-                <div id="livelliVista3d" class="mappa-livelli-albero" aria-label="Livelli"></div>
+                <div id="pannelloComandi3d" class="am-pnl am-comandi" data-pnl="cmd">
+                    <div class="am-pnl-testa">
+                        <span class="am-pnl-tit"><svg class="ico"><use href="#i-settings"/></svg><b>Comandi</b></span><span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="pin" title="Fissa o lascia nascondere al bordo"><svg class="ico"><use href="#i-pin"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="lato" title="Aggancia a sinistra, a destra o lascia libero (si può anche trascinare dalla testata)"><svg class="ico"><use href="#i-flusso-dx"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
+                    </div>
+                    <div class="am-pnl-corpo">
+                    <div class="gps-map-layer-switch am-solo-mappa" id="sfondoMappaProgetto">
+                        <button type="button" class="gps-map-layer-btn" data-layer="street">Strada</button>
+                        <button type="button" class="gps-map-layer-btn active" data-layer="satellite">Satellite</button>
+                        <button type="button" class="gps-map-layer-btn" data-layer="hybrid">Ibrida</button>
+                    </div>
+                    <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
+                        <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
+                        <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
+                        <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
+                        <button type="button" role="tab" data-scheda3d="sezioni" aria-selected="false">Sezioni</button>
+                    </div>
+
+                    <!-- VISTA: da dove si guarda. Le viste pronte, poi i cursori che le regolano a mano. -->
+                    <div class="vista3d-pannello" data-pannello3d="vista" role="tabpanel">
+                        <div class="pillole vista3d-preset" id="presetVista3d" aria-label="Viste pronte">
+                            <button type="button" class="pillola" data-preset3d="alto">Dall'alto</button>
+                            <button type="button" class="pillola" data-preset3d="iso">Isometrica</button>
+                            <button type="button" class="pillola" data-preset3d="nord">Da Nord</button>
+                            <button type="button" class="pillola" data-preset3d="est">Da Est</button>
+                            <button type="button" class="pillola" data-preset3d="sud">Da Sud</button>
+                            <button type="button" class="pillola" data-preset3d="ovest">Da Ovest</button>
+                            <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
+                        </div>
+                        <div class="vista3d-cursori">
+                            <div class="vista3d-cursore"><span>Prospettiva</span>
+                                <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
+                                <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
+                                <strong id="lblFov3d"></strong></div>
+                        </div>
+                        <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro o centrale (o Maiusc, o due dita) per spostarti, e poi giri attorno a lì; la rotella avvicina verso il punto sotto il cursore. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per la sua scheda; col tasto destro il suo menu. Tastiera: W A S D, Q Z, R F (vedi «Tasti»).</p>
+                    </div>
+
+                    <!-- MODELLO E TAGLI: il corpo chiuso tra le prove e i due piani che lo tagliano. Toccare un
+                         taglio accende il modello solido. -->
+                    <div class="vista3d-pannello" data-pannello3d="tagli" role="tabpanel" hidden>
+                        <div class="vista3d-tagli" id="tagliVista3d">
+                            <div class="vista3d-taglio-riga">
+                                <span class="vista3d-taglio-nome">Modello solido</span>
+                                <button type="button" class="pillola" data-livello="solido">Mostra il corpo chiuso</button>
+                            </div>
+                            <div class="vista3d-taglio-riga">
+                                <span class="vista3d-taglio-nome">Taglio laterale</span>
+                                <div class="pillole" id="direzioneTaglio3d" aria-label="Direzione del taglio">
+                                    <button type="button" class="pillola" data-taglio-dir="">Nessuno</button>
+                                    <button type="button" class="pillola" data-taglio-dir="ns">Nord–Sud</button>
+                                    <button type="button" class="pillola" data-taglio-dir="eo">Est–Ovest</button>
+                                </div>
+                                <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
+                                <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+                            </div>
+                            <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
+                                <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
+                        </div>
+                        <p class="t-didascalia" id="notaTagli3d" hidden>Il modello solido serve almeno tre prove col GPS, non in fila.</p>
+                    </div>
+
+                    <!-- IMMAGINE: quella stesa sul terreno. Google, Esri, OpenStreetMap o un WMS; la scelta si
+                         ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
+                    <div class="vista3d-pannello" data-pannello3d="immagine" role="tabpanel" hidden>
+                        <div class="vista3d-taglio-riga">
+                            <span class="vista3d-taglio-nome">Immagine sul terreno</span>
+                            <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
+                            <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
+                        </div>
+                        <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
+                            <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
+                            <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">
+                            <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
+                            <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
+                        </div>
+                        <p class="t-didascalia" id="lblSfondo3d"></p>
+                    </div>
+
+                    <!-- SEZIONI: tracce disegnate sulla figura (due clic, dall'alto) o a griglia, con un nome
+                         (A-A', 1-1'…); per ciascuna la sezione lungo la linea, il PDF con la vista dal satellite,
+                         e il GeoPackage di tutte. Le riempie il 071j (il GeoPackage il 071k). -->
+                    <div class="vista3d-pannello" data-pannello3d="sezioni" role="tabpanel" hidden>
+                        <div class="vista3d-taglio-riga">
+                            <button type="button" class="pillola" id="btnTracciaSezione3d" aria-pressed="false">Traccia una sezione</button>
+                            <span class="t-didascalia">Due clic sulla figura (dall'alto): inizio e fine. Il nome si cambia nell'elenco.</span>
+                        </div>
+                        <div class="vista3d-taglio-riga vista3d-griglia">
+                            <span class="vista3d-taglio-nome">Griglia</span>
+                            <label>Direzione <input type="number" id="numGrigliaDir3d" class="form-control" min="0" max="359" step="5" value="0"> °</label>
+                            <label>Passo <input type="number" id="numGrigliaPasso3d" class="form-control" min="1" step="5" value="25"> m</label>
+                            <label>Linee <input type="number" id="numGrigliaN3d" class="form-control" min="1" max="26" value="3"></label>
+                            <label><input type="checkbox" id="chkGrigliaIncrociata3d"> anche di traverso (1-1', 2-2'…)</label>
+                            <button type="button" class="bt" id="btnCreaGriglia3d">Crea la griglia</button>
+                        </div>
+                        <div id="elencoSezioni3d" class="vista3d-sezioni"></div>
+                        <div class="vista3d-taglio-riga">
+                            <label>Prove entro <input type="number" id="numFasciaSezione3d" class="form-control" min="0" step="5" value="25"> m dalla traccia</label>
+                            <button type="button" class="bt" id="btnPdfSezioni3d"><svg class="ico"><use href="#i-print"/></svg>PDF delle sezioni</button>
+                            <button type="button" class="bt" id="btnGpkgSezioni3d"><svg class="ico"><use href="#i-download"/></svg>GeoPackage (.gpkg)</button>
+                        </div>
+                        <div id="vistaSezioneTracciata"></div>
+                    </div>
+
+                    </div>
+                </div>
+                <div id="tastiMappa3d" class="am-pop" role="dialog" aria-label="Scorciatoie del 3D" hidden>
+                    <div class="am-pop-tit">Scorciatoie del 3D</div>
+                    <div class="am-pop-tasti">
+                        <div><span>Muovi</span><kbd>W A S D</kbd></div><div><span>Su · giù</span><kbd>Q · Z</kbd></div>
+                        <div><span>Inclina</span><kbd>R · F</kbd></div><div><span>Più veloce</span><kbd>Maiusc</kbd></div>
+                        <div><span>Gira</span><kbd>← →</kbd></div><div><span>Avvicina</span><kbd>+ −</kbd></div>
+                        <div><span>Nord</span><kbd>N</kbd></div><div><span>Dall'alto</span><kbd>U</kbd></div>
+                        <div><span>Tutto</span><kbd>H</kbd></div><div><span>Viste</span><kbd>1 – 5</kbd></div>
+                        <div><span>Prospettiva</span><kbd>O</kbd></div><div><span>Vista iniziale</span><kbd>doppio clic</kbd></div>
+                        <div><span>Gira</span><kbd>sinistro</kbd></div><div><span>Sposta</span><kbd>destro</kbd></div>
+                        <div><span>Avvicina</span><kbd>rotella</kbd></div><div><span>Esci dallo strumento</span><kbd>Esc</kbd></div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="terreno-comandi" style="align-items: center;">
-            <button type="button" class="bt" id="btnVistaIniziale3d" title="Torna al punto di vista di partenza"><svg class="ico"><use href="#i-back"/></svg>Vista iniziale</button>
-            <button type="button" class="bt" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>
-            <button type="button" class="bt" id="btnScaricaObj3d" title="Terreno, colonne, pannelli e superfici in metri veri, per Blender, MeshLab, QGIS"><svg class="ico"><use href="#i-download"/></svg>Modello 3D (OBJ)</button>
+        <div class="am-stato" id="statoAreaMappa">
+            <span class="am-chip" id="lblAreaMappaInfo"></span>
+            <span class="am-chip am-mono" id="lblAreaMappaCoord"></span>
+            <span class="am-chip" id="lblAreaMappaMisura" hidden></span>
+            <span class="am-spazio"></span>
+            <span class="am-chip am-tenue" id="lblMappaProgetto"></span>
         </div>
     </div>
