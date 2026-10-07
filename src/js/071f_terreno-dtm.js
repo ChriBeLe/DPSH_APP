@@ -394,8 +394,8 @@
             document.getElementById('btnCaricaDtm').addEventListener('click', () => chiediFileDtm(state.currentProjectId, renderTerreno));
             document.getElementById('fileDtm').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
-                if (!file || !richiestaDtm) return;
-                const { projId, fatto } = richiestaDtm, proj = state.projects[projId];
+                if (!file) return;
+                const { projId, fatto } = richiestaDtm || { projId: state.currentProjectId, fatto: renderTerreno }, proj = state.projects[projId];
                 if (!proj) return;
                 if (fatto === renderTerreno) document.getElementById('statoTerreno').innerHTML = `<p class="t-didascalia" aria-busy="true">Lettura di ${escapeHtmlDidascalia(file.name)}…</p>`;
                 try {
