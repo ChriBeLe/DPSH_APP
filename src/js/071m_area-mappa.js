@@ -120,11 +120,15 @@
                 if (m.livello) m.livello.remove();
                 const pt = m.punti.concat(m.cursore && !m.finita ? [m.cursore] : []);
                 const stile = { color: '#facc15', weight: 3, dashArray: m.finita ? null : '6 6', interactive: false };
+                const testo = testoMisura(pt, m.area);
+                // Il valore anche sulla mappa: accanto all'ultimo punto (l'area, al centro del poligono).
+                const qui = m.area && pt.length > 2 ? { lat: pt.reduce((a, p) => a + p.lat, 0) / pt.length, lng: pt.reduce((a, p) => a + p.lng, 0) / pt.length } : pt[pt.length - 1];
                 m.livello = L.layerGroup([
                     m.area && pt.length > 2 ? L.polygon(pt.map(p => [p.lat, p.lng]), { ...stile, fillOpacity: 0.18 }) : L.polyline(pt.map(p => [p.lat, p.lng]), stile),
-                    ...m.punti.map(p => L.circleMarker([p.lat, p.lng], { radius: 4, color: '#111827', weight: 1.5, fillColor: '#facc15', fillOpacity: 1, interactive: false }))
+                    ...m.punti.map(p => L.circleMarker([p.lat, p.lng], { radius: 4, color: '#111827', weight: 1.5, fillColor: '#facc15', fillOpacity: 1, interactive: false })),
+                    ...(pt.length > 1 && qui ? [L.marker([qui.lat, qui.lng], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="mappa-misura-etichetta">${testo}</span>`, iconSize: null, iconAnchor: m.area && pt.length > 2 ? [0, 0] : [-12, 10] }) })] : [])
                 ]).addTo(carta);
-                misuraAreaMappa(testoMisura(pt, m.area));
+                misuraAreaMappa(testo);
             }
             /** Le misure nel 3D: sul piano della scena, come la traccia. */
             function misuraNellaScena3d(d, P, sopra, testo) {
@@ -132,8 +136,12 @@
                 if (!m || !m.punti3d) return;
                 const pt = m.punti3d.concat(m.cursore3d && !m.finita ? [m.cursore3d] : []), zMedia = (d.zMin + d.zMax) / 2;
                 const q = pt.map(([x, y]) => { const z = d.zSuolo(x, y); return P(x, y, Number.isFinite(z) ? z : zMedia); });
-                for (let i = 1; i < q.length; i++) sopra.push({ t: 'linea', x1: q[i - 1][0], y1: q[i - 1][1], x2: q[i][0], y2: q[i][1], stroke: '#facc15', sw: 3, cls: 'vista3d-misura' });
+                const chiuso = m.area && q.length > 2 ? q.concat([q[0]]) : q;
+                for (let i = 1; i < chiuso.length; i++) sopra.push({ t: 'linea', x1: chiuso[i - 1][0], y1: chiuso[i - 1][1], x2: chiuso[i][0], y2: chiuso[i][1], stroke: '#facc15', sw: 3, cls: 'vista3d-misura' });
                 q.forEach(p => sopra.push({ t: 'cerchio', x: p[0], y: p[1], r: 4, fill: '#facc15', cls: 'vista3d-misura' }));
+                // Il valore anche sulla scena, accanto all'ultimo punto.
+                const scritta = q.length > 1 && testoMisura(pt.map(([x, y]) => d.geo(x, y)), m.area);
+                if (scritta) testo(q[q.length - 1][0] + 10, q[q.length - 1][1] - 8, scritta, { size: 13, bold: true, alone: true, cls: 'vista3d-misura-testo' });
             }
             function finisciMisura() {
                 const m = areaMappa.misura;
@@ -233,6 +241,7 @@
             // ---- Il menu del tasto destro: sulle prove (2D e 3D) e sulle tracce (2D) ----
             // Le voci di una prova e di una traccia: nel loro menu sulla scena e in quello della loro riga nei Livelli.
             const vociProvaMappa = survId => [
+                ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
                 ['Apri la prova', 'i-folder-open', '', () => { chiudiMappaProgetto(); if (survId !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, survId); switchView('field'); }],
                 ['Modifica dati', 'i-edit', '', () => { chiudiMappaProgetto(); openSurveySettingsModal(survId, 'dati'); }],
                 ['Sposta', 'i-move-y', '', () => { scegliProvaMappa(survId); scegliStrumentoMappa('sposta'); }]

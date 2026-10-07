@@ -16,10 +16,10 @@
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, sezioni: true, immagine: true, solido: false },
-                // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» sulla riga del
-                // livello. Per prove e sezioni ognuna ha il suo (nomiNascosti: gli id con l'etichetta spenta).
-                etichette: { giaciture: false, misure: true, falda: false }, nomiNascosti: new Set(),
-                proveNascoste: new Set(), stratiNascosti: new Set(), tracceNascoste: new Set(),
+                // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
+                // (per prove e sezioni, uno solo per tutto il gruppo).
+                etichette: { prove: true, sezioni: true, giaciture: false, misure: true, falda: false },
+                proveNascoste: new Set(), stratiNascosti: new Set(), tracceNascoste: new Set(), giacitureNascoste: new Set(),
                 // L'opacità di ogni livello (chiave della riga → 0,2…1), dal menu del tasto destro.
                 opacita: {},
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
@@ -564,10 +564,10 @@
                     return true;
                 };
                 // I nomi delle prove hanno la precedenza: giaciture e distanze lasciano loro il posto.
-                const conNome = p => tieni(p.x, p.y) && !vista3d.proveNascoste.has(p.s.id) && !vista3d.nomiNascosti.has(p.s.id);
+                const conNome = p => vista3d.etichette.prove && tieni(p.x, p.y) && !vista3d.proveNascoste.has(p.s.id);
                 d.prove.forEach(p => { if (conNome(p)) { const [tx, ty] = P(p.x, p.y, p.z), w = nomeDpsh(p.s).length * 8; scritte.push([tx - w / 2, ty - 24, tx + w / 2, ty - 6]); } });
-                if (L.giaciture && L.superfici && !so) superfici.forEach(sf => {
-                    if (vista3d.stratiNascosti.has(sf.f.nome)) return;
+                if (L.giaciture && !so) superfici.forEach(sf => {
+                    if (vista3d.stratiNascosti.has(sf.f.nome) || vista3d.giacitureNascoste.has(sf.f.nome)) return;
                     const riga = perTriangolo.get(sf.t) || 0;
                     perTriangolo.set(sf.t, riga + 1);
                     const c = [0, 1, 2].map(n => (sf.punti[0][n] + sf.punti[1][n] + sf.punti[2][n]) / 3);
@@ -577,12 +577,12 @@
                     if (segni.some(g => g.f === sf.f && Math.hypot(g.x - o[0], g.y - o[1]) < 28)) return;
                     segni.push({ f: sf.f, x: o[0], y: o[1] });
                     [['rgba(0,0,0,0.55)', 4.4], [sf.f.colore, 2.6]].forEach(([stroke, sw]) => {
-                        sopra.push({ t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke, sw, cls: 'vista3d-giacitura-segno' });
-                        sopra.push({ t: 'linea', x1: o[0], y1: o[1], x2: tk[0], y2: tk[1], stroke, sw, cls: 'vista3d-giacitura-segno' });
+                        sopra.push({ t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke, sw, cls: 'vista3d-giacitura-segno', giacitura: sf.f.nome });
+                        sopra.push({ t: 'linea', x1: o[0], y1: o[1], x2: tk[0], y2: tk[1], stroke, sw, cls: 'vista3d-giacitura-segno', giacitura: sf.f.nome });
                     });
                     const scritta = `${String(Math.round(sf.immersione)).padStart(3, '0')}°/${numeroConVirgola(sf.inclinazione, 1)}°${vista3d.etichette.giaciture ? ' ' + sf.f.nome : ''}`;
                     const y = o[1] - 6 + riga * 14;
-                    if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura' });
+                    if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura', giacitura: sf.f.nome });
                 });
                 if (L.misure) {
                     // Asta graduata delle quote, all'angolo della scena più vicino a chi guarda.
@@ -631,7 +631,7 @@
                 // della sua prova, del suo strato e della sua traccia.
                 const O = vista3d.opacita, o1 = k => (k && O[k] !== undefined ? O[k] : 1);
                 pezzi.concat(sopra).forEach(f => {
-                    const o = o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1);
+                    const o = o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1);
                     if (o < 1) f.op = o;
                 });
                 return { W, H, k, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
@@ -909,25 +909,29 @@
                 const L = vista3d.livelli, E = vista3d.etichette, d = datiVista3dCorrenti, ico = n => `<svg class="ico"><use href="#i-${n}"/></svg>`;
                 const sw = (cls, stile) => `<span class="liv-sw ${cls}" style="${stile}"></span>`;
                 const prove = d ? d.prove : [];
-                const strati = new Map();
+                const strati = new Map(), giaciture = new Map();
                 prove.forEach(p => p.fasce.forEach(f => { const v = strati.get(f.nome) || { colore: f.colore, n: new Set() }; v.n.add(p.s.id); strati.set(f.nome, v); }));
+                (d && !L.solido ? modelloCorrelazione(d).superfici : []).forEach(sf => { const v = giaciture.get(sf.f.nome) || { colore: sf.f.colore, n: 0 }; v.n++; giaciture.set(sf.f.nome, v); });
                 const liv = (k, simbolo, nome, titolo, etichette) => ({ chiave: k, livello: k, attr: `data-livello="${k}"`, acceso: !!L[k], simbolo, nome, conta: '', titolo, etichette });
                 const gruppi = [
                     { id: 'prove', nome: 'Prove', righe: prove.map(p => ({ chiave: 'p:' + p.s.id, prova: p.s.id, attr: `data-prova3d="${p.s.id}"`, acceso: !vista3d.proveNascoste.has(p.s.id),
                         simbolo: `<svg width="8" height="16" viewBox="0 0 8 16">${p.fasce.map(f => `<rect x="0" y="${(16 * f.da / (p.fondo || 1)).toFixed(1)}" width="8" height="${(16 * (f.a - f.da) / (p.fondo || 1)).toFixed(1)}" fill="${f.colore}"/>`).join('')}</svg>`,
-                        nome: nomeDpsh(p.s), conta: numeroConVirgola(p.fondo, 1) + ' m', titolo: 'La colonna e la falda di questa prova; «T»: il suo nome', etichette: !vista3d.nomiNascosti.has(p.s.id) })) },
+                        nome: nomeDpsh(p.s), conta: numeroConVirgola(p.fondo, 1) + ' m', titolo: 'La colonna, il nome e la falda di questa prova' })), etichette: E.prove },
                     { id: 'strati', nome: 'Strati', righe: [...strati].map(([nome, v]) => ({ chiave: 's:' + nome, strato: nome, attr: `data-strato3d="${String(nome).replace(/"/g, '&quot;')}"`, acceso: !vista3d.stratiNascosti.has(nome),
                         simbolo: sw('aree', `background:${v.colore}; border-color:${v.colore}`), nome, conta: v.n.size, titolo: `Lo strato nelle colonne, nei pannelli, nelle superfici e nel corpo solido (in ${v.n.size} prove)` })) },
+                    // Le giaciture: una riga per strato (il suo tetto tra tre prove); «T» del gruppo: il nome dello strato.
+                    { id: 'giaciture', nome: 'Giaciture', etichette: E.giaciture, righe: [...giaciture].map(([nome, v]) => ({ chiave: 'g:' + nome, giacitura: nome, attr: `data-giacitura3d="${String(nome).replace(/"/g, '&quot;')}"`,
+                        acceso: !!L.giaciture && !vista3d.giacitureNascoste.has(nome), simbolo: `<svg class="ico" style="color:${v.colore}"><use href="#i-target"/></svg>`, nome, conta: v.n,
+                        titolo: `Immersione e inclinazione del tetto di ${nome}` })) },
                     { id: 'modello', nome: 'Modello', righe: [
                         liv('solido', ico('stack'), 'Corpo solido', 'Il modello chiuso tra le prove (i tagli nella scheda «Modello e tagli»)'),
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
-                        liv('giaciture', ico('target'), 'Giaciture', 'Immersione e inclinazione dei tetti; «T»: il nome dello strato', E.giaciture),
                         liv('falda', sw('linee', 'background:#0284c7'), 'Falda', '«T»: la profondità della falda su ogni colonna', E.falda) ] },
                     { id: 'riferimenti', nome: 'Riferimenti', righe: [
                         liv('misure', ico('ruler'), 'Misure', 'Distanze tra le prove e asta delle quote; «T»: i numeri', E.misure) ] },
                     { id: 'sezioni', nome: 'Sezioni', righe: tracceDelProgetto().map(t => ({ chiave: 't:' + t.id, traccia: t.id, attr: `data-traccia3d="${t.id}"`, acceso: !vista3d.tracceNascoste.has(t.id),
-                        simbolo: sw('linee', 'background:#dc2626'), nome: t.nome, conta: '', titolo: 'La traccia della sezione; «T»: le lettere agli estremi', etichette: !vista3d.nomiNascosti.has(t.id) })) },
+                        simbolo: sw('linee', 'background:#dc2626'), nome: t.nome, conta: '', titolo: 'La traccia della sezione' })), etichette: E.sezioni },
                     { id: 'sfondo', nome: 'Sfondo', righe: [
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
                         liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»') ] }
@@ -935,21 +939,24 @@
                 // Nel modo Mappa: le prove, le sezioni e la mappa di base (tasto destro per cambiarla).
                 if (areaMappa.modo === 'mappa') {
                     const op = vista3d.opacita['sf-base'] ?? 1;
-                    return [gruppi[0], gruppi[4], { id: 'sfondo2d', nome: 'Sfondo', righe: [{ chiave: 'sf-base', sfondo2d: true, attr: 'data-sfondo2d="base"', acceso: !mappaProgetto.sfondoSpento,
-                        simbolo: ico(mappaProgetto.stile === 'street' ? 'map' : 'satellite'), nome: SFONDI_2D.find(x => x[0] === mappaProgetto.stile)[1], conta: Math.round(op * 100) + '%',
+                    return [gruppi[0], gruppi.find(g => g.id === 'sezioni'), { id: 'sfondo2d', nome: 'Sfondo', righe: [{ chiave: 'sf-base', sfondo2d: true, attr: 'data-sfondo2d="base"', acceso: !mappaProgetto.sfondoSpento,
+                        simbolo: ico(/strade|wms/.test(mappaProgetto.stile) ? 'map' : 'satellite'), nome: (SFONDI_2D().find(x => x[0] === mappaProgetto.stile) || ['', 'Satellite (Esri)'])[1], conta: Math.round(op * 100) + '%',
                         titolo: 'Mappa di base: tasto destro per cambiarla' }] }].filter(g => g.righe.length);
                 }
                 return gruppi.filter(g => g.righe.length);
             }
+            // Un gruppo è chiuso se lo si è chiuso; le prove, se sono tante (le altre righe restano in vista).
+            const gruppoChiuso3d = (id, n) => id in livelliChiusi3d ? !!livelliChiusi3d[id] : id === 'prove' && n > 8;
             function renderLivelli3d() {
                 const albero = document.getElementById('livelliVista3d');
                 if (!albero) return;
                 const esc = v => escapeHtmlDidascalia(String(v)), ico = n => `<svg class="ico"><use href="#i-${n}"/></svg>`;
                 albero._righe = new Map();
                 albero.innerHTML = righeLivelli3d().map(g => {
-                    const chiuso = !!livelliChiusi3d[g.id], tutti = g.righe.every(r => r.acceso);
+                    const chiuso = gruppoChiuso3d(g.id, g.righe.length), tutti = g.righe.every(r => r.acceso);
                     return `<div class="liv-gruppo${chiuso ? ' chiuso' : ''}" data-gruppo="${g.id}"><button type="button" data-apri-gruppo="${g.id}" title="Apri o chiudi il gruppo">${ico('chevron-down')}</button>`
-                        + `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo"><span>${g.nome}</span></div>`
+                        + `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo"><span>${g.nome}</span>`
+                        + (g.etichette === undefined ? '' : `<button type="button" class="liv-etichette${g.etichette ? ' attivo' : ''}" data-etichette-gruppo="${g.id}" aria-pressed="${g.etichette}" title="Etichette: ${g.id === 'prove' ? 'i nomi delle prove' : 'le lettere delle sezioni'}">${ico('type')}</button>`) + '</div>'
                         + `<div class="liv-gruppo-corpo${chiuso ? ' chiuso' : ''}" data-corpo="${g.id}"><div class="liv-gruppo-dentro">`
                         + g.righe.map(r => {
                             albero._righe.set(r.chiave, r);
@@ -965,6 +972,7 @@
                 if (r.prova) vista3d.proveNascoste[on ? 'delete' : 'add'](r.prova);
                 else if (r.strato !== undefined) vista3d.stratiNascosti[on ? 'delete' : 'add'](r.strato);
                 else if (r.traccia) vista3d.tracceNascoste[on ? 'delete' : 'add'](r.traccia);
+                else if (r.giacitura !== undefined) { vista3d.giacitureNascoste[on ? 'delete' : 'add'](r.giacitura); if (on) vista3d.livelli.giaciture = true; }
                 else if (r.sfondo2d) sfondo2dAcceso(on);
                 else {
                     if (r.livello === 'solido' && on && !vista3d.livelli.solido) accendiSolido3d();
@@ -972,15 +980,15 @@
                 }
             }
             function etichetteLivello3d(r) {
-                if (r.prova || r.traccia) vista3d.nomiNascosti[r.etichette ? 'add' : 'delete'](r.prova || r.traccia);
-                else vista3d.etichette[r.livello] = !r.etichette;
+                vista3d.etichette[r.livello] = !r.etichette;
                 renderVista3d();
             }
             /** Inquadra il livello: la prova, le prove con lo strato, la traccia; il resto è tutta la scena. */
             function inquadraLivello3d(r) {
                 const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti;
                 const t = r.traccia && tracceDelProgetto().find(x => x.id === r.traccia);
-                const prove = r.prova ? [r.prova] : (r.strato !== undefined && d) ? d.prove.filter(p => p.fasce.some(f => f.nome === r.strato)).map(p => p.s.id) : null;
+                const strato = r.strato !== undefined ? r.strato : r.giacitura;
+                const prove = r.prova ? [r.prova] : (strato !== undefined && d) ? d.prove.filter(p => p.fasce.some(f => f.nome === strato)).map(p => p.s.id) : null;
                 if (areaMappa.modo === 'mappa') {
                     const m = mappaProgetto.mappa;
                     if (!m) return;
@@ -1015,7 +1023,7 @@
                 const opacita = ['Opacità…', 'i-eye', Math.round((vista3d.opacita[r.chiave] ?? 1) * 100) + '%', () => setTimeout(() => menuOpacita3d(r, x, y))];
                 if (r.sfondo2d) {
                     apriMenuContesto(e, r.nome, [['Cambia mappa di base…', 'i-map', '', () => setTimeout(() => menuQui(x, y, 'Mappa di base',
-                        SFONDI_2D.map(([k, nome]) => [nome, k === mappaProgetto.stile ? 'i-check' : 'i-map', '', () => { sfondoMappaProgetto(k); renderLivelli3d(); }])))], opacita]);
+                        SFONDI_2D().map(([k, nome]) => [nome, k === mappaProgetto.stile ? 'i-check' : 'i-map', '', () => { sfondoMappaProgetto(k); renderLivelli3d(); }])))], opacita]);
                     return;
                 }
                 const voci = [['Inquadra', 'i-target', '', () => inquadraLivello3d(r)]];
@@ -1034,7 +1042,7 @@
                     if (g) {
                         // niente ridisegno: si cambia solo la classe, così il gruppo si apre o si chiude scorrendo
                         const id = g.dataset.apriGruppo;
-                        livelliChiusi3d[id] = !livelliChiusi3d[id];
+                        livelliChiusi3d[id] = !g.closest('.liv-gruppo').classList.contains('chiuso');
                         try { localStorage.setItem('dpsh.livelli3dGruppiChiusi', JSON.stringify(livelliChiusi3d)); } catch (_) { /* solo per questa volta */ }
                         g.closest('.liv-gruppo').classList.toggle('chiuso', livelliChiusi3d[id]);
                         albero.querySelector(`[data-corpo="${id}"]`).classList.toggle('chiuso', livelliChiusi3d[id]);
@@ -1048,6 +1056,8 @@
                         renderVista3d();
                         return;
                     }
+                    const tg = e.target.closest('[data-etichette-gruppo]');
+                    if (tg) { vista3d.etichette[tg.dataset.etichetteGruppo] = !vista3d.etichette[tg.dataset.etichetteGruppo]; renderVista3d(); return; }
                     const r = riga(e);
                     if (!r) return;
                     if (e.target.closest('.liv-etichette')) { etichetteLivello3d(r); return; }

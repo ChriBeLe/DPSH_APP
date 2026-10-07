@@ -1615,8 +1615,16 @@ ${contenuto}
             // GPS IN TEMPO REALE (IDEA 1): mantiene una posizione sempre aggiornata mentre l'app è
             // aperta sulla schermata di campo, cosi le foto scattate/importate senza EXIF possono
             // usare una posizione fresca invece di quella (eventualmente vecchia) del cantiere.
+            // Il permesso si chiede una volta sola: la ricerca, partita, resta accesa per tutta la
+            // sessione (riaccenderla a ogni prova faceva ricomparire la richiesta, perché aperta
+            // come file il browser non ricorda il permesso); rifiutata, non si richiede più da
+            // sola (ricordato), resta il tasto «Rileva la posizione».
+            let gpsAutoChiesto = false;
+            const GPS_RIFIUTATO = 'dpsh.gpsRifiutato';
             function startLiveGpsWatch() {
-                if (!navigator.geolocation || liveGpsWatchId !== null) return;
+                if (!navigator.geolocation || liveGpsWatchId !== null || gpsAutoChiesto) return;
+                try { if (localStorage.getItem(GPS_RIFIUTATO)) return; } catch (_) { /* nessun ricordo */ }
+                gpsAutoChiesto = true;
                 // Nessun controllo preventivo sul contesto sicuro: si tenta sempre la richiesta e
                 // si lascia che il browser stesso la accetti o rifiuti (già gestito in silenzio
                 // sotto), cosi l'app non si autoesclude in contesti (es. WebView/APK) dove
@@ -1632,7 +1640,14 @@ ${contenuto}
                         };
                         updateLiveGpsIndicator();
                     },
-                    () => { /* Silenzioso: il fallback statico/manuale resta comunque disponibile */ },
+                    (err) => {
+                        // Silenzioso: il fallback statico/manuale resta comunque disponibile.
+                        if (err && err.code === 1) {
+                            navigator.geolocation.clearWatch(liveGpsWatchId);
+                            liveGpsWatchId = null;
+                            try { localStorage.setItem(GPS_RIFIUTATO, '1'); } catch (_) { /* solo per questa volta */ }
+                        }
+                    },
                     { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
                 );
             }
@@ -1690,6 +1705,7 @@ ${contenuto}
                 if (lblModalGpsStatus) lblModalGpsStatus.innerHTML = ico('satellite') + ' Connessione ai satelliti GPS in corso...';
 
                 function handleSuccess(pos) {
+                    try { localStorage.removeItem(GPS_RIFIUTATO); } catch (_) { /* niente */ }
                     state.header.lat = pos.coords.latitude;
                     state.header.lng = pos.coords.longitude;
                     state.header.alt = pos.coords.altitude || null;
@@ -1717,6 +1733,11 @@ ${contenuto}
                     );
                 }
 
+                // La ricerca sempre accesa ha una posizione fresca: si usa quella, senza chiedere di nuovo.
+                if (liveGpsWatch.lat !== null && liveGpsWatch.timestamp && Date.now() - liveGpsWatch.timestamp < 30000) {
+                    handleSuccess({ coords: { latitude: liveGpsWatch.lat, longitude: liveGpsWatch.lng, altitude: liveGpsWatch.alt, accuracy: liveGpsWatch.acc } });
+                    return;
+                }
                 navigator.geolocation.getCurrentPosition(
                     handleSuccess,
                     (err) => {

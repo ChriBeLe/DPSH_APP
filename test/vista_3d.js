@@ -137,7 +137,7 @@ const $ = (app, id) => app.d.getElementById(id);
   {
     const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071h_vista-3d.js'), 'utf8');
     t('giaciture: simbolo col colore dello strato, scritta solo immersione/inclinazione; il nome dello strato a richiesta (spento)', /\[sf\.f\.colore, 2\.6\]/.test(src) && /\$\{vista3d\.etichette\.giaciture \? ' ' \+ sf\.f\.nome : ''\}/.test(src)
-      && app.E('vista3d.etichette.giaciture') === false && !!app.d.querySelector('#livelliVista3d [data-livello="giaciture"] .liv-etichette:not(.attivo)'));
+      && app.E('vista3d.etichette.giaciture') === false);
     t('e le scritte non si accavallano: una che ne coprirebbe un\'altra non si scrive', /if \(scrittaLibera\(o\[0\] \+ 8, y,/.test(src) && /if \(scrittaLibera\(m\[0\] - w \/ 2/.test(src));
   }
   const tri = app.E('triangolaDelaunay([{x:0,y:0},{x:10,y:0},{x:0,y:10},{x:10,y:10},{x:5,y:5}])');

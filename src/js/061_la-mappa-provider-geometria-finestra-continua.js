@@ -43,6 +43,10 @@
                 { nome: 'Ortofoto Lombardia',
                   url: 'https://www.cartografia.servizirl.it/arcgis2/services/BaseMap/Ortofoto2015/MapServer/WMSServer',
                   layer: '0', attribuzione: 'Ortofoto 2015 — Regione Lombardia' },
+                // Indirizzo dalla guida ai servizi WMS del SIT Puglia (InnovaPuglia).
+                { nome: 'CTR Puglia (SIT Puglia)',
+                  url: 'http://webapps.sit.puglia.it/arcgis/services/Background/CTR2008/MapServer/WMSServer',
+                  layer: '0', attribuzione: 'Carta Tecnica Regionale — Regione Puglia, SIT' },
                 { nome: 'Carta topografica IGM 25.000 (Geoportale Nazionale)',
                   url: 'http://wms.pcn.minambiente.it/ogc?map=/ms_ogc/WMS_v1.3/raster/IGM_25000.map',
                   layer: 'CB.RT.IGM25000', attribuzione: 'Carta IGM 1:25.000 — Geoportale Nazionale' }

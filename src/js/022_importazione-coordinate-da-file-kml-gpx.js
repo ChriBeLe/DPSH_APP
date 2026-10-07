@@ -287,7 +287,6 @@
                     if (viewField) viewField.style.display = 'none';
                     if (testataProva) testataProva.style.display = 'none';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'none';
-                    stopLiveGpsWatch();
                     saveState(); // la prova aperta torna nel progetto prima di contarne intervalli e avvisi
                     renderSchermataProgetto();
                 } else if (viewName === 'home') {
@@ -295,7 +294,6 @@
                     if (viewField) viewField.style.display = 'none';
                     if (testataProva) testataProva.style.display = 'none';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'none';
-                    stopLiveGpsWatch();
                     aggiornaConteggiHome();
                     renderHomeProjects();
                 } else {

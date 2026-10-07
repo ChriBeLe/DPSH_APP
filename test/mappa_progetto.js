@@ -23,7 +23,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const id = nr => app.E(`Object.values(${P}.surveys).find(s => s.header.provaNr == '${nr}').id`);
   const h = nr => app.E(`Object.values(${P}.surveys).find(s => s.header.provaNr == '${nr}').header`);
 
-  t('nella schermata del progetto c\'è «Mappa», e la sua finestra con la mappa e la scheda', !!$(app, 'btnProgettoMappa') && !!$(app, 'mappaProgettoEl') && !!$(app, 'schedaProvaMappa') && $(app, 'sfondoMappaProgetto').querySelectorAll('[data-layer]').length === 3);
+  t('nella schermata del progetto c\'è «Mappa», e la sua finestra con la mappa e la scheda', !!$(app, 'btnProgettoMappa') && !!$(app, 'mappaProgettoEl') && !!$(app, 'schedaProvaMappa') && !!$(app, 'selSfondo2d'));
 
   console.log('--- La scheda di una prova ---');
   const id2 = id('2');
@@ -31,7 +31,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const scheda = $(app, 'schedaProvaMappa');
   const h2 = h('2');
   t(`numero, profondità e intervalli, falda e foto, coordinate («${scheda.textContent.replace(/\s+/g, ' ').trim().slice(0, 90)}…»)`, !scheda.hidden && /Prova 2/.test(scheda.textContent) && /\d+,\d+ m · \d+ intervall/.test(scheda.textContent)
-    && /(Falda a |Falda non impostata)/.test(scheda.textContent) && /\d+ foto/.test(scheda.textContent) && scheda.textContent.includes(parseFloat(h2.lat).toFixed(6)));
+    && /(Falda a |Falda non impostata)/.test(scheda.textContent) && /(\d+ foto|nessuna foto)/.test(scheda.textContent) && scheda.textContent.includes(parseFloat(h2.lat).toFixed(6)));
   t('la colonna degli strati e i loro nomi', scheda.querySelectorAll('svg rect').length > 0 && scheda.querySelectorAll('.mappa-progetto-strati span').length > 0);
   t('tre azioni: apri la prova, modifica dati, sposta', ['apri', 'dati', 'sposta'].every(a => scheda.querySelector(`[data-mappa-azione="${a}"]`)));
   clic(app, scheda.querySelector('[data-mappa-azione="sposta"]'));

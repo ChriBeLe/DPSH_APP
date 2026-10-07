@@ -5,7 +5,7 @@
             // compreso, nella scheda «Dati» della prova) o spostarla trascinando il segnaposto, con la
             // doppia conferma e la memoria della posizione di prima di «Sposta la prova» (022).
 
-            const mappaProgetto = { mappa: null, sfondo: null, etichette: null, livelli: null, scelta: null, spostando: null, stile: 'satellite', sfondoSpento: false };
+            const mappaProgetto = { mappa: null, sfondo: null, etichette: null, livelli: null, scelta: null, spostando: null, stile: 'esri-satellite', sfondoSpento: false, daMostrare: null };
 
             /** La scheda di una prova: colonna degli strati (con la falda), dati, azioni. */
             function schedaProvaMappaHtml(proj, s) {
@@ -29,13 +29,13 @@
                     <div class="mappa-progetto-corpo">${fasce.length ? colonna : ''}
                         <div class="mappa-progetto-dati">
                             <div>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'}</div>
-                            <div>${isFinite(falda) ? 'Falda a ' + numeroConVirgola(falda) + ' m' : 'Falda non impostata'} · ${(s.photos || []).length} foto</div>
+                            <div>${isFinite(falda) ? 'Falda a ' + numeroConVirgola(falda) + ' m' : 'Falda non impostata'} · ${(s.photos || []).length ? (s.photos.length + ' foto') : 'nessuna foto'}</div>
                             ${quota !== null ? `<div>Quota ${numeroConVirgola(quota, 1)} m s.l.m.</div>` : ''}
                             <div>${parseFloat(h.lat).toFixed(6)}, ${parseFloat(h.lng).toFixed(6)}</div>
                             ${h.date ? `<div>${esc(String(h.date))}</div>` : ''}
                             ${sp ? `<div class="spostata">Spostata a mano di ${metriTra(sp.da, sp.a)} m</div>` : ''}
                             <div class="mappa-progetto-strati">${strati.map(([n, c]) => `<span><i style="background:${c}"></i>${esc(n)}</span>`).join('')}</div>
-                        </div></div>
+                        </div>${(s.photos || []).length ? '<img class="mappa-progetto-foto" alt="La prima foto della prova" hidden>' : ''}</div>
                     <div class="mappa-progetto-azioni">
                         <button type="button" class="bt bt-principale" data-mappa-azione="apri"><svg class="ico"><use href="#i-folder-open"/></svg>Apri la prova</button>
                         <button type="button" class="bt" data-mappa-azione="dati"><svg class="ico"><use href="#i-edit"/></svg>Modifica dati</button>
@@ -48,6 +48,9 @@
                 const s = proj && proj.surveys && proj.surveys[mappaProgetto.scelta];
                 box.hidden = !s;
                 box.innerHTML = s ? schedaProvaMappaHtml(proj, s) : '';
+                // La prima foto, in piccolo: sta nella prova o nell'archivio delle foto.
+                const foto = s && (s.photos || [])[0], img = box.querySelector('.mappa-progetto-foto');
+                if (foto && img) Promise.resolve(foto.dataUrl || (foto.id && getPhotoFromIDB(foto.id))).then(u => { if (u && img.isConnected) { img.src = u; img.hidden = false; } });
                 // La prova scelta resta in vista, sopra la scheda.
                 if (s && mappaProgetto.mappa && areaMappa.modo === 'mappa') mappaProgetto.mappa.panInside([parseFloat(s.header.lat), parseFloat(s.header.lng)], { paddingTopLeft: [20, 40], paddingBottomRight: [20, box.offsetHeight + 30] });
             }
@@ -64,14 +67,14 @@
                     L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4, opacity: op('t:' + t.id) }).addTo(m.livelli)
                         .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
-                    if (!vista3d.nomiNascosti.has(t.id)) estremiTraccia(t.nome).forEach((n, i) => {
+                    if (vista3d.etichette.sezioni) estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
                         L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
                 proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
-                    const h = s.header, nr = vista3d.nomiNascosti.has(s.id) ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
+                    const h = s.header, nr = !vista3d.etichette.prove ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
                     // Spostata a mano: dov'era prima, tratteggiato.
                     if (sp) {
                         const stile = { color: '#eab308', weight: 2, dashArray: '5 5', interactive: false };
@@ -107,30 +110,39 @@
                 renderSchedaProvaMappa();
             }
 
-            function sfondoMappaProgetto(stile) {
-                const m = mappaProgetto;
-                m.stile = stile;
-                document.querySelectorAll('#sfondoMappaProgetto [data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === stile));
+            /** Le mappe di base: i satelliti (Esri, Google), le strade di Google e i WMS (pronti, come la
+             * CTR, e i propri, gli stessi dell'immagine sul terreno del 3D). La scelta è ricordata. */
+            const SFONDI_2D = () => [['esri-satellite', 'Satellite (Esri)'], ['google-satellite', 'Satellite (Google)'], ['google-strade', 'Strade (Google)']]
+                .concat(wmsDisponibili().map((w, i) => ['wms:' + i, w.nome]));
+            function livelloSfondo2d(id) {
+                const w = id.startsWith('wms:') && wmsDisponibili()[Number(id.slice(4))];
+                if (w) return L.tileLayer.wms(w.url, { layers: w.layer || '', format: 'image/png', transparent: false, version: '1.1.1', maxZoom: 20, attribution: w.attribuzione || 'WMS' });
+                const f = SFONDI_3D[id] || SFONDI_3D['esri-satellite'];
+                const l = L.tileLayer('', { maxNativeZoom: f.zoomMax || 19, maxZoom: 20, attribution: f.attribuzione });
+                l.getTileUrl = c => f.url(c.z, c.x, c.y);
+                return l;
+            }
+            function sfondoMappaProgetto(id) {
+                const m = mappaProgetto, voci = SFONDI_2D();
+                if (!voci.some(v => v[0] === id)) id = 'esri-satellite';
+                m.stile = id;
+                if (!state.settings) state.settings = {};
+                if (state.settings.sfondo2d !== id) { state.settings.sfondo2d = id; saveState(); }
+                const sel = document.getElementById('selSfondo2d');
+                sel.innerHTML = voci.map(([k, nome]) => `<option value="${k}">${escapeHtmlDidascalia(nome)}</option>`).join('');
+                sel.value = id;
                 if (!m.mappa) return;
                 if (m.sfondo) m.sfondo.remove();
-                if (m.etichette) { m.etichette.remove(); m.etichette = null; }
-                const src = GPS_MAP_TILE_SOURCES[stile === 'street' ? 'street' : 'satellite'];
-                m.sfondo = L.tileLayer(src.url, src.options).addTo(m.mappa);
-                m.sfondo.bringToBack();
-                if (stile === 'hybrid') m.etichette = L.tileLayer(GPS_MAP_TILE_SOURCES.hybridLabels.url, GPS_MAP_TILE_SOURCES.hybridLabels.options).addTo(m.mappa);
+                m.sfondo = livelloSfondo2d(id);
                 sfondo2dAcceso(true); // scegliendo una mappa la si vuole vedere
             }
-            const SFONDI_2D = [['satellite', 'Satellite (Esri)'], ['street', 'Strade (OpenStreetMap)'], ['hybrid', 'Satellite con nomi']];
             /** La mappa di base accesa o spenta (la spunta della sua riga nei Livelli), con la sua opacità. */
             function sfondo2dAcceso(on) {
                 const m = mappaProgetto;
                 m.sfondoSpento = !on;
                 if (!m.mappa) return;
-                [m.sfondo, m.etichette].forEach(l => {
-                    if (!l) return;
-                    if (on) l.addTo(m.mappa).setOpacity(vista3d.opacita['sf-base'] ?? 1); else l.remove();
-                });
-                if (on && m.sfondo) m.sfondo.bringToBack();
+                if (!m.sfondo) return;
+                if (on) m.sfondo.addTo(m.mappa).setOpacity(vista3d.opacita['sf-base'] ?? 1).bringToBack(); else m.sfondo.remove();
             }
 
             /** La mappa 2D dell'area di lavoro (il modo «Mappa»): Leaflet si carica e si crea la prima volta;
@@ -149,11 +161,12 @@
                     agganciaMappa2d(m.mappa);
                 }
                 m.progetto = state.currentProjectId;
-                sfondoMappaProgetto(m.stile);
+                sfondoMappaProgetto((state.settings && state.settings.sfondo2d) || m.stile);
                 // Dopo che la scena si è mostrata: Leaflet misura il riquadro.
                 setTimeout(() => {
                     m.mappa.invalidateSize();
-                    if (nuova) inquadraTutteMappa2d();
+                    if (m.daMostrare) vaiAllaProva2d(m.daMostrare);
+                    else if (nuova) inquadraTutteMappa2d();
                     disegnaProveMappa();
                     aggiornaBussola2d();
                 }, 60);
@@ -167,6 +180,23 @@
                 else if (punti.length) m.mappa.setView(punti[0], 18);
                 else m.mappa.setView([41.87, 12.57], 6);
             }
+            /** «Mostra sulla mappa»: si apre (o si passa al) modo Mappa sulla prova, con la sua scheda. */
+            function mostraProvaSullaMappa(survId) {
+                const proj = state.projects[state.currentProjectId], s = proj && proj.surveys[survId];
+                if (!s) return;
+                if (!proveConCoordinate(proj).includes(s)) { appAlert('Questa prova non ha ancora le coordinate GPS: non si può mostrare sulla mappa.'); return; }
+                mappaProgetto.spostando = null;
+                if (areaMappaAperta() && areaMappa.modo === 'mappa' && mappaProgetto.mappa) { vaiAllaProva2d(survId); return; }
+                mappaProgetto.daMostrare = survId;
+                if (areaMappaAperta()) modoAreaMappa('mappa'); else apriVista3d('mappa');
+            }
+            function vaiAllaProva2d(survId) {
+                const s = state.projects[state.currentProjectId].surveys[survId];
+                mappaProgetto.daMostrare = null;
+                if (!s || !mappaProgetto.mappa) return;
+                mappaProgetto.mappa.setView([parseFloat(s.header.lat), parseFloat(s.header.lng)], 19);
+                scegliProvaMappa(survId);
+            }
             function apriMappaProgetto() {
                 mappaProgetto.scelta = null;
                 mappaProgetto.spostando = null;
@@ -179,10 +209,7 @@
             }
 
             document.getElementById('btnProgettoMappa').addEventListener('click', apriMappaProgetto);
-            document.getElementById('sfondoMappaProgetto').addEventListener('click', (e) => {
-                const b = e.target.closest('[data-layer]');
-                if (b) sfondoMappaProgetto(b.dataset.layer);
-            });
+            document.getElementById('selSfondo2d').addEventListener('change', (e) => { sfondoMappaProgetto(e.target.value); renderLivelli3d(); });
             document.getElementById('schedaProvaMappa').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-mappa-azione]'), id = mappaProgetto.scelta;
                 if (!b || !id) return;
