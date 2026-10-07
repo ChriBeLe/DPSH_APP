@@ -363,14 +363,16 @@
                 return rotazioneMappaPromessa;
             }
 
-            // ---- I PANNELLI: fermi, Livelli a sinistra e Comandi a destra (la vista rientra di quanto sono larghi);
-            // si possono solo ridurre alla testata, e la scelta si ricorda. Sul telefono galleggiano sopra la scena.
-            // (Qui non c'è niente da disegnare a mano: la versatilità dei pannelli di HyperGram non serve.)
+            // ---- I PANNELLI: Livelli a sinistra e Comandi a destra, agganciati (la vista rientra di quanto sono
+            // larghi). Due modi di metterli via, come in HyperGram: il titolo li CHIUDE al loro posto (si
+            // restringono in altezza fino alla testata); il tasto «riduci» ne fa una PILLOLA, che si trascina
+            // dove si vuole (un clic la riapre). Tutto si ricorda. Sul telefono galleggiano sopra la scena.
             const LARGHEZZA_PNL = { liv: 250, cmd: 340 };
-            const PILLOLA_PNL = { liv: 128, cmd: 142 }; // ridotti: una pillola
+            const PILLOLA_PNL = { liv: 128, cmd: 142 };
             const pannelli = (() => {
-                try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return { liv: { red: !!s.liv.red }, cmd: { red: !!s.cmd.red } }; } catch (_) { /* predefiniti */ }
-                return { liv: { red: false }, cmd: { red: false } };
+                const uno = v => ({ red: !!(v && v.red), chiuso: !!(v && v.chiuso), px: v && Number.isFinite(v.px) ? v.px : null, py: v && Number.isFinite(v.py) ? v.py : null });
+                try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return { liv: uno(s.liv), cmd: uno(s.cmd) }; } catch (_) { /* predefiniti */ }
+                return { liv: uno(), cmd: uno() };
             })();
             const elPannello = k => document.querySelector(`.am-pnl[data-pnl="${k}"]`);
             const scenaMappa = document.getElementById('scenaAreaMappa');
@@ -384,35 +386,87 @@
                     el.classList.toggle('dl', !stretto && lato === 'l');
                     el.classList.toggle('dr', !stretto && lato === 'r');
                     el.classList.toggle('fl', stretto);
-                    el.classList.toggle('red', !!pannelli[k].red);
-                    el.style.width = stretto ? '' : (pannelli[k].red ? PILLOLA_PNL[k] : LARGHEZZA_PNL[k]) + 'px';
+                    const q = pannelli[k], pil = !!q.red, chiuso = !pil && !!q.chiuso;
+                    el.classList.toggle('red', pil || (stretto && chiuso)); // sul telefono, chiuso e pillola sono la testata
+                    el.classList.toggle('chiuso', !stretto && chiuso);
+                    el.style.width = stretto ? '' : (pil ? PILLOLA_PNL[k] : LARGHEZZA_PNL[k]) + 'px';
                     el.style.setProperty('--pt', '0px');
                     el.style.setProperty('--ph', '100%');
+                    const W = scenaMappa.clientWidth || 360, H = scenaMappa.clientHeight || 600;
                     if (stretto) {
-                        const W = scenaMappa.clientWidth || 360, H = scenaMappa.clientHeight || 600;
                         el.style.left = (k === 'liv' ? Math.max(8, W - el.offsetWidth - 8) : 8) + 'px';
                         el.style.top = (k === 'liv' ? 8 : Math.max(8, H - Math.min(el.offsetHeight, H * 0.5) - 8)) + 'px';
-                    } else el.style.left = el.style.top = '';
+                        el.style.right = '';
+                    } else if (pil && q.px !== null) {
+                        // la pillola dove l'hanno lasciata (dentro la scena)
+                        el.style.left = Math.max(0, Math.min(W - PILLOLA_PNL[k], q.px)) + 'px';
+                        el.style.top = Math.max(0, Math.min(H - 40, q.py)) + 'px';
+                        el.style.right = 'auto';
+                    } else el.style.left = el.style.top = el.style.right = '';
                 });
-                const vista = scenaMappa.querySelector('.am-vista');
-                vista.style.setProperty('--vl', (!telefonoMappa() && !pannelli.liv.red ? LARGHEZZA_PNL.liv : 0) + 'px');
-                vista.style.setProperty('--vr', (!telefonoMappa() && !pannelli.cmd.red ? LARGHEZZA_PNL.cmd : 0) + 'px');
-                vista.classList.toggle('liv-pillola', !telefonoMappa() && !!pannelli.liv.red);
+                const vista = scenaMappa.querySelector('.am-vista'), occupa = k => !telefonoMappa() && !pannelli[k].red && !pannelli[k].chiuso;
+                vista.style.setProperty('--vl', (occupa('liv') ? LARGHEZZA_PNL.liv : 0) + 'px');
+                vista.style.setProperty('--vr', (occupa('cmd') ? LARGHEZZA_PNL.cmd : 0) + 'px');
+                // la bussola scende sotto i Livelli messi via in alto a sinistra (chiusi, o pillola al suo posto)
+                vista.classList.toggle('liv-pillola', !telefonoMappa() && ((pannelli.liv.red && pannelli.liv.px === null) || (!pannelli.liv.red && pannelli.liv.chiuso)));
                 // La vista ha cambiato misura: alla fine dello scorrimento si ridisegna.
                 clearTimeout(applicaPannelli.t);
                 applicaPannelli.t = setTimeout(() => { if (!areaMappaAperta()) return; if (areaMappa.modo === '3d') renderVista3d(); else if (mappaProgetto.mappa) mappaProgetto.mappa.invalidateSize(); }, 320);
             }
+            /** Il tasto «riduci»: pillola (e dalla pillola si torna pannello). */
             function riduciPannello(k) {
                 pannelli[k].red = !pannelli[k].red;
+                pannelli[k].chiuso = false;
                 salvaPannelli();
                 applicaPannelli();
             }
-            ['liv', 'cmd'].forEach(k => elPannello(k).querySelector('.am-pnl-ctrl').addEventListener('click', (e) => {
-                if (e.target.closest('[data-pnl-azione="riduci"]')) { e.stopPropagation(); riduciPannello(k); }
-            }));
-            // Il titolo apre e riduce il suo pannello, come il tasto.
-            document.getElementById('btnLivelli3d').addEventListener('click', () => riduciPannello('liv'));
-            elPannello('cmd').querySelector('.am-pnl-tit').addEventListener('click', () => riduciPannello('cmd'));
+            /** Il titolo: chiude il pannello al suo posto, in altezza (da pillola, lo riapre). */
+            function chiudiPannello(k) {
+                const q = pannelli[k];
+                if (q.red) { q.red = false; q.chiuso = false; } else q.chiuso = !q.chiuso;
+                salvaPannelli();
+                applicaPannelli();
+            }
+            /** La pillola si trascina dove si vuole, dentro la scena; lasciata, resta lì. */
+            function trascinaPillola(k, e) {
+                const el = elPannello(k), sc = scenaMappa.getBoundingClientRect(), r0 = el.getBoundingClientRect();
+                const x0 = e.clientX, y0 = e.clientY, l0 = r0.left - sc.left, t0 = r0.top - sc.top;
+                let mosso = false;
+                const muovi = (ev) => {
+                    if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return;
+                    mosso = true;
+                    el.classList.add('trascina');
+                    el.style.left = Math.max(0, Math.min(sc.width - r0.width, l0 + ev.clientX - x0)) + 'px';
+                    el.style.top = Math.max(0, Math.min(sc.height - r0.height, t0 + ev.clientY - y0)) + 'px';
+                    el.style.right = 'auto';
+                };
+                const fine = () => {
+                    window.removeEventListener('pointermove', muovi);
+                    window.removeEventListener('pointerup', fine);
+                    if (!mosso) return;
+                    el.classList.remove('trascina');
+                    el._trascinata = true; // il clic che segue non la riapre
+                    pannelli[k].px = parseFloat(el.style.left); pannelli[k].py = parseFloat(el.style.top);
+                    salvaPannelli();
+                    applicaPannelli();
+                };
+                window.addEventListener('pointermove', muovi);
+                window.addEventListener('pointerup', fine);
+            }
+            ['liv', 'cmd'].forEach(k => {
+                const el = elPannello(k);
+                el.querySelector('.am-pnl-ctrl').addEventListener('click', (e) => {
+                    if (e.target.closest('[data-pnl-azione="riduci"]')) { e.stopPropagation(); riduciPannello(k); }
+                });
+                el.querySelector('.am-pnl-testa').addEventListener('pointerdown', (e) => {
+                    if (e.button === 0 && pannelli[k].red && !telefonoMappa()) trascinaPillola(k, e);
+                });
+                // Il titolo: chiude in altezza (o riapre la pillola, se non la si è appena trascinata).
+                el.querySelector(k === 'liv' ? '#btnLivelli3d' : '.am-pnl-tit').addEventListener('click', () => {
+                    if (el._trascinata) { el._trascinata = false; return; }
+                    chiudiPannello(k);
+                });
+            });
             try { if (telefonoMappa() && !localStorage.getItem('dpsh.pannelliMappa')) { pannelli.liv.red = true; pannelli.cmd.red = true; } } catch (_) { /* come sono */ }
             applicaPannelli();
             window.addEventListener('resize', () => { if (areaMappaAperta()) applicaPannelli(); });

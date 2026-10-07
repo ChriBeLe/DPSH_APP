@@ -115,7 +115,7 @@ const $ = (app, id) => app.d.getElementById(id);
     t('un gruppo si richiude (e lo ricorda)', app.d.querySelector('#livelliVista3d [data-corpo="strati"]').classList.contains('chiuso') && /strati/.test(app.w.localStorage.getItem('dpsh.livelli3dGruppiChiusi')));
     clic(app, app.d.querySelector('#livelliVista3d [data-apri-gruppo="strati"]'));
     clic(app, $(app, 'btnLivelli3d'));
-    t('il pannello si riduce alla sua testata', $(app, 'pannelloLivelli3d').classList.contains('red'));
+    t('il pannello si chiude fino alla sua testata', $(app, 'pannelloLivelli3d').classList.contains('chiuso'));
     clic(app, $(app, 'btnLivelli3d'));
   }
   const n0 = app.scaricati.length;

@@ -84,10 +84,19 @@ const $ = (app, id) => app.d.getElementById(id);
   t('Comandi ridotto: resta la testata, la vista prende il posto', pnl('cmd').classList.contains('red') && pnl('cmd').classList.contains('dr') && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '0px');
   clic(app, pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
   clic(app, $(app, 'btnLivelli3d'));
-  t('Livelli ridotto dal suo titolo: una pillola (stretta, si chiude in altezza), e la bussola le fa posto', pnl('liv').classList.contains('red') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px'
-    && pnl('liv').style.width === '128px' && am.querySelector('.am-vista').classList.contains('liv-pillola'));
-  t('ricordato', app.w.localStorage.getItem('dpsh.pannelliMappa') === '{"liv":{"red":true},"cmd":{"red":false}}');
+  t('il titolo CHIUDE i Livelli al loro posto: restano larghi e agganciati, si restringono in altezza; la vista e la bussola fanno posto',
+    pnl('liv').classList.contains('chiuso') && !pnl('liv').classList.contains('red') && pnl('liv').classList.contains('dl') && pnl('liv').style.width === '250px'
+    && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px' && am.querySelector('.am-vista').classList.contains('liv-pillola'));
   clic(app, $(app, 'btnLivelli3d'));
+  clic(app, pnl('liv').querySelector('[data-pnl-azione="riduci"]'));
+  t('il tasto «riduci» ne fa una PILLOLA', pnl('liv').classList.contains('red') && pnl('liv').style.width === '128px');
+  const testa = pnl('liv').querySelector('.am-pnl-testa'), pm = (tipo, x, y, el) => (el || app.w).dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, button: 0, clientX: x, clientY: y }));
+  pm('pointerdown', 20, 20, testa); pm('pointermove', 60, 90); pm('pointermove', 120, 140); pm('pointerup', 120, 140);
+  clic(app, $(app, 'btnLivelli3d')); // il clic che chiude il trascinamento non la riapre
+  t('la pillola si trascina: resta dove la si lascia (e lasciarla non la riapre)', app.E('pannelli.liv.px') !== null && pnl('liv').classList.contains('red') && pnl('liv').style.right === 'auto' && !am.querySelector('.am-vista').classList.contains('liv-pillola'));
+  t('ricordato', JSON.parse(app.w.localStorage.getItem('dpsh.pannelliMappa')).liv.red === true && JSON.parse(app.w.localStorage.getItem('dpsh.pannelliMappa')).liv.px !== null);
+  clic(app, $(app, 'btnLivelli3d'));
+  t('un clic sulla pillola la riapre pannello', !pnl('liv').classList.contains('red') && !pnl('liv').classList.contains('chiuso') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '250px');
 
   console.log('--- Il tasto destro ---');
   const id1 = app.E(`Object.values(${P}.surveys).find(s => s.header.provaNr == '1').id`);

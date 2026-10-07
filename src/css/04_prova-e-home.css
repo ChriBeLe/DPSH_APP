@@ -655,8 +655,16 @@
         .am-pnl.dk.red .am-pnl-corpo, .am-pnl.dk.red .mappa-livelli-albero { opacity: 0; pointer-events: none; }
         .am-pnl.red .am-pnl-testa { border-bottom-color: transparent; padding-right: 12px; }
         .am-pnl.red .am-pnl-ctrl { display: none; }
-        .am-pnl .mappa-livelli-titolo .chevron { transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .am-pnl.red .mappa-livelli-titolo .chevron { transform: rotate(180deg); }
+        .am-pnl.dk.red .am-pnl-testa { cursor: grab; }
+        .am-pnl.dk.red.trascina { transition: none; cursor: grabbing; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
+        /* chiuso al suo posto: resta largo e agganciato, si restringe in altezza fino alla testata */
+        .area-mappa .am-pnl.dk.chiuso { max-height: 41px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); border-bottom-width: 1px; }
+        .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { opacity: 0; pointer-events: none; }
+        .am-pnl.chiuso .am-pnl-testa { border-bottom-color: transparent; }
+        .am-pnl-tit { cursor: pointer; }
+        .am-pnl-tit .chevron { width: 13px; height: 13px; margin-left: auto; color: var(--text-muted); }
+        .am-pnl .chevron { transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .am-pnl.red .chevron, .am-pnl.chiuso .chevron { transform: rotate(180deg); }
         .am-pnl.fl.red { height: auto !important; bottom: auto; }
         /* la pillola dei Livelli sta in alto a sinistra: la bussola le fa posto, scendendo */
         #bussola3d, #bussola2d { transition: top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
