@@ -305,7 +305,7 @@
         #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
         #graficoVista3d:focus-visible { outline: 2px solid var(--accent); }
         /* La vista 3D: quattro schede di comandi sopra la figura, una aperta alla volta. */
-        .vista3d-schede { margin: var(--sp-2) 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .vista3d-schede { margin: var(--sp-2) 0; grid-template-columns: repeat(5, minmax(0, 1fr)); }
         .vista3d-schede button { padding: 0 var(--sp-1); line-height: 1.15; }
         .vista3d-pannello { margin-bottom: var(--sp-2); }
         .vista3d-preset { margin-bottom: var(--sp-2); }
@@ -498,3 +498,14 @@
             #bussola3d { top: 6px; left: 6px; transform: scale(0.78); transform-origin: top left; }
             .b-traccia { width: 96px; }
         }
+
+        /* VISTA 3D, scheda Sezioni: la griglia, l'elenco delle tracce, la sezione lungo la traccia. */
+        .vista3d-griglia label { display: flex; align-items: center; gap: var(--sp-1); font-weight: 600; }
+        .vista3d-griglia input[type="number"], #numFasciaSezione3d { width: 76px; }
+        .vista3d-sezioni { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; max-height: 220px; overflow-y: auto; }
+        .vista3d-sezione-riga { display: flex; align-items: center; gap: var(--sp-2); }
+        .vista3d-sezione-riga input[type="text"] { width: 120px; font-weight: 700; }
+        .vista3d-sezione-riga .t-didascalia { min-width: 60px; }
+        #vistaSezioneTracciata { overflow-x: auto; background: #fff; border-radius: var(--radius-md); }
+        #vistaSezioneTracciata:empty { display: none; }
+        #vistaSezioneTracciata svg { display: block; max-width: 100%; height: auto; }

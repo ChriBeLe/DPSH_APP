@@ -134,7 +134,7 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
 
   // I COMANDI DELLA VISTA
-  t('quattro schede: Vista, Livelli, Modello e tagli, Immagine', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Livelli,Modello e tagli,Immagine');
+  t('cinque schede: Vista, Livelli, Modello e tagli, Immagine, Sezioni', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Livelli,Modello e tagli,Immagine,Sezioni');
   clic(app, app.d.querySelector('[data-scheda3d="immagine"]'));
   t('una scheda alla volta', !app.d.querySelector('[data-pannello3d="immagine"]').hidden && app.d.querySelector('[data-pannello3d="vista"]').hidden);
   clic(app, app.d.querySelector('[data-scheda3d="vista"]'));

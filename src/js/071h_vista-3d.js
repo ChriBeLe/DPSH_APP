@@ -93,6 +93,7 @@
                 return {
                     nodi, nodiLeggeri: griglia(28), zSuolo, cx, cy, crs: dtm.crs,
                     geo: (x, y) => geo ? { lat: y / ky + cy, lng: x / kx + cx } : geoDaUtm(x / kx + cx, y / ky + cy, dtm.crs.zona),
+                    daGeo: (lat, lng) => { const p = puntoNelCrs(dtm.crs, lat, lng); return locale(p.x, p.y); },
                     zMin: Math.min(...zs), zMax: Math.max(...zs), prove: provePos, ...latiDelleProve(provePos),
                     lato: isFinite(raggio) ? 2 * raggio : Math.max(dtm.nx * dtm.dx * kx, dtm.ny * dtm.dy * ky)
                 };
@@ -124,6 +125,7 @@
                 return {
                     nodi: griglia(24), nodiLeggeri: griglia(12), zSuolo: () => 0, cx, cy, crs, senzaDtm: true,
                     geo: (x, y) => geoDaUtm(x + cx, y + cy, crs.zona),
+                    daGeo: (lat, lng) => { const p = puntoNelCrs(crs, lat, lng); return [p.x - cx, p.y - cy]; },
                     zMin: 0, zMax: 0, prove: provePos, ...latiDelleProve(provePos), lato: 2 * raggio
                 };
             }
@@ -572,6 +574,7 @@
                         if (scrittaLibera(m[0] - w / 2, m[1], w)) testo(m[0], m[1], s, { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
                     });
                 }
+                tracceNellaScena3d(d, P, sopra, testo);
                 if (L.nomi) d.prove.forEach(p => {
                     if (!tieni(p.x, p.y)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
@@ -724,6 +727,8 @@
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
                 riempiSceltaSfondo3d();
+                vista3d.disegno = null;
+                renderElencoSezioni3d();
                 renderVista3d();
                 aggiornaStatoSfondo3d();
             }
@@ -798,6 +803,7 @@
             const puntoCanvas = e => { const c = box3d.querySelector('canvas'), r = c ? c.getBoundingClientRect() : { left: 0, top: 0 }; return [e.clientX - r.left, e.clientY - r.top]; };
             box3d.addEventListener('click', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
+                if (vista3d.disegno) { clicTracciaSezione3d(e); return; }
                 const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
                 if (id) apriFumettoProva(id, e.clientX, e.clientY);
                 else chiudiFumetti(false);
@@ -805,6 +811,7 @@
             // Col mouse sopra una colonna, la manina.
             box3d.addEventListener('pointermove', (e) => {
                 if (vista3d.trascina || !ultimaScena3d) return;
+                if (vista3d.disegno) { seguiTracciaSezione3d(e); return; }
                 const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e);
                 if (c) c.style.cursor = provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
             });

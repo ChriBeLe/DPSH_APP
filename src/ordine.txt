@@ -146,5 +146,7 @@ js/071f_terreno-dtm.js
 js/071g_sezione.js
 js/071h_vista-3d.js
 js/071i_export-word.js
+js/071j_sezioni-tracciate.js
+js/071k_geopackage.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

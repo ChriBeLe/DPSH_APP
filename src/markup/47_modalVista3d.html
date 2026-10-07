@@ -14,6 +14,7 @@
             <button type="button" role="tab" data-scheda3d="livelli" aria-selected="false">Livelli</button>
             <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
             <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
+            <button type="button" role="tab" data-scheda3d="sezioni" aria-selected="false">Sezioni</button>
         </div>
 
         <!-- VISTA: da dove si guarda. Le viste pronte, poi i cursori che le regolano a mano. -->
@@ -89,6 +90,31 @@
                 <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
             </div>
             <p class="t-didascalia" id="lblSfondo3d"></p>
+        </div>
+
+        <!-- SEZIONI: tracce disegnate sulla figura (due clic, dall'alto) o a griglia, con un nome
+             (A-A', 1-1'…); per ciascuna la sezione lungo la linea, il PDF con la vista dal satellite,
+             e il GeoPackage di tutte. Le riempie il 071j (il GeoPackage il 071k). -->
+        <div class="vista3d-pannello" data-pannello3d="sezioni" role="tabpanel" hidden>
+            <div class="vista3d-taglio-riga">
+                <button type="button" class="pillola" id="btnTracciaSezione3d" aria-pressed="false">Traccia una sezione</button>
+                <span class="t-didascalia">Due clic sulla figura (dall'alto): inizio e fine. Il nome si cambia nell'elenco.</span>
+            </div>
+            <div class="vista3d-taglio-riga vista3d-griglia">
+                <span class="vista3d-taglio-nome">Griglia</span>
+                <label>Direzione <input type="number" id="numGrigliaDir3d" class="form-control" min="0" max="359" step="5" value="0"> °</label>
+                <label>Passo <input type="number" id="numGrigliaPasso3d" class="form-control" min="1" step="5" value="25"> m</label>
+                <label>Linee <input type="number" id="numGrigliaN3d" class="form-control" min="1" max="26" value="3"></label>
+                <label><input type="checkbox" id="chkGrigliaIncrociata3d"> anche di traverso (1-1', 2-2'…)</label>
+                <button type="button" class="bt" id="btnCreaGriglia3d">Crea la griglia</button>
+            </div>
+            <div id="elencoSezioni3d" class="vista3d-sezioni"></div>
+            <div class="vista3d-taglio-riga">
+                <label>Prove entro <input type="number" id="numFasciaSezione3d" class="form-control" min="0" step="5" value="25"> m dalla traccia</label>
+                <button type="button" class="bt" id="btnPdfSezioni3d"><svg class="ico"><use href="#i-print"/></svg>PDF delle sezioni</button>
+                <button type="button" class="bt" id="btnGpkgSezioni3d"><svg class="ico"><use href="#i-download"/></svg>GeoPackage (.gpkg)</button>
+            </div>
+            <div id="vistaSezioneTracciata"></div>
         </div>
 
         <!-- la bussola (presa da HyperGram) sta sopra la figura, in alto a sinistra; la riempie il 071h -->
