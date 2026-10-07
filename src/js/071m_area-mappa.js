@@ -366,6 +366,7 @@
             // si possono solo ridurre alla testata, e la scelta si ricorda. Sul telefono galleggiano sopra la scena.
             // (Qui non c'è niente da disegnare a mano: la versatilità dei pannelli di HyperGram non serve.)
             const LARGHEZZA_PNL = { liv: 250, cmd: 340 };
+            const PILLOLA_PNL = { liv: 128, cmd: 142 }; // ridotti: una pillola
             const pannelli = (() => {
                 try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return { liv: { red: !!s.liv.red }, cmd: { red: !!s.cmd.red } }; } catch (_) { /* predefiniti */ }
                 return { liv: { red: false }, cmd: { red: false } };
@@ -383,7 +384,7 @@
                     el.classList.toggle('dr', !stretto && lato === 'r');
                     el.classList.toggle('fl', stretto);
                     el.classList.toggle('red', !!pannelli[k].red);
-                    el.style.width = stretto ? '' : LARGHEZZA_PNL[k] + 'px';
+                    el.style.width = stretto ? '' : (pannelli[k].red ? PILLOLA_PNL[k] : LARGHEZZA_PNL[k]) + 'px';
                     el.style.setProperty('--pt', '0px');
                     el.style.setProperty('--ph', '100%');
                     if (stretto) {
@@ -395,6 +396,7 @@
                 const vista = scenaMappa.querySelector('.am-vista');
                 vista.style.setProperty('--vl', (!telefonoMappa() && !pannelli.liv.red ? LARGHEZZA_PNL.liv : 0) + 'px');
                 vista.style.setProperty('--vr', (!telefonoMappa() && !pannelli.cmd.red ? LARGHEZZA_PNL.cmd : 0) + 'px');
+                vista.classList.toggle('liv-pillola', !telefonoMappa() && !!pannelli.liv.red);
                 // La vista ha cambiato misura: alla fine dello scorrimento si ridisegna.
                 clearTimeout(applicaPannelli.t);
                 applicaPannelli.t = setTimeout(() => { if (!areaMappaAperta()) return; if (areaMappa.modo === '3d') renderVista3d(); else if (mappaProgetto.mappa) mappaProgetto.mappa.invalidateSize(); }, 320);

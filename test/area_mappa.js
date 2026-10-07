@@ -84,7 +84,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t('Comandi ridotto: resta la testata, la vista prende il posto', pnl('cmd').classList.contains('red') && pnl('cmd').classList.contains('dr') && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '0px');
   clic(app, pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
   clic(app, $(app, 'btnLivelli3d'));
-  t('Livelli ridotto dal suo titolo', pnl('liv').classList.contains('red') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px');
+  t('Livelli ridotto dal suo titolo: una pillola (stretta, si chiude in altezza), e la bussola le fa posto', pnl('liv').classList.contains('red') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px'
+    && pnl('liv').style.width === '128px' && am.querySelector('.am-vista').classList.contains('liv-pillola'));
   t('ricordato', app.w.localStorage.getItem('dpsh.pannelliMappa') === '{"liv":{"red":true},"cmd":{"red":false}}');
   clic(app, $(app, 'btnLivelli3d'));
 

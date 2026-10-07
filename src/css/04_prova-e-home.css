@@ -628,10 +628,11 @@
         .area-mappa .mappa-progetto-scheda { z-index: 650; }
         /* i pannelli */
         .area-mappa .am-pnl { position: absolute; z-index: 700; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-main);
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, top 0.3s ease, height 0.3s ease; }
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, top 0.32s ease, left 0.32s ease, right 0.32s ease, height 0.3s ease,
+                width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), max-height 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.32s ease, box-shadow 0.32s ease; }
         .area-mappa .vista3d-livelli.am-pnl { width: 250px; max-height: none; display: flex; border-radius: 0; box-shadow: none; }
         .area-mappa .am-comandi { width: 340px; }
-        .am-pnl.dk { top: var(--pt, 0px); height: var(--ph, 100%); border-radius: 0; box-shadow: none; }
+        .area-mappa .am-pnl.dk { top: var(--pt, 0px); height: var(--ph, 100%); max-height: 100%; border-radius: 0; box-shadow: none; }
         .am-pnl.dk.dl { left: 0; right: auto; border-width: 0 1px 0 0; }
         .am-pnl.dk.dr { right: 0; left: auto; border-width: 0 0 0 1px; }
         .am-pnl.fl { right: auto; bottom: auto; border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); max-height: calc(100% - 20px); }
@@ -645,9 +646,22 @@
         .am-pnl-bt .ico { width: 14px; height: 14px; margin: 0; }
         .am-pnl-corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 12px; }
         .area-mappa .vista3d-livelli .mappa-livelli-albero { flex: 1; }
-        /* ridotto: resta la testata */
-        .am-pnl.red { height: auto !important; bottom: auto; }
-        .am-pnl.red .am-pnl-corpo, .am-pnl.red .mappa-livelli-albero { display: none; }
+        /* ridotto: una pillola (come in HyperGram). Agganciato si chiude in altezza, scorrendo, fino alla
+           sola testata, e si stacca dal bordo; il contenuto sfuma. Libero (telefono) resta la testata. */
+        .area-mappa .am-pnl.dk.red { max-height: 40px; top: 10px; border-width: 1px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+        .area-mappa .am-pnl.dk.dl.red { left: 10px; }
+        .area-mappa .am-pnl.dk.dr.red { right: 10px; }
+        .am-pnl .am-pnl-corpo, .am-pnl .mappa-livelli-albero { transition: opacity 0.22s ease; }
+        .am-pnl.dk.red .am-pnl-corpo, .am-pnl.dk.red .mappa-livelli-albero { opacity: 0; pointer-events: none; }
+        .am-pnl.red .am-pnl-testa { border-bottom-color: transparent; padding-right: 12px; }
+        .am-pnl.red .am-pnl-ctrl { display: none; }
+        .am-pnl .mappa-livelli-titolo .chevron { transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .am-pnl.red .mappa-livelli-titolo .chevron { transform: rotate(180deg); }
+        .am-pnl.fl.red { height: auto !important; bottom: auto; }
+        /* la pillola dei Livelli sta in alto a sinistra: la bussola le fa posto, scendendo */
+        #bussola3d, #bussola2d { transition: top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .am-vista.liv-pillola #bussola3d, .am-vista.liv-pillola #bussola2d { top: 58px; }
+        .am-pnl.fl.red .am-pnl-corpo, .am-pnl.fl.red .mappa-livelli-albero { display: none; }
         .area-mappa .am-comandi .vista3d-schede { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
         .area-mappa .am-comandi .vista3d-cursori { grid-template-columns: 1fr; }
         .area-mappa .am-comandi .vista3d-cursore { flex-wrap: wrap; }
@@ -679,7 +693,6 @@
             .am-testa .bt { display: none; }
             .am-pop { width: calc(100% - 16px); }
             .area-mappa .am-pnl.red { width: auto !important; }
-            .area-mappa .am-pnl.red .am-pnl-ctrl { display: none; }
             #bussola2d { top: 6px; left: 6px; transform: scale(0.78); transform-origin: top left; }
             #bussola2d .b-traccia { width: 96px; }
         }
