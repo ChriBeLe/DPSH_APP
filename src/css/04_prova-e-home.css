@@ -521,6 +521,12 @@
         .mappa-progetto-corpo svg { flex: none; }
         .mappa-progetto-dati { font-size: var(--fs-didascalia); line-height: 1.55; min-width: 0; }
         .mappa-misura-etichetta { display: inline-block; white-space: nowrap; padding: 2px 7px; border-radius: 6px; background: rgba(17, 24, 39, 0.88); color: #facc15; font: 700 12px var(--font-mono), monospace; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+        .sezione-prove { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 0; font-size: 0.8rem; }
+        .sezione-prove label { display: inline-flex; align-items: center; gap: 4px; }
+        .mappa-disegno-nome { display: inline-block; white-space: nowrap; color: #fff; font: 700 12px var(--font-ui, sans-serif); text-shadow: 0 0 3px #000, 0 0 2px #000; }
+        #mappaProgettoEl .leaflet-interactive:focus { outline: none; }
+        .mappa-disegno-nome.centrato { transform: translateX(-50%); }
+        .menu-contesto .menu-colore { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(0, 0, 0, 0.4); }
         .mappa-progetto-foto { flex: none; width: 76px; height: 76px; margin-left: auto; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
         .mappa-progetto-dati .spostata { color: var(--warning); font-weight: 700; }
         .mappa-progetto-strati { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: var(--fs-didascalia); margin-top: 4px; }
@@ -571,6 +577,7 @@
         .vista3d-livelli .liv-simbolo { flex: none; width: 18px; display: flex; align-items: center; justify-content: center; }
         .vista3d-livelli .liv-simbolo .ico { width: 14px; height: 14px; margin: 0; }
         .vista3d-livelli .liv-sw { display: inline-block; }
+        .vista3d-livelli .liv-sw.punti { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #111; }
         .vista3d-livelli .liv-sw.linee { width: 16px; height: 3px; border-radius: 2px; }
         .vista3d-livelli .liv-sw.aree { width: 13px; height: 11px; border-radius: 2px; border: 1.5px solid; }
         .vista3d-livelli .liv-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

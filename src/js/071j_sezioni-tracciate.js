@@ -107,6 +107,30 @@
                 renderElencoSezioni3d();
             }
 
+            /** IL TAGLIO VERTICALE DEL CORPO SOLIDO COME TRACCIA: la retta del taglio, da un lato all'altro
+             * del perimetro delle prove (Nord–Sud: A a sud; Est–Ovest: A a ovest). */
+            function tracciaDalTaglio3d() {
+                const d = datiVista3dCorrenti, so = d && modelloSolido(d), tg = vista3d.taglio;
+                if (!so || !tg.dir || tg.c === undefined) return null;
+                const ax = tg.ax, altro = 1 - ax, inv = so.involucro, incroci = [];
+                inv.forEach((p, i) => {
+                    const q = inv[(i + 1) % inv.length], u = p[ax] - tg.c, v = q[ax] - tg.c;
+                    if ((u <= 0 && v > 0) || (u > 0 && v <= 0)) incroci.push(p[altro] + (q[altro] - p[altro]) * u / (u - v));
+                });
+                if (incroci.length < 2) return null;
+                const punto = v => ax === 0 ? [tg.c, v] : [v, tg.c];
+                const proj = state.projects[state.currentProjectId];
+                const t = { id: 'sez_' + Date.now().toString(36), nome: prossimoNomeTraccia(false), a: d.geo(...punto(Math.min(...incroci))), b: d.geo(...punto(Math.max(...incroci))) };
+                proj.sezioniTracciate = tracceDelProgetto().concat(t);
+                saveState();
+                infoAreaMappa();
+                renderVista3d();
+                renderElencoSezioni3d();
+                mostraToast(`Sezione ${t.nome} salvata lungo il taglio: è nell'elenco delle sezioni.`);
+                return t;
+            }
+            document.getElementById('btnTaglioTraccia3d').addEventListener('click', tracciaDalTaglio3d);
+
             /** I DATI DELLA SEZIONE lungo una traccia: campioni del terreno e del modello solido, e le
              * prove entro «fascia» metri dalla linea, con la loro distanza lungo e di lato. */
             function datiSezioneTracciata(d, t, fascia) {
@@ -126,10 +150,12 @@
                     const zT = d.zSuolo(x, y);
                     campioni.push({ s, z: col ? col.z : (Number.isFinite(zT) ? zT : null), col });
                 }
-                const prove = d.prove.map(p => ({ p, s: (p.x - a[0]) * ux + (p.y - a[1]) * uy, lato: Math.abs(-(p.x - a[0]) * uy + (p.y - a[1]) * ux) }))
+                const vicine = d.prove.map(p => ({ p, s: (p.x - a[0]) * ux + (p.y - a[1]) * uy, lato: Math.abs(-(p.x - a[0]) * uy + (p.y - a[1]) * ux) }))
                     .filter(q => q.lato <= fascia && q.s >= -fascia && q.s <= L + fascia)
                     .sort((m, n) => m.s - n.s);
-                return { t, L, campioni, prove, so, azimut: ((Math.atan2(ux, uy) * 180 / Math.PI) + 360) % 360, senzaDtm: !!d.senzaDtm };
+                // Quelle che si disegnano: le vicine, tolte quelle che si sono escluse a mano.
+                const prove = vicine.filter(q => !(t.escluse || []).includes(q.p.s.id));
+                return { t, L, campioni, vicine, prove, so, azimut: ((Math.atan2(ux, uy) * 180 / Math.PI) + 360) % 360, senzaDtm: !!d.senzaDtm };
             }
 
             /** LA SEZIONE IN SVG: strati del modello (dove la traccia attraversa le prove), profilo del
@@ -221,8 +247,18 @@
                 const t = tracceDelProgetto().find(x => x.id === sezioniTracciateStato.vista);
                 if (!box) return;
                 if (!t || !datiVista3dCorrenti) { box.innerHTML = ''; return; }
-                box.innerHTML = svgSezioneTracciata(datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), Math.max(480, box.clientWidth || 900)).svg;
+                const ds = datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), esc = escapeHtmlDidascalia;
+                // Quali prove vicine disegnare: spuntate tutte di partenza, la scelta resta nella traccia.
+                box.innerHTML = (ds.vicine.length ? `<div class="sezione-prove"><span class="t-didascalia">Nella sezione:</span>${ds.vicine.map(q => `<label><input type="checkbox" data-prova-sezione="${q.p.s.id}"${(t.escluse || []).includes(q.p.s.id) ? '' : ' checked'}>${esc(nomeDpsh(q.p.s))} <span class="t-didascalia">a ${numeroConVirgola(q.lato, 0)} m</span></label>`).join('')}</div>` : '')
+                    + svgSezioneTracciata(ds, Math.max(480, box.clientWidth || 900)).svg;
             }
+            document.getElementById('vistaSezioneTracciata').addEventListener('change', (e) => {
+                const id = e.target.dataset.provaSezione, t = tracceDelProgetto().find(x => x.id === sezioniTracciateStato.vista);
+                if (!id || !t) return;
+                t.escluse = (t.escluse || []).filter(x => x !== id).concat(e.target.checked ? [] : [id]);
+                saveState();
+                renderVistaSezioneTracciata();
+            });
             // «Traccia una sezione» è lo strumento Profilo della barra (nel 3D si traccia dall'alto).
             document.getElementById('btnTracciaSezione3d').addEventListener('click', () => scegliStrumentoMappa(areaMappa.strumento === 'profilo' ? 'sel' : 'profilo'));
             document.getElementById('btnCreaGriglia3d').addEventListener('click', () => {
@@ -266,7 +302,8 @@
             // satellite con la traccia (A e A', le prove, nord e scala) e i dati della traccia. ----
 
             /** La vista dal satellite di una traccia: la finestra delle mappe dell'app (Esri), con
-             * sopra la linea, i nomi degli estremi e le prove (quelle nella sezione col nome). */
+             * sopra la linea, i nomi degli estremi e tutte le prove col loro numero, piccolo (quelle
+             * nella sezione in giallo). */
             function mappaSatelliteTraccia(proj, ds, larghezzaMm, altezzaMm) {
                 const t = ds.t, Wpx = larghezzaMm * 4, Hpx = altezzaMm * 4;
                 const centro = { lat: (t.a.lat + t.b.lat) / 2, lng: (t.a.lng + t.b.lng) / 2 };
@@ -286,8 +323,8 @@
                 proveFisiche(proveConCoordinate(proj)).forEach(s => {
                     const p = q({ lat: parseFloat(s.header.lat), lng: parseFloat(s.header.lng) }), dentro = nellaSezione.has(s.id);
                     if (p.x < 0 || p.y < 0 || p.x > Wpx || p.y > Hpx) return;
-                    sopra += `<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${dentro ? 7 : 5}" fill="${dentro ? '#facc15' : '#ffffff'}" stroke="#000" stroke-width="2"/>`;
-                    if (dentro) sopra += testoOmbra(p.x, p.y - 12, nomeDpsh(s), 20, '#ffffff');
+                    sopra += `<circle cx="${n(p.x)}" cy="${n(p.y)}" r="${dentro ? 6 : 4.5}" fill="${dentro ? '#facc15' : '#ffffff'}" stroke="#000" stroke-width="1.6"/>`;
+                    sopra += `<text x="${n(p.x + (dentro ? 7 : 6))}" y="${n(p.y - (dentro ? 7 : 6))}" font-size="13" font-weight="700" fill="${dentro ? '#facc15' : '#ffffff'}" stroke="#000" stroke-width="2.5" paint-order="stroke">${String(s.header.provaNr || '?').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
                 });
                 // I nomi degli estremi appena fuori dalla linea, dalla parte della linea.
                 const L = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1, ux = (pb.x - pa.x) / L, uy = (pb.y - pa.y) / L;
@@ -300,24 +337,10 @@
                 const ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia);
                 const sez = svgSezioneTracciata(ds, 1100);
                 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-                const coord = p => `${p.lat.toFixed(6)}°, ${p.lng.toFixed(6)}°`;
-                const [e1, e2] = estremiTraccia(t.nome);
-                const righe = ds.prove.map(q => `<tr><td>${esc(nomeDpsh(q.p.s))}</td><td>${numeroConVirgola(Math.max(0, Math.min(ds.L, q.s)), 1)} m</td><td>${numeroConVirgola(q.lato, 1)} m</td></tr>`).join('');
                 return `<section class="pagina">
                     <div><h1>Sezione ${esc(t.nome)}</h1><div class="sotto">${esc(proj.name || '')}${proj.comune && proj.comune !== proj.name ? ' · ' + esc(proj.comune) : ''}</div></div>
                     <div class="sezione">${sez.svg}</div>
-                    <div class="basso">
-                        ${mappaSatelliteTraccia(proj, ds, 120, 64)}
-                        <div class="dati">
-                            <table><tbody>
-                                <tr><th>Traccia</th><td colspan="2">${esc(t.nome)} · lunga ${numeroConVirgola(ds.L, 1)} m · direzione ${numeroConVirgola(ds.azimut, 0)}°</td></tr>
-                                <tr><th>${esc(e1)}</th><td colspan="2">${coord(t.a)}</td></tr>
-                                <tr><th>${esc(e2)}</th><td colspan="2">${coord(t.b)}</td></tr>
-                                <tr><th>Prova</th><th>lungo la traccia</th><th>dalla traccia</th></tr>
-                                ${righe || `<tr><td colspan="3">Nessuna prova entro ${numeroConVirgola(sezioniTracciateStato.fascia, 0)} m.</td></tr>`}
-                            </tbody></table>
-                        </div>
-                    </div>
+                    <div class="basso">${mappaSatelliteTraccia(proj, ds, 160, 66)}</div>
                 </section>`;
             }
 
@@ -337,9 +360,8 @@
                     h1 { font-size: 17pt; margin: 0; } .sotto { font-size: 9pt; color: #475569; }
                     .sezione { flex: 1; min-height: 0; display: flex; justify-content: center; }
                     .sezione svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }
-                    .basso { display: flex; gap: 6mm; align-items: flex-start; }
+                    .basso { display: flex; justify-content: center; }
                     .basso [data-mappa-inquadramento] { margin: 0 !important; flex: none; }
-                    table { border-collapse: collapse; font-size: 8.5pt; } th, td { border: 1px solid #cbd5e1; padding: 1.2mm 2mm; text-align: left; } th { background: #f1f5f9; }
                 </style></head><body>${tracce.map(t => paginaPdfSezione(proj, d, t)).join('')}</body></html>`;
                 const cornice = document.createElement('iframe');
                 cornice.style.cssText = 'position:fixed; left:-10000px; top:0; width:297mm; height:210mm; border:0; visibility:hidden;';

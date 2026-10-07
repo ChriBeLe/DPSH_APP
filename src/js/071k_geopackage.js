@@ -86,26 +86,29 @@
             }
 
             /** La geometria nel formato GeoPackage: intestazione «GP» con SRS e riquadro, poi WKB. */
-            function geometriaGpkg(punti) {
-                const lin = punti.length > 1, n = lin ? 4 + punti.length * 16 : 16;
+            function geometriaGpkg(punti, poligono) {
+                if (poligono) punti = punti.concat([punti[0]]); // l'anello si chiude sul primo vertice
+                const lin = punti.length > 1, n = (poligono ? 4 : 0) + (lin ? 4 + punti.length * 16 : 16);
                 const dv = new DataView(new ArrayBuffer(8 + 32 + 5 + n));
                 const xs = punti.map(p => p[0]), ys = punti.map(p => p[1]);
                 dv.setUint8(0, 0x47); dv.setUint8(1, 0x50); dv.setUint8(2, 0); dv.setUint8(3, 0x03); // little endian, riquadro xy
                 dv.setInt32(4, 4326, true);
                 [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)].forEach((v, i) => dv.setFloat64(8 + i * 8, v, true));
                 let o = 40;
-                dv.setUint8(o, 1); dv.setUint32(o + 1, lin ? 2 : 1, true); o += 5;
+                dv.setUint8(o, 1); dv.setUint32(o + 1, poligono ? 3 : lin ? 2 : 1, true); o += 5;
+                if (poligono) { dv.setUint32(o, 1, true); o += 4; } // un anello
                 if (lin) { dv.setUint32(o, punti.length, true); o += 4; }
                 punti.forEach(p => { dv.setFloat64(o, p[0], true); dv.setFloat64(o + 8, p[1], true); o += 16; });
                 return new Uint8Array(dv.buffer);
             }
 
-            /** Il GeoPackage del progetto: le tracce delle sezioni e le prove col GPS. */
+            /** Il GeoPackage del progetto: le tracce delle sezioni, le prove col GPS e i disegni (punti e poligoni). */
             function geopackageSezioni(proj, d) {
                 const tracce = (proj.sezioniTracciate || []);
+                const disegni = proj.disegni || [], dPunti = disegni.filter(x => x.tipo === 'punto'), dPoligoni = disegni.filter(x => x.tipo === 'poligono');
                 const prove = proveFisiche(proveConCoordinate(proj));
                 const ora = new Date().toISOString().replace(/\.(\d{3})\d*Z$/, '.$1Z');
-                const tutti = tracce.flatMap(t => [[t.a.lng, t.a.lat], [t.b.lng, t.b.lat]]).concat(prove.map(s => [parseFloat(s.header.lng), parseFloat(s.header.lat)]));
+                const tutti = tracce.flatMap(t => [[t.a.lng, t.a.lat], [t.b.lng, t.b.lat]]).concat(prove.map(s => [parseFloat(s.header.lng), parseFloat(s.header.lat)]), disegni.flatMap(x => x.punti.map(p => [p.lng, p.lat])));
                 const xs = tutti.map(p => p[0]), ys = tutti.map(p => p[1]);
                 const riquadro = tutti.length ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map(realeSqlite) : [null, null, null, null];
                 const progetto = proj.name || proj.comune || '';
@@ -119,12 +122,16 @@
                     { nome: 'gpkg_contents', sql: "CREATE TABLE gpkg_contents (table_name TEXT NOT NULL, data_type TEXT NOT NULL, identifier TEXT, description TEXT DEFAULT '', last_change DATETIME NOT NULL, min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE, srs_id INTEGER)",
                         righe: [
                             { rowid: 1, valori: ['sezioni', 'features', 'sezioni', 'Tracce delle sezioni — ' + progetto, ora, ...riquadro, 4326] },
-                            { rowid: 2, valori: ['prove', 'features', 'prove', 'Prove DPSH — ' + progetto, ora, ...riquadro, 4326] }
+                            { rowid: 2, valori: ['prove', 'features', 'prove', 'Prove DPSH — ' + progetto, ora, ...riquadro, 4326] },
+                            { rowid: 3, valori: ['disegni_punti', 'features', 'disegni_punti', 'Punti disegnati — ' + progetto, ora, ...riquadro, 4326] },
+                            { rowid: 4, valori: ['disegni_poligoni', 'features', 'disegni_poligoni', 'Poligoni disegnati — ' + progetto, ora, ...riquadro, 4326] }
                         ] },
                     { nome: 'gpkg_geometry_columns', sql: 'CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL, column_name TEXT NOT NULL, geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL, z TINYINT NOT NULL, m TINYINT NOT NULL)',
                         righe: [
                             { rowid: 1, valori: ['sezioni', 'geom', 'LINESTRING', 4326, 0, 0] },
-                            { rowid: 2, valori: ['prove', 'geom', 'POINT', 4326, 0, 0] }
+                            { rowid: 2, valori: ['prove', 'geom', 'POINT', 4326, 0, 0] },
+                            { rowid: 3, valori: ['disegni_punti', 'geom', 'POINT', 4326, 0, 0] },
+                            { rowid: 4, valori: ['disegni_poligoni', 'geom', 'POLYGON', 4326, 0, 0] }
                         ] },
                     { nome: 'sezioni', sql: 'CREATE TABLE sezioni (fid INTEGER PRIMARY KEY, geom LINESTRING, nome TEXT, inizio TEXT, fine TEXT, lunghezza_m REAL, direzione_gradi REAL, progetto TEXT)',
                         righe: tracce.map((t, i) => {
@@ -136,14 +143,18 @@
                         righe: prove.map((s, i) => {
                             const q = quotaDellaProva(proj, s.header);
                             return { rowid: i + 1, valori: [null, geometriaGpkg([[parseFloat(s.header.lng), parseFloat(s.header.lat)]]), nomeDpsh(s), q === null ? null : realeSqlite(+q.toFixed(2)), progetto] };
-                        }) }
+                        }) },
+                    { nome: 'disegni_punti', sql: 'CREATE TABLE disegni_punti (fid INTEGER PRIMARY KEY, geom POINT, nome TEXT, colore TEXT, progetto TEXT)',
+                        righe: dPunti.map((x, i) => ({ rowid: i + 1, valori: [null, geometriaGpkg([[x.punti[0].lng, x.punti[0].lat]]), x.nome, x.colore, progetto] })) },
+                    { nome: 'disegni_poligoni', sql: 'CREATE TABLE disegni_poligoni (fid INTEGER PRIMARY KEY, geom POLYGON, nome TEXT, colore TEXT, area_m2 REAL, progetto TEXT)',
+                        righe: dPoligoni.map((x, i) => ({ rowid: i + 1, valori: [null, geometriaGpkg(x.punti.map(p => [p.lng, p.lat]), true), x.nome, x.colore, realeSqlite(+areaMetriQuadri(x.punti).toFixed(1)), progetto] })) }
                 ]);
             }
 
             document.getElementById('btnGpkgSezioni3d').addEventListener('click', () => {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return;
-                if (!(proj.sezioniTracciate || []).length) { appAlert('Prima traccia almeno una sezione.'); return; }
+                if (!(proj.sezioniTracciate || []).length && !(proj.disegni || []).length) { appAlert('Prima traccia almeno una sezione (o disegna un punto o un poligono).'); return; }
                 try {
                     const nome = (proj.name || 'progetto').replace(/[^\w\-]+/g, '_');
                     scaricaBlobFile(new Blob([geopackageSezioni(proj, datiVista3dCorrenti)], { type: 'application/geopackage+sqlite3' }), `Sezioni_${nome}.gpkg`);

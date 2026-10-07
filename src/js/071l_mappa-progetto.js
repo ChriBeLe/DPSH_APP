@@ -72,6 +72,7 @@
                         L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
+                disegniNellaMappa2d(m.livelli);
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
                 proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
                     const h = s.header, nr = !vista3d.etichette.prove ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
@@ -197,6 +198,28 @@
                 mappaProgetto.mappa.setView([parseFloat(s.header.lat), parseFloat(s.header.lng)], 19);
                 scegliProvaMappa(survId);
             }
+            /** «Modifica dati» dalla mappa: la scheda dei dati della prova, e finita la modifica (chiuse
+             * tutte le finestre che se ne aprono: GPS, foto, falda, conferme) si torna alla mappa, sulla
+             * stessa prova, non alla schermata del progetto. */
+            let attesaRitornoMappa = null;
+            function modificaDatiDallaMappa(survId) {
+                mappaProgetto.tornaA = { modo: areaMappa.modo, scelta: survId, vista: state.uiState.currentView };
+                chiudiMappaProgetto();
+                openSurveySettingsModal(survId, 'dati');
+            }
+            new MutationObserver(() => {
+                if (!mappaProgetto.tornaA || document.querySelector('.modal.open')) return;
+                clearTimeout(attesaRitornoMappa);
+                attesaRitornoMappa = setTimeout(() => {
+                    const r = mappaProgetto.tornaA;
+                    if (!r || document.querySelector('.modal.open')) return;
+                    mappaProgetto.tornaA = null;
+                    // Se nel frattempo si è andati altrove (la prova aperta), si resta lì.
+                    if (state.uiState.currentView !== r.vista) return;
+                    if (state.projects[state.currentProjectId] && state.projects[state.currentProjectId].surveys[r.scelta]) mappaProgetto.scelta = r.scelta;
+                    apriVista3d(r.modo);
+                }, 80);
+            }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
             function apriMappaProgetto() {
                 mappaProgetto.scelta = null;
                 mappaProgetto.spostando = null;
@@ -223,8 +246,8 @@
                     renderSchedaProvaMappa();
                     return;
                 }
+                if (azione === 'dati') { modificaDatiDallaMappa(id); return; }
                 chiudiMappaProgetto();
-                if (azione === 'dati') { openSurveySettingsModal(id, 'dati'); return; }
                 if (id !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, id);
                 switchView('field');
             });

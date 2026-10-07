@@ -71,13 +71,23 @@ const $ = (app, id) => app.d.getElementById(id);
   t('«Vedi»: la sezione sotto l\'elenco, con P e P\', le prove, gli strati e la legenda', !!vista.querySelector('svg') && /P'/.test(vista.textContent) && /DPSH 1/.test(vista.textContent) && vista.querySelectorAll('polygon').length > 0 && /Esagerazione verticale ×\d+/.test(vista.textContent));
   $(app, 'numFasciaSezione3d').value = '0'; $(app, 'numFasciaSezione3d').dispatchEvent(new app.w.Event('input'));
   t('la fascia decide quali prove entrano (a 0 m, solo quelle sulla linea)', !/DPSH 2/.test(vista.textContent) && /DPSH 1/.test(vista.textContent));
+  $(app, 'numFasciaSezione3d').value = '25'; $(app, 'numFasciaSezione3d').dispatchEvent(new app.w.Event('input'));
+  const scelte = () => [...vista.querySelectorAll('[data-prova-sezione]')];
+  t(`le prove vicine si scelgono una per una: ${scelte().map(c => c.parentNode.textContent.trim()).join(' · ')}`, scelte().length >= 2 && scelte().every(c => c.checked));
+  const due = scelte().find(c => /DPSH 2/.test(c.parentNode.textContent));
+  due.checked = false; due.dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('tolta la DPSH 2: non è più nel disegno (e la scelta resta nella traccia)', !/DPSH 2/.test(vista.querySelector('svg').textContent) && /DPSH 1/.test(vista.querySelector('svg').textContent)
+    && app.E(`${P}.sezioniTracciate.find(x => x.id === 'sez_prova').escluse.length`) === 1 && scelte().some(c => !c.checked));
 
   console.log('--- PDF ---');
   const pagina = app.E(`paginaPdfSezione(${P}, datiVista3dCorrenti, ${P}.sezioniTracciate.find(x => x.id === 'sez_prova'))`);
-  t('una pagina per sezione: titolo, la sezione, la vista dal satellite con la traccia, i dati', /<h1>Sezione P-P'<\/h1>/.test(pagina) && /class="sezione-tracciata"/.test(pagina) && /data-mappa-inquadramento/.test(pagina)
-    && /server\.arcgisonline\.com|arcgisonline/.test(pagina) && /<line [^>]*stroke="#ef4444"/.test(pagina) && /lungo la traccia/.test(pagina));
+  t('una pagina per sezione: titolo, la sezione, la vista dal satellite con la traccia (niente riquadro dei dati)', /<h1>Sezione P-P'<\/h1>/.test(pagina) && /class="sezione-tracciata"/.test(pagina) && /data-mappa-inquadramento/.test(pagina)
+    && /server\.arcgisonline\.com|arcgisonline/.test(pagina) && /<line [^>]*stroke="#ef4444"/.test(pagina) && !/<table/.test(pagina));
+  const numeri = [...pagina.matchAll(/font-size="13" font-weight="700"[^>]*>([^<]+)<\/text>/g)].map(m => m[1]);
+  t(`sulla vista dal satellite tutte le prove col solo numero: ${numeri.join(', ')}`, numeri.length >= 3 && numeri.every(n => /^\w+$/.test(n)) && !/DPSH \d/.test(pagina.split('data-mappa-inquadramento')[1]));
 
   console.log('--- GeoPackage ---');
+  app.E(`${P}.disegni = [{ id: 'd1', tipo: 'poligono', nome: 'Recinto', colore: '#22c55e', punti: [{ lat: 40.197, lng: 17.992 }, { lat: 40.197, lng: 17.993 }, { lat: 40.198, lng: 17.993 }] }, { id: 'd2', tipo: 'punto', nome: 'Pozzo', colore: '#3b82f6', punti: [{ lat: 40.1975, lng: 17.9925 }] }]`);
   const n0 = app.scaricati.length;
   clic(app, $(app, 'btnGpkgSezioni3d'));
   await attesa(30);
@@ -105,6 +115,11 @@ x0, y0, x1, y1 = struct.unpack('<4d', g[o+9:o+41])
 r['sezione'] = [nome, inizio, fine, round(lung, 2), tipo, g[:2].decode(), flags, srs, tipo_wkb, npt, x0, y0, x1, y1]
 r['n_sezioni'] = c.execute('select count(*) from sezioni').fetchone()[0]
 r['prove'] = [x[0] for x in c.execute('select nome from prove order by fid')]
+nome, area, g = c.execute('select nome, area_m2, geom from disegni_poligoni').fetchone()
+o = 40; tipo_wkb, anelli, npt = struct.unpack('<III', g[o+1:o+13])
+pts = [struct.unpack('<2d', g[o+13+16*i:o+29+16*i]) for i in range(npt)]
+r['poligono'] = [nome, round(area), tipo_wkb, anelli, npt, pts[0] == pts[-1]]
+r['punti'] = [x[0] for x in c.execute('select nome from disegni_punti')]
 print(json.dumps(r))
 `;
   let r = null;
@@ -113,7 +128,8 @@ print(json.dumps(r))
   t('SQLite lo apre e lo trova integro', r && r.integrity === 'ok');
   t('è un GeoPackage 1.3 («GPKG», versione 10300) con le sue tabelle', r && r.app_id === 0x47504B47 && r.user_version === 10300
     && ['gpkg_contents', 'gpkg_geometry_columns', 'gpkg_spatial_ref_sys', 'prove', 'sezioni'].every(n => r.tabelle.includes(n)) && r.srs.join() === '-1,0,4326');
-  t('due layer: sezioni (linee) e prove (punti), in WGS84', r && JSON.stringify(r.geomcol) === JSON.stringify([['sezioni', 'geom', 'LINESTRING'], ['prove', 'geom', 'POINT']]) && r.contents.every(x => x[1] === 'features' && x[2] === 4326));
+  t(`i disegni: il poligono (${r && r.poligono.join(' · ')}) e i punti (${r && r.punti.join(', ')})`, r && r.poligono[0] === 'Recinto' && r.poligono[2] === 3 && r.poligono[3] === 1 && r.poligono[4] === 4 && r.poligono[5] === true && r.poligono[1] > 3000 && r.punti.join() === 'Pozzo');
+  t('quattro layer: sezioni (linee), prove (punti), disegni (punti e poligoni), in WGS84', r && JSON.stringify(r.geomcol) === JSON.stringify([['sezioni', 'geom', 'LINESTRING'], ['prove', 'geom', 'POINT'], ['disegni_punti', 'geom', 'POINT'], ['disegni_poligoni', 'geom', 'POLYGON']]) && r.contents.every(x => x[1] === 'features' && x[2] === 4326));
   const p1 = app.E(`(() => { const h = Object.values(${P}.surveys).find(s => s.header.provaNr == '1').header; return [+h.lng, +h.lat]; })()`);
   t(`la traccia P-P': nome, estremi, lunghezza, geometria GP + WKB dalla prova 1 (${r && r.sezione.slice(0, 4).join(' · ')})`, r && r.sezione[0] === "P-P'" && r.sezione[1] === 'P' && r.sezione[2] === "P'" && Math.abs(r.sezione[3] - ds.L) < 0.01 && r.sezione[4] === 'real'
     && r.sezione[5] === 'GP' && r.sezione[6] === 3 && r.sezione[7] === 4326 && r.sezione[8] === 2 && r.sezione[9] === 2 && Math.abs(r.sezione[10] - p1[0]) < 1e-9 && Math.abs(r.sezione[11] - p1[1]) < 1e-9);

@@ -25,6 +25,8 @@
                 <button type="button" class="mappa-rt" data-rt="profilo" title="Profilo: due clic, inizio (A) e fine (A'): diventa una sezione tracciata"><svg class="ico"><use href="#i-shape-line-h"/></svg><span>Profilo</span></button>
                 <button type="button" class="mappa-rt" data-rt="misura" title="Distanza: clic sui punti, la lunghezza segue il mouse; doppio clic o Invio per finire, Esc per togliere"><svg class="ico"><use href="#i-ruler"/></svg><span>Misura</span></button>
                 <button type="button" class="mappa-rt am-solo-mappa" data-rt="area" title="Area: clic sui vertici, area e perimetro seguono il mouse; doppio clic o Invio per chiudere"><svg class="ico"><use href="#i-poligono"/></svg><span>Area</span></button>
+                <button type="button" class="mappa-rt" data-rt="punto" title="Punto: un clic per ogni punto, va nei Livelli («Disegnati»)"><svg class="ico"><use href="#i-pin"/></svg><span>Punto</span></button>
+                <button type="button" class="mappa-rt" data-rt="poligono" title="Poligono: clic sui vertici, doppio clic o Invio per chiuderlo; va nei Livelli («Disegnati»)"><svg class="ico"><use href="#i-triangolo"/></svg><span>Poligono</span></button>
                 <span class="mappa-rail-spazio"></span>
                 <span class="mappa-rail-sep"></span>
                 <button type="button" class="mappa-rt" data-rt="tutti" title="Tutti: inquadra tutte le prove"><svg class="ico"><use href="#i-maximize"/></svg><span>Tutti</span></button>
@@ -82,6 +84,9 @@
                                 <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
                                 <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
                                 <strong id="lblFov3d"></strong></div>
+                            <label class="vista3d-cursore"><span>Ombreggiatura</span>
+                                <input type="range" id="rngOmbre3d" min="0" max="100" step="5" value="60" aria-label="Ombreggiatura del modello">
+                                <strong id="lblOmbre3d">60%</strong></label>
                         </div>
                         <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro o centrale (o Maiusc, o due dita) per spostarti, e poi giri attorno a lì; la rotella avvicina verso il punto sotto il cursore. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per la sua scheda; col tasto destro il suo menu. Tastiera: W A S D, Q Z, R F (vedi «Tasti»).</p>
                     </div>
@@ -93,6 +98,7 @@
                             <div class="vista3d-taglio-riga">
                                 <span class="vista3d-taglio-nome">Modello solido</span>
                                 <button type="button" class="pillola" data-livello="solido">Mostra il corpo chiuso</button>
+                                <button type="button" class="pillola" data-livello="mesh" title="Le linee dei triangoli del modello">Mostra la mesh</button>
                             </div>
                             <div class="vista3d-taglio-riga">
                                 <span class="vista3d-taglio-nome">Taglio laterale</span>
@@ -103,9 +109,12 @@
                                 </div>
                                 <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
                                 <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+                                <button type="button" class="bt-link" id="btnTaglioTraccia3d" title="Una sezione esattamente lungo il taglio, nell'elenco delle tracce (PDF e GeoPackage)">Salva come traccia</button>
                             </div>
                             <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
                                 <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
+                            <label class="vista3d-taglio-riga" title="Gli strati tra una prova e l'altra: spigolosi (interpolazione lineare) o addolciti (spline). Alle prove restano esatti; vale anche per sezioni, PDF e file."><span class="vista3d-taglio-nome">Linee addolcite</span>
+                                <input type="range" id="rngLiscio3d" min="0" max="100" step="5" value="0" aria-label="Linee addolcite degli strati"> <strong id="lblLiscio3d">no</strong></label>
                         </div>
                         <p class="t-didascalia" id="notaTagli3d" hidden>Il modello solido serve almeno tre prove col GPS, non in fila.</p>
                     </div>

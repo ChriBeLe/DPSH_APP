@@ -28,7 +28,8 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return;
                 const n = proveFisiche(proveConCoordinate(proj)).length, t = (proj.sezioniTracciate || []).length;
-                document.getElementById('lblAreaMappaInfo').textContent = `${n} ${n === 1 ? 'prova' : 'prove'} · ${t} ${t === 1 ? 'sezione' : 'sezioni'}`;
+                const nd = (proj.disegni || []).length;
+                document.getElementById('lblAreaMappaInfo').textContent = `${n} ${n === 1 ? 'prova' : 'prove'} · ${t} ${t === 1 ? 'sezione' : 'sezioni'}` + (nd ? ` · ${nd} ${nd === 1 ? 'disegno' : 'disegni'}` : '');
             }
             function coordinateAreaMappa(lat, lng, quota) {
                 document.getElementById('lblAreaMappaCoord').textContent = Number.isFinite(lat)
@@ -46,8 +47,11 @@
                 sposta: 'Sposta: tocca la prova da spostare, poi trascina il segnaposto nel punto nuovo.',
                 profilo: 'Profilo: due clic, inizio (A) e fine (A\'). Esc per lasciar perdere.',
                 misura: 'Distanza: clic sui punti; doppio clic o Invio per finire, Esc per togliere.',
-                area: 'Area: clic sui vertici; doppio clic o Invio per chiudere, Esc per togliere.'
+                area: 'Area: clic sui vertici; doppio clic o Invio per chiudere, Esc per togliere.',
+                punto: 'Punto: un clic per ogni punto (va nei Livelli, «Disegnati»). Esc per finire.',
+                poligono: 'Poligono: clic sui vertici; doppio clic o Invio per chiuderlo e salvarlo, Esc per lasciar perdere.'
             };
+            const DISEGNA_COME_MISURA = ['misura', 'area', 'poligono'];
             function scegliStrumentoMappa(nome) {
                 if (areaMappa.modo === '3d' && nome === 'area') nome = 'sel';
                 areaMappa.strumento = nome;
@@ -58,7 +62,7 @@
                     if (nome === 'profilo' && !vista3d.disegno) { vista3d.disegno = { a: null, cursore: null }; vista3d.prospettiva = false; vaiAVista3d({ el: Math.PI / 2 }); }
                     if (nome !== 'profilo' && vista3d.disegno) { vista3d.disegno = null; renderVista3d(); }
                 }
-                if (nome !== 'misura' && nome !== 'area') togliMisura();
+                if (!DISEGNA_COME_MISURA.includes(nome)) togliMisura();
                 if (nome !== 'profilo') togliProfilo2d();
                 if (nome === 'sposta' && mappaProgetto.scelta) {
                     if (areaMappa.modo !== 'mappa') { modoAreaMappa('mappa'); scegliStrumentoMappa('sposta'); return; }
@@ -66,7 +70,7 @@
                     disegnaProveMappa();
                     renderSchedaProvaMappa();
                 }
-                if (mappaProgetto.mappa) mappaProgetto.mappa.doubleClickZoom[nome === 'misura' || nome === 'area' ? 'disable' : 'enable']();
+                if (mappaProgetto.mappa) mappaProgetto.mappa.doubleClickZoom[DISEGNA_COME_MISURA.includes(nome) ? 'disable' : 'enable']();
                 document.getElementById('lblMappaProgetto').textContent = SUGGERIMENTI_STRUMENTO[nome] || '';
                 renderElencoSezioni3d();
             }
@@ -146,6 +150,7 @@
             function finisciMisura() {
                 const m = areaMappa.misura;
                 if (!m) return;
+                if (m.disegno) { salvaPoligonoDisegnato(m); return; }
                 m.finita = true;
                 if (areaMappa.modo === 'mappa') disegnaMisura2d(); else renderVista3d();
             }
@@ -166,8 +171,10 @@
             /** Un clic sulla mappa 2D con uno strumento: true se lo strumento l'ha usato. */
             function clicStrumentoMappa2d(e) {
                 const s = areaMappa.strumento, p = { lat: e.latlng.lat, lng: e.latlng.lng };
-                if (s === 'misura' || s === 'area') {
-                    if (!areaMappa.misura || areaMappa.misura.finita) { togliMisura(); areaMappa.misura = { area: s === 'area', punti: [] }; }
+                if (s === 'punto') { creaDisegno('punto', [p]); return true; }
+                if (DISEGNA_COME_MISURA.includes(s)) {
+                    // Il poligono si disegna come l'area, e finito si salva (salvaPoligonoDisegnato).
+                    if (!areaMappa.misura || areaMappa.misura.finita) { togliMisura(); areaMappa.misura = { area: s !== 'misura', disegno: s === 'poligono', punti: [] }; }
                     areaMappa.misura.punti.push(p);
                     disegnaMisura2d();
                     return true;
@@ -191,14 +198,19 @@
             function clicStrumentoMappa3d(e) {
                 const s = areaMappa.strumento;
                 if (s === 'orbita') return true;
-                if (s === 'misura') {
+                if (s === 'punto') {
+                    const q = puntoAlSuolo3d(...puntoCanvas(e));
+                    if (q) creaDisegno('punto', [datiVista3dCorrenti.geo(...q)]);
+                    return true;
+                }
+                if (s === 'misura' || s === 'poligono') {
                     const q = puntoAlSuolo3d(...puntoCanvas(e));
                     if (!q) return true;
-                    if (!areaMappa.misura || areaMappa.misura.finita) { togliMisura(); areaMappa.misura = { punti3d: [], punti: [] }; }
+                    if (!areaMappa.misura || areaMappa.misura.finita) { togliMisura(); areaMappa.misura = { punti3d: [], punti: [], area: s === 'poligono', disegno: s === 'poligono' }; }
                     const g = datiVista3dCorrenti.geo(...q);
                     areaMappa.misura.punti3d.push(q);
                     areaMappa.misura.punti.push(g);
-                    misuraAreaMappa(testoMisura(areaMappa.misura.punti, false));
+                    misuraAreaMappa(testoMisura(areaMappa.misura.punti, !!areaMappa.misura.area));
                     renderVista3d();
                     return true;
                 }
@@ -231,7 +243,7 @@
                 const g = d.geo(...q), z = d.zSuolo(...q);
                 coordinateAreaMappa(g.lat, g.lng, d.senzaDtm ? NaN : z);
                 const m = areaMappa.misura;
-                if (m && m.punti3d && !m.finita && m.punti3d.length) { m.cursore3d = q; misuraAreaMappa(testoMisura(m.punti.concat([g]), false)); ridisegna3d(); }
+                if (m && m.punti3d && !m.finita && m.punti3d.length) { m.cursore3d = q; misuraAreaMappa(testoMisura(m.punti.concat([g]), !!m.area)); ridisegna3d(); }
             });
             box3d.addEventListener('dblclick', (e) => {
                 if (areaMappa.misura) { finisciMisura(); return; }
@@ -243,7 +255,7 @@
             const vociProvaMappa = survId => [
                 ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
                 ['Apri la prova', 'i-folder-open', '', () => { chiudiMappaProgetto(); if (survId !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, survId); switchView('field'); }],
-                ['Modifica dati', 'i-edit', '', () => { chiudiMappaProgetto(); openSurveySettingsModal(survId, 'dati'); }],
+                ['Modifica dati', 'i-edit', '', () => modificaDatiDallaMappa(survId)],
                 ['Sposta', 'i-move-y', '', () => { scegliProvaMappa(survId); scegliStrumentoMappa('sposta'); }]
             ];
             function menuProvaMappa(e, survId) {

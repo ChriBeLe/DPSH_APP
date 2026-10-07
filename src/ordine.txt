@@ -150,5 +150,6 @@ js/071j_sezioni-tracciate.js
 js/071k_geopackage.js
 js/071l_mappa-progetto.js
 js/071m_area-mappa.js
+js/071n_disegni.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

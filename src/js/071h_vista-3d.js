@@ -15,16 +15,19 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, sezioni: true, immagine: true, solido: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, sezioni: true, immagine: true, solido: false, mesh: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
-                etichette: { prove: true, sezioni: true, giaciture: false, misure: true, falda: false },
-                proveNascoste: new Set(), stratiNascosti: new Set(), tracceNascoste: new Set(), giacitureNascoste: new Set(),
+                etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
+                proveNascoste: new Set(), stratiNascosti: new Set(), tracceNascoste: new Set(), giacitureNascoste: new Set(), stratiSolidoNascosti: new Set(), disegniNascosti: new Set(),
                 // L'opacità di ogni livello (chiave della riga → 0,2…1), dal menu del tasto destro.
                 opacita: {},
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
-                taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 } };
+                taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 },
+                // Ombreggiatura delle facce del modello (0 = colori piatti, 1 = luce piena) e linee addolcite
+                // degli strati del corpo solido (0 = interpolazione lineare tra le prove, 1 = spline).
+                ombre: 0.6, liscio: 0 };
 
             /** Triangolazione di Delaunay (Bowyer-Watson) dei punti {x, y}: terne di indici. */
             function triangolaDelaunay(punti) {
@@ -256,10 +259,63 @@
                 // Sul bordo, per gli arrotondamenti, il punto può cadere appena fuori: pesi mai negativi.
                 const l = migliore.l.map(v => Math.max(0, v)), somma = l.reduce((a, b) => a + b, 0) || 1;
                 const w = l.map(v => v / somma), idx = migliore.t;
-                const basi = so.strati.map((_, k) => idx.reduce((a, i, n) => a + w[n] * so.basi[i][k], 0));
+                let basi = so.strati.map((_, k) => idx.reduce((a, i, n) => a + w[n] * so.basi[i][k], 0));
+                // Linee addolcite: le basi vengono, per la parte scelta, dalla spline (esatta alle prove),
+                // tenuta tra i valori delle prove del triangolo; restano in ordine, tra il terreno e il fondo.
+                const sp = vista3d.liscio > 0 && splineSolido(d, so);
+                if (sp) {
+                    const s = vista3d.liscio, liscie = sp(x, y);
+                    let sopra = 0;
+                    // Mai oltre le prove del triangolo: la spline tra prove vicine e diverse ondeggerebbe.
+                    const tra = k => Math.min(Math.max(liscie[k], Math.min(...idx.map(i => so.basi[i][k]))), Math.max(...idx.map(i => so.basi[i][k])));
+                    basi = basi.map((b, k) => (k === basi.length - 1 ? b : (sopra = Math.min(so.fondo, Math.max(sopra, b + s * (tra(k) - b))))));
+                }
                 const zDtm = d.zSuolo(x, y);
                 const z = Number.isFinite(zDtm) ? zDtm : idx.reduce((a, i, n) => a + w[n] * d.prove[i].z, 0);
                 return { z, basi };
+            }
+
+            /** LA SPLINE DELLE BASI (lamina sottile, «thin plate»): per ogni strato una superficie che passa
+             * esattamente per le basi delle prove e tra una e l'altra curva dolcemente, senza gli spigoli
+             * dei triangoli. Un sistema (N + 3) × (N + 3) risolto una volta per modello; coordinate in
+             * unità del lato, per i conti. Prove nello stesso punto (o il sistema singolare): niente spline. */
+            function splineSolido(d, so) {
+                if (so._spline !== undefined) return so._spline;
+                const S = Math.max(1, d.lato || 1), pt = d.prove.map(p => [p.x / S, p.y / S]), N = pt.length, M = N + 3;
+                const phi = r => (r > 1e-12 ? r * r * Math.log(r) : 0);
+                const A = Array.from({ length: M }, () => new Array(M).fill(0));
+                pt.forEach((p, i) => {
+                    pt.forEach((q, j) => { A[i][j] = phi(Math.hypot(p[0] - q[0], p[1] - q[1])); });
+                    A[i][i] += 1e-9;
+                    [1, p[0], p[1]].forEach((v, c) => { A[i][N + c] = v; A[N + c][i] = v; });
+                });
+                const K = so.strati.length - 1; // l'ultima base è il fondo, uguale ovunque
+                const B = Array.from({ length: M }, (_, i) => Array.from({ length: K }, (_, k) => (i < N ? so.basi[i][k] : 0)));
+                // Gauss con pivot parziale, K termini noti insieme.
+                for (let c = 0; c < M; c++) {
+                    let r = c;
+                    for (let i = c + 1; i < M; i++) if (Math.abs(A[i][c]) > Math.abs(A[r][c])) r = i;
+                    if (Math.abs(A[r][c]) < 1e-12) return (so._spline = null);
+                    [A[c], A[r]] = [A[r], A[c]]; [B[c], B[r]] = [B[r], B[c]];
+                    for (let i = c + 1; i < M; i++) {
+                        const f = A[i][c] / A[c][c];
+                        if (!f) continue;
+                        for (let j = c; j < M; j++) A[i][j] -= f * A[c][j];
+                        for (let k = 0; k < K; k++) B[i][k] -= f * B[c][k];
+                    }
+                }
+                const X = Array.from({ length: M }, () => new Array(K).fill(0));
+                for (let i = M - 1; i >= 0; i--) for (let k = 0; k < K; k++) {
+                    let v = B[i][k];
+                    for (let j = i + 1; j < M; j++) v -= A[i][j] * X[j][k];
+                    X[i][k] = v / A[i][i];
+                }
+                return (so._spline = (x, y) => {
+                    const u = x / S, v = y / S, out = new Array(K).fill(0);
+                    pt.forEach((p, i) => { const f = phi(Math.hypot(u - p[0], v - p[1])); if (f) for (let k = 0; k < K; k++) out[k] += X[i][k] * f; });
+                    for (let k = 0; k < K; k++) out[k] += X[N][k] + X[N + 1][k] * u + X[N + 2][k] * v;
+                    return out;
+                });
             }
 
             /** La parte di un poligono dove f(punto) ≥ 0, con f lineare (Sutherland–Hodgman, un lato). */
@@ -386,7 +442,31 @@
                     return [W / 2 + X * k * s, H / 2 + (-Z * ce - Yd * se) * k * s, prof];
                 };
                 const pezzi = [], sopra = [], colonne = [];
-                const poli = (pp, extra) => (extra.strato && vista3d.stratiNascosti.has(extra.strato)) || pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
+                const poli = (pp, extra) => (extra.strato && (vista3d.stratiNascosti.has(extra.strato) || (extra.cls === 'vista3d-solido' && vista3d.stratiSolidoNascosti.has(extra.strato)))) || pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
+                // L'OMBREGGIATURA: la faccia (punti in metri veri) prende luce secondo come è girata. La
+                // normale (Newell, regge anche i quadrilateri schiacciati) si volta verso chi guarda: si
+                // vedono solo quelle facce; la luce viene dall'alto, da nord-ovest, come per il terreno.
+                const luceF = [-0.5, 0.5, 0.7].map(v => v / Math.hypot(-0.5, 0.5, 0.7)), versoOcchio = [-sa * ce, -ca * ce, se];
+                const ombra = (colore, pw) => {
+                    const k = vista3d.ombre, m = /^#([0-9a-f]{6})$/i.exec(colore);
+                    if (!k || !m) return colore;
+                    const n = [0, 0, 0];
+                    pw.forEach((a, i) => {
+                        const b = pw[(i + 1) % pw.length], az = a[2] * ex, bz = b[2] * ex;
+                        n[0] += (a[1] - b[1]) * (az + bz); n[1] += (az - bz) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+                    });
+                    const l = Math.hypot(...n);
+                    if (!l) return colore;
+                    const verso = Math.sign(n[0] * versoOcchio[0] + n[1] * versoOcchio[1] + n[2] * versoOcchio[2]) || 1;
+                    const lamb = Math.max(0, verso * (n[0] * luceF[0] + n[1] * luceF[1] + n[2] * luceF[2]) / l);
+                    const f = 1 - k + k * (0.42 + 0.7 * lamb);
+                    const v = parseInt(m[1], 16);
+                    return `rgb(${[16, 8, 0].map(s => Math.min(255, Math.round(((v >> s) & 255) * f))).join(',')})`;
+                };
+                const poliW = (pw, extra) => {
+                    const fill = ombra(extra.fill, pw);
+                    return poli(pw.map(p => P(...p)), { ...extra, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
+                };
                 const so = L.solido ? modelloSolido(d) : null;
                 const tg = vista3d.taglio;
                 // Il lato tolto dal taglio verticale: quello che non soddisfa (coordinata − c)·lato ≥ 0.
@@ -469,7 +549,7 @@
                                     const ta = Math.max(hTaglio, k ? A.basi[k - 1] : 0), ba = Math.max(ta, A.basi[k]);
                                     const tb = Math.max(hTaglio, k ? B.basi[k - 1] : 0), bb = Math.max(tb, B.basi[k]);
                                     if (ba - ta < 1e-4 && bb - tb < 1e-4) continue;
-                                    poli([P(A.x, A.y, A.z - ta), P(B.x, B.y, B.z - tb), P(B.x, B.y, B.z - bb), P(A.x, A.y, A.z - ba)],
+                                    poliW([[A.x, A.y, A.z - ta], [B.x, B.y, B.z - tb], [B.x, B.y, B.z - bb], [A.x, A.y, A.z - ba]],
                                         { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.6, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
                                 }
                             });
@@ -491,7 +571,7 @@
                                         // profondità del taglio: il triangolino si taglia lì, niente scalini.
                                         const h = diSopra ? prof : prof - 1e-3;
                                         const ks = new Set(tt.map(([x, y]) => stratoAProfondita(colonnaIn(x, y), h)));
-                                        const disegna = (pp, st) => poli(pp.map(([x, y]) => P(x, y, colonnaIn(x, y).z - prof)), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
+                                        const disegna = (pp, st) => poliW(pp.map(([x, y]) => [x, y, colonnaIn(x, y).z - prof]), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
                                         if (ks.size === 1) { disegna(tt, so.strati[[...ks][0]]); return; }
                                         for (let kk = Math.min(...ks); kk <= Math.max(...ks); kk++) {
                                             let pezzo = kk ? ritagliaPoligono(tt, ([x, y]) => h - colonnaIn(x, y).basi[kk - 1]) : tt;
@@ -514,7 +594,7 @@
                 if (L.pannelli && !so) pannelli.forEach(pa => {
                     for (let n = 1; n < pa.pezzi.length; n++) {
                         const a = pa.pezzi[n - 1], b = pa.pezzi[n];
-                        poli([P(a.x, a.y, a.tetto), P(b.x, b.y, b.tetto), P(b.x, b.y, b.letto), P(a.x, a.y, a.letto)], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome, strato: pa.f.nome });
+                        poliW([[a.x, a.y, a.tetto], [b.x, b.y, b.tetto], [b.x, b.y, b.letto], [a.x, a.y, a.letto]], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome, strato: pa.f.nome });
                     }
                 });
                 // LA FALDA: un segno blu sulla colonna alla sua profondità e, tra tre prove vicine che
@@ -524,7 +604,7 @@
                     d.triangoli.forEach(t => {
                         const tre = t.map(i => d.prove[i]);
                         if (tre.some(p => falda(p) === null || !tieni(p.x, p.y))) return;
-                        poli(tre.map(p => P(p.x, p.y, p.z - falda(p))), { fill: '#38bdf8', fo: 0.35, stroke: '#0284c7', sw: 1, cls: 'vista3d-falda', title: 'Falda: ' + tre.map(p => `${nomeDpsh(p.s)} a ${numeroConVirgola(falda(p))} m`).join(', ') });
+                        poliW(tre.map(p => [p.x, p.y, p.z - falda(p)]), { fill: '#38bdf8', fo: 0.35, stroke: '#0284c7', sw: 1, cls: 'vista3d-falda', title: 'Falda: ' + tre.map(p => `${nomeDpsh(p.s)} a ${numeroConVirgola(falda(p))} m`).join(', ') });
                     });
                     d.prove.forEach(p => {
                         const f = falda(p);
@@ -537,7 +617,7 @@
                         if (vista3d.etichette.falda) sopra.push({ t: 'testo', x: o[0] + 10, y: o[1] + 4, s: `falda ${numeroConVirgola(f)} m`, size: 11, alone: true, cls: 'vista3d-falda-nome', prova: p.s.id });
                     });
                 }
-                if (L.superfici && !so) superfici.forEach(sf => poli(sf.punti.map(p => P(...p)), { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°`, strato: sf.f.nome }));
+                if (L.superfici && !so) superfici.forEach(sf => poliW(sf.punti, { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°`, strato: sf.f.nome }));
                 if (L.colonne) d.prove.forEach(p => {
                     const nome = nomeDpsh(p.s);
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return; // dalla parte tolta dal taglio, o spenta
@@ -604,6 +684,7 @@
                     });
                 }
                 tracceNellaScena3d(d, P, sopra, testo);
+                disegniNellaScena3d(d, P, sopra, testo);
                 d.prove.forEach(p => {
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
@@ -631,7 +712,10 @@
                 // della sua prova, del suo strato e della sua traccia.
                 const O = vista3d.opacita, o1 = k => (k && O[k] !== undefined ? O[k] : 1);
                 pezzi.concat(sopra).forEach(f => {
-                    const o = o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1);
+                    // La mesh del corpo solido: a richiesta linee scure sottili; se no il bordo di ogni
+                    // triangolo ha il suo colore, e tra un triangolo e l'altro non resta la riga.
+                    if (f.cls === 'vista3d-solido') { if (L.mesh) { f.stroke = 'rgba(15,23,42,0.5)'; f.sw = 0.6; } else { f.stroke = f.fill; f.sw = 1.1; } }
+                    const o = (f.cls === 'vista3d-solido' ? o1('ss:' + f.strato) : 1) * o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1) * (f.disegno ? o1('d:' + f.disegno) : 1);
                     if (o < 1) f.op = o;
                 });
                 return { W, H, k, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
@@ -738,6 +822,7 @@
                 document.querySelectorAll('#direzioneTaglio3d [data-taglio-dir]').forEach(b => b.setAttribute('aria-pressed', String((tg.dir || '') === b.dataset.taglioDir)));
                 document.getElementById('rngTaglioV3d').disabled = !tg.dir;
                 document.getElementById('btnTaglioLato3d').disabled = !tg.dir;
+                document.getElementById('btnTaglioTraccia3d').disabled = !tg.dir;
                 document.getElementById('lblTaglioH3d').textContent = numeroConVirgola(so ? Math.min(tg.prof, so.fondo) : 0, 1) + ' m';
                 // Il modello solido serve almeno un triangolo di prove: con meno, i tagli non ci sono.
                 document.getElementById('tagliVista3d').style.display = so ? '' : 'none';
@@ -928,10 +1013,19 @@
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
                         liv('falda', sw('linee', 'background:#0284c7'), 'Falda', '«T»: la profondità della falda su ogni colonna', E.falda) ] },
+                    // Gli strati del corpo solido (solo del modello: colonne e pannelli restano).
+                    { id: 'solido', nome: 'Corpo solido', righe: (d && L.solido && modelloSolido(d) ? modelloSolido(d).strati : []).map(st => ({ chiave: 'ss:' + st.nome, solidoStrato: st.nome,
+                        attr: `data-solido3d="${String(st.nome).replace(/"/g, '&quot;')}"`, acceso: !vista3d.stratiSolidoNascosti.has(st.nome),
+                        simbolo: sw('aree', `background:${st.colore}; border-color:${st.colore}`), nome: st.nome, conta: '', titolo: 'Lo strato nel corpo solido' })) },
                     { id: 'riferimenti', nome: 'Riferimenti', righe: [
                         liv('misure', ico('ruler'), 'Misure', 'Distanze tra le prove e asta delle quote; «T»: i numeri', E.misure) ] },
                     { id: 'sezioni', nome: 'Sezioni', righe: tracceDelProgetto().map(t => ({ chiave: 't:' + t.id, traccia: t.id, attr: `data-traccia3d="${t.id}"`, acceso: !vista3d.tracceNascoste.has(t.id),
                         simbolo: sw('linee', 'background:#dc2626'), nome: t.nome, conta: '', titolo: 'La traccia della sezione' })), etichette: E.sezioni },
+                    // I disegni dell'utente (strumenti Punto e Poligono): uno per riga.
+                    { id: 'disegni', nome: 'Disegnati', etichette: E.disegni, righe: disegniDelProgetto().map(x => ({ chiave: 'd:' + x.id, disegno: x.id, attr: `data-disegno3d="${x.id}"`,
+                        acceso: !vista3d.disegniNascosti.has(x.id), nome: x.nome, titolo: testoDisegno(x),
+                        simbolo: x.tipo === 'punto' ? sw('punti', `background:${x.colore}`) : sw('aree', `background:${x.colore}55; border-color:${x.colore}`),
+                        conta: x.tipo === 'poligono' ? numeroConVirgola(areaMetriQuadri(x.punti), 0) + ' m²' : '' })) },
                     { id: 'sfondo', nome: 'Sfondo', righe: [
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
                         liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»') ] }
@@ -939,7 +1033,7 @@
                 // Nel modo Mappa: le prove, le sezioni e la mappa di base (tasto destro per cambiarla).
                 if (areaMappa.modo === 'mappa') {
                     const op = vista3d.opacita['sf-base'] ?? 1;
-                    return [gruppi[0], gruppi.find(g => g.id === 'sezioni'), { id: 'sfondo2d', nome: 'Sfondo', righe: [{ chiave: 'sf-base', sfondo2d: true, attr: 'data-sfondo2d="base"', acceso: !mappaProgetto.sfondoSpento,
+                    return [gruppi[0], gruppi.find(g => g.id === 'sezioni'), gruppi.find(g => g.id === 'disegni'), { id: 'sfondo2d', nome: 'Sfondo', righe: [{ chiave: 'sf-base', sfondo2d: true, attr: 'data-sfondo2d="base"', acceso: !mappaProgetto.sfondoSpento,
                         simbolo: ico(/strade|wms/.test(mappaProgetto.stile) ? 'map' : 'satellite'), nome: (SFONDI_2D().find(x => x[0] === mappaProgetto.stile) || ['', 'Satellite (Esri)'])[1], conta: Math.round(op * 100) + '%',
                         titolo: 'Mappa di base: tasto destro per cambiarla' }] }].filter(g => g.righe.length);
                 }
@@ -972,6 +1066,8 @@
                 if (r.prova) vista3d.proveNascoste[on ? 'delete' : 'add'](r.prova);
                 else if (r.strato !== undefined) vista3d.stratiNascosti[on ? 'delete' : 'add'](r.strato);
                 else if (r.traccia) vista3d.tracceNascoste[on ? 'delete' : 'add'](r.traccia);
+                else if (r.disegno) vista3d.disegniNascosti[on ? 'delete' : 'add'](r.disegno);
+                else if (r.solidoStrato !== undefined) vista3d.stratiSolidoNascosti[on ? 'delete' : 'add'](r.solidoStrato);
                 else if (r.giacitura !== undefined) { vista3d.giacitureNascoste[on ? 'delete' : 'add'](r.giacitura); if (on) vista3d.livelli.giaciture = true; }
                 else if (r.sfondo2d) sfondo2dAcceso(on);
                 else {
@@ -986,20 +1082,21 @@
             /** Inquadra il livello: la prova, le prove con lo strato, la traccia; il resto è tutta la scena. */
             function inquadraLivello3d(r) {
                 const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti;
-                const t = r.traccia && tracceDelProgetto().find(x => x.id === r.traccia);
+                const dis = r.disegno && disegniDelProgetto().find(x => x.id === r.disegno);
+                const t = r.traccia ? tracceDelProgetto().find(x => x.id === r.traccia) : dis ? { a: dis.punti[0], b: dis.punti[dis.punti.length - 1], punti: dis.punti } : null;
                 const strato = r.strato !== undefined ? r.strato : r.giacitura;
                 const prove = r.prova ? [r.prova] : (strato !== undefined && d) ? d.prove.filter(p => p.fasce.some(f => f.nome === strato)).map(p => p.s.id) : null;
                 if (areaMappa.modo === 'mappa') {
                     const m = mappaProgetto.mappa;
                     if (!m) return;
-                    const punti = t ? [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]] : prove ? prove.map(id => proj.surveys[id]).filter(Boolean).map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)]) : null;
+                    const punti = t ? (t.punti || [t.a, t.b]).map(p => [p.lat, p.lng]) : prove ? prove.map(id => proj.surveys[id]).filter(Boolean).map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)]) : null;
                     if (!punti) inquadraTutteMappa2d();
                     else if (punti.length > 1) m.fitBounds(L.latLngBounds(punti).pad(0.3), { maxZoom: 19 });
                     else if (punti.length) m.setView(punti[0], 19);
                     return;
                 }
                 if (!d) return;
-                const xy = t ? (sc => [sc.a, sc.b])(tracciaInScena(d, t)) : prove ? d.prove.filter(p => prove.includes(p.s.id)).map(p => [p.x, p.y]) : null;
+                const xy = t ? (t.punti ? t.punti.map(p => d.daGeo(p.lat, p.lng)) : (sc => [sc.a, sc.b])(tracciaInScena(d, t))) : prove ? d.prove.filter(p => prove.includes(p.s.id)).map(p => [p.x, p.y]) : null;
                 if (!xy || !xy.length) { vista3d.centro = [0, 0, 0]; vista3d.zoom = 1.4; }
                 else {
                     const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
@@ -1030,8 +1127,10 @@
                 if (r.etichette !== undefined) voci.push([r.etichette ? 'Nascondi etichette' : 'Mostra etichette', 'i-type', '', () => etichetteLivello3d(r)]);
                 voci.push(opacita);
                 const t = r.traccia && tracceDelProgetto().find(x => x.id === r.traccia);
+                const dis = r.disegno && disegniDelProgetto().find(x => x.id === r.disegno);
                 if (r.prova) voci.push('-', ...vociProvaMappa(r.prova));
                 else if (t) voci.push('-', ...vociTracciaMappa(t));
+                else if (dis) voci.push('-', ...vociDisegno(dis, { x, y }));
                 apriMenuContesto(e, r.nome, voci);
             }
             (() => {
@@ -1520,6 +1619,18 @@
                 renderVista3d();
             });
             document.getElementById('rngTaglioV3d').addEventListener('input', (e) => { vista3d.taglio.pos = Number(e.target.value) / 100; conSolido(); ridisegna3d(); });
+            document.getElementById('rngOmbre3d').addEventListener('input', (e) => {
+                vista3d.ombre = Number(e.target.value) / 100;
+                document.getElementById('lblOmbre3d').textContent = e.target.value + '%';
+                ridisegna3d();
+            });
+            document.getElementById('rngLiscio3d').addEventListener('input', (e) => {
+                vista3d.liscio = Number(e.target.value) / 100;
+                document.getElementById('lblLiscio3d').textContent = Number(e.target.value) ? e.target.value + '%' : 'no';
+                if (!vista3d.livelli.solido) accendiSolido3d();
+                renderVista3d();
+                renderVistaSezioneTracciata();
+            });
             document.getElementById('btnTaglioLato3d').addEventListener('click', () => { vista3d.taglio.lato *= -1; renderVista3d(); });
             document.getElementById('rngTaglioH3d').addEventListener('input', (e) => {
                 const so = datiVista3dCorrenti && modelloSolido(datiVista3dCorrenti);
