@@ -244,18 +244,58 @@
                 return (d._solido = { strati, basi, fondo, involucro });
             }
 
+            /** IL CONTORNO DEL CORPO: il poligono delle prove o, con le linee addolcite, una curva chiusa
+             * (Catmull-Rom) che passa per le stesse prove agli angoli e tra l'una e l'altra si arrotonda,
+             * mescolata col poligono quanto si è scelto. Senza spigoli verticali agli angoli. */
+            function involucroModello(so) {
+                const s = vista3d.liscio;
+                if (!s) return so.involucro;
+                if (so._contorno && so._contorno.s === s) return so._contorno.p;
+                const P = so.involucro, n = P.length, out = [], PASSI = 10;
+                for (let i = 0; i < n; i++) {
+                    const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+                    for (let j = 0; j < PASSI; j++) {
+                        const t = j / PASSI, t2 = t * t, t3 = t2 * t;
+                        out.push([0, 1].map(c => {
+                            const curva = 0.5 * (2 * p1[c] + (p2[c] - p0[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (3 * p1[c] - p0[c] - 3 * p2[c] + p3[c]) * t3);
+                            return p1[c] + (p2[c] - p1[c]) * t + s * (curva - (p1[c] + (p2[c] - p1[c]) * t));
+                        }));
+                    }
+                }
+                so._contorno = { s, p: out };
+                return out;
+            }
+
             /** La colonna del modello solido in un punto: quota del terreno e base di ogni strato. */
             function colonnaSolido(d, so, x, y) {
-                let migliore = null;
-                d.triangoli.forEach(t => {
-                    const [A, B, C] = t.map(i => d.prove[i]);
-                    const det = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
-                    if (!det) return;
-                    const l1 = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / det;
-                    const l2 = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / det;
-                    const l = [l1, l2, 1 - l1 - l2], minimo = Math.min(...l);
-                    if (!migliore || minimo > migliore.minimo) migliore = { t, l, minimo };
-                });
+                const triangolo = (x, y) => {
+                    let migliore = null;
+                    d.triangoli.forEach(t => {
+                        const [A, B, C] = t.map(i => d.prove[i]);
+                        const det = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
+                        if (!det) return;
+                        const l1 = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / det;
+                        const l2 = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / det;
+                        const l = [l1, l2, 1 - l1 - l2], minimo = Math.min(...l);
+                        if (!migliore || minimo > migliore.minimo) migliore = { t, l, minimo };
+                    });
+                    return migliore;
+                };
+                const zx = x, zy = y; // il terreno resta quello del punto vero
+                let migliore = triangolo(x, y);
+                // Fuori dal poligono delle prove (il contorno addolcito ne esce un poco): la colonna è quella del
+                // punto più vicino del bordo, così gli strati proseguono lisci, senza scalini.
+                if (migliore.minimo < -1e-6) {
+                    let vicino = null;
+                    so.involucro.forEach((p, i) => {
+                        const q = so.involucro[(i + 1) % so.involucro.length], dx = q[0] - p[0], dy = q[1] - p[1];
+                        const t = Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / (dx * dx + dy * dy || 1)));
+                        const c = [p[0] + dx * t, p[1] + dy * t], dd = Math.hypot(x - c[0], y - c[1]);
+                        if (!vicino || dd < vicino.dd) vicino = { c, dd };
+                    });
+                    [x, y] = vicino.c;
+                    migliore = triangolo(x, y);
+                }
                 // Sul bordo, per gli arrotondamenti, il punto può cadere appena fuori: pesi mai negativi.
                 const l = migliore.l.map(v => Math.max(0, v)), somma = l.reduce((a, b) => a + b, 0) || 1;
                 const w = l.map(v => v / somma), idx = migliore.t;
@@ -270,7 +310,7 @@
                     const tra = k => Math.min(Math.max(liscie[k], Math.min(...idx.map(i => so.basi[i][k]))), Math.max(...idx.map(i => so.basi[i][k])));
                     basi = basi.map((b, k) => (k === basi.length - 1 ? b : (sopra = Math.min(so.fondo, Math.max(sopra, b + s * (tra(k) - b))))));
                 }
-                const zDtm = d.zSuolo(x, y);
+                const zDtm = d.zSuolo(zx, zy);
                 const z = Number.isFinite(zDtm) ? zDtm : idx.reduce((a, i, n) => a + w[n] * d.prove[i].z, 0);
                 return { z, basi };
             }
@@ -472,7 +512,7 @@
                 // Il lato tolto dal taglio verticale: quello che non soddisfa (coordinata − c)·lato ≥ 0.
                 let tieni = () => true;
                 if (so && tg.dir) {
-                    const ax = tg.dir === 'ns' ? 0 : 1, valori = so.involucro.map(p => p[ax]);
+                    const ax = tg.dir === 'ns' ? 0 : 1, valori = involucroModello(so).map(p => p[ax]);
                     const c = Math.min(...valori) + (Math.max(...valori) - Math.min(...valori)) * tg.pos;
                     tieni = (x, y) => (([x, y][ax] - c) * tg.lato >= -1e-9);
                     tg.c = c; tg.ax = ax;
@@ -513,9 +553,10 @@
                         // Col modello solido il terreno si ferma sul bordo del corpo: del riquadro resta
                         // solo la parte fuori (riquadro meno poligono convesso, un lato alla volta).
                         let resto = [a, b, c, e].map(n => [n[0], n[1]]);
-                        so.involucro.forEach((A, i) => {
+                        const contorno = involucroModello(so);
+                        contorno.forEach((A, i) => {
                             if (resto.length < 3) return;
-                            const B = so.involucro[(i + 1) % so.involucro.length];
+                            const B = contorno[(i + 1) % contorno.length];
                             const lato = q => (B[0] - A[0]) * (q[1] - A[1]) - (B[1] - A[1]) * (q[0] - A[0]);
                             const fuori = ritagliaPoligono(resto, q => -lato(q)), dentroQui = ritagliaPoligono(resto, lato);
                             if (fuori.length >= 3) {
@@ -529,7 +570,7 @@
                 const { pannelli, superfici } = modelloCorrelazione(d);
                 if (so) {
                     // Il poligono del corpo, tagliato dal piano verticale.
-                    let Q = so.involucro;
+                    let Q = involucroModello(so);
                     if (tg.dir) Q = ritagliaPoligono(Q, p => (p[tg.ax] - tg.c) * tg.lato);
                     if (Q.length >= 3) {
                         // Chi guarda verso v = (sa·ce, ca·ce, −se): una faccia si vede se la sua normale

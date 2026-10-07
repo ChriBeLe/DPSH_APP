@@ -69,6 +69,13 @@ const $ = (app, id) => app.d.getElementById(id);
   })()`);
   t('alle prove le basi restano esatte', confronto.esatte);
   t('tra le prove cambiano (spline), restano tra i valori delle prove e in ordine', confronto.cambia && confronto.dentro && confronto.ordinate);
+  const contorno = app.E(`(() => {
+    const so = modelloSolido(datiVista3dCorrenti); vista3d.liscio = 1; const c = involucroModello(so); vista3d.liscio = 0;
+    return { prima: so.involucro.length, dopo: c.length, passa: so.involucro.every(p => c.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-9)), tondo: c.some(q => so.involucro.every(p => Math.hypot(q[0] - p[0], q[1] - p[1]) > 1e-6)) };
+  })()`);
+  t(`il contorno del corpo si arrotonda (${contorno.prima} angoli → ${contorno.dopo} punti) e passa ancora per le prove`, contorno.dopo > contorno.prima && contorno.passa && contorno.tondo);
+  const fuori = app.E(`(() => { const d = datiVista3dCorrenti, so = modelloSolido(d), p = so.involucro[0], c = colonnaSolido(d, so, p[0], p[1]), f = colonnaSolido(d, so, p[0] + 0.01, p[1] + 0.01); return c.basi.every((v, k) => Math.abs(v - f.basi[k]) < 0.05); })()`);
+  t('appena fuori dal poligono gli strati proseguono senza scalini', fuori);
   $(app, 'rngLiscio3d').value = '50'; $(app, 'rngLiscio3d').dispatchEvent(new app.w.Event('input'));
   t('il cursore «Linee addolcite» lo regola', app.E('vista3d.liscio') === 0.5 && $(app, 'lblLiscio3d').textContent === '50%');
   $(app, 'rngLiscio3d').value = '0'; $(app, 'rngLiscio3d').dispatchEvent(new app.w.Event('input'));

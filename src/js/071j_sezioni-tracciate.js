@@ -112,7 +112,7 @@
             function tracciaDalTaglio3d() {
                 const d = datiVista3dCorrenti, so = d && modelloSolido(d), tg = vista3d.taglio;
                 if (!so || !tg.dir || tg.c === undefined) return null;
-                const ax = tg.ax, altro = 1 - ax, inv = so.involucro, incroci = [];
+                const ax = tg.ax, altro = 1 - ax, inv = involucroModello(so), incroci = [];
                 inv.forEach((p, i) => {
                     const q = inv[(i + 1) % inv.length], u = p[ax] - tg.c, v = q[ax] - tg.c;
                     if ((u <= 0 && v > 0) || (u > 0 && v <= 0)) incroci.push(p[altro] + (q[altro] - p[altro]) * u / (u - v));
@@ -139,8 +139,9 @@
                 const so = modelloSolido(d);
                 // Dentro l'involucro delle prove (antiorario): tutti i lati lasciano il punto a sinistra,
                 // con un centimetro di tolleranza (una traccia da prova a prova corre sul bordo).
-                const dentro = (x, y) => so && so.involucro.every((p, i) => {
-                    const q = so.involucro[(i + 1) % so.involucro.length];
+                const contorno = so && involucroModello(so);
+                const dentro = (x, y) => so && contorno.every((p, i) => {
+                    const q = contorno[(i + 1) % contorno.length];
                     return ((q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0])) / (Math.hypot(q[0] - p[0], q[1] - p[1]) || 1) >= -0.01;
                 });
                 const N = 160, campioni = [];
