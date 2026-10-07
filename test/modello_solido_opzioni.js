@@ -71,9 +71,14 @@ const $ = (app, id) => app.d.getElementById(id);
   t('tra le prove cambiano (spline), restano tra i valori delle prove e in ordine', confronto.cambia && confronto.dentro && confronto.ordinate);
   const contorno = app.E(`(() => {
     const so = modelloSolido(datiVista3dCorrenti); vista3d.liscio = 1; const c = involucroModello(so); vista3d.liscio = 0;
-    return { prima: so.involucro.length, dopo: c.length, passa: so.involucro.every(p => c.some(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 1e-9)), tondo: c.some(q => so.involucro.every(p => Math.hypot(q[0] - p[0], q[1] - p[1]) > 1e-6)) };
+    const dentro = q => so.involucro.every((p, i) => { const r = so.involucro[(i + 1) % so.involucro.length]; return (r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0]) >= -1e-6; });
+    const lato = Math.min(...so.involucro.map((p, i) => { const r = so.involucro[(i + 1) % so.involucro.length]; return Math.hypot(r[0] - p[0], r[1] - p[1]); }));
+    const scarto = Math.max(...so.involucro.map(p => Math.min(...c.map(q => Math.hypot(q[0] - p[0], q[1] - p[1])))));
+    return { prima: so.involucro.length, dopo: c.length, dentro: c.every(dentro), scarto, lato };
   })()`);
-  t(`il contorno del corpo si arrotonda (${contorno.prima} angoli → ${contorno.dopo} punti) e passa ancora per le prove`, contorno.dopo > contorno.prima && contorno.passa && contorno.tondo);
+  t(`gli angoli del corpo si smussano appena (${contorno.prima} angoli → ${contorno.dopo} punti; dalle prove al più ${contorno.scarto.toFixed(2)} m), senza uscire dal poligono`, contorno.dopo > contorno.prima && contorno.dentro && contorno.scarto > 0 && contorno.scarto < Math.min(12, 0.18 * contorno.lato));
+  const pannelli = app.E(`(() => { const d = datiVista3dCorrenti; vista3d.liscio = 0; const a = JSON.stringify(modelloCorrelazione(d).pannelli[0].pezzi.map(p => +p.tetto.toFixed(4))); vista3d.liscio = 1; const pz = modelloCorrelazione(d).pannelli[0].pezzi; vista3d.liscio = 0; return { cambia: a !== JSON.stringify(pz.map(p => +p.tetto.toFixed(4))), n: pz.length }; })()`);
+  t(`i pannelli di correlazione si ammorbidiscono tra prova e prova (${pannelli.n} tratti)`, pannelli.cambia && pannelli.n >= 9);
   const fuori = app.E(`(() => { const d = datiVista3dCorrenti, so = modelloSolido(d), p = so.involucro[0], c = colonnaSolido(d, so, p[0], p[1]), f = colonnaSolido(d, so, p[0] + 0.01, p[1] + 0.01); return c.basi.every((v, k) => Math.abs(v - f.basi[k]) < 0.05); })()`);
   t('appena fuori dal poligono gli strati proseguono senza scalini', fuori);
   $(app, 'rngLiscio3d').value = '50'; $(app, 'rngLiscio3d').dispatchEvent(new app.w.Event('input'));

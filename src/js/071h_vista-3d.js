@@ -167,12 +167,15 @@
                     A.occ.forEach((fa, k) => {
                         const fb = B.occ.get(k);
                         if (!fb) return;
-                        const passi = Math.max(1, Math.min(10, Math.round(Math.hypot(B.x - A.x, B.y - A.y) / 8)));
+                        // Con le linee addolcite il passaggio da una prova all'altra si ammorbidisce un poco
+                        // (mezza curva a S), invece del gomito netto su ogni prova.
+                        const liscio = vista3d.liscio * 0.5;
+                        const passi = Math.max(liscio ? 8 : 1, Math.min(10, Math.round(Math.hypot(B.x - A.x, B.y - A.y) / 8)));
                         const pezzi = [];
                         for (let n = 0; n <= passi; n++) {
-                            const t = n / passi, x = A.x + (B.x - A.x) * t, y = A.y + (B.y - A.y) * t;
+                            const t = n / passi, x = A.x + (B.x - A.x) * t, y = A.y + (B.y - A.y) * t, ts = t + liscio * (t * t * (3 - 2 * t) - t);
                             const zt = n === 0 ? A.z : n === passi ? B.z : (d.zSuolo(x, y) ?? A.z + (B.z - A.z) * t);
-                            pezzi.push({ x, y, tetto: zt - (fa.da + (fb.da - fa.da) * t), letto: zt - (fa.a + (fb.a - fa.a) * t) });
+                            pezzi.push({ x, y, tetto: zt - (fa.da + (fb.da - fa.da) * ts), letto: zt - (fa.a + (fb.a - fa.a) * ts) });
                         }
                         pannelli.push({ i, j, f: fa, pezzi });
                     });
@@ -244,22 +247,23 @@
                 return (d._solido = { strati, basi, fondo, involucro });
             }
 
-            /** IL CONTORNO DEL CORPO: il poligono delle prove o, con le linee addolcite, una curva chiusa
-             * (Catmull-Rom) che passa per le stesse prove agli angoli e tra l'una e l'altra si arrotonda,
-             * mescolata col poligono quanto si è scelto. Senza spigoli verticali agli angoli. */
+            /** IL CONTORNO DEL CORPO: il poligono delle prove; con le linee addolcite gli angoli si smussano
+             * appena (un raccordo, curva di Bézier col vertice per guida), senza inventare forme: il raccordo
+             * parte a una piccola frazione dei lati (al più 12 m) e resta dentro il poligono. */
             function involucroModello(so) {
                 const s = vista3d.liscio;
                 if (!s) return so.involucro;
                 if (so._contorno && so._contorno.s === s) return so._contorno.p;
-                const P = so.involucro, n = P.length, out = [], PASSI = 10;
+                const P = so.involucro, n = P.length, out = [], PASSI = 6;
                 for (let i = 0; i < n; i++) {
-                    const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
-                    for (let j = 0; j < PASSI; j++) {
-                        const t = j / PASSI, t2 = t * t, t3 = t2 * t;
-                        out.push([0, 1].map(c => {
-                            const curva = 0.5 * (2 * p1[c] + (p2[c] - p0[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (3 * p1[c] - p0[c] - 3 * p2[c] + p3[c]) * t3);
-                            return p1[c] + (p2[c] - p1[c]) * t + s * (curva - (p1[c] + (p2[c] - p1[c]) * t));
-                        }));
+                    const a = P[(i - 1 + n) % n], v = P[i], b = P[(i + 1) % n];
+                    const la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]);
+                    const r = Math.min(0.18 * Math.min(la, lb), 12) * s;
+                    const p0 = [v[0] + (a[0] - v[0]) * r / (la || 1), v[1] + (a[1] - v[1]) * r / (la || 1)];
+                    const p2 = [v[0] + (b[0] - v[0]) * r / (lb || 1), v[1] + (b[1] - v[1]) * r / (lb || 1)];
+                    for (let j = 0; j <= PASSI; j++) {
+                        const t = j / PASSI, u = 1 - t;
+                        out.push([u * u * p0[0] + 2 * u * t * v[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * v[1] + t * t * p2[1]]);
                     }
                 }
                 so._contorno = { s, p: out };
@@ -304,7 +308,8 @@
                 // tenuta tra i valori delle prove del triangolo; restano in ordine, tra il terreno e il fondo.
                 const sp = vista3d.liscio > 0 && splineSolido(d, so);
                 if (sp) {
-                    const s = vista3d.liscio, liscie = sp(x, y);
+                    // senza esagerare: al massimo sei decimi di spline, il resto resta l'interpolazione dei dati
+                    const s = vista3d.liscio * 0.6, liscie = sp(x, y);
                     let sopra = 0;
                     // Mai oltre le prove del triangolo: la spline tra prove vicine e diverse ondeggerebbe.
                     const tra = k => Math.min(Math.max(liscie[k], Math.min(...idx.map(i => so.basi[i][k]))), Math.max(...idx.map(i => so.basi[i][k])));
