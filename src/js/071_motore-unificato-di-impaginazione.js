@@ -243,7 +243,11 @@
              * QUELLI; se non ne ha nessuno, usa la riga della sezione ("Prova N° 3"). Elencare
              * entrambi darebbe "Introduzione" e subito sotto "1. INTRODUZIONE".
              *
-             * `offsetPagine` e' 1 quando davanti c'e' la pagina dell'indice, che sposta tutto. */
+             * `offsetPagine` e' 1 quando davanti c'e' la pagina dell'indice, che sposta tutto.
+             *
+             * Ogni voce lascia nel documento il segno di dove punta (data-voce-indice: sul titolo, o
+             * sul primo foglio della sezione senza titoli, col testo in data-voce-testo): il Word ne
+             * fa i segnalibri del suo Sommario vero. Ritorna { voci, html } con l'html segnato. */
             function raccogliVociIndice(corpoHtml, sezioni, offsetPagine) {
                 const doc = new DOMParser().parseFromString('<div id="r">' + (corpoHtml || '') + '</div>', 'text/html');
                 const fogli = Array.from(doc.getElementById('r').querySelectorAll('.dpsh-sheet'));
@@ -257,6 +261,7 @@
                         fogli[k].querySelectorAll('[data-titolo-indice]').forEach(el => {
                             const testo = (el.textContent || '').replace(/\s+/g, ' ').trim();
                             if (!testo) return;
+                            el.setAttribute('data-voce-indice', String(voci.length + titoli.length));
                             titoli.push({
                                 etichetta: testo,
                                 livello: parseInt(el.getAttribute('data-titolo-indice'), 10) || 1,
@@ -268,6 +273,10 @@
                     if (titoli.length > 0) {
                         voci.push.apply(voci, titoli);
                     } else {
+                        if (fogli[primoFoglio]) {
+                            fogli[primoFoglio].setAttribute('data-voce-indice', String(voci.length));
+                            fogli[primoFoglio].setAttribute('data-voce-testo', sez.etichetta || ('Prova N° ' + sez.numero));
+                        }
                         voci.push({
                             etichetta: sez.etichetta || ('Prova N° ' + sez.numero),
                             livello: 1,
@@ -278,7 +287,7 @@
                     }
                     foglioCorrente = ultimoFoglio;
                 });
-                return voci;
+                return { voci, html: doc.getElementById('r').innerHTML };
             }
 
             /** NUMERA LE FIGURE E RISOLVE I RIFERIMENTI, sul documento assemblato.
@@ -514,8 +523,9 @@
                 // in parallelo: i titoli si leggono dove sono finiti davvero e le pagine si
                 // contano sui fogli veri. Un indice ricavato dalle intenzioni invece che dal
                 // risultato e' un indice che prima o poi mente.
-                const corpoHtml = sezioni.map(s => s.html).join('');
-                const vociIndice = includiIndice ? raccogliVociIndice(corpoHtml, sezioni, 1) : [];
+                let corpoHtml = sezioni.map(s => s.html).join('');
+                let vociIndice = [];
+                if (includiIndice) ({ voci: vociIndice, html: corpoHtml } = raccogliVociIndice(corpoHtml, sezioni, 1));
                 // Le figure si numerano PRIMA dell'indice: cosi' un titolo dell'indice puo'
                 // anche essere una figura, e comunque i riferimenti nel testo sono gia' risolti
                 // quando il documento viene consegnato al resto della catena.

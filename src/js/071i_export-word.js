@@ -46,7 +46,7 @@
                 const stili = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
                 const sprite = Array.from(doc.querySelectorAll('svg')).filter(s => s.querySelector('symbol'))
                     .map(s => new XMLSerializer().serializeToString(s)).join('');
-                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85 };
+                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85, idSegnalibro: 1, titoliFatti: new Set(), stiliSommario: '', piede: null };
             }
 
             function nascostoWord(ctx, el) {
@@ -112,6 +112,8 @@
                     // comincia sotto il fondo del foglio; i pezzi a cavallo li sistema chi li converte.
                     if (n.getBoundingClientRect().top >= ctx.limite - 0.5) continue;
                     if (n.classList && n.classList.contains('no-print')) continue;
+                    // Il numero di pagina scritto in fondo al foglio: in Word è il piè di pagina, coi campi veri.
+                    if (n.hasAttribute('data-numero-pagina')) continue;
                     const tipoBlocco = n.getAttribute('data-blocco');
                     if (tipoBlocco && WORD_TIPI_DISEGNO.has(tipoBlocco)) {
                         // Il disegno diventa immagine; la sua didascalia resta testo di Word.
@@ -383,10 +385,22 @@
                 } else if (rientro) {
                     ind += rientro > 0 ? ` w:firstLine="${tw(rientro)}"` : ` w:hanging="${tw(-rientro)}"`;
                 }
+                // I TITOLI. Quelli che l'indice elenca (data-titolo-indice, i blocchi Titolo) hanno il
+                // livello di struttura di Word e, se l'indice c'è, il segnalibro a cui punta la voce: così
+                // il Sommario di Word li ritrova e «Aggiorna sommario» rifà lo stesso indice. Gli H1–H6
+                // fuori dai fogli (le note) restano titoli anche loro. Un titolo su più paragrafi conta una volta.
+                let livello = '', segno = ['', ''];
+                const titoloIndice = el.closest('[data-titolo-indice]');
                 const titolo = /^H([1-6])$/.exec(el.tagName);
-                const livello = titolo ? `<w:outlineLvl w:val="${parseInt(titolo[1], 10) - 1}"/>` : '';
+                if (titoloIndice) {
+                    if (!ctx.titoliFatti.has(titoloIndice)) {
+                        ctx.titoliFatti.add(titoloIndice);
+                        livello = `<w:outlineLvl w:val="${Math.max(0, Math.min(8, (parseInt(titoloIndice.getAttribute('data-titolo-indice'), 10) || 1) - 1))}"/>`;
+                        if (titoloIndice.hasAttribute('data-voce-indice')) segno = segnalibroWord(ctx, titoloIndice.getAttribute('data-voce-indice'));
+                    }
+                } else if (titolo && !el.closest('.dpsh-sheet')) livello = `<w:outlineLvl w:val="${parseInt(titolo[1], 10) - 1}"/>`;
                 const tab = marcatore ? `<w:tabs><w:tab w:val="left" w:pos="${tw(sinistra)}"/></w:tabs>` : '';
-                return `<w:p><w:pPr><w:keepLines/>${tab}<w:spacing w:before="0" w:after="0" w:line="${Math.max(20, tw(lh))}" w:lineRule="${/<w:drawing>/.test(runs) ? 'atLeast' : 'exact'}"/>${ind ? `<w:ind${ind}/>` : ''}<w:jc w:val="${jc}"/>${livello}</w:pPr>${prima}${runs}</w:p>`;
+                return `<w:p><w:pPr><w:keepLines/>${tab}<w:spacing w:before="0" w:after="0" w:line="${Math.max(20, tw(lh))}" w:lineRule="${/<w:drawing>/.test(runs) ? 'atLeast' : 'exact'}"/>${ind ? `<w:ind${ind}/>` : ''}<w:jc w:val="${jc}"/>${livello}</w:pPr>${segno[0]}${prima}${runs}${segno[1]}</w:p>`;
             }
 
             // ---------- Bordi, sfondi, margini delle celle ----------
@@ -594,16 +608,128 @@
                 return { xml, altezzaTw: posTw };
             }
 
+            // ---------- Campi di Word: sommario, segnalibri, numeri di pagina ----------
+
+            /** Un campo di Word: istruzione e, se c'è, il risultato già calcolato (quello che si vede
+             * finché Word non lo aggiorna). */
+            function campoWord(istruzione, risultato, rPr) {
+                const r = rPr ? `<w:rPr>${rPr}</w:rPr>` : '';
+                return `<w:r>${r}<w:fldChar w:fldCharType="begin"/></w:r><w:r>${r}<w:instrText xml:space="preserve">${xmlTesto(istruzione)}</w:instrText></w:r>`
+                    + (risultato === undefined ? '' : `<w:r>${r}<w:fldChar w:fldCharType="separate"/></w:r>${risultato}`) + `<w:r>${r}<w:fldChar w:fldCharType="end"/></w:r>`;
+            }
+            /** Il segnalibro di una voce dell'indice: [inizio, fine]. «_Toc» come quelli di Word, che li nasconde. */
+            function segnalibroWord(ctx, voce) {
+                const id = ctx.idSegnalibro++;
+                return [`<w:bookmarkStart w:id="${id}" w:name="_TocDpsh${voce}"/>`, `<w:bookmarkEnd w:id="${id}"/>`];
+            }
+
+            /** LA PAGINA INDICE DIVENTA UN SOMMARIO DI WORD: un campo SOMMARIO (TOC) con le voci già
+             * scritte, ciascuna cliccabile verso il suo titolo e col numero di pagina in un campo
+             * PAGEREF. L'aspetto (carattere, corpo, rientro, puntini o trattini fino al numero, riga
+             * sotto) sta negli stili «Sommario 1/2/3» di Word: «Aggiorna sommario» lo rifà uguale. */
+            async function sommarioWord(ctx, foglio, ri) {
+                let xml = '', fondo = ri.top;
+                const titolo = foglio.querySelector('h1');
+                if (titolo) {
+                    const rt = rettangoloContenuto(ctx, titolo);
+                    if (rt.y - fondo > 0.5) xml += paragrafoVuotoWord(tw(rt.y - fondo));
+                    xml += await paragrafoWord(ctx, { el: titolo, r: rt }, ri.left);
+                    fondo = rt.y + rt.h;
+                }
+                const voci = Array.from(foglio.querySelectorAll('a[data-voce-indice]'));
+                if (!voci.length) return xml;
+                // Lo spazio fra due voci sta tutto PRIMA della voce (il fondo della precedente più la
+                // cima della sua): Word e LibreOffice non sommano allo stesso modo spazio dopo e spazio prima.
+                const r0 = voci[0].getBoundingClientRect(), pad0 = parseFloat(ctx.win.getComputedStyle(voci[0]).paddingBottom) || 0;
+                if (r0.top - pad0 - fondo > 0.5) xml += paragrafoVuotoWord(tw(r0.top - pad0 - fondo));
+                const guida = { punti: 'dot', puntiRadi: 'dot', trattini: 'hyphen' }[foglio.getAttribute('data-sommario')] || 'none';
+                const conPagina = voci.some(v => v.querySelector('[data-pagina-voce]'));
+                // Lo stile di ogni livello si legge dalla sua prima voce. Le stesse proprietà vanno anche
+                // sul paragrafo: LibreOffice negli indici non legge spaziature e tabulazioni dello stile.
+                const livelli = new Map();
+                voci.forEach(v => {
+                    const liv = v.getAttribute('data-livello') || '1';
+                    if (livelli.has(liv)) return;
+                    const cs = ctx.win.getComputedStyle(v), rv = v.getBoundingClientRect();
+                    const testo = v.querySelector('[data-testo-voce]'), pagina = v.querySelector('[data-pagina-voce]');
+                    const numero = testo && testo.previousElementSibling;
+                    const padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+                    const tabs = (numero ? `<w:tab w:val="left" w:pos="${tw(testo.getBoundingClientRect().left - ri.left)}"/>` : '')
+                        + `<w:tab w:val="right" w:leader="${guida}" w:pos="${tw((pagina ? pagina.getBoundingClientRect().right : rv.right) - ri.left)}"/>`;
+                    const bordo = parseFloat(cs.borderBottomWidth) > 0 && cs.borderBottomStyle !== 'none' && coloreWord(cs.borderBottomColor)
+                        ? `<w:pBdr><w:bottom w:val="single" w:sz="${Math.max(2, Math.round(parseFloat(cs.borderBottomWidth) * 6))}" w:space="0" w:color="${coloreWord(cs.borderBottomColor)}"/></w:pBdr>` : '';
+                    const pPr = (prima) => `<w:keepLines/>${bordo}<w:tabs>${tabs}</w:tabs><w:spacing w:before="${tw(prima)}" w:after="0" w:line="${Math.max(20, tw(rv.height - padT - padB))}" w:lineRule="exact"/>`
+                        + `<w:ind w:left="${tw(rv.left - ri.left)}"/>`;
+                    livelli.set(liv, { pPr, padT, padB });
+                    ctx.stiliSommario += `<w:style w:type="paragraph" w:styleId="TOC${liv}"><w:name w:val="toc ${liv}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:unhideWhenUsed/>`
+                        + `<w:pPr>${pPr(padT + padB)}</w:pPr><w:rPr>${testo ? proprietaRunWord(ctx, testo, { paragrafo: v }).xml : ''}</w:rPr></w:style>`;
+                });
+                // Lo stile porta grassetto e corsivo della voce: un pezzo che non li ha (il numero di
+                // pagina) li spegne esplicitamente. I puntini guida hanno il colore del divisore.
+                const spento = (xml, el) => {
+                    const cs = ctx.win.getComputedStyle(el);
+                    return xml.replace(/(<w:rPr><w:rFonts [^>]*\/>)((?:<w:b\/><w:bCs\/>)?)/g, (m, a, b) => a + (b || '<w:b w:val="0"/><w:bCs w:val="0"/>') + (cs.fontStyle === 'normal' ? '<w:i w:val="0"/><w:iCs w:val="0"/>' : ''));
+                };
+                const tabulazione = (v, testo) => {
+                    const guidaEl = testo && testo.nextElementSibling, cs = guidaEl && ctx.win.getComputedStyle(guidaEl);
+                    const colore = cs && (coloreWord(cs.borderBottomStyle !== 'none' ? cs.borderBottomColor : '') || coloreWord(ctx.win.getComputedStyle(v).color));
+                    const rPr = testo ? proprietaRunWord(ctx, testo, { paragrafo: v }).xml.replace(/<w:b\/><w:bCs\/>/, '<w:b w:val="0"/><w:bCs w:val="0"/>').replace(/<w:color [^>]*\/>/, '') : '';
+                    return `<w:r><w:rPr>${rPr.replace(/(<w:spacing |<w:w |<w:sz )/, (m) => (colore ? `<w:color w:val="${colore}"/>` : '') + m)}</w:rPr><w:tab/></w:r>`;
+                };
+                let padPrima = pad0;
+                const inizio = `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \\o "1-3" \\h \\z \\u \\l "1-3"${conPagina ? '' : ' \\n'} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>`;
+                for (let i = 0; i < voci.length; i++) {
+                    const v = voci[i], nome = '_TocDpsh' + v.getAttribute('data-voce-indice');
+                    const testo = v.querySelector('[data-testo-voce]'), pagina = v.querySelector('[data-pagina-voce]');
+                    const numero = testo && testo.previousElementSibling;
+                    let dentro = numero ? spento(await runDelParagrafoWord(ctx, v, [numero]), numero) + '<w:r><w:tab/></w:r>' : '';
+                    if (testo) dentro += spento(await runDelParagrafoWord(ctx, v, [testo]), testo);
+                    if (pagina) dentro += tabulazione(v, testo) + campoWord(` PAGEREF ${nome} \\h `, spento(await runDelParagrafoWord(ctx, v, [pagina]), pagina));
+                    const lv = livelli.get(v.getAttribute('data-livello') || '1');
+                    xml += `<w:p><w:pPr><w:pStyle w:val="TOC${v.getAttribute('data-livello') || '1'}"/>${lv.pPr(padPrima + lv.padT)}</w:pPr>${i === 0 ? inizio : ''}<w:hyperlink w:anchor="${nome}" w:history="1">${dentro}</w:hyperlink>`
+                        + `${i === voci.length - 1 ? '<w:r><w:fldChar w:fldCharType="end"/></w:r>' : ''}</w:p>`;
+                    padPrima = lv.padB;
+                }
+                return xml;
+            }
+
+            /** IL NUMERO DI PAGINA: il piè di pagina di Word, «Pagina {PAGE} di {NUMPAGES}», con
+             * carattere, colore e altezza del PDF. Sta in una cornice ancorata alla pagina: così non
+             * ruba spazio al corpo del foglio, che resta impaginato com'è. */
+            function piedeWord(ctx, numero) {
+                const rs = numero.closest('.dpsh-sheet').getBoundingClientRect(), rn = rettangoloContenuto(ctx, numero);
+                const rPr = proprietaRunWord(ctx, numero, { paragrafo: numero }).xml;
+                const t = (s) => `<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${s}</w:t></w:r>`;
+                const h = Math.max(20, tw(rn.h));
+                return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`
+                    + `<w:p><w:pPr><w:framePr w:w="11906" w:h="${h}" w:hRule="exact" w:hAnchor="page" w:vAnchor="page" w:x="0" w:y="${tw(rn.y - rs.top)}"/>`
+                    + `<w:spacing w:before="0" w:after="0" w:line="${h}" w:lineRule="exact"/><w:jc w:val="center"/></w:pPr>`
+                    + `${t('Pagina ')}${campoWord(' PAGE ', t('1'), rPr)}${t(' di ')}${campoWord(' NUMPAGES ', t('1'), rPr)}</w:p>`
+                    + `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr></w:p></w:ftr>`;
+            }
+            const piedeInSezione = (ctx) => ctx.piede ? '<w:footerReference w:type="default" r:id="rIdPiede"/>' : '';
+
             /** Un foglio del report: una sezione di Word con gli stessi margini. */
             async function foglioWord(ctx, foglio) {
                 const interno = foglio.querySelector('.dpsh-sheet-inner') || foglio;
                 const rf = foglio.getBoundingClientRect(), ri = interno.getBoundingClientRect();
                 ctx.limite = ri.bottom;
-                const foglie = raccogliFoglieWord(ctx, interno, []);
-                const corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, ri.top)).xml : '';
+                let corpo;
+                if (foglio.hasAttribute('data-sommario')) corpo = await sommarioWord(ctx, foglio, ri);
+                else {
+                    const foglie = raccogliFoglieWord(ctx, interno, []);
+                    corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, ri.top)).xml : '';
+                }
+                // Una prova senza titoli: nell'indice c'è la sua riga («Prova N° 3»). In Word un campo
+                // VOCE DI SOMMARIO (TC), che non si vede, col segnalibro: il Sommario la ritrova.
+                if (foglio.hasAttribute('data-voce-testo')) {
+                    const [a, b] = segnalibroWord(ctx, foglio.getAttribute('data-voce-indice'));
+                    const voce = a + campoWord(` TC "${foglio.getAttribute('data-voce-testo').replace(/"/g, "'")}" \\l 1 `) + b;
+                    corpo = /<w:p>/.test(corpo) ? corpo.replace(/<w:p>(<w:pPr>.*?<\/w:pPr>)?/, m => m + voce) : `<w:p>${voce}</w:p>` + corpo;
+                }
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
-                const sezione = `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>`
+                const sezione = `<w:sectPr>${piedeInSezione(ctx)}<w:pgSz w:w="11906" w:h="16838"/>`
                     + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), 280)}" w:left="${tw(ri.left - rf.left)}" w:header="0" w:footer="0" w:gutter="0"/>`
                     + `<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
@@ -643,7 +769,8 @@
                 return mancanti;
             }
 
-            function pacchettoDocxWord(corpo, sezioneFinale, media) {
+            function pacchettoDocxWord(corpo, sezioneFinale, media, extra) {
+                const x = extra || {};
                 const ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
                     + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
                     + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
@@ -653,13 +780,14 @@
                     + `<w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`
                     + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`
                     + `<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`
-                    + `</w:styles>`;
+                    + (x.stiliSommario || '') + `</w:styles>`;
                 // Compatibilità 14 (Word 2010): dalla 15 Word stringe gli spazi del testo giustificato
                 // e fa stare più parole per riga del browser, cioè a capo diversi dal PDF.
                 const impostazioni = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:defaultTabStop w:val="709"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="14"/></w:compat></w:settings>`;
                 const relazioni = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
                     + `<Relationship Id="rIdStili" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`
                     + `<Relationship Id="rIdImpostazioni" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>`
+                    + (x.piede ? `<Relationship Id="rIdPiede" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>` : '')
                     + media.map(m => `<Relationship Id="${m.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.nome}"/>`).join('')
                     + `</Relationships>`;
                 const tipi = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`
@@ -668,6 +796,7 @@
                     + `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>`
                     + `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>`
                     + `<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>`
+                    + (x.piede ? `<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>` : '')
                     + `</Types>`;
                 const radice = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
                 const enc = new TextEncoder();
@@ -678,6 +807,7 @@
                     { name: 'word/styles.xml', bytes: enc.encode(stili) },
                     { name: 'word/settings.xml', bytes: enc.encode(impostazioni) },
                     { name: 'word/_rels/document.xml.rels', bytes: enc.encode(relazioni) },
+                    ...(x.piede ? [{ name: 'word/footer1.xml', bytes: enc.encode(x.piede) }] : []),
                     ...media.map(m => ({ name: 'word/media/' + m.nome, bytes: m.bytes }))
                 ]);
             }
@@ -708,7 +838,7 @@
                 const r = seg.padre.getBoundingClientRect();
                 const corpo = foglie.length ? (await impaginaWord(ctx, foglie, r.left, r.width, Math.min(...foglie.map(f => f.r.y)))).xml : '';
                 const mm = (v) => Math.round(v * 56.6929);
-                const sezione = `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="${mm(mrg.top)}" w:right="${mm(mrg.right)}" w:bottom="${mm(mrg.bottom)}" w:left="${mm(mrg.left)}" w:header="0" w:footer="0" w:gutter="0"/><w:cols w:space="0"/></w:sectPr>`;
+                const sezione = `<w:sectPr>${piedeInSezione(ctx)}<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="${mm(mrg.top)}" w:right="${mm(mrg.right)}" w:bottom="${mm(mrg.bottom)}" w:left="${mm(mrg.left)}" w:header="0" w:footer="0" w:gutter="0"/><w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
 
@@ -733,6 +863,8 @@
                     if (o.onAvanzamento) o.onAvanzamento('Scarico le mappe…', 0);
                     const mancanti = await incorporaImmaginiWord(doc);
                     const ctx = nuovoContestoWord(doc, o);
+                    const numeroPagina = doc.querySelector('.dpsh-sheet [data-numero-pagina]');
+                    if (numeroPagina) ctx.piede = piedeWord(ctx, numeroPagina);
                     const radice = doc.querySelector('.dpsh-sheet-stack') || doc.querySelector('.a4-page') || doc.body;
                     const segmenti = segmentiWord(ctx, radice, []);
                     let corpo = '', sezione = '';
@@ -745,7 +877,7 @@
                         await new Promise(r => setTimeout(r, 0));
                     }
                     const pagine = segmenti.filter(x => x.foglio).length;
-                    return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
+                    return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media, ctx)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
                 } finally {
                     cornice.remove();
                 }

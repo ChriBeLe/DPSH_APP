@@ -648,69 +648,69 @@ finestre: `#modalVista3d`
 `comprimiImmagineDataUrl`, `risolviEComprimiFotoUrl`, `cssFontIncorporati`, `cssContenutoTesto`, `getReportPrintStyleBlock`, `getControlloImpaginazioneScriptTag`
 
 ### `src/js/069_lattesa-delle-mappe.js`
-266 righe · in `dist/DPSH.html` dalla riga 43345
+268 righe · in `dist/DPSH.html` dalla riga 43345
 
 `buildIndiceReportCompletoHtml`, `buildSelezioneReportHtml`
 
 ### `src/js/070_impaginazione-reale-di-riepilogo-dettagliata-all.js`
-217 righe · in `dist/DPSH.html` dalla riga 43611
+217 righe · in `dist/DPSH.html` dalla riga 43613
 
 `misuraFigliPerStampaMm`, `fondiTitoliConSuccessivo`, `impaginaBlocchiSuPagineFisiche`
 
 ### `src/js/071_motore-unificato-di-impaginazione.js`
-738 righe · in `dist/DPSH.html` dalla riga 43828
+748 righe · in `dist/DPSH.html` dalla riga 43830
 
 `costruisciAtomiPaginaTemplate`, `costruisciPagineTemplateUnificato`, `provaSinteticaIntroduzione`, `raccogliVociIndice`, `numeraFigureERisolviRiferimenti`, `numeraPagineDocumento`, `buildCompleteReportHtml`, `downloadAllSurveyPhotosJpg`, `openSurveyPhotosModal`, `closeSurveyPhotosModal`, `handleGalleryBatchFiles`
 
 ### `src/js/071a_barre-del-pc.js`
-72 righe · in `dist/DPSH.html` dalla riga 44566
+72 righe · in `dist/DPSH.html` dalla riga 44578
 
 `renderPc`, `apriDalLato`
 
 ### `src/js/071b_registro-sul-pc.js`
-112 righe · in `dist/DPSH.html` dalla riga 44638
+112 righe · in `dist/DPSH.html` dalla riga 44650
 
 `segnaRigaScelta`, `scegliRiga`, `righeVisibili`, `staScrivendo`, `chiudiMenuRiga`, `apriMenuContesto`, `apriMenuRiga`, `apriMenuProgetto`, `apriMenuProva`
 
 ### `src/js/071c_palette-e-scorciatoie.js`
-128 righe · in `dist/DPSH.html` dalla riga 44750
+128 righe · in `dist/DPSH.html` dalla riga 44762
 
 `comandiPc`, `voceHtml`, `renderPalette`, `apriFinestraPc`, `apriPalette`, `eseguiVocePalette`, `apriScorciatoie`
 
 ### `src/js/071d_contatore-sul-pc.js`
-21 righe · in `dist/DPSH.html` dalla riga 44878
+21 righe · in `dist/DPSH.html` dalla riga 44890
 
 `interruttoreContatorePc`
 
 ### `src/js/071e_guida-rapida-pc.js`
-54 righe · in `dist/DPSH.html` dalla riga 44899
+54 righe · in `dist/DPSH.html` dalla riga 44911
 
 `mostraPassoGuida`, `apriGuidaRapida`, `chiudiGuidaRapida`, `forseGuidaRapida`
 
 ### `src/js/071f_terreno-dtm.js`
-426 righe · in `dist/DPSH.html` dalla riga 44953
+426 righe · in `dist/DPSH.html` dalla riga 44965
 
 `utmDaGeo`, `geoDaUtm`, `puntoNelCrs`, `crsDaEpsg`, `leggiAsciiGrid`, `tagTiff`, `lzwTiff`, `inflateZlib`, `leggiGeoTiff`, `proveConCoordinate`, `ritaglioDtmPerProgetto`, `quoteDtm`, `quotaDtm`, `quotaDtmXY`, `quotaDellaProva`, `formattaMetri`, `renderTerreno`, `apriTerreno`
 
 ### `src/js/071g_sezione.js`
-412 righe · in `dist/DPSH.html` dalla riga 45379
+412 righe · in `dist/DPSH.html` dalla riga 45391
 
 `proveDellaSezione`, `nomeDpsh`, `datiSezione`, `occorrenzeFasce`, `correlazioniSezione`, `pathColpi`, `svgSezione`, `renderSezione`, `ridisegnaSezione`, `apriSezione`, `htmlFumettoProva`, `apriFumettoProva`, `chiudiFumetti`
 
 ### `src/js/071h_vista-3d.js`
-1315 righe · in `dist/DPSH.html` dalla riga 45791
+1315 righe · in `dist/DPSH.html` dalla riga 45803
 
 `triangolaDelaunay`, `datiVista3d`, `datiVista3dSenzaDtm`, `latiDelleProve`, `modelloCorrelazione`, `modelloSolido`, `colonnaSolido`, `ritagliaPoligono`, `stratoAProfondita`, `google3d`, `sceltaSfondo3d`, `salvaSceltaSfondo3d`, `sfondoPerScena`, `caricaImmagine3d`, `scena3d`, `svgDaScena`, `disegnaScena`, `provaNelPunto`, `renderVista3d`, `apriVista3d`, `vistaIniziale3d`, `ridisegna3d`, `pizzicoDita`, `puntoCanvas`, `zoom3d`, `accendiSolido3d`, `gradi`, `direzioneVista3d`, `nomeDirezione`, `sincronizzaCursori3d`, `vaiAVista3d`, `giri`, `segnoGradi`, `bussola3d`, `avviaMoto3d`, `riempiSceltaSfondo3d`, `aggiornaStatoSfondo3d`, `cambiaSfondo3d`, `conSolido`, `nomeFileProgetto3d`, `modelloObj`
 
 ### `src/js/071i_export-word.js`
-752 righe · in `dist/DPSH.html` dalla riga 47106
+884 righe · in `dist/DPSH.html` dalla riga 47118
 
-`xmlTesto`, `tw`, `coloreWord`, `primaFamiglia`, `nuovoContestoWord`, `nascostoWord`, `decoratoWord`, `soloInLineaWord`, `testoVisibileWord`, `rettangoloContenuto`, `ritagliaWord`, `rettangoloWord`, `raccogliFoglieWord`, `fogliaTestoWord`, `paragrafoVuotoWord`, `cellaVuotaWord`, `tblPrWord`, `tabellaDisposizioneWord`, `chiudiCellaWord`, `immagineInLineaWord`, `rasterizzaWord`, `proprietaRunWord`, `testoTrasformato`, `runDelParagrafoWord`, `altezzaRigaWord`, `marcatoreElencoWord`, `paragrafoWord`, `bordiWord`, `marginiCellaWord`, `sfondoEffettivoWord`, `contenutoWord`, `scatolaWord`, `tabellaWord`, `dividiWord`, `fogliaWord`, `impaginaWord`, `foglioWord`, `chiusuraSezioneWord`, `incorporaImmaginiWord`, `pacchettoDocxWord`, `segmentiWord`, `flussoWord`, `documentoStampaInDocx`
+`xmlTesto`, `tw`, `coloreWord`, `primaFamiglia`, `nuovoContestoWord`, `nascostoWord`, `decoratoWord`, `soloInLineaWord`, `testoVisibileWord`, `rettangoloContenuto`, `ritagliaWord`, `rettangoloWord`, `raccogliFoglieWord`, `fogliaTestoWord`, `paragrafoVuotoWord`, `cellaVuotaWord`, `tblPrWord`, `tabellaDisposizioneWord`, `chiudiCellaWord`, `immagineInLineaWord`, `rasterizzaWord`, `proprietaRunWord`, `testoTrasformato`, `runDelParagrafoWord`, `altezzaRigaWord`, `marcatoreElencoWord`, `paragrafoWord`, `bordiWord`, `marginiCellaWord`, `sfondoEffettivoWord`, `contenutoWord`, `scatolaWord`, `tabellaWord`, `dividiWord`, `fogliaWord`, `impaginaWord`, `campoWord`, `segnalibroWord`, `sommarioWord`, `piedeWord`, `piedeInSezione`, `foglioWord`, `chiusuraSezioneWord`, `incorporaImmaginiWord`, `pacchettoDocxWord`, `segmentiWord`, `flussoWord`, `documentoStampaInDocx`
 
 ### `src/js/072_fase-3-modal-fallback-gps-foto.js`
-932 righe · in `dist/DPSH.html` dalla riga 47858
+932 righe · in `dist/DPSH.html` dalla riga 48002
 
 `ensureLeafletLoaded`, `showPhotoGpsFallbackStep`, `openPhotoGpsFallbackModal`, `closePhotoGpsFallbackModal`, `applyGpsToFallbackPhoto`, `openPhotoGpsMapPicker`, `scriviDatoProgettoCorrente`, `aggiornaPannelloBetaT`, `openDrawer`, `closeDrawer`, `openCantiereInfoModal`, `closeCantiereInfoModal`, `chiudiMenuAzioni`, `impostaTastoRegistraVisibile`, `linearScrollBy`, `animateViewSwap`, `exportGlobalJSONBackup`, `importGlobalJSONBackup`, `importGlobalZipBackup`, `renderThemeHuePicker`, `exportCsvFallback`
 
 ### `src/shell/06_fine.html`
-3 righe · in `dist/DPSH.html` dalla riga 48790
+3 righe · in `dist/DPSH.html` dalla riga 48934
