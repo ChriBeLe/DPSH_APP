@@ -86,7 +86,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('al 40%: la colonna della prova è trasparente, le altre no', app.E(`vista3d.opacita['p:' + ${JSON.stringify(id2)}]`) === 0.4
     && [...svg().querySelectorAll('.vista3d-colonna')].filter(e => e.getAttribute('opacity') === '0.4').length > 0 && [...svg().querySelectorAll('.vista3d-colonna')].some(e => !e.hasAttribute('opacity')));
   ev(app, riga('[data-livello="pannelli"]'), 'contextmenu');
-  t(`tasto destro sui pannelli: ${voci().join(', ')}`, voci().join() === 'Inquadra,Opacità…100%');
+  t(`tasto destro sui pannelli: ${voci().join(', ')}`, voci().join() === 'Inquadra,Opacità…100%,Stile…');
   clic(app, voce(/^Opacità/)); await attesa(20); clic(app, voce(/^60%/));
   t('e anche loro si fanno trasparenti', [...svg().querySelectorAll('.vista3d-pannello')].every(e => e.getAttribute('opacity') === '0.6'));
 

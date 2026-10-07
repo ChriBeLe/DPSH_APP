@@ -487,6 +487,8 @@
                 // normale (Newell, regge anche i quadrilateri schiacciati) si volta verso chi guarda: si
                 // vedono solo quelle facce; la luce viene dall'alto, da nord-ovest, come per il terreno.
                 const luceF = [-0.5, 0.5, 0.7].map(v => v / Math.hypot(-0.5, 0.5, 0.7)), versoOcchio = [-sa * ce, -ca * ce, se];
+                // Gli stili dei livelli (menu «Stile…»).
+                const stP = stileLivello('pannelli'), stS = stileLivello('superfici'), stF = stileLivello('falda'), stG = stileLivello('giaciture'), stM = stileLivello('misure'), stV = stileLivello('prove');
                 const ombra = (colore, pw) => {
                     const k = vista3d.ombre, m = /^#([0-9a-f]{6})$/i.exec(colore);
                     if (!k || !m) return colore;
@@ -635,7 +637,7 @@
                 if (L.pannelli && !so) pannelli.forEach(pa => {
                     for (let n = 1; n < pa.pezzi.length; n++) {
                         const a = pa.pezzi[n - 1], b = pa.pezzi[n];
-                        poliW([[a.x, a.y, a.tetto], [b.x, b.y, b.tetto], [b.x, b.y, b.letto], [a.x, a.y, a.letto]], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome, strato: pa.f.nome });
+                        poliW([[a.x, a.y, a.tetto], [b.x, b.y, b.tetto], [b.x, b.y, b.letto], [a.x, a.y, a.letto]], { fill: pa.f.colore, fo: stP.opacita, stroke: stP.contorno || pa.f.colore, sw: stP.spessore, cls: 'vista3d-pannello', title: pa.f.nome, strato: pa.f.nome });
                     }
                 });
                 // LA FALDA: un segno blu sulla colonna alla sua profondità e, tra tre prove vicine che
@@ -645,7 +647,7 @@
                     d.triangoli.forEach(t => {
                         const tre = t.map(i => d.prove[i]);
                         if (tre.some(p => falda(p) === null || !tieni(p.x, p.y))) return;
-                        poliW(tre.map(p => [p.x, p.y, p.z - falda(p)]), { fill: '#38bdf8', fo: 0.35, stroke: '#0284c7', sw: 1, cls: 'vista3d-falda', title: 'Falda: ' + tre.map(p => `${nomeDpsh(p.s)} a ${numeroConVirgola(falda(p))} m`).join(', ') });
+                        poliW(tre.map(p => [p.x, p.y, p.z - falda(p)]), { fill: stF.riempimento || stF.colore, fo: stF.opacita, stroke: stF.colore, sw: 1, dash: trattoDash(stF.tratto, 0.6), cls: 'vista3d-falda', title: 'Falda: ' + tre.map(p => `${nomeDpsh(p.s)} a ${numeroConVirgola(falda(p))} m`).join(', ') });
                     });
                     d.prove.forEach(p => {
                         const f = falda(p);
@@ -653,12 +655,12 @@
                         const o = P(p.x, p.y, p.z - f), lato = Math.max(1.5, d.lato / 60);
                         [[lato, 0], [0, lato]].forEach(([dx, dy]) => {
                             const a1 = P(p.x - dx, p.y - dy, p.z - f), a2 = P(p.x + dx, p.y + dy, p.z - f);
-                            pezzi.push({ prof: o[2] - 0.002, t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke: '#0284c7', sw: 3, cls: 'vista3d-falda-segno', title: `${nomeDpsh(p.s)}: falda a ${numeroConVirgola(f)} m`, prova: p.s.id });
+                            pezzi.push({ prof: o[2] - 0.002, t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke: stF.colore, sw: stF.spessore, dash: trattoDash(stF.tratto, 0.6), cls: 'vista3d-falda-segno', title: `${nomeDpsh(p.s)}: falda a ${numeroConVirgola(f)} m`, prova: p.s.id });
                         });
                         if (vista3d.etichette.falda) sopra.push({ t: 'testo', x: o[0] + 10, y: o[1] + 4, s: `falda ${numeroConVirgola(f)} m`, size: 11, alone: true, cls: 'vista3d-falda-nome', prova: p.s.id });
                     });
                 }
-                if (L.superfici && !so) superfici.forEach(sf => poliW(sf.punti, { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°`, strato: sf.f.nome }));
+                if (L.superfici && !so) superfici.forEach(sf => poliW(sf.punti, { fill: sf.f.colore, fo: stS.opacita, stroke: stS.contorno || sf.f.colore, sw: stS.spessore, dash: trattoDash(stS.tratto, 0.6), cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°`, strato: sf.f.nome }));
                 if (L.colonne) d.prove.forEach(p => {
                     const nome = nomeDpsh(p.s);
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return; // dalla parte tolta dal taglio, o spenta
@@ -692,12 +694,12 @@
                     const riga = perTriangolo.get(sf.t) || 0;
                     perTriangolo.set(sf.t, riga + 1);
                     const c = [0, 1, 2].map(n => (sf.punti[0][n] + sf.punti[1][n] + sf.punti[2][n]) / 3);
-                    const rad = sf.immersione * Math.PI / 180, lung = Math.max(4, d.lato / 30);
+                    const rad = sf.immersione * Math.PI / 180, lung = Math.max(4, d.lato / 30) * stG.dimensione;
                     const dx = Math.sin(rad), dy = Math.cos(rad); // verso dell'immersione (x est, y nord)
                     const [a1, a2, tk, o] = [P(c[0] - dy * lung, c[1] + dx * lung, c[2]), P(c[0] + dy * lung, c[1] - dx * lung, c[2]), P(c[0] + dx * lung * 0.6, c[1] + dy * lung * 0.6, c[2]), P(...c)];
                     if (segni.some(g => g.f === sf.f && Math.hypot(g.x - o[0], g.y - o[1]) < 28)) return;
                     segni.push({ f: sf.f, x: o[0], y: o[1] });
-                    [['rgba(0,0,0,0.55)', 4.4], [sf.f.colore, 2.6]].forEach(([stroke, sw]) => {
+                    [['rgba(0,0,0,0.55)', stG.spessore + 1.8], [sf.f.colore, stG.spessore]].forEach(([stroke, sw]) => {
                         sopra.push({ t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke, sw, cls: 'vista3d-giacitura-segno', giacitura: sf.f.nome });
                         sopra.push({ t: 'linea', x1: o[0], y1: o[1], x2: tk[0], y2: tk[1], stroke, sw, cls: 'vista3d-giacitura-segno', giacitura: sf.f.nome });
                     });
@@ -712,10 +714,10 @@
                     const [ax, ay] = angoli.reduce((m, a) => P(a[0], a[1], zRif)[2] < P(m[0], m[1], zRif)[2] ? a : m);
                     const zBasso = d.zMin - profMax, passo = massimoTondo((d.zMax - zBasso) / 5);
                     const b0 = P(ax, ay, zBasso), b1 = P(ax, ay, d.zMax);
-                    sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: 'currentColor', sw: 1.5, cls: 'vista3d-misure' });
+                    sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
                     for (let z = Math.ceil(zBasso / passo) * passo; z <= d.zMax + 0.001; z += passo) {
                         const t = P(ax, ay, z);
-                        sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: 'currentColor', sw: 1, cls: 'vista3d-misure' });
+                        sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
                         if (vista3d.etichette.misure) testo(t[0] - 8, t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: 'end', cls: 'vista3d-misure' });
                     }
                     if (vista3d.etichette.misure) d.lati.forEach(([i, j]) => {
@@ -729,7 +731,7 @@
                 d.prove.forEach(p => {
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
-                    sopra.push({ t: 'cerchio', x: tx, y: ty, r: 4, fill: 'currentColor', cls: 'vista3d-testa', prova: p.s.id });
+                    sopra.push({ t: 'cerchio', x: tx, y: ty, r: 4 * stV.dimensione, fill: stV.colore || 'currentColor', stroke: stV.colore ? stV.contorno : undefined, cls: 'vista3d-testa', prova: p.s.id });
                     if (conNome(p)) testo(tx, ty - 10, nomeDpsh(p.s), { size: 13, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nome', prova: p.s.id });
                     colonne.push({ id: p.s.id, x1: tx, y1: ty - 22, x2: tx, y2: ty });
                 });
@@ -771,9 +773,12 @@
                 const forma = f => {
                     const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
                     if (f.t === 'poli') return `<polygon points="${f.p.map(p => n(p[0]) + ',' + n(p[1])).join(' ')}" fill="${f.fill}" fill-opacity="${f.fo ?? 1}" stroke="${f.stroke || 'none'}" stroke-width="${f.sw || 0}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</polygon>`;
-                    if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${cls}>${tit}</line>`;
+                    if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</line>`;
                     if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"` : ''}${cls}/>`;
-                    return `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
+                    // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
+                    const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
+                    const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
+                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
             }
@@ -832,7 +837,13 @@
                     } else {
                         ctx.globalAlpha = op; ctx.font = `${f.bold ? '700 ' : ''}${f.size}px ${mono}`;
                         ctx.textAlign = f.anchor === 'middle' ? 'center' : f.anchor === 'end' ? 'right' : 'left';
-                        if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = fondo; ctx.strokeText(f.s, f.x, f.y); }
+                        if (f.box) {
+                            const w = ctx.measureText(f.s).width, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
+                            ctx.save(); ctx.globalAlpha = 0.88 * op; ctx.fillStyle = fondo;
+                            ctx.beginPath(); ctx.rect(x0 - 4, f.y - f.size, w + 8, f.size + 5); ctx.fill();
+                            if (f.box === 'bordo') { ctx.globalAlpha = op; ctx.strokeStyle = testoColore; ctx.lineWidth = 1; ctx.stroke(); }
+                            ctx.restore();
+                        } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = fondo; ctx.strokeText(f.s, f.x, f.y); }
                         ctx.fillStyle = testoColore; ctx.fillText(f.s, f.x, f.y);
                     }
                 });
@@ -1220,6 +1231,9 @@
                 voci.push(opacita);
                 const t = r.traccia && tracceDelProgetto().find(x => x.id === r.traccia);
                 const dis = r.disegno && disegniDelProgetto().find(x => x.id === r.disegno);
+                // «Stile…»: colore, contorno, riempimento, tratto… del livello (le prove, tutte insieme)
+                const chiaveStile = r.prova ? 'prove' : r.traccia ? 't:' + r.traccia : r.disegno ? 'd:' + r.disegno : r.giacitura !== undefined ? 'giaciture' : ['falda', 'pannelli', 'superfici', 'misure'].includes(r.livello) ? r.livello : null;
+                if (chiaveStile) voci.push(['Stile…', 'i-draw', '', () => setTimeout(() => apriStileLivello(chiaveStile, chiaveStile === 'prove' ? 'Prove' : chiaveStile === 'giaciture' ? 'Giaciture' : r.nome, { x, y }))]);
                 if (r.prova) voci.push('-', ...vociProvaMappa(r.prova));
                 else if (t) voci.push('-', ...vociTracciaMappa(t));
                 else if (dis) voci.push('-', ...vociDisegno(dis, { x, y }));

@@ -36,37 +36,39 @@
                 const esc = escapeHtmlDidascalia;
                 disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
                     const o = vista3d.opacita['d:' + x.id] ?? 1, ll = x.punti.map(p => [p.lat, p.lng]), className = nuovo && nuovo('d:' + x.id) ? 'am-entra' : '';
+                    const st = stileLivello('d:' + x.id), dash = trattoLeaflet(st.tratto);
                     const forma = x.tipo === 'punto'
-                        ? L.circleMarker(ll[0], { radius: 6, color: '#111827', weight: 1.5, fillColor: x.colore, fillOpacity: o, opacity: o, className })
-                        : L.polygon(ll, { color: x.colore, weight: 2.5, opacity: o, fillOpacity: 0.22 * o, className });
+                        ? L.circleMarker(ll[0], { radius: 6 * st.dimensione, color: st.contorno || st.colore, weight: Math.max(1, st.spessore * 0.6), fillColor: st.colore, fillOpacity: o, opacity: o, className })
+                        : L.polygon(ll, { color: st.colore, weight: st.spessore, dashArray: dash, opacity: o, fillColor: st.riempimento || st.colore, fillOpacity: st.opacita * o, className });
                     forma.addTo(gruppo).bindTooltip(`${esc(x.nome)} · ${testoDisegno(x)}`, { sticky: true })
                         .on('contextmenu', (e) => { L.DomEvent.stop(e); menuDisegno(e.originalEvent, x.id); });
                     if (!vista3d.etichette.disegni) return;
                     const c = x.tipo === 'punto' ? x.punti[0] : centroDisegno(x);
-                    L.marker([c.lat, c.lng], { interactive: false, opacity: o, icon: L.divIcon({ className: '', html: `<span class="mappa-disegno-nome${x.tipo === 'poligono' ? ' centrato' : ''}">${esc(x.nome)}</span>`, iconSize: null, iconAnchor: x.tipo === 'punto' ? [-10, 9] : [0, 9] }) }).addTo(gruppo);
+                    L.marker([c.lat, c.lng], { interactive: false, opacity: o, icon: L.divIcon({ className: '', html: `<span class="mappa-disegno-nome et-${st.etichetta}${x.tipo === 'poligono' ? ' centrato' : ''}">${esc(x.nome)}</span>`, iconSize: null, iconAnchor: x.tipo === 'punto' ? [-10, 9] : [0, 9] }) }).addTo(gruppo);
                 });
             }
             /** Nel 3D: appoggiati sul terreno (i lati dei poligoni ne seguono il profilo). */
             function disegniNellaScena3d(d, P, sopra, testo) {
                 const zMedia = (d.zMin + d.zMax) / 2, alSuolo = (x, y) => { const z = d.zSuolo(x, y); return P(x, y, Number.isFinite(z) ? z : zMedia); };
                 disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
-                    const xy = x.punti.map(p => d.daGeo(p.lat, p.lng));
+                    const xy = x.punti.map(p => d.daGeo(p.lat, p.lng)), st = stileLivello('d:' + x.id);
                     let qui;
                     if (x.tipo === 'punto') {
                         qui = alSuolo(...xy[0]);
-                        sopra.push({ t: 'cerchio', x: qui[0], y: qui[1], r: 6, fill: x.colore, stroke: '#111827', cls: 'vista3d-disegno', disegno: x.id });
+                        sopra.push({ t: 'cerchio', x: qui[0], y: qui[1], r: 6 * st.dimensione, fill: st.colore, stroke: st.contorno || st.colore, cls: 'vista3d-disegno', disegno: x.id });
                     } else {
                         const bordo = [];
                         xy.forEach((a, i) => {
                             const b = xy[(i + 1) % xy.length];
                             for (let k = 0; k < 12; k++) bordo.push(alSuolo(a[0] + (b[0] - a[0]) * k / 12, a[1] + (b[1] - a[1]) * k / 12));
                         });
-                        sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: x.colore, fo: 0.2, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
-                        bordo.forEach((q, i) => { const r = bordo[(i + 1) % bordo.length]; sopra.push({ t: 'linea', x1: q[0], y1: q[1], x2: r[0], y2: r[1], stroke: x.colore, sw: 2.5, cls: 'vista3d-disegno', disegno: x.id }); });
+                        if (st.opacita > 0) sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: st.riempimento || st.colore, fo: st.opacita, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
+                        const dash = trattoDash(st.tratto, 0.6);
+                        bordo.forEach((q, i) => { const r = bordo[(i + 1) % bordo.length]; sopra.push({ t: 'linea', x1: q[0], y1: q[1], x2: r[0], y2: r[1], stroke: st.colore, sw: st.spessore, dash, cls: 'vista3d-disegno', disegno: x.id }); });
                         const c = d.daGeo(centroDisegno(x).lat, centroDisegno(x).lng);
                         qui = alSuolo(...c);
                     }
-                    if (vista3d.etichette.disegni) testo(qui[0] + (x.tipo === 'punto' ? 9 : 0), qui[1] + 4, x.nome, { size: 12, bold: true, alone: true, anchor: x.tipo === 'punto' ? undefined : 'middle', cls: 'vista3d-disegno-nome', disegno: x.id });
+                    if (vista3d.etichette.disegni) testo(qui[0] + (x.tipo === 'punto' ? 9 : 0), qui[1] + 4, x.nome, { size: 12, bold: true, alone: true, box: st.etichetta === 'testo' ? null : st.etichetta, anchor: x.tipo === 'punto' ? undefined : 'middle', cls: 'vista3d-disegno-nome', disegno: x.id });
                 });
             }
 
@@ -82,8 +84,6 @@
                         const nome = await appPrompt('Nome', x.nome, { title: x.tipo === 'punto' ? 'Rinomina il punto' : 'Rinomina il poligono', okLabel: 'Rinomina' });
                         if (nome && nome.trim()) { x.nome = nome.trim(); ridisegna(); }
                     }],
-                    ['Colore…', 'i-riempimento', '', () => setTimeout(() => apriMenuContesto({ preventDefault() {}, clientX: posto.x, clientY: posto.y }, 'Colore · ' + x.nome,
-                        COLORI_DISEGNI.map(c => [`<span class="menu-colore" style="background:${c}"></span>${c}`, c === x.colore ? 'i-check' : 'i-riempimento', '', () => { x.colore = c; ridisegna(); }])))],
                     '-',
                     ['Elimina', 'i-trash', '', async () => {
                         if (!await appConfirmDelete(`Eliminare ${x.nome}?`)) return;

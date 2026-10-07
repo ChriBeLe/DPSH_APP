@@ -37,16 +37,17 @@
                 if (dis && dis.a && dis.cursore) tracce.push({ t: null, a: dis.a, b: dis.cursore });
                 const zMedia = (d.zMin + d.zMax) / 2;
                 tracce.forEach(({ t, a, b }) => {
-                    const pt = [];
+                    const st = t ? stileLivello('t:' + t.id) : null, pt = [];
                     for (let i = 0; i <= 24; i++) {
                         const x = a[0] + (b[0] - a[0]) * i / 24, y = a[1] + (b[1] - a[1]) * i / 24, z = d.zSuolo(x, y);
                         pt.push(P(x, y, Number.isFinite(z) ? z : zMedia));
                     }
-                    for (let i = 1; i < pt.length; i++) sopra.push({ t: 'linea', x1: pt[i - 1][0], y1: pt[i - 1][1], x2: pt[i][0], y2: pt[i][1], stroke: '#dc2626', sw: t ? 2.6 : 1.6, cls: 'vista3d-traccia', traccia: t && t.id });
+                    for (let i = 1; i < pt.length; i++) sopra.push({ t: 'linea', x1: pt[i - 1][0], y1: pt[i - 1][1], x2: pt[i][0], y2: pt[i][1], stroke: st ? st.colore : '#dc2626', sw: st ? st.spessore * 0.65 : 1.6, dash: st ? trattoDash(st.tratto, 0.6) : null, cls: 'vista3d-traccia', traccia: t && t.id });
                     if (!t || !vista3d.etichette.sezioni) return;
                     const [e1, e2] = estremiTraccia(t.nome);
-                    testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome', traccia: t.id });
-                    testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome', traccia: t.id });
+                    const box = st.etichetta === 'testo' ? null : st.etichetta;
+                    testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, box, cls: 'vista3d-traccia-nome', traccia: t.id });
+                    testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, box, cls: 'vista3d-traccia-nome', traccia: t.id });
                 });
                 misuraNellaScena3d(d, P, sopra, testo);
             }
@@ -320,7 +321,8 @@
                 const pa = q(t.a), pb = q(t.b), [e1, e2] = estremiTraccia(t.nome);
                 const nellaSezione = new Set(ds.prove.map(x => x.p.s.id));
                 const testoOmbra = (x, y, s, size, colore) => `<text x="${n(x)}" y="${n(y)}" font-size="${size}" font-weight="800" text-anchor="middle" fill="${colore}" stroke="#000" stroke-width="3" paint-order="stroke">${String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
-                let sopra = `<line x1="${n(pa.x)}" y1="${n(pa.y)}" x2="${n(pb.x)}" y2="${n(pb.y)}" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>`;
+                const st = stileLivello('t:' + t.id), dash = trattoDash(st.tratto, 1.2);
+                let sopra = `<line x1="${n(pa.x)}" y1="${n(pa.y)}" x2="${n(pb.x)}" y2="${n(pb.y)}" stroke="${st.colore}" stroke-width="${n(st.spessore * 1.25)}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash.join(' ')}"` : ''}/>`;
                 proveFisiche(proveConCoordinate(proj)).forEach(s => {
                     const p = q({ lat: parseFloat(s.header.lat), lng: parseFloat(s.header.lng) }), dentro = nellaSezione.has(s.id);
                     if (p.x < 0 || p.y < 0 || p.x > Wpx || p.y > Hpx) return;

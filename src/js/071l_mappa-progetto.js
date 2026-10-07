@@ -66,13 +66,15 @@
                 // Quel che compare per la prima volta (o si riaccende) entra animato; la prova scelta pulsa una volta.
                 if (m.progettoVisti !== state.currentProjectId) { m.visti = new Set(); m.progettoVisti = state.currentProjectId; m.pulsata = null; }
                 const ora = new Set(), nuovo = k => { ora.add(k); return !m.visti.has(k); };
+                const stV = stileLivello('prove');
                 if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
-                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4, opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
+                    const st = stileLivello('t:' + t.id);
+                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: st.colore, weight: st.spessore, dashArray: trattoLeaflet(st.tratto), opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
                         .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
                     if (vista3d.etichette.sezioni) estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
-                        L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
+                        L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia et-${st.etichetta}">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
                 disegniNellaMappa2d(m.livelli, nuovo);
@@ -85,7 +87,7 @@
                         L.circleMarker([sp.da.lat, sp.da.lng], { ...stile, radius: 8, fillOpacity: 0.15 }).addTo(m.livelli);
                         L.polyline([[sp.da.lat, sp.da.lng], [parseFloat(h.lat), parseFloat(h.lng)]], stile).addTo(m.livelli);
                     }
-                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: scelta ? gpsMiaProvaIcon(nr) : gpsAltraProvaIcon(nr), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
+                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: iconaProvaMappa(nr, scelta, stV), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
                     mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
                     mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
                     if (m.spostando === s.id) mk.on('dragend', () => spostaProvaDallaMappa(s.id, mk.getLatLng()));
@@ -95,6 +97,12 @@
                 });
                 m.pulsata = m.scelta;
                 m.visti = ora;
+            }
+            /** Il segnaposto di una prova con lo stile delle prove: colore (la scelta resta blu), bordo, grandezza. */
+            function iconaProvaMappa(nr, scelta, st) {
+                const w = Math.round((scelta ? 30 : 22) * st.dimensione);
+                const stile = `width:${w}px;height:${w}px;border-color:${st.contorno || '#fff'}${!scelta && st.colore ? `;background:${st.colore}` : ''}`;
+                return L.divIcon({ className: '', html: `<div class="${scelta ? 'gps-mia-prova-pin' : 'gps-altra-prova-pin'}" style="${stile}"><span style="font-size:${Math.round((scelta ? 12 : 10) * st.dimensione)}px">${nr}</span></div>`, iconSize: [w, w], iconAnchor: [w / 2, w] });
             }
             function scegliProvaMappa(survId) {
                 mappaProgetto.scelta = survId;

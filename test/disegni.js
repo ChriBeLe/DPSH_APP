@@ -56,11 +56,12 @@ const $ = (app, id) => app.d.getElementById(id);
 
   console.log('--- Il tasto destro ---');
   ev(app, righe()[2], 'contextmenu');
-  t(`sul poligono: ${voci().join(', ')}`, ['Inquadra', 'Opacità…100%', 'Rinomina…', 'Elimina'].every(v => voci().includes(v)) && voci().some(v => /^Colore/.test(v)));
-  clic(app, voce(/^Colore/));
+  t(`sul poligono: ${voci().join(', ')}`, ['Inquadra', 'Opacità…100%', 'Stile…', 'Rinomina…', 'Elimina'].every(v => voci().includes(v)));
+  clic(app, voce(/^Stile/));
   await attesa(20);
-  clic(app, [...menu.querySelectorAll('[data-voce]')][4]);
-  t('«Colore…»: otto colori, se ne sceglie uno', app.E(`${P}.disegni[2].colore`) === '#ef4444');
+  clic(app, app.d.querySelector('.stile-pop [data-campo="colore"] [data-v="#EF4444"]'));
+  t('«Stile…»: il colore scelto è quello del disegno', app.E(`${P}.disegni[2].colore`) === '#EF4444');
+  app.E('chiudiStileLivello(true)');
   ev(app, righe()[2], 'contextmenu');
   clic(app, voce(/^Rinomina/));
   await attesa(30);
