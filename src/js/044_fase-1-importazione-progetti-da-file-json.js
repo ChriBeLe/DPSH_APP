@@ -272,7 +272,9 @@
                 btnOptExportCompleteWord.addEventListener('click', () => {
                     closeExportModal();
                     const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
-                    if (projId) exportProjectCompleteReportWord(projId);
+                    // Il Word passa dalla stessa finestra del PDF: stesse prove, stesso indice, stessa
+                    // numerazione — è lo stesso documento, salvato in un altro formato.
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'word' });
                 });
             }
 

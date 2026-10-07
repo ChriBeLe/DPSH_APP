@@ -293,74 +293,26 @@ ${typeof getControlloImpaginazioneScriptTag === 'function' ? getControlloImpagin
                 });
             }
 
-            /** Inserisce l'attributo bgcolor (oltre allo style già presente) sulle celle colorate:
-             * alcune build di Word rispettano bgcolor in modo più affidabile dello style
-             * background su <td>/<th> importati da HTML, quindi lo aggiungiamo come ridondanza
-             * per garantire che i colori arrivino identici anche lì. */
-            function aggiungiBgcolorPerWord(html){
-                return html.replace(/<(td|th)(\s+style="[^"]*background:#([0-9A-Fa-f]{6})[^"]*")/g, '<$1 bgcolor="#$3"$2');
-            }
-
-            /** Wrappa l'HTML delle tabelle in un documento .doc compatibile con Microsoft Word
-             * (namespace MSO, riconosciuto e aperto nativamente da Word) — stessa formattazione,
-             * stessa impaginazione e stessi colori di riga del PDF e del foglio Nardò_DPSH1.ods. */
-            function costruisciDocumentoWord(titolo, bodyHtml){
-                const bodyConBgcolor = aggiungiBgcolorPerWord(bodyHtml);
-                return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<title>${titolo}</title>
-<!--[if gte mso 9]>
-<xml>
-<w:WordDocument>
-<w:View>Print</w:View>
-<w:Zoom>100</w:Zoom>
-<w:DoNotOptimizeForBrowser/>
-</w:WordDocument>
-</xml>
-<![endif]-->
-<style>
-@page WordSection1 { size: 21cm 29.7cm; margin: 1.8cm 1.5cm; mso-page-orientation: portrait; }
-div.WordSection1 { page: WordSection1; }
-body { font-family: 'Segoe UI', Arial, sans-serif; color:#1e293b; font-size: 11px; }
-h1 { font-size: 18px; margin: 0 0 6px; }
-h2 { font-size: 15px; color:#0f172a; margin: 0 0 14px; }
-table { border-collapse: collapse; width: 100%; font-size: 10.5px; margin-top: 4px; mso-table-lspace:0pt; mso-table-rspace:0pt; page-break-inside: avoid; }
-table.tbl-long { page-break-inside: auto; }
-caption { text-align:left; font-weight:700; font-size:13px; padding-bottom:6px; }
-td, th { border: 1px solid #999; padding: 5px 8px; mso-border-alt: solid #999 .5pt; }
-tr { page-break-inside: avoid; }
-</style>
-</head>
-<body>
-<div class="WordSection1">
-${bodyConBgcolor}
-</div>
-</body>
-</html>`;
-            }
-
             const btnExportProcessingWord = document.getElementById('btnExportProcessingWord');
             if (btnExportProcessingWord) {
                 btnExportProcessingWord.addEventListener('click', async () => {
                     const prove = elencoProveProgetto();
                     if (prove.length === 0) { appAlert('Nessuna prova disponibile in questo progetto.'); return; }
                     const projName = (state.projects[state.currentProjectId] && state.projects[state.currentProjectId].name) || 'Progetto';
+                    // Lo stesso documento del PDF qui sopra, convertito in un .docx vero (vedi 071i):
+                    // tabelle di Word, con le stesse colonne, gli stessi colori e lo stesso testo.
                     const contenuto = await documentoEsportazioneAvanzata();
-                    const docHtml = costruisciDocumentoWord(
-                        `Parametri Avanzati - ${projName}`,
-                        `<h2>Parametri Avanzati — ${projName}</h2>${contenuto}`
-                    );
-                    const blob = new Blob(['﻿' + docHtml], { type: 'application/msword' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Parametri_Avanzati_${projName.replace(/\s+/g, '_')}.doc`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    triggerVibrate(30);
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Parametri Avanzati - ${projName}</title>
+<style>${getReportPrintStyleBlock()}</style></head><body>${getIconSpriteHtml()}<div class="a4-page">
+<h2 style="color:#0f172a;">Parametri Avanzati — ${projName}</h2>
+${contenuto}
+</div></body></html>`;
+                    try {
+                        const risultato = await documentoStampaInDocx(html, { qualitaJpeg: impostazioniEsportazionePdf.qualitaJpeg });
+                        scaricaBlobFile(risultato.blob, `Parametri_Avanzati_${projName.replace(/\s+/g, '_')}.docx`);
+                    } catch (e) {
+                        appAlert('Errore durante la generazione del Word: ' + e.message);
+                    }
                 });
             }
 

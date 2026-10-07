@@ -107,7 +107,7 @@
                             // riconoscere davvero un cambio di tabella, e le interruzioni manuali
                             // sotto sono scritte come "idBlocco:indice" invece del solo indice, così
                             // non si mescolano più tra blocchi diversi.
-                            elementiFusi.forEach(el => atomi.push({ html: `<div${styleScalaBlocco}>${el.html}</div>`, mm: el.mm, categoriaIndex: el.categoriaIndex, blockId: bloccoFlowable.id }));
+                            elementiFusi.forEach(el => atomi.push({ html: `<div data-blocco="${bloccoFlowable.type}"${styleScalaBlocco}>${el.html}</div>`, mm: el.mm, categoriaIndex: el.categoriaIndex, blockId: bloccoFlowable.id }));
                             if (Array.isArray(bloccoFlowable.categorieForzaPaginaPrima)) {
                                 bloccoFlowable.categorieForzaPaginaPrima.forEach(i => indiciForzati.add(`${bloccoFlowable.id}:${i}`));
                             }
@@ -440,7 +440,7 @@
                 // survIds/includiIndice (richiesti esplicitamente dalla nuova schermata di
                 // esportazione PDF: "poter selezionare quali prove inserire" + indice opzionale):
                 // opzionali, di default TUTTE le prove del progetto e indice sempre incluso, per non
-                // rompere l'unico altro chiamante rimasto (exportProjectCompleteReportWord).
+                // rompere chi la chiama senza opzioni.
                 const survIdsFiltro = opzioni && Array.isArray(opzioni.survIds) ? new Set(opzioni.survIds) : null;
                 let survList = Object.values(proj.surveys || {});
                 if (survIdsFiltro) survList = survList.filter(s => survIdsFiltro.has(s.id));
@@ -527,35 +527,6 @@
                 const totalPageCount = (includiIndice ? 1 : 0) + sezioni.reduce((sum, s) => sum + s.pageCount, 0);
 
                 return { proj, survList, pagesHtml, totalPageCount };
-            }
-
-            async function exportProjectCompleteReportWord(projId) {
-                try {
-                    const result = await buildCompleteReportHtml(projId);
-                    if (!result) {
-                        alert('Nessuna prova presente nel progetto da esportare.');
-                        return;
-                    }
-                    const { proj, pagesHtml } = result;
-                    const projName = proj.name || proj.comune || 'Progetto';
-
-                    const docHtml = costruisciDocumentoWord(
-                        `Report Completo - ${projName}`,
-                        `<h1>Report Completo — ${projName}</h1>${pagesHtml}`
-                    );
-                    const blob = new Blob(['﻿' + docHtml], { type: 'application/msword' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Report_Completo_${projName.replace(/\s+/g, '_')}.doc`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    triggerVibrate(30);
-                } catch(e) {
-                    alert('Errore durante la generazione del Report Completo (Word): ' + e.message);
-                }
             }
 
             // FUNZIONE PER SCARICARE LE FOTO JPEG (.jpg) DELLA PROVA

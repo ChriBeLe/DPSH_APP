@@ -716,17 +716,10 @@
             // ---- Export PDF: stessa tecnica già usata per il report di prova (finestra formattata
             // + window.print(), l'utente sceglie "Salva come PDF" dal dialogo di stampa) — nessuna
             // libreria PDF aggiuntiva, coerente col resto dell'app. ----
-            const btnNoteExportPdf = document.getElementById('btnNoteExportPdf');
-            if (btnNoteExportPdf) btnNoteExportPdf.addEventListener('click', async () => {
-                if (!noteProjectContext) return;
-                const proj = state.projects[noteProjectContext.projId];
-                const titolo = `Note — ${proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto'}`;
-                try {
-                    const printWindow = window.open('', '_blank');
-                    if (!printWindow) { alert('Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
-                    const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
-                    const dataStr = new Date().toLocaleDateString('it-IT');
-                    const fullDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>
+            /** Il documento della nota come va in stampa: lo usano il PDF e il Word, che così sono
+             * lo stesso documento. */
+            function documentoNotaStampa(titolo, html, dataStr) {
+                return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>
                         <style>
                             body{font-family:Arial,sans-serif;margin:0;background:#fff;}
                             .a4-page{max-width:210mm;margin:0 auto;padding:16mm;box-sizing:border-box;}
@@ -771,6 +764,19 @@
                             <div class="note-print-meta">Esportato il ${dataStr}</div>
                             <div class="note-print-body">${html || '<p style="color:#94a3b8;">(nota vuota)</p>'}</div>
                         </div></body></html>`;
+            }
+
+            const btnNoteExportPdf = document.getElementById('btnNoteExportPdf');
+            if (btnNoteExportPdf) btnNoteExportPdf.addEventListener('click', async () => {
+                if (!noteProjectContext) return;
+                const proj = state.projects[noteProjectContext.projId];
+                const titolo = `Note — ${proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto'}`;
+                try {
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) { alert('Consenti i pop-up nel browser per aprire la nota in PDF.'); return; }
+                    const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
+                    const dataStr = new Date().toLocaleDateString('it-IT');
+                    const fullDoc = documentoNotaStampa(titolo, html, dataStr);
                     printWindow.document.open();
                     printWindow.document.write(fullDoc);
                     printWindow.document.close();
@@ -779,49 +785,21 @@
                 }
             });
 
-            // ---- Export Word: tecnica HTML->.doc (namespace "mso", MIME application/msword) —
-            // nessuna libreria esterna, funziona offline, Word la apre e la mostra come documento
-            // normale e modificabile, immagini incluse (base64 incorporato). ----
+            // ---- Export Word: lo stesso documento del PDF qui sopra, convertito in un .docx vero
+            // (vedi 071i): testo e tabelle modificabili, immagini incorporate, stessi margini. ----
             const btnNoteExportDoc = document.getElementById('btnNoteExportDoc');
             if (btnNoteExportDoc) btnNoteExportDoc.addEventListener('click', async () => {
                 if (!noteProjectContext) return;
                 const proj = state.projects[noteProjectContext.projId];
                 const titolo = `Note — ${proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto'}`;
-                const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
-                const dataStr = new Date().toLocaleDateString('it-IT');
-                const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-                    <head><meta charset="utf-8"><title>${titolo}</title>
-                    <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-                    <style>
-                        body{font-family:Calibri,Arial,sans-serif;font-size:12pt;color:#1e293b;}
-                        h1.note-doc-title{font-size:18pt;font-weight:800;color:#0f172a;margin-bottom:2pt;}
-                        .meta{font-size:9pt;color:#64748b;margin-bottom:14pt;}
-                        .note-body h1{font-size:15pt;font-weight:800;margin:12pt 0 4pt;}
-                        .note-body h2{font-size:13.5pt;font-weight:800;margin:11pt 0 4pt;}
-                        .note-body h3{font-size:13pt;font-weight:800;margin:12pt 0 4pt;}
-                        .note-body blockquote{margin:8pt 0;padding:4pt 10pt;border-left:3pt solid #f59e0b;background:#f8fafc;color:#64748b;font-style:italic;}
-                        .note-body hr{border:none;border-top:1pt solid #e2e8f0;margin:12pt 0;}
-                        .note-body a{color:#2563eb;}
-                        .note-body table{border-collapse:collapse;width:100%;margin:8pt 0;font-size:11pt;}
-                        .note-body table th, .note-body table td{border:1pt solid #e2e8f0;padding:4pt 6pt;text-align:left;vertical-align:top;}
-                        .note-body table th{background:#f1f5f9;font-weight:700;}
-                        .note-body table p{margin:0;}
-                        .note-body li > p{margin:0;}
-                        .note-body .note-check-item{margin:3pt 0;}
-                        .note-body ul[data-type="taskList"]{list-style:none;padding-left:0;margin:4pt 0;}
-                        .note-body ul[data-type="taskList"] li{margin:3pt 0;}
-                        .note-body ul[data-type="taskList"] li > div p{margin:0;}
-                        .note-body ul[data-type="taskList"] li[data-checked="true"] > div{text-decoration:line-through;color:#94a3b8;}
-                        .note-body mark{background:#fef08a;color:#111827 !important;}
-                        img{max-width:600px;}
-                        .note-body:after{content:"";display:block;clear:both;}
-                    </style></head>
-                    <body>
-                        <h1 class="note-doc-title">${titolo}</h1>
-                        <div class="meta">Esportato il ${dataStr}</div>
-                        <div class="note-body">${html || '<p>(nota vuota)</p>'}</div>
-                    </body></html>`;
-                scaricaBlob(doc, 'application/msword', nomeFileNotaCorrente('doc'));
+                try {
+                    const html = await rehydrateNoteImagesInHtmlString(htmlNotaCorrente());
+                    const dataStr = new Date().toLocaleDateString('it-IT');
+                    const risultato = await documentoStampaInDocx(documentoNotaStampa(titolo, html, dataStr), { margini: { top: 16, right: 16, bottom: 16, left: 16 } });
+                    scaricaBlobFile(risultato.blob, nomeFileNotaCorrente('docx'));
+                } catch (e) {
+                    alert('Errore durante la generazione del Word: ' + e.message);
+                }
             });
 
             // PARSER EXIF MULTI-SEGMENTO PER ESTRAZIONE COORDINATE GPS
