@@ -355,7 +355,7 @@
             // si è toccata. La disegnano sia il canvas (a schermo, veloce) sia l'SVG (il file).
             // Forme: {t:'poli', p, fill, fo, stroke, sw, dash}, {t:'linea', x1, y1, x2, y2, stroke, sw},
             // {t:'testo', x, y, s, size, bold, anchor, alone}, {t:'cerchio', x, y, r, fill}; con cls e title.
-            function scena3d(d, larghezza, leggera) {
+            function scena3d(d, larghezza, leggera, file) {
                 const L = vista3d.livelli;
                 const W = Math.max(320, Math.round(larghezza || 1000)), H = Math.round(Math.max(300, Math.min(620, W * 0.62)));
                 const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), ce = Math.cos(vista3d.el), se = Math.sin(vista3d.el);
@@ -559,18 +559,20 @@
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
                 const sfAttr = L.terreno && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
                 if (sfAttr) testo(W - 12, 16, sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
-                // Il nord, in basso a destra.
-                const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
-                const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
-                sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
-                // La metà verso Nord in rosso, come una bussola; toccarla mette il Nord in alto.
-                sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50, y2: H - 50, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
-                sopra.push({ t: 'linea', x1: W - 50, y1: H - 50, x2: W - 50 + ax * 18, y2: H - 50 + ay * 18, stroke: '#dc2626', sw: 3.5, cls: 'vista3d-nord' });
-                testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 14, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
+                // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola).
+                if (file) {
+                    const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
+                    const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
+                    sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
+                    // La metà verso Nord in rosso, come una bussola.
+                    sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50, y2: H - 50, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'linea', x1: W - 50, y1: H - 50, x2: W - 50 + ax * 18, y2: H - 50 + ay * 18, stroke: '#dc2626', sw: 3.5, cls: 'vista3d-nord' });
+                    testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 14, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
+                }
                 const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
                 if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
                 else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
-                return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra), bussola: { x: W - 50, y: H - 50, r: 24 } };
+                return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
             }
 
             /** La scena in SVG: per il file scaricato (e per i test). */
@@ -680,7 +682,6 @@
                 if (!canvas) { box.innerHTML = '<canvas aria-label="Vista 3D del terreno e delle prove" role="img"></canvas>'; canvas = box.querySelector('canvas'); }
                 ultimaScena3d = scena3d(datiVista3dCorrenti, box.clientWidth, leggera);
                 disegnaScena(canvas, ultimaScena3d);
-                document.getElementById('lblEsag3d').textContent = '×' + vista3d.ex;
             }
 
             function apriVista3d() {
@@ -696,7 +697,6 @@
                     const profMax = Math.max(1, ...d.prove.map(p => p.fondo));
                     vista3d.ex = Math.max(1, Math.min(30, Math.round(Math.max(d.senzaDtm ? 0 : d.lato / 8 / rilievo, d.lato / 6 / profMax))));
                     vistaIniziale3d();
-                    document.getElementById('rngEsag3d').value = vista3d.ex;
                 }
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
@@ -764,8 +764,6 @@
             const puntoCanvas = e => { const c = box3d.querySelector('canvas'), r = c ? c.getBoundingClientRect() : { left: 0, top: 0 }; return [e.clientX - r.left, e.clientY - r.top]; };
             box3d.addEventListener('click', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
-                const [cx3, cy3] = puntoCanvas(e), bu = ultimaScena3d.bussola;
-                if (bu && Math.hypot(cx3 - bu.x, cy3 - bu.y) <= bu.r + 8) { vaiAVista3d({ az: 0 }); return; }
                 const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
                 if (id) apriFumettoProva(id, e.clientX, e.clientY);
                 else chiudiFumetti(false);
@@ -773,9 +771,8 @@
             // Col mouse sopra una colonna, la manina.
             box3d.addEventListener('pointermove', (e) => {
                 if (vista3d.trascina || !ultimaScena3d) return;
-                const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e), bu = ultimaScena3d.bussola;
-                const suBussola = bu && Math.hypot(mx - bu.x, my - bu.y) <= bu.r + 8;
-                if (c) { c.style.cursor = suBussola || provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab'; c.title = suBussola ? 'Nord in alto' : ''; }
+                const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e);
+                if (c) c.style.cursor = provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
             });
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }
@@ -789,7 +786,6 @@
             });
             function zoom3d(f) { vista3d.zoom = Math.max(0.1, Math.min(40, vista3d.zoom * f)); ridisegna3d(); }
             box3d.addEventListener('wheel', (e) => { e.preventDefault(); zoom3d(Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
-            document.getElementById('rngEsag3d').addEventListener('input', (e) => { vista3d.ex = Number(e.target.value); ridisegna3d(); });
             /** Accende il modello solido e lo inquadra: il corpo sta tra le prove, la scena intorno
              * comprende tutto il terreno, e da lontano il corpo sarebbe un francobollo. */
             function accendiSolido3d() {
@@ -817,23 +813,20 @@
                 document.querySelectorAll('#schedeVista3d [data-scheda3d]').forEach(t => t.setAttribute('aria-selected', String(t === b)));
                 document.querySelectorAll('#modalVista3d [data-pannello3d]').forEach(pn => { pn.hidden = pn.dataset.pannello3d !== b.dataset.scheda3d; });
             });
-            const gradi = r => r * 180 / Math.PI, radianti = g => g * Math.PI / 180;
+            const gradi = r => r * 180 / Math.PI;
             /** La direzione verso cui si guarda (0 = verso Nord) e il suo nome. */
             const direzioneVista3d = () => ((Math.round(gradi(vista3d.az)) % 360) + 360) % 360;
             const nomeDirezione = g => ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ovest', 'Ovest', 'Nord-Ovest'][Math.round(g / 45) % 8];
             const ZOOM_MIN = 0.1, ZOOM_MAX = 40;
             function sincronizzaCursori3d() {
-                const az = direzioneVista3d();
                 // L'inclinazione si legge tra −90 e 90: oltre, la vista è capovolta e vale come la sua gemella.
-                let el = gradi(Math.atan2(Math.sin(vista3d.el), Math.abs(Math.cos(vista3d.el))));
-                el = Math.round(el);
-                document.getElementById('rngAz3d').value = az;
-                document.getElementById('lblAz3d').textContent = `verso ${nomeDirezione(az)} · ${az}°`;
-                document.getElementById('rngEl3d').value = el;
-                document.getElementById('lblEl3d').textContent = el === 90 ? 'dall\'alto · 90°' : el === -90 ? 'da sotto · −90°' : el === 0 ? 'orizzonte · 0°' : (el > 0 ? 'da sopra · ' : 'da sotto · ') + String(el).replace('-', '−') + '°';
-                document.getElementById('rngZoom3d').value = Math.round(Math.log(vista3d.zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN) * 100);
-                document.getElementById('lblZoom3d').textContent = '×' + numeroConVirgola(vista3d.zoom, vista3d.zoom < 10 ? 1 : 0);
-                document.getElementById('rngEsag3d').value = vista3d.ex;
+                const el = Math.atan2(Math.sin(vista3d.el), Math.abs(Math.cos(vista3d.el)));
+                const fz = Math.log(vista3d.zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN);
+                bussola3d.aggiorna({
+                    nord: -gradi(vista3d.az), incl: el,
+                    zoom: { f: fz, testo: '×' + numeroConVirgola(vista3d.zoom, vista3d.zoom < 10 ? 1 : 0), piuNo: vista3d.zoom >= ZOOM_MAX, menoNo: vista3d.zoom <= ZOOM_MIN },
+                    esag: { f: (vista3d.ex - 1) / 29, testo: '×' + vista3d.ex, piuNo: vista3d.ex >= 30, menoNo: vista3d.ex <= 1 }
+                });
                 const bp = document.getElementById('btnProspettiva3d');
                 bp.setAttribute('aria-pressed', String(vista3d.prospettiva));
                 bp.textContent = vista3d.prospettiva ? 'Accesa' : 'Spenta';
@@ -872,9 +865,299 @@
                 if (v.prospettiva !== undefined) vista3d.prospettiva = v.prospettiva;
                 vaiAVista3d({ az: v.az, el: v.el });
             });
-            document.getElementById('rngAz3d').addEventListener('input', (e) => { vista3d.az = radianti(Number(e.target.value)); ridisegna3d(); });
-            document.getElementById('rngEl3d').addEventListener('input', (e) => { vista3d.el = radianti(Number(e.target.value)); ridisegna3d(); });
-            document.getElementById('rngZoom3d').addEventListener('input', (e) => { vista3d.zoom = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 100); ridisegna3d(); });
+            // ---- La bussola (presa da HyperGram 6.0b, creaBussola): sopra la figura, in alto a sinistra.
+            // L'anello graduato gira col nord e trascinato gira la vista; l'indice ciano in alto e l'arco
+            // misurano di quanto è girata. Al centro la leva: trascinata sposta la scena (più lontano
+            // dal centro, più veloce; Maiusc più veloce ancora), un clic mette il Nord in alto. Agli
+            // angoli: dall'alto, vista di partenza, gira finché si tiene premuto. A destra le righe di
+            // zoom, inclinazione ed esagerazione: disegnino, − cursore +, valore che si accende quando
+            // cambia. La freccia le richiude (restano disegnini e valori) e la scelta si ricorda.
+            const giri = g => ((g % 360) + 540) % 360 - 180;            // gradi in (-180, 180]
+            const segnoGradi = g => (g > 0 ? '+' : g < 0 ? '−' : '') + Math.abs(g) + '°';
+            const INCL_3D = [-90, 90];
+            const bussola3d = (() => {
+                const div = document.getElementById('bussola3d');
+                const MINI = {
+                    zoom: '<svg class="b-mini-svg" viewBox="0 0 12 24"><rect class="b-mz-fondo" x="4" y="2" width="4" height="20" rx="2"/><rect class="b-mz-pieno" x="4" y="12" width="4" height="10" rx="2"/>' +
+                        '<circle class="b-mz-cur" cx="6" cy="12" r="3.2"/></svg>',
+                    incl: '<svg class="b-mini-svg" viewBox="0 0 24 44"><path class="b-incl-arco" d="M3 4 A18 18 0 0 1 3 40"/><line class="b-incl-oriz" x1="19" y1="22" x2="24" y2="22"/>' +
+                        '<path class="b-incl-spicchio" d=""/><line class="b-incl-ago" x1="3" y1="22" x2="21" y2="22"/><circle class="b-incl-punta" cx="21" cy="22" r="3"/>' +
+                        '<circle class="b-incl-occhio" cx="3" cy="22" r="2.6"/></svg>',
+                    // l'esagerazione: un rilievo che si alza
+                    esag: '<svg class="b-mini-svg" viewBox="0 0 20 24"><line class="b-me-base" x1="1" y1="21" x2="19" y2="21"/><path class="b-me-rilievo" d=""/></svg>'
+                };
+                const ico = (nome, gira) => `<svg class="ico"${gira ? ` style="transform: rotate(${gira}deg)"` : ''}><use href="#i-${nome}"/></svg>`;
+                const tasto = (cls, dentro, titolo, attr) => `<button type="button" class="b-tasto ${cls}" ${attr} title="${titolo}" aria-label="${titolo}">${dentro}</button>`;
+                const riga = (nome, et, sx, titolo, dx, dentro) => `<div class="b-riga" data-riga="${nome}"><span class="b-mini" title="${et}">${MINI[nome]}</span>` +
+                    `<span class="b-ext">${sx}<div class="b-traccia" data-trac="${nome}" title="${titolo}">${dentro}<i class="b-cursore"></i></div>${dx}</span><span class="b-val"></span></div>`;
+                let tacche = '';
+                for (let g = 5; g < 360; g += 5) {
+                    const l = g % 90 === 0 ? 6 : g % 45 === 0 ? 5 : g % 15 === 0 ? 3.6 : 2;
+                    tacche += `<line class="${g % 15 ? 'm' : 'M'}" x1="60" y1="5" x2="60" y2="${5 + l}" transform="rotate(${g} 60 60)"/>`;
+                }
+                div.innerHTML =
+                    '<div class="b-dial"><svg class="b-svg" viewBox="0 0 120 120" aria-hidden="true">' +
+                        '<circle class="b-fondo" cx="60" cy="60" r="59.5"/><circle class="b-anello" cx="60" cy="60" r="46.5"/>' +
+                        `<g class="b-rosa">${tacche}<path class="b-ntri" d="M60 6.2 L63.2 12 L56.8 12 Z"/></g>` +
+                        '<g class="b-lettere"><text class="b-n">N</text><text>E</text><text>S</text><text>O</text></g>' +
+                        '<path class="b-arco" d=""/><circle class="b-arco-punta" cx="60" cy="23" r="2.6"/>' +
+                        '<path class="b-indice" d="M60 5.6 L56.4 0.8 L63.6 0.8 Z"/>' +
+                        '<circle class="b-presa-anello" cx="60" cy="60" r="47"/>' +
+                        '<circle class="b-guida" cx="60" cy="60" r="25"/><circle class="b-guida" cx="60" cy="60" r="13"/>' +
+                        '<line class="b-vettore" x1="60" y1="60" x2="60" y2="60"/><path class="b-vettore-punta" d=""/>' +
+                        '<g class="b-pomello"><circle cx="60" cy="60" r="14"/><text class="b-rotta" x="60" y="63">0°</text></g>' +
+                        '<circle class="b-presa-centro" cx="60" cy="60" r="37"><title>Trascina per spostare la scena · un clic mette il Nord in alto</title></circle>' +
+                    '</svg>' +
+                    tasto('b-ang tl', ico('arrow-up', 180), 'Guarda dall\'alto, dritto in giù', 'data-azione="alto"') +
+                    tasto('b-ang tr', ico('home'), 'Vista di partenza', 'data-azione="casa"') +
+                    tasto('b-ang bl', ico('undo'), 'Gira la vista in senso antiorario · tieni premuto', 'data-passo="giras"') +
+                    tasto('b-ang br', ico('redo'), 'Gira la vista in senso orario · tieni premuto', 'data-passo="girad"') +
+                    '</div>' +
+                    '<div class="b-righe"><div class="b-righe-col">' +
+                        riga('zoom', 'Zoom', tasto('', '−', 'Allontana · tieni premuto', 'data-passo="meno"'), 'Zoom: trascina (Maiusc: più fine)',
+                            tasto('', ico('plus'), 'Avvicina · tieni premuto', 'data-passo="piu"'), '<i class="b-pieno"></i>') +
+                        riga('incl', 'Inclinazione: 0° orizzonte, 90° dall\'alto, −90° da sotto', tasto('', ico('chevron-down', 90), 'Guarda più da sotto · tieni premuto', 'data-passo="giu"'),
+                            'Inclinazione: 0° orizzonte, 90° dall\'alto, −90° da sotto · trascina (Maiusc: più fine)',
+                            tasto('', ico('chevron-down', -90), 'Guarda più dall\'alto · tieni premuto', 'data-passo="su"'), '<i class="b-pieno"></i><i class="b-zero"></i>') +
+                        riga('esag', 'Esagerazione verticale', tasto('', '−', 'Meno esagerata · tieni premuto', 'data-passo="esagmeno"'), 'Esagerazione verticale: trascina',
+                            tasto('', ico('plus'), 'Più esagerata · tieni premuto', 'data-passo="esagpiu"'), '<i class="b-pieno"></i>') +
+                    '</div>' + tasto('b-apri', ico('chevron-down', 90), 'Richiudi i comandi (restano indicatori e valori)', '') + '</div>';
+                const q = sel => div.querySelector(sel), svg = q('.b-svg');
+                const rosa = q('.b-rosa'), lettere = [...div.querySelectorAll('.b-lettere text')], arco = q('.b-arco'), punta = q('.b-arco-punta');
+                const rotta = q('.b-rotta'), pomello = q('.b-pomello'), vettore = q('.b-vettore'), vPunta = q('.b-vettore-punta');
+                const rgZoom = q('[data-riga="zoom"]'), rgInc = q('[data-riga="incl"]'), rgEsag = q('[data-riga="esag"]'), apri = q('.b-apri');
+                const riduci = rid => {
+                    div.classList.toggle('b-ridotta', rid);
+                    apri.title = rid ? 'Apri i comandi: zoom, inclinazione ed esagerazione' : 'Richiudi i comandi (restano indicatori e valori)';
+                    try { localStorage.setItem('dpsh.bussola3dRidotta', rid ? '1' : '0'); } catch (_) { /* solo per questa volta */ }
+                };
+                try { if (localStorage.getItem('dpsh.bussola3dRidotta') === '1') div.classList.add('b-ridotta'); } catch (_) { /* aperta */ }
+                apri.addEventListener('click', () => riduci(!div.classList.contains('b-ridotta')));
+                div.querySelectorAll('.b-mini').forEach(m => m.addEventListener('click', () => riduci(!div.classList.contains('b-ridotta'))));
+
+                // un gesto col puntatore: cattura, movimento e fine sullo stesso elemento
+                function presa(e, muovi, fine) {
+                    const el = e.currentTarget;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try { el.setPointerCapture(e.pointerId); } catch (_) { /* nulla */ }
+                    const via = () => {
+                        el.removeEventListener('pointermove', muovi);
+                        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => el.removeEventListener(n, via));
+                        fine();
+                    };
+                    el.addEventListener('pointermove', muovi);
+                    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => el.addEventListener(n, via));
+                }
+                const misura = () => { const r = svg.getBoundingClientRect(); return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, k: 120 / (r.width || 120) }; };
+                const angolo = (m, e) => Math.atan2(e.clientX - m.cx, -(e.clientY - m.cy)) * 180 / Math.PI;
+
+                // l'anello trascinato gira la vista: il nord segue il dito
+                let az0 = 0;
+                q('.b-presa-anello').addEventListener('pointerdown', e => {
+                    if (e.button !== 0) return;
+                    const m = misura(), x0 = e.clientX, y0 = e.clientY;
+                    let ultimo = angolo(m, e), somma = 0, mosso = false;
+                    presa(e, ev => {
+                        if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 3) return;
+                        const a = angolo(m, ev);
+                        somma += giri(a - ultimo);
+                        ultimo = a;
+                        if (!mosso) { div.classList.add('gira'); cancelAnimationFrame(animazione3d); az0 = vista3d.az; }
+                        mosso = true;
+                        vista3d.az = az0 - somma * Math.PI / 180;
+                        ridisegna3d();
+                    }, () => div.classList.remove('gira'));
+                });
+
+                // la leva: il pomello segue il mouse fino al bordo dell'anello, il vettore mostra direzione e velocità
+                const R_LEVA = 38;
+                let levaV = null;
+                function mostraLeva(fx, fy) {
+                    levaV = fx || fy ? [fx, fy] : null;
+                    pomello.style.transform = `translate(${(fx * 24).toFixed(2)}px,${(fy * 24).toFixed(2)}px)`;
+                    const d = Math.hypot(fx, fy), ux = d ? fx / d : 0, uy = d ? fy / d : 0, lun = d ? 29 * d + 17 : 0;
+                    const x = 60 + ux * lun, y = 60 + uy * lun;
+                    vettore.setAttribute('x2', x.toFixed(2));
+                    vettore.setAttribute('y2', y.toFixed(2));
+                    if (d > 0.02) {
+                        const b = 5.5;
+                        vPunta.setAttribute('d', `M${(x + ux * 2).toFixed(2)} ${(y + uy * 2).toFixed(2)} L${(x - ux * b - uy * b * 0.6).toFixed(2)} ${(y - uy * b + ux * b * 0.6).toFixed(2)}` +
+                            ` L${(x - ux * b + uy * b * 0.6).toFixed(2)} ${(y - uy * b - ux * b * 0.6).toFixed(2)} Z`);
+                    } else vPunta.setAttribute('d', '');
+                    scriviRotta();
+                }
+                q('.b-presa-centro').addEventListener('pointerdown', e => {
+                    if (e.button !== 0) return;
+                    const m = misura(), x0 = e.clientX, y0 = e.clientY;
+                    let mosso = false;
+                    presa(e, ev => {
+                        if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 3) return;
+                        mosso = true;
+                        div.classList.add('leva');
+                        let x = (ev.clientX - m.cx) * m.k, y = (ev.clientY - m.cy) * m.k;
+                        const d = Math.hypot(x, y);
+                        if (d > R_LEVA) { x *= R_LEVA / d; y *= R_LEVA / d; }
+                        mostraLeva(x / R_LEVA, y / R_LEVA);
+                        moto3d.leva = [x / R_LEVA, y / R_LEVA];
+                        moto3d.veloce = ev.shiftKey;
+                        avviaMoto3d();
+                    }, () => {
+                        div.classList.remove('leva');
+                        mostraLeva(0, 0);
+                        moto3d.leva = null;
+                        if (!mosso) vaiAVista3d({ az: 0 });
+                    });
+                });
+
+                // tasti: data-passo vanno finché si tengono premuti, data-azione al clic
+                div.querySelectorAll('[data-passo]').forEach(b => {
+                    const su = () => { if (b.classList.contains('premuto')) { b.classList.remove('premuto'); moto3d.tasti.delete(b.dataset.passo); } };
+                    b.addEventListener('pointerdown', e => {
+                        if (e.button !== 0 || b.disabled) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try { b.setPointerCapture(e.pointerId); } catch (_) { /* nulla */ }
+                        b.classList.add('premuto');
+                        moto3d.veloce = e.shiftKey;
+                        moto3d.tasti.add(b.dataset.passo);
+                        avviaMoto3d();
+                    });
+                    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, su));
+                });
+                div.querySelectorAll('[data-azione]').forEach(b => b.addEventListener('click', () => {
+                    if (b.dataset.azione === 'casa') { vista3d.panX = 0; vista3d.panY = 0; vista3d.zoom = 1.4; }
+                    vaiAVista3d(b.dataset.azione === 'alto' ? VISTE_PRONTE_3D.alto : { az: -0.6, el: 0.62 });
+                }));
+
+                // cursori: premendo sul pallino lo si trascina da dov'è (nessun salto), premendo altrove sulla
+                // traccia ci va e da lì si trascina; il movimento è relativo, con Maiusc a un quinto
+                const azTraccia = {
+                    zoom: f => { vista3d.zoom = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, f); },
+                    incl: f => { vista3d.el = (INCL_3D[0] + f * (INCL_3D[1] - INCL_3D[0])) * Math.PI / 180; },
+                    esag: f => { vista3d.ex = Math.round(1 + f * 29); }
+                };
+                div.querySelectorAll('[data-trac]').forEach(tr => tr.addEventListener('pointerdown', e => {
+                    if (e.button !== 0) return;
+                    const fn = f => { azTraccia[tr.dataset.trac](f); ridisegna3d(); };
+                    const r = tr.getBoundingClientRect(), largo = Math.max(1, r.width - 12);
+                    const sulCursore = e.target.classList.contains('b-cursore');
+                    let f = sulCursore ? +tr.dataset.f || 0 : Math.max(0, Math.min(1, (e.clientX - r.left - 6) / largo)), x0 = e.clientX;
+                    cancelAnimationFrame(animazione3d);
+                    div.classList.add('trac');
+                    tr.classList.add('presa');
+                    if (!sulCursore) fn(f);
+                    presa(e, ev => {
+                        f = Math.max(0, Math.min(1, f + (ev.clientX - x0) / largo * (ev.shiftKey ? 0.2 : 1)));
+                        x0 = ev.clientX;
+                        fn(f);
+                    }, () => { div.classList.remove('trac'); tr.classList.remove('presa'); });
+                }));
+
+                // ---- aggiornamento dai valori della vista: ogni valore che cambia si accende un attimo
+                const prec = {}, tempi = {};
+                function accendi(chiave, nodo, valore) {
+                    if (prec[chiave] !== undefined && prec[chiave] !== valore && nodo) {
+                        nodo.classList.add('vivo');
+                        clearTimeout(tempi[chiave]);
+                        tempi[chiave] = setTimeout(() => nodo.classList.remove('vivo'), 900);
+                    }
+                    prec[chiave] = valore;
+                }
+                // al centro la direzione in cui si guarda; mentre gira, di quanto; con la leva, la velocità
+                let nordOra = 0, deltaBase = null, deltaTempo = 0;
+                function scriviRotta() {
+                    const r = Math.round((360 - giri(nordOra) + 360) % 360) % 360;
+                    const delta = deltaBase === null ? 0 : Math.round(giri(deltaBase - nordOra));
+                    rotta.textContent = levaV ? Math.round(Math.min(1, levaV[0] * levaV[0] + levaV[1] * levaV[1]) * 100) + '%' : deltaBase !== null ? segnoGradi(delta) : r + '°';
+                    rotta.classList.toggle('vivo', deltaBase !== null || !!levaV);
+                }
+                const posX = f => `calc(6px + ${(f * 100).toFixed(3)}% - ${(f * 12).toFixed(3)}px)`;
+                const trac = (rg, f, da) => {
+                    f = Math.max(0, Math.min(1, f));
+                    const tr = rg.querySelector('.b-traccia'), c = tr.querySelector('.b-cursore'), p = tr.querySelector('.b-pieno');
+                    tr.dataset.f = f;
+                    c.style.left = posX(f);
+                    const a = Math.min(da || 0, f), b = Math.max(da || 0, f);
+                    p.style.left = posX(a);
+                    p.style.width = `calc(${((b - a) * 100).toFixed(3)}% - ${((b - a) * 12).toFixed(3)}px)`;
+                };
+                const valore = (rg, chiave, testo) => { rg.querySelector('.b-val').textContent = testo; accendi(chiave, rg, testo); };
+                const meniPiu = (rg, s, meno, piu) => { rg.querySelector(`[data-passo="${meno}"]`).disabled = !!s.menoNo; rg.querySelector(`[data-passo="${piu}"]`).disabled = !!s.piuNo; };
+                function aggiorna(s) {
+                    const n = giri(s.nord || 0), nTondo = Math.round(n * 10) / 10;
+                    if (prec.nord !== undefined && prec.nord !== nTondo) {
+                        if (deltaBase === null) deltaBase = prec.nordVero;
+                        clearTimeout(deltaTempo);
+                        deltaTempo = setTimeout(() => { deltaBase = null; scriviRotta(); }, 1100);
+                    }
+                    prec.nord = nTondo;
+                    prec.nordVero = n;
+                    nordOra = n;
+                    rosa.setAttribute('transform', `rotate(${n.toFixed(2)} 60 60)`);
+                    lettere.forEach((t, i) => {
+                        const a = (n + i * 90) * Math.PI / 180;
+                        t.setAttribute('x', (60 + 44.5 * Math.sin(a)).toFixed(2));
+                        t.setAttribute('y', (60 - 44.5 * Math.cos(a)).toFixed(2));
+                    });
+                    const a = n * Math.PI / 180, ex = 60 + 37 * Math.sin(a), ey = 60 - 37 * Math.cos(a);
+                    arco.setAttribute('d', Math.abs(n) < 0.3 ? '' : `M60 23 A37 37 0 0 ${n > 0 ? 1 : 0} ${ex.toFixed(2)} ${ey.toFixed(2)}`);
+                    punta.setAttribute('cx', ex.toFixed(2));
+                    punta.setAttribute('cy', ey.toFixed(2));
+                    div.classList.toggle('ruotata', Math.abs(n) >= 0.3);
+                    scriviRotta();
+                    trac(rgZoom, s.zoom.f, 0);
+                    const fz = Math.max(0, Math.min(1, s.zoom.f)), yz = 22 - fz * 20;
+                    rgZoom.querySelector('.b-mz-pieno').setAttribute('y', yz.toFixed(2));
+                    rgZoom.querySelector('.b-mz-pieno').setAttribute('height', (22 - yz).toFixed(2));
+                    rgZoom.querySelector('.b-mz-cur').setAttribute('cy', yz.toFixed(2));
+                    valore(rgZoom, 'zoom', s.zoom.testo);
+                    meniPiu(rgZoom, s.zoom, 'meno', 'piu');
+                    const g = s.incl * 180 / Math.PI, fi = v => (v - INCL_3D[0]) / (INCL_3D[1] - INCL_3D[0]);
+                    trac(rgInc, fi(g), fi(0));
+                    // il disegnino guarda da sinistra: in su = dall'alto (90°), in giù = da sotto
+                    const e = s.incl, ix = 3 + 18 * Math.cos(e), iy = 22 + 18 * Math.sin(e);
+                    const ago = rgInc.querySelector('.b-incl-ago'), pt = rgInc.querySelector('.b-incl-punta');
+                    ago.setAttribute('x2', ix.toFixed(2)); ago.setAttribute('y2', iy.toFixed(2));
+                    pt.setAttribute('cx', ix.toFixed(2)); pt.setAttribute('cy', iy.toFixed(2));
+                    rgInc.querySelector('.b-incl-spicchio').setAttribute('d', Math.abs(e) < 0.005 ? '' : `M3 22 L21 22 A18 18 0 0 ${e > 0 ? 1 : 0} ${ix.toFixed(2)} ${iy.toFixed(2)} Z`);
+                    rgInc.querySelector('.b-zero').style.left = posX(fi(0));
+                    valore(rgInc, 'incl', Math.round(g) + '°');
+                    meniPiu(rgInc, { menoNo: g <= INCL_3D[0], piuNo: g >= INCL_3D[1] }, 'giu', 'su');
+                    trac(rgEsag, s.esag.f, 0);
+                    const hE = 3 + Math.max(0, Math.min(1, s.esag.f)) * 17;
+                    rgEsag.querySelector('.b-me-rilievo').setAttribute('d', `M1 21 L7 ${(21 - hE * 0.6).toFixed(2)} L11 ${(21 - hE).toFixed(2)} L19 21 Z`);
+                    valore(rgEsag, 'esag', s.esag.testo);
+                    meniPiu(rgEsag, s.esag, 'esagmeno', 'esagpiu');
+                }
+                mostraLeva(0, 0);
+                return { aggiorna };
+            })();
+            // Leva e tasti tenuti premuti: un passo a ogni fotogramma finché durano.
+            const moto3d = { leva: null, tasti: new Set(), veloce: false, attivo: false, fotogramma: 0 };
+            function avviaMoto3d() {
+                if (moto3d.attivo) return;
+                moto3d.attivo = true;
+                cancelAnimationFrame(animazione3d);
+                const passo = () => {
+                    const t = moto3d.tasti, v = moto3d.veloce ? 3 : 1, f = moto3d.fotogramma++;
+                    if (!moto3d.leva && !t.size) { moto3d.attivo = false; renderVista3d(); return; }
+                    if (moto3d.leva) { vista3d.panX -= moto3d.leva[0] * 9 * v; vista3d.panY -= moto3d.leva[1] * 9 * v; }
+                    if (t.has('giras')) vista3d.az += 0.025 * v;
+                    if (t.has('girad')) vista3d.az -= 0.025 * v;
+                    if (t.has('piu')) vista3d.zoom = Math.min(ZOOM_MAX, vista3d.zoom * (1 + 0.025 * v));
+                    if (t.has('meno')) vista3d.zoom = Math.max(ZOOM_MIN, vista3d.zoom / (1 + 0.025 * v));
+                    const el = gradi(Math.atan2(Math.sin(vista3d.el), Math.abs(Math.cos(vista3d.el))));
+                    if (t.has('su')) vista3d.el = Math.min(INCL_3D[1], el + 1 * v) * Math.PI / 180;
+                    if (t.has('giu')) vista3d.el = Math.max(INCL_3D[0], el - 1 * v) * Math.PI / 180;
+                    // l'esagerazione va a scatti interi: uno ogni sei fotogrammi
+                    if (f % 6 === 0 && t.has('esagpiu')) vista3d.ex = Math.min(30, vista3d.ex + 1);
+                    if (f % 6 === 0 && t.has('esagmeno')) vista3d.ex = Math.max(1, vista3d.ex - 1);
+                    renderVista3d(true);
+                    requestAnimationFrame(passo);
+                };
+                requestAnimationFrame(passo);
+            }
             document.getElementById('btnProspettiva3d').addEventListener('click', () => { vista3d.prospettiva = !vista3d.prospettiva; renderVista3d(); });
             document.getElementById('rngFov3d').addEventListener('input', (e) => { vista3d.fov = Number(e.target.value); ridisegna3d(); });
 
@@ -973,7 +1256,7 @@
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
                 if (!ultimaScena3d) return;
-                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
+                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
                 scaricaBlobFile(new Blob([testo], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}.svg`);
             });
 

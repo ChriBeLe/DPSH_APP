@@ -1,6 +1,6 @@
     <!-- VISTA 3D: il terreno del DTM e le colonne stratigrafiche delle prove, ruotabili col mouse o
          col dito. Disegnata su canvas (e in SVG per il file), senza librerie. La riempie il pezzo 071h.
-         I comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
+         Sulla figura la bussola (anello, leva, zoom, inclinazione, esagerazione). Gli altri comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
          in vista: Vista (da dove si guarda), Livelli (cosa si vede), Modello e tagli, Immagine. -->
     <div class="modal-overlay" id="modalVista3dOverlay"></div>
     <div class="modal sezione" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d">
@@ -28,24 +28,12 @@
                 <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
             </div>
             <div class="vista3d-cursori">
-                <label class="vista3d-cursore"><span>Direzione di vista</span>
-                    <input type="range" id="rngAz3d" min="0" max="359" step="1" value="326">
-                    <strong id="lblAz3d"></strong></label>
-                <label class="vista3d-cursore"><span>Inclinazione</span>
-                    <input type="range" id="rngEl3d" min="-90" max="90" step="1" value="36">
-                    <strong id="lblEl3d"></strong></label>
-                <label class="vista3d-cursore"><span>Zoom</span>
-                    <input type="range" id="rngZoom3d" min="0" max="100" step="1" value="50">
-                    <strong id="lblZoom3d"></strong></label>
-                <label class="vista3d-cursore"><span>Esagerazione verticale</span>
-                    <input type="range" id="rngEsag3d" min="1" max="30" step="1" value="5">
-                    <strong id="lblEsag3d">×5</strong></label>
                 <div class="vista3d-cursore"><span>Prospettiva</span>
                     <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
                     <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
                     <strong id="lblFov3d"></strong></div>
             </div>
-            <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro, Maiusc + trascina o due dita per spostare; rotella, due dita o + − per avvicinarti. Tocca la bussola per mettere il Nord in alto, una colonna per il suo fumetto.</p>
+            <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro, Maiusc + trascina o due dita per spostare; rotella, due dita o + − per avvicinarti. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per il suo fumetto.</p>
         </div>
 
         <!-- LIVELLI: cosa si vede. -->
@@ -102,7 +90,11 @@
             <p class="t-didascalia" id="lblSfondo3d"></p>
         </div>
 
-        <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
+        <!-- la bussola (presa da HyperGram) sta sopra la figura, in alto a sinistra; la riempie il 071h -->
+        <div class="vista3d-scena">
+            <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
+            <div id="bussola3d" class="bussola" aria-label="Navigazione 3D"></div>
+        </div>
         <div class="terreno-comandi" style="align-items: center;">
             <button type="button" class="bt" id="btnVistaIniziale3d" title="Torna al punto di vista di partenza"><svg class="ico"><use href="#i-back"/></svg>Vista iniziale</button>
             <button type="button" class="bt" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>
