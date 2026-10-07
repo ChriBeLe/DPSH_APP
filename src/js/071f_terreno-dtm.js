@@ -384,20 +384,28 @@
 
             document.getElementById('btnProgettoTerreno').addEventListener('click', apriTerreno);
             document.getElementById('btnChiudiTerreno').addEventListener('click', closeAnyOpenModal);
-            document.getElementById('btnCaricaDtm').addEventListener('click', () => { const f = document.getElementById('fileDtm'); f.value = ''; f.click(); });
+            // Il DTM si carica da qui o dalla vista 3D: chi l'ha chiesto dice di quale progetto è e
+            // cosa ridisegnare dopo (fatto(errore)).
+            let richiestaDtm = null;
+            function chiediFileDtm(projId, fatto) {
+                richiestaDtm = { projId, fatto };
+                const f = document.getElementById('fileDtm'); f.value = ''; f.click();
+            }
+            document.getElementById('btnCaricaDtm').addEventListener('click', () => chiediFileDtm(state.currentProjectId, renderTerreno));
             document.getElementById('fileDtm').addEventListener('change', async (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
-                const proj = state.projects[state.currentProjectId];
-                document.getElementById('statoTerreno').innerHTML = `<p class="t-didascalia" aria-busy="true">Lettura di ${escapeHtmlDidascalia(file.name)}…</p>`;
+                if (!file || !richiestaDtm) return;
+                const { projId, fatto } = richiestaDtm, proj = state.projects[projId];
+                if (!proj) return;
+                if (fatto === renderTerreno) document.getElementById('statoTerreno').innerHTML = `<p class="t-didascalia" aria-busy="true">Lettura di ${escapeHtmlDidascalia(file.name)}…</p>`;
                 try {
                     proj.dtm = await ritaglioDtmPerProgetto(file, proj);
                     saveState();
-                    renderTerreno();
+                    fatto();
                     const d = proj.dtm;
                     mostraToast(d.proveDentro < d.proveConGps ? `DTM caricato: copre ${d.proveDentro} prove su ${d.proveConGps} col GPS` : 'DTM caricato');
                 } catch (err) {
-                    renderTerreno(err.message || String(err));
+                    fatto(err.message || String(err));
                 }
             });
             document.getElementById('btnTogliDtm').addEventListener('click', () => {

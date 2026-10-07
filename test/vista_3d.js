@@ -2,6 +2,7 @@
 // vicine, superfici di contatto con la giacitura (esatta su un piano noto), misure; ogni livello
 // si spegne. Si gira con le frecce (e trascinando), l'esagerazione cambia la figura, il nord ruota.
 // Clic su una colonna: il fumetto. Senza DTM le prove stanno sul piano campagna. Si scarica in SVG e in OBJ.
+// Ci si arriva anche dalla sezione e dal confronto tra prove; il DTM si carica anche da qui.
 const fs = require('fs');
 const path = require('path');
 const { avviaApp, attesa, telefonoV0 } = require('./dati/app_in_jsdom');
@@ -38,7 +39,21 @@ const $ = (app, id) => app.d.getElementById(id);
   const buf = fs.readFileSync(path.join(__dirname, 'dati', 'dtm', 'utm33_lzw_pred3.tif'));
   const file = new app.w.File([buf], 'dtm.tif');
   file.arrayBuffer = async () => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
-  await app.E('(f, P) => ritaglioDtmPerProgetto(f, P).then(d => { P.dtm = d; })')(file, app.E(P));
+  // Dalla sezione e dal confronto si passa al 3D.
+  app.E('apriSezione()');
+  clic(app, $(app, 'btnSezioneA3d'));
+  t('dalla sezione, «Vista 3D» apre il 3D (e chiude la sezione)', $(app, 'modalVista3d').classList.contains('open') && !$(app, 'modalSezione').classList.contains('open'));
+  t('(senza DTM la vista lo dice, e offre di caricarlo)', /carica un DTM qui sotto/.test($(app, 'notaVista3d').textContent) && $(app, 'lblCaricaDtm3d').textContent === 'Carica un DTM');
+  app.E(`closeAnyOpenModal(); apriConfrontoProve(${JSON.stringify(idNardo)})`);
+  clic(app, $(app, 'btnConfrontoA3d'));
+  t('dal confronto tra prove, «Vista 3D» apre il 3D dello stesso progetto', $(app, 'modalVista3d').classList.contains('open') && !$(app, 'modalConfrontoProve').classList.contains('open') && app.E('vista3d.projId') === idNardo);
+  // Il DTM si carica dal 3D, che si ridisegna col terreno.
+  clic(app, $(app, 'btnCaricaDtm3d'));
+  Object.defineProperty($(app, 'fileDtm'), 'files', { value: [file], configurable: true });
+  $(app, 'fileDtm').dispatchEvent(new app.w.Event('change'));
+  for (let i = 0; i < 100 && !app.E(`!!${P}.dtm`); i++) await attesa(30);
+  await attesa(30);
+  t('dal 3D si carica il DTM: va nel progetto e la vista resta aperta, col terreno', app.E(`!!${P}.dtm`) && $(app, 'modalVista3d').classList.contains('open') && $(app, 'notaVista3d').textContent === '' && $(app, 'lblCaricaDtm3d').textContent === 'Carica un altro DTM' && !/senza DTM/.test(app.E('svgDaScena(ultimaScena3d)')));
   app.E('apriTerreno()');
   t('col DTM il bottone si accende', !$(app, 'btnApriVista3d').disabled);
   clic(app, $(app, 'btnApriVista3d'));

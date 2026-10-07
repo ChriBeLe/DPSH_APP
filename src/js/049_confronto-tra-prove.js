@@ -433,6 +433,8 @@
             });
             const btnCloseConfrontoX = document.getElementById('btnCloseConfrontoX');
             if (btnCloseConfrontoX) btnCloseConfrontoX.addEventListener('click', chiudiConfrontoProve);
+            const btnConfrontoA3d = document.getElementById('btnConfrontoA3d');
+            if (btnConfrontoA3d) btnConfrontoA3d.addEventListener('click', () => { const id = confrontoStato.projId; chiudiConfrontoProve(); apriVista3d(id); });
             const modalConfrontoProveOverlay = document.getElementById('modalConfrontoProveOverlay');
             if (modalConfrontoProveOverlay) modalConfrontoProveOverlay.addEventListener('click', chiudiConfrontoProve);
             document.querySelectorAll('#modalConfrontoProve [data-formato]').forEach(b => b.addEventListener('click', () => scaricaConfronto(b.getAttribute('data-formato'))));

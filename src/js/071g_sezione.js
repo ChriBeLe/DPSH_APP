@@ -293,6 +293,7 @@
             }
 
             document.getElementById('btnApriSezione').addEventListener('click', apriSezione);
+            document.getElementById('btnSezioneA3d').addEventListener('click', () => apriVista3d());
             document.getElementById('btnChiudiSezione').addEventListener('click', closeAnyOpenModal);
             document.getElementById('proveSezione').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-prova]');
@@ -360,8 +361,8 @@
                         <div class="fumetto-strati">${fasce.map(f => `<div><i style="background:${f.colore}"></i>${escapeHtmlDidascalia(f.nome)} <span>${numeroConVirgola(f.da, 1)}–${numeroConVirgola(f.a, 1)}</span></div>`).join('')}</div></div></div>`;
             }
 
-            function apriFumettoProva(survId, x, y) {
-                const proj = state.projects[state.currentProjectId], surv = proj.surveys[survId];
+            function apriFumettoProva(survId, x, y, projId) {
+                const proj = state.projects[projId || state.currentProjectId], surv = proj && proj.surveys[survId];
                 if (!surv) return;
                 document.querySelectorAll('.fumetto-prova:not(.bloccato)').forEach(f => f.remove());
                 const f = document.createElement('div');

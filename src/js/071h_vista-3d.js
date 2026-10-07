@@ -14,7 +14,7 @@
             // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
-            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, trascina: null, mosso: 0,
+            const vista3d = { projId: null, az: -0.6, el: 0.62, ex: 5, zoom: 1, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomi: true, misure: true } };
 
             /** Triangolazione di Delaunay (Bowyer-Watson) dei punti {x, y}: terne di indici. */
@@ -351,6 +351,8 @@
             let datiVista3dCorrenti = null, ultimaScena3d = null;
             function renderVista3d(leggera) {
                 const box = document.getElementById('graficoVista3d');
+                const conDtm = !!(state.projects[vista3d.projId] || {}).dtm;
+                document.getElementById('lblCaricaDtm3d').textContent = conDtm ? 'Carica un altro DTM' : 'Carica un DTM';
                 document.querySelectorAll('#livelliVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
                 if (!datiVista3dCorrenti) {
                     ultimaScena3d = null;
@@ -364,11 +366,17 @@
                 document.getElementById('lblEsag3d').textContent = '×' + vista3d.ex;
             }
 
-            function apriVista3d() {
+            // Si apre da «Terreno e sezioni», dalla sezione, dal confronto (che può essere di un altro
+            // progetto: projId) e dalla palette. errore: quello del DTM appena caricato da qui.
+            function apriVista3d(projId, errore) {
                 saveState();
                 closeAnyOpenModal();
-                const proj = state.projects[state.currentProjectId];
+                vista3d.projId = projId && state.projects[projId] ? projId : state.currentProjectId;
+                const proj = state.projects[vista3d.projId];
                 datiVista3dCorrenti = datiVista3d(proj);
+                const nota = document.getElementById('notaVista3d');
+                nota.className = errore ? 'riga-avviso pericolo' : 't-didascalia';
+                nota.textContent = errore || (proj.dtm ? '' : 'Senza DTM le prove partono tutte dal piano campagna: carica un DTM qui sotto per il terreno e le quote vere.');
                 if (datiVista3dCorrenti) {
                     // Esagerazione di partenza: quanto basta perché si vedano il rilievo (un ottavo del
                     // lato; senza DTM non c'è) e le colonne (un sesto), entro ×30. È scritta nella
@@ -430,7 +438,7 @@
             box3d.addEventListener('click', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
                 const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
-                if (id) apriFumettoProva(id, e.clientX, e.clientY);
+                if (id) apriFumettoProva(id, e.clientX, e.clientY, vista3d.projId);
                 else chiudiFumetti(false);
             });
             // Col mouse sopra una colonna, la manina.
@@ -457,9 +465,13 @@
                 vista3d.livelli[b.dataset.livello] = !vista3d.livelli[b.dataset.livello];
                 renderVista3d();
             });
-            document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
+            document.getElementById('btnApriVista3d').addEventListener('click', () => apriVista3d());
+            document.getElementById('btnCaricaDtm3d').addEventListener('click', () => {
+                const id = vista3d.projId;
+                chiediFileDtm(id, errore => apriVista3d(id, errore));
+            });
             document.getElementById('btnChiudiVista3d').addEventListener('click', closeAnyOpenModal);
-            const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
+            const nomeFileProgetto3d = () => (state.projects[vista3d.projId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
                 if (!ultimaScena3d) return;
                 const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
