@@ -124,7 +124,7 @@
                 const lungEtichetta = Math.max(1, ...d.colonne.map(c => c.numero.length));
                 const fsEtichetta = fs * 0.95;
                 const ruota = lungEtichetta * fsEtichetta * 0.62 > colW + colGap - 2;
-                const titoloH = opz.perFile ? Math.round(fs * 3.8) : 0;
+                const titoloH = opz.perFile ? Math.round(fs * 2.6) : 0;
                 const padT = titoloH + Math.round(Math.max(fs * 3, ruota ? lungEtichetta * fsEtichetta * 0.62 + fs * 1.4 : 0));
 
                 // La legenda degli strati (solo nei file: a schermo è sotto la figura, in HTML).
@@ -159,8 +159,8 @@
                 const decP = passoP < 1 ? 1 : 0;
 
                 if (opz.perFile) {
-                    testo(padL, Math.round(fs * 1.7), 'Confronto prove · ' + d.titolo, { dim: fs * 1.45, grassetto: true, colore: '@testo' });
-                    testo(padL, Math.round(fs * 3.1), (d.grandezza === 'rpd' ? 'Rpd (kg/cm²)' : 'Colpi N') + ' e colonne stratigrafiche · profondità dal piano campagna (m)' + (opz.data ? ' · ' + opz.data : ''), { dim: fs * 0.9 });
+                    // Solo il titolo (richiesto): niente nome del progetto, sottotitolo o data.
+                    testo(padL, Math.round(fs * 1.7), 'Confronto tra prove', { dim: fs * 1.45, grassetto: true, colore: '@testo' });
                 }
                 for (let k = 0; k * passoP <= d.maxProf + 1e-6; k++) {
                     const m = k * passoP;
@@ -309,7 +309,7 @@
                     `<< /Length ${flusso.length} >>\nstream\n${flusso}\nendstream`,
                     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
                     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
-                    `<< /Title ${stringa(titolo || 'Confronto prove')} /Producer (DPSH Field Collector) >>`
+                    `<< /Title ${stringa(titolo || 'Confronto tra prove')} /Producer (DPSH Field Collector) >>`
                 ];
                 let pdf = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
                 const posizioni = oggetti.map((o, i) => { const p = pdf.length; pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; return p; });
@@ -388,7 +388,7 @@
                 const proj = state.projects && state.projects[confrontoStato.projId];
                 if (!proj) return null;
                 const d = datiConfronto(proj, proveConfrontabili(proj), confrontoStato.attive, confrontoStato.grandezza);
-                return { d, dis: disegnoConfronto(d, { larghezza: 1400, altezza: 990, fs: 14, perFile: true, data: new Date().toLocaleDateString('it-IT') }) };
+                return { d, dis: disegnoConfronto(d, { larghezza: 1400, altezza: 990, fs: 14, perFile: true }) };
             }
 
             async function scaricaConfronto(formato) {
@@ -398,7 +398,7 @@
                 const nome = `Confronto_${String(d.titolo).replace(/[^\w\-]+/g, '_')}_${d.grandezza === 'rpd' ? 'Rpd' : 'Colpi'}`;
                 try {
                     if (formato === 'pdf') {
-                        const byte = pdfDaDisegno(dis, TEMA_CONFRONTO_FILE, 'Confronto prove · ' + d.titolo);
+                        const byte = pdfDaDisegno(dis, TEMA_CONFRONTO_FILE, 'Confronto tra prove');
                         scaricaBlobFile(new Blob([Uint8Array.from(byte, ch => ch.charCodeAt(0))], { type: 'application/pdf' }), nome + '.pdf');
                         return;
                     }
