@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, nomi: true, misure: true, solido: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, falda: true, nomi: true, misure: true, solido: false },
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
                 taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 } };
@@ -510,6 +510,25 @@
                         poli([P(a.x, a.y, a.tetto), P(b.x, b.y, b.tetto), P(b.x, b.y, b.letto), P(a.x, a.y, a.letto)], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome });
                     }
                 });
+                // LA FALDA: un segno blu sulla colonna alla sua profondità e, tra tre prove vicine che
+                // l'hanno tutte, la sua superficie (piana nel triangolo), azzurra e trasparente.
+                const falda = p => { const v = parseFloat(p.s.header && p.s.header.faldaDa); return Number.isFinite(v) ? v : null; };
+                if (L.falda) {
+                    d.triangoli.forEach(t => {
+                        const tre = t.map(i => d.prove[i]);
+                        if (tre.some(p => falda(p) === null || !tieni(p.x, p.y))) return;
+                        poli(tre.map(p => P(p.x, p.y, p.z - falda(p))), { fill: '#38bdf8', fo: 0.35, stroke: '#0284c7', sw: 1, cls: 'vista3d-falda', title: 'Falda: ' + tre.map(p => `${nomeDpsh(p.s)} a ${numeroConVirgola(falda(p))} m`).join(', ') });
+                    });
+                    d.prove.forEach(p => {
+                        const f = falda(p);
+                        if (f === null || !tieni(p.x, p.y)) return;
+                        const o = P(p.x, p.y, p.z - f), lato = Math.max(1.5, d.lato / 60);
+                        [[lato, 0], [0, lato]].forEach(([dx, dy]) => {
+                            const a1 = P(p.x - dx, p.y - dy, p.z - f), a2 = P(p.x + dx, p.y + dy, p.z - f);
+                            pezzi.push({ prof: o[2] - 0.002, t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke: '#0284c7', sw: 3, cls: 'vista3d-falda-segno', title: `${nomeDpsh(p.s)}: falda a ${numeroConVirgola(f)} m` });
+                        });
+                    });
+                }
                 if (L.superfici && !so) superfici.forEach(sf => poli(sf.punti.map(p => P(...p)), { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°` }));
                 if (L.colonne) d.prove.forEach(p => {
                     const nome = nomeDpsh(p.s);

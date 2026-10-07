@@ -85,6 +85,13 @@ const $ = (app, id) => app.d.getElementById(id);
   // Qui la DPSH 2 ha solo il terreno vegetale: nessuno strato sotterraneo è comune alle tre prove,
   // quindi nessuna superficie; i pannelli ci sono su tutti e tre i lati del triangolo.
   t('con tre prove: pannelli sui tre lati del triangolo; superfici solo per strati comuni a tutte e tre (qui nessuno)', conta('.vista3d-distanza') === 3 && conta('.vista3d-superficie') === 0);
+  // La falda: con la falda in tutte e tre, la sua superficie nel triangolo e un segno su ogni colonna.
+  app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = '1.5'; }); renderVista3d()`);
+  t('la falda: superficie tra le prove che l\'hanno e un segno blu su ogni colonna', conta('.vista3d-falda') === 1 && conta('.vista3d-falda-segno') === 6 && !!app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
+  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
+  t('(e si spegne)', conta('.vista3d-falda') === 0 && conta('.vista3d-falda-segno') === 0);
+  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
+  app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = ''; }); renderVista3d()`);
   const n0 = app.scaricati.length;
   clic(app, $(app, 'btnScaricaObj3d'));
   const zip = app.scaricati.length > n0 ? Buffer.from(await app.scaricati[app.scaricati.length - 1].blob.arrayBuffer()).toString('latin1') : '';

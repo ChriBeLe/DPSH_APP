@@ -530,3 +530,4 @@
             #mappaProgettoEl { height: 62vh; }
             .mappa-progetto-scheda { left: 6px; bottom: 6px; width: calc(100% - 12px); max-height: 55%; }
         }
+        #btnProgettoMappa { margin-right: auto; min-height: 0; padding: 6px 12px; }
