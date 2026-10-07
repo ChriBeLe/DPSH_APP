@@ -3,7 +3,7 @@
          sola figura: a sinistra i valori sovrapposti (colpi N o Rpd), a destra le colonne stratigrafiche.
          Così una profondità si legge in orizzontale su tutto. Lo riempie renderConfrontoProve. -->
     <div class="modal-overlay" id="modalConfrontoProveOverlay"></div>
-    <div class="modal" id="modalConfrontoProve" style="max-width: 600px; width: 94vw; max-height: 90vh; overflow-y: auto;">
+    <div class="modal confronto" id="modalConfrontoProve">
         <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
                 <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -16,8 +16,16 @@
         <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
             Profondità dal piano campagna, uguali per tutte le prove. Tocca una prova per mostrarla o nasconderla; le interpretazioni alternative partono nascoste.
         </div>
-        <div id="confrontoGrandezza" style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;"></div>
+        <div style="display: flex; align-items: center; gap: 6px 12px; margin-bottom: 8px; flex-wrap: wrap;">
+            <div id="confrontoGrandezza" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+            <div class="confronto-scarica" aria-label="Scarica la figura">
+                <span>Scarica</span>
+                <button type="button" data-formato="svg"><svg class="ico"><use href="#i-download"/></svg>SVG</button>
+                <button type="button" data-formato="png"><svg class="ico"><use href="#i-download"/></svg>PNG</button>
+                <button type="button" data-formato="pdf"><svg class="ico"><use href="#i-download"/></svg>PDF</button>
+            </div>
+        </div>
         <div id="confrontoProve" style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;"></div>
-        <div id="confrontoGrafico" style="overflow-x: auto;"></div>
+        <div id="confrontoGrafico"></div>
         <div id="confrontoLegendaStrati" style="display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; font-size: 11px; color: var(--text-muted);"></div>
     </div>

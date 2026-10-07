@@ -11,6 +11,8 @@
             // Ogni livello si spegne. Tutto in SVG, ordinato dal più lontano al più vicino; mentre si
             // gira si disegna una versione leggera, così il movimento resta fluido. Il modello si
             // scarica anche in OBJ (terreno, colonne, pannelli, superfici) per Blender, MeshLab, QGIS.
+            // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
+            // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomi: true, misure: true } };
@@ -45,8 +47,10 @@
                     Math.abs((v[b].x - v[a].x) * (v[c].y - v[a].y) - (v[c].x - v[a].x) * (v[b].y - v[a].y)) > 1e-6);
             }
 
-            // Coordinate locali in metri, attorno al centro delle prove; z in m s.l.m.
+            // Coordinate locali in metri, attorno al centro delle prove; z in m s.l.m. (senza DTM, in
+            // metri dal piano campagna). null se non c'è nessuna prova da mettere.
             function datiVista3d(proj) {
+                if (!proj.dtm) return datiVista3dSenzaDtm(proj);
                 const dtm = proj.dtm, q = quoteDtm(dtm);
                 const geo = dtm.crs.tipo === 'geo';
                 // Le prove eseguite davvero: un'interpretazione alternativa («3B») sta nello stesso punto.
@@ -83,7 +87,44 @@
                 };
                 const nodi = griglia(56);
                 const zs = nodi.flat().map(n => n[2]).filter(isFinite);
-                // Triangoli e lati; con prove in fila, la catena lungo la direzione principale.
+                return {
+                    nodi, nodiLeggeri: griglia(28), zSuolo, cx, cy, crs: dtm.crs,
+                    zMin: Math.min(...zs), zMax: Math.max(...zs), prove: provePos, ...latiDelleProve(provePos),
+                    lato: isFinite(raggio) ? 2 * raggio : Math.max(dtm.nx * dtm.dx * kx, dtm.ny * dtm.dy * ky)
+                };
+            }
+
+            /** Senza DTM: prove dal GPS (UTM della prima), tutte a quota 0, su un piano orizzontale. */
+            function datiVista3dSenzaDtm(proj) {
+                const conGps = proveFisiche(proveConCoordinate(proj).filter(s => (s.logs || []).length > 0));
+                if (!conGps.length) return null;
+                const crs = { tipo: 'utm', zona: Math.floor((parseFloat(conGps[0].header.lng) + 180) / 6) + 1 };
+                const prove = conGps.map(s => ({ s, ...puntoNelCrs(crs, parseFloat(s.header.lat), parseFloat(s.header.lng)), z: 0 }));
+                const cx = prove.reduce((a, p) => a + p.x, 0) / prove.length, cy = prove.reduce((a, p) => a + p.y, 0) / prove.length;
+                const provePos = prove.map(p => {
+                    const fasce = colonnaStratigrafica(p.s.logs, proj.strati);
+                    return { ...p, x: p.x - cx, y: p.y - cy, fasce, fondo: Math.max(0, ...fasce.map(f => f.a)), occ: occorrenzeFasce(fasce) };
+                });
+                const spread = Math.max(10, ...provePos.map(p => Math.hypot(p.x, p.y)));
+                const raggio = spread + Math.max(20, 0.35 * spread);
+                // Il piano a quadretti: uno solo coprirebbe le colonne nell'ordine dal più lontano.
+                const griglia = (quanti) => {
+                    const nodi = [];
+                    for (let j = 0; j <= quanti; j++) {
+                        const riga = [];
+                        for (let i = 0; i <= quanti; i++) riga.push([-raggio + 2 * raggio * i / quanti, raggio - 2 * raggio * j / quanti, 0]);
+                        nodi.push(riga);
+                    }
+                    return nodi;
+                };
+                return {
+                    nodi: griglia(24), nodiLeggeri: griglia(12), zSuolo: () => 0, cx, cy, crs, senzaDtm: true,
+                    zMin: 0, zMax: 0, prove: provePos, ...latiDelleProve(provePos), lato: 2 * raggio
+                };
+            }
+
+            /** Triangoli e lati tra le prove; con prove in fila, la catena lungo la direzione principale. */
+            function latiDelleProve(provePos) {
                 const triangoli = triangolaDelaunay(provePos);
                 let lati = [];
                 if (triangoli.length) {
@@ -99,11 +140,7 @@
                     const ordine = provePos.map((_, i) => i).sort((i, j) => (provePos[i].x * ux + provePos[i].y * uy) - (provePos[j].x * ux + provePos[j].y * uy));
                     lati = ordine.slice(1).map((i, k) => [ordine[k], i]);
                 }
-                return {
-                    nodi, nodiLeggeri: griglia(28), zSuolo, cx, cy, crs: dtm.crs,
-                    zMin: Math.min(...zs), zMax: Math.max(...zs), prove: provePos, triangoli, lati,
-                    lato: isFinite(raggio) ? 2 * raggio : Math.max(dtm.nx * dtm.dx * kx, dtm.ny * dtm.dy * ky)
-                };
+                return { triangoli, lati };
             }
 
             /** I pezzi del modello, in metri veri: pannelli (per tratti che seguono il terreno) e superfici. */
@@ -242,7 +279,7 @@
                 sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
                 sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50 + ax * 16, y2: H - 50 + ay * 16, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
                 testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 13, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
-                const quote = `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
+                const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
                 if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
                 else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
                 return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
@@ -317,7 +354,7 @@
                 document.querySelectorAll('#livelliVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
                 if (!datiVista3dCorrenti) {
                     ultimaScena3d = null;
-                    box.innerHTML = '<div class="palette-vuota">Per la vista 3D serve un DTM: caricalo in «Terreno e sezioni».</div>';
+                    box.innerHTML = '<div class="palette-vuota">Per la vista 3D serve almeno una prova col GPS e con le letture.</div>';
                     return;
                 }
                 let canvas = box.querySelector('canvas');
@@ -331,13 +368,14 @@
                 saveState();
                 closeAnyOpenModal();
                 const proj = state.projects[state.currentProjectId];
-                datiVista3dCorrenti = proj.dtm ? datiVista3d(proj) : null;
+                datiVista3dCorrenti = datiVista3d(proj);
                 if (datiVista3dCorrenti) {
                     // Esagerazione di partenza: quanto basta perché si vedano il rilievo (un ottavo del
-                    // lato) e le colonne (un sesto), entro ×30. È scritta nella figura e si cambia.
+                    // lato; senza DTM non c'è) e le colonne (un sesto), entro ×30. È scritta nella
+                    // figura e si cambia.
                     const d = datiVista3dCorrenti, rilievo = Math.max(0.5, d.zMax - d.zMin);
                     const profMax = Math.max(1, ...d.prove.map(p => p.fondo));
-                    vista3d.ex = Math.max(1, Math.min(30, Math.round(Math.max(d.lato / 8 / rilievo, d.lato / 6 / profMax))));
+                    vista3d.ex = Math.max(1, Math.min(30, Math.round(Math.max(d.senzaDtm ? 0 : d.lato / 8 / rilievo, d.lato / 6 / profMax))));
                     vista3d.zoom = 1.4; // le prove grandi, il terreno ai bordi si può tagliare
                     document.getElementById('rngEsag3d').value = vista3d.ex;
                 }
@@ -442,7 +480,7 @@
                 };
                 const vert = (x, y, z) => { v.push(`v ${x.toFixed(2)} ${z.toFixed(2)} ${(-y).toFixed(2)}`); return v.length; };
                 const faccia = (idx) => righe.push('f ' + idx.join(' '));
-                righe.push('o Terreno', 'usemtl ' + mat('Terreno', '#9aa97a', 1));
+                righe.push('o ' + (d.senzaDtm ? 'Piano_campagna' : 'Terreno'), 'usemtl ' + mat('Terreno', '#9aa97a', 1));
                 const ids = d.nodi.map(r => r.map(n => isFinite(n[2]) ? vert(n[0], n[1], n[2]) : 0));
                 for (let j = 0; j + 1 < ids.length; j++) for (let i = 0; i + 1 < Math.min(ids[j].length, ids[j + 1].length); i++) {
                     const q = [ids[j][i], ids[j + 1][i], ids[j + 1][i + 1], ids[j][i + 1]];
@@ -472,7 +510,7 @@
                     faccia(sf.punti.map(p => vert(...p)));
                 });
                 const origine = d.crs.tipo === 'geo' ? `lng ${d.cx.toFixed(6)} lat ${d.cy.toFixed(6)}` : `UTM ${d.crs.zona}N E ${d.cx.toFixed(2)} N ${d.cy.toFixed(2)}`;
-                const obj = `# DPSH Field Collector: terreno, prove e correlazione\n# metri; x = est, y = quota s.l.m., z = -nord; origine (0, 0) = ${origine}\nmtllib modello.mtl\n` + v.join('\n') + '\n' + righe.join('\n') + '\n';
+                const obj = `# DPSH Field Collector: terreno, prove e correlazione\n# metri; x = est, y = ${d.senzaDtm ? 'quota dal piano campagna (senza DTM)' : 'quota s.l.m.'}, z = -nord; origine (0, 0) = ${origine}\nmtllib modello.mtl\n` + v.join('\n') + '\n' + righe.join('\n') + '\n';
                 return { obj, mtl: [...materiali.values()].join('\n') };
             }
             document.getElementById('btnScaricaObj3d').addEventListener('click', () => {

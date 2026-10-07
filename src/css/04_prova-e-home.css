@@ -218,8 +218,6 @@
             #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
             /* Consegna e Confronto più larghi sul PC (passo 6): il confronto è una figura, più spazio più leggibile. */
             #modalExportFormats { max-width: 640px !important; }
-            #modalConfrontoProve { max-width: 820px !important; }
-            #confrontoGrafico svg { max-width: none !important; max-height: 64vh; }
             main { max-width: 1200px; }
 
             /* Barre del PC (prototipo PC, passo 1). Il percorso e la barra laterale sostituiscono
@@ -294,6 +292,14 @@
         .riga-avviso.pericolo { border-color: var(--danger); color: var(--danger); background: transparent; margin-bottom: var(--sp-3); }
         #btnProgettoConsegna { grid-column: 1 / -1; }
         .modal.sezione { max-width: 1100px; width: 96vw; max-height: 94vh; overflow-y: auto; }
+        /* Il confronto è una figura: la finestra prende quasi tutto lo schermo e la figura si
+           adatta allo spazio che resta (la misura renderConfrontoProve). */
+        .modal.confronto { max-width: 1680px; width: 97vw; max-height: 96vh; overflow-y: auto; }
+        #confrontoGrafico { overflow-x: auto; overscroll-behavior-x: contain; }
+        .confronto-scarica { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; color: var(--text-muted); }
+        .confronto-scarica button { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); font-family: inherit; }
+        .confronto-scarica button:hover { border-color: var(--accent); }
+        .confronto-scarica .ico { width: 14px; height: 14px; }
         #graficoSezione { color: var(--text-main); margin: var(--sp-2) 0; }
         #proveSezione .pillola[disabled] { opacity: .5; cursor: not-allowed; }
         #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
