@@ -1,6 +1,6 @@
     <!-- VISTA 3D: il terreno del DTM e le colonne stratigrafiche delle prove, ruotabili col mouse o
          col dito. Disegnata su canvas (e in SVG per il file), senza librerie. La riempie il pezzo 071h.
-         Sulla figura la bussola (anello, leva, zoom, inclinazione, esagerazione). Gli altri comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
+         Sulla figura la bussola (anello, leva, zoom, inclinazione, esagerazione). I livelli stanno nel pannello sopra la figura, come in HyperGram. Gli altri comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
          in vista: Vista (da dove si guarda), Livelli (cosa si vede), Modello e tagli, Immagine. -->
     <div class="modal-overlay" id="modalVista3dOverlay"></div>
     <div class="modal sezione" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d">
@@ -11,7 +11,6 @@
 
         <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
             <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
-            <button type="button" role="tab" data-scheda3d="livelli" aria-selected="false">Livelli</button>
             <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
             <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
             <button type="button" role="tab" data-scheda3d="sezioni" aria-selected="false">Sezioni</button>
@@ -35,21 +34,6 @@
                     <strong id="lblFov3d"></strong></div>
             </div>
             <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro o centrale (o Maiusc, o due dita) per spostarti, e poi giri attorno a lì; la rotella avvicina verso il punto sotto il cursore. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per il suo fumetto.</p>
-        </div>
-
-        <!-- LIVELLI: cosa si vede. -->
-        <div class="vista3d-pannello" data-pannello3d="livelli" role="tabpanel" hidden>
-            <div class="pillole" id="livelliVista3d" aria-label="Livelli">
-                <button type="button" class="pillola" data-livello="terreno">Terreno</button>
-                <button type="button" class="pillola" data-livello="colonne">Colonne</button>
-                <button type="button" class="pillola" data-livello="pannelli">Pannelli di correlazione</button>
-                <button type="button" class="pillola" data-livello="superfici">Superfici di contatto</button>
-                <button type="button" class="pillola" data-livello="giaciture">Giaciture</button>
-                <button type="button" class="pillola" data-livello="falda">Falda</button>
-                <button type="button" class="pillola" data-livello="nomiGiaciture">Nomi degli strati sulle giaciture</button>
-                <button type="button" class="pillola" data-livello="nomi">Nomi</button>
-                <button type="button" class="pillola" data-livello="misure">Misure</button>
-            </div>
         </div>
 
         <!-- MODELLO E TAGLI: il corpo chiuso tra le prove e i due piani che lo tagliano. Toccare un
@@ -122,6 +106,13 @@
         <div class="vista3d-scena">
             <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
             <div id="bussola3d" class="bussola" aria-label="Navigazione 3D"></div>
+            <!-- il pannello dei livelli (preso da HyperGram, come in QGIS): lo riempie renderLivelli3d (071h) -->
+            <div id="pannelloLivelli3d" class="vista3d-livelli">
+                <div class="mappa-livelli-testa">
+                    <button type="button" class="mappa-livelli-titolo" id="btnLivelli3d" title="Apri o richiudi i livelli"><svg class="ico"><use href="#i-layers"/></svg><span>Livelli</span><svg class="ico chevron"><use href="#i-chevron-down"/></svg></button>
+                </div>
+                <div id="livelliVista3d" class="mappa-livelli-albero" aria-label="Livelli"></div>
+            </div>
         </div>
         <div class="terreno-comandi" style="align-items: center;">
             <button type="button" class="bt" id="btnVistaIniziale3d" title="Torna al punto di vista di partenza"><svg class="ico"><use href="#i-back"/></svg>Vista iniziale</button>

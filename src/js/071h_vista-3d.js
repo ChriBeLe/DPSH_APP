@@ -15,7 +15,8 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, falda: true, nomi: true, misure: true, solido: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, falda: true, nomi: true, misure: true, sezioni: true, immagine: true, solido: false },
+                proveNascoste: new Set(), stratiNascosti: new Set(),
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
                 taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 } };
@@ -379,7 +380,7 @@
                     return [W / 2 + X * k * s, H / 2 + (-Z * ce - Yd * se) * k * s, prof];
                 };
                 const pezzi = [], sopra = [], colonne = [];
-                const poli = (pp, extra) => pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
+                const poli = (pp, extra) => (extra.strato && vista3d.stratiNascosti.has(extra.strato)) || pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
                 const so = L.solido ? modelloSolido(d) : null;
                 const tg = vista3d.taglio;
                 // Il lato tolto dal taglio verticale: quello che non soddisfa (coordinata − c)·lato ≥ 0.
@@ -399,7 +400,7 @@
                         return `rgb(${Math.round(r * lum)},${Math.round(g * lum)},${Math.round(b * lum)})`;
                     };
                     const nodi = leggera ? d.nodiLeggeri : d.nodi;
-                    const sf = sfondoPerScena(d), opacita = sceltaSfondo3d().opacita || (sf ? 0.85 : 0.62);
+                    const sf = L.immagine ? sfondoPerScena(d) : null, opacita = sceltaSfondo3d().opacita || (sf ? 0.85 : 0.62);
                     const uvCache = new Map();
                     const uvDi = (x, y) => { const k = x.toFixed(2) + ',' + y.toFixed(2); if (!uvCache.has(k)) { const gg = d.geo(x, y); uvCache.set(k, sf.uv(gg.lat, gg.lng)); } return uvCache.get(k); };
                     // Un poligono del terreno (in metri, con le quote): coi colori della quota, o
@@ -463,7 +464,7 @@
                                     const tb = Math.max(hTaglio, k ? B.basi[k - 1] : 0), bb = Math.max(tb, B.basi[k]);
                                     if (ba - ta < 1e-4 && bb - tb < 1e-4) continue;
                                     poli([P(A.x, A.y, A.z - ta), P(B.x, B.y, B.z - tb), P(B.x, B.y, B.z - bb), P(A.x, A.y, A.z - ba)],
-                                        { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.6, cls: 'vista3d-solido', title: st.nome });
+                                        { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.6, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
                                 }
                             });
                         });
@@ -484,7 +485,7 @@
                                         // profondità del taglio: il triangolino si taglia lì, niente scalini.
                                         const h = diSopra ? prof : prof - 1e-3;
                                         const ks = new Set(tt.map(([x, y]) => stratoAProfondita(colonnaIn(x, y), h)));
-                                        const disegna = (pp, st) => poli(pp.map(([x, y]) => P(x, y, colonnaIn(x, y).z - prof)), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome });
+                                        const disegna = (pp, st) => poli(pp.map(([x, y]) => P(x, y, colonnaIn(x, y).z - prof)), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
                                         if (ks.size === 1) { disegna(tt, so.strati[[...ks][0]]); return; }
                                         for (let kk = Math.min(...ks); kk <= Math.max(...ks); kk++) {
                                             let pezzo = kk ? ritagliaPoligono(tt, ([x, y]) => h - colonnaIn(x, y).basi[kk - 1]) : tt;
@@ -507,7 +508,7 @@
                 if (L.pannelli && !so) pannelli.forEach(pa => {
                     for (let n = 1; n < pa.pezzi.length; n++) {
                         const a = pa.pezzi[n - 1], b = pa.pezzi[n];
-                        poli([P(a.x, a.y, a.tetto), P(b.x, b.y, b.tetto), P(b.x, b.y, b.letto), P(a.x, a.y, a.letto)], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome });
+                        poli([P(a.x, a.y, a.tetto), P(b.x, b.y, b.tetto), P(b.x, b.y, b.letto), P(a.x, a.y, a.letto)], { fill: pa.f.colore, fo: 0.55, stroke: pa.f.colore, sw: 0.6, cls: 'vista3d-pannello', title: pa.f.nome, strato: pa.f.nome });
                     }
                 });
                 // LA FALDA: un segno blu sulla colonna alla sua profondità e, tra tre prove vicine che
@@ -521,7 +522,7 @@
                     });
                     d.prove.forEach(p => {
                         const f = falda(p);
-                        if (f === null || !tieni(p.x, p.y)) return;
+                        if (f === null || !tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                         const o = P(p.x, p.y, p.z - f), lato = Math.max(1.5, d.lato / 60);
                         [[lato, 0], [0, lato]].forEach(([dx, dy]) => {
                             const a1 = P(p.x - dx, p.y - dy, p.z - f), a2 = P(p.x + dx, p.y + dy, p.z - f);
@@ -529,12 +530,12 @@
                         });
                     });
                 }
-                if (L.superfici && !so) superfici.forEach(sf => poli(sf.punti.map(p => P(...p)), { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°` }));
+                if (L.superfici && !so) superfici.forEach(sf => poli(sf.punti.map(p => P(...p)), { fill: sf.f.colore, fo: 0.35, stroke: sf.f.colore, sw: 1, dash: [5, 3], cls: 'vista3d-superficie', title: `Tetto di ${sf.f.nome}: immersione ${Math.round(sf.immersione)}°, inclinazione ${numeroConVirgola(sf.inclinazione, 1)}°`, strato: sf.f.nome }));
                 if (L.colonne) d.prove.forEach(p => {
                     const nome = nomeDpsh(p.s);
-                    if (!tieni(p.x, p.y)) return; // dalla parte tolta dal taglio
+                    if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return; // dalla parte tolta dal taglio, o spenta
                     p.fasce.forEach(f => {
-                        if (f.a <= hTaglio) return;
+                        if (f.a <= hTaglio || vista3d.stratiNascosti.has(f.nome)) return;
                         const a = P(p.x, p.y, p.z - Math.max(f.da, hTaglio)), b = P(p.x, p.y, p.z - f.a), prof = (a[2] + b[2]) / 2 - 0.001;
                         pezzi.push({ prof, t: 'linea', x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: 'rgba(0,0,0,0.55)', sw: 12, cls: 'vista3d-colonna-bordo' });
                         pezzi.push({ prof: prof - 0.0001, t: 'linea', x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: f.colore, sw: 9, cls: 'vista3d-colonna', title: `${nome}: ${f.nome}`, prova: p.s.id });
@@ -556,8 +557,9 @@
                     return true;
                 };
                 // I nomi delle prove hanno la precedenza: giaciture e distanze lasciano loro il posto.
-                if (L.nomi) d.prove.forEach(p => { if (tieni(p.x, p.y)) { const [tx, ty] = P(p.x, p.y, p.z), w = nomeDpsh(p.s).length * 8; scritte.push([tx - w / 2, ty - 24, tx + w / 2, ty - 6]); } });
+                if (L.nomi) d.prove.forEach(p => { if (tieni(p.x, p.y) && !vista3d.proveNascoste.has(p.s.id)) { const [tx, ty] = P(p.x, p.y, p.z), w = nomeDpsh(p.s).length * 8; scritte.push([tx - w / 2, ty - 24, tx + w / 2, ty - 6]); } });
                 if (L.giaciture && L.superfici && !so) superfici.forEach(sf => {
+                    if (vista3d.stratiNascosti.has(sf.f.nome)) return;
                     const riga = perTriangolo.get(sf.t) || 0;
                     perTriangolo.set(sf.t, riga + 1);
                     const c = [0, 1, 2].map(n => (sf.punti[0][n] + sf.punti[1][n] + sf.punti[2][n]) / 3);
@@ -595,15 +597,15 @@
                 }
                 tracceNellaScena3d(d, P, sopra, testo);
                 if (L.nomi) d.prove.forEach(p => {
-                    if (!tieni(p.x, p.y)) return;
+                    if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
                     sopra.push({ t: 'cerchio', x: tx, y: ty, r: 4, fill: 'currentColor', cls: 'vista3d-testa', prova: p.s.id });
                     testo(tx, ty - 10, nomeDpsh(p.s), { size: 13, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nome', prova: p.s.id });
                     colonne.push({ id: p.s.id, x1: tx, y1: ty - 22, x2: tx, y2: ty });
                 });
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
-                const sfAttr = L.terreno && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
-                if (sfAttr) testo(W - 12, 16, sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
+                const sfAttr = L.terreno && L.immagine && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
+                if (sfAttr) testo(W - 12, H - (W < 700 ? 46 : 30), sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
                 // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola).
                 if (file) {
                     const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
@@ -708,6 +710,7 @@
             let datiVista3dCorrenti = null, ultimaScena3d = null;
             function renderVista3d(leggera) {
                 const box = document.getElementById('graficoVista3d');
+                renderLivelli3d();
                 document.querySelectorAll('#modalVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
                 sincronizzaCursori3d();
                 const tg = vista3d.taglio, so = datiVista3dCorrenti && modelloSolido(datiVista3dCorrenti);
@@ -871,6 +874,90 @@
                 if (b.dataset.livello === 'solido' && !vista3d.livelli.solido) { accendiSolido3d(); renderVista3d(); return; }
                 vista3d.livelli[b.dataset.livello] = !vista3d.livelli[b.dataset.livello];
                 renderVista3d();
+            });
+            // ---- IL PANNELLO LIVELLI (preso da HyperGram 6.0b, «come in QGIS»): sopra la figura, in alto a
+            // destra; si richiude in una pillola. Gruppi apribili, ciascuno con la sua spunta (tutto il
+            // gruppo); righe con spunta, simbolo, nome e un numero. Ogni prova è un livello, ogni strato
+            // è un livello; poi gli oggetti del modello, i riferimenti e lo sfondo. ----
+            const livelliChiusi3d = (() => { try { return JSON.parse(localStorage.getItem('dpsh.livelli3dGruppiChiusi') || '{}'); } catch (_) { return {}; } })();
+            function renderLivelli3d() {
+                const albero = document.getElementById('livelliVista3d'), d = datiVista3dCorrenti;
+                if (!albero) return;
+                const L = vista3d.livelli, ico = n => `<svg class="ico"><use href="#i-${n}"/></svg>`;
+                const sw = (cls, stile) => `<span class="liv-sw ${cls}" style="${stile}"></span>`;
+                const prove = d ? d.prove : [];
+                const strati = new Map();
+                prove.forEach(p => p.fasce.forEach(f => { const v = strati.get(f.nome) || { colore: f.colore, n: new Set() }; v.n.add(p.s.id); strati.set(f.nome, v); }));
+                const riga = (attr, acceso, simbolo, nome, conta, titolo) => ({ attr, acceso, simbolo, nome, conta, titolo });
+                const liv = (k, simbolo, nome, titolo) => riga(`data-livello="${k}"`, !!L[k], simbolo, nome, '', titolo);
+                const gruppi = [
+                    { id: 'prove', nome: 'Prove', righe: prove.map(p => riga(`data-prova3d="${p.s.id}"`, !vista3d.proveNascoste.has(p.s.id),
+                        `<svg width="8" height="16" viewBox="0 0 8 16">${p.fasce.map(f => `<rect x="0" y="${(16 * f.da / (p.fondo || 1)).toFixed(1)}" width="8" height="${(16 * (f.a - f.da) / (p.fondo || 1)).toFixed(1)}" fill="${f.colore}"/>`).join('')}</svg>`,
+                        nomeDpsh(p.s), numeroConVirgola(p.fondo, 1) + ' m', 'La colonna, il nome e la falda di questa prova')) },
+                    { id: 'strati', nome: 'Strati', righe: [...strati].map(([nome, v]) => riga(`data-strato3d="${String(nome).replace(/"/g, '&quot;')}"`, !vista3d.stratiNascosti.has(nome),
+                        sw('aree', `background:${v.colore}; border-color:${v.colore}`), nome, v.n.size, `Lo strato nelle colonne, nei pannelli, nelle superfici e nel corpo solido (in ${v.n.size} prove)`)) },
+                    { id: 'modello', nome: 'Modello', righe: [
+                        liv('solido', ico('stack'), 'Corpo solido', 'Il modello chiuso tra le prove (i tagli nella scheda «Modello e tagli»)'),
+                        liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
+                        liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
+                        liv('giaciture', ico('target'), 'Giaciture'),
+                        liv('nomiGiaciture', ico('tag'), 'Nomi degli strati sulle giaciture'),
+                        liv('falda', sw('linee', 'background:#0284c7'), 'Falda') ] },
+                    { id: 'riferimenti', nome: 'Riferimenti', righe: [
+                        liv('nomi', ico('type'), 'Nomi delle prove'),
+                        liv('misure', ico('ruler'), 'Misure', 'Distanze tra le prove e asta delle quote'),
+                        riga('data-livello="sezioni"', !!L.sezioni, sw('linee', 'background:#dc2626'), 'Sezioni tracciate', (() => { const pr = state.projects[state.currentProjectId]; return ((pr && pr.sezioniTracciate) || []).length || ''; })()) ] },
+                    { id: 'sfondo', nome: 'Sfondo', righe: [
+                        liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
+                        liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»') ] }
+                ];
+                albero.innerHTML = gruppi.filter(g => g.righe.length).map(g => {
+                    const chiuso = !!livelliChiusi3d[g.id], tutti = g.righe.every(r => r.acceso);
+                    return `<div class="liv-gruppo${chiuso ? ' chiuso' : ''}" data-gruppo="${g.id}"><button type="button" data-apri-gruppo="${g.id}" title="Apri o chiudi il gruppo">${ico('chevron-down')}</button>`
+                        + `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo"><span>${g.nome}</span></div>`
+                        + `<div class="liv-gruppo-corpo${chiuso ? ' chiuso' : ''}" data-corpo="${g.id}"><div class="liv-gruppo-dentro">`
+                        + g.righe.map(r => `<div class="liv-riga${r.acceso ? '' : ' spento'}" ${r.attr} data-gruppo="${g.id}"${r.titolo ? ` title="${r.titolo}"` : ''}>`
+                            + `<input type="checkbox"${r.acceso ? ' checked' : ''} tabindex="-1" aria-label="Mostra o nascondi ${escapeHtmlDidascalia(String(r.nome))}"><span class="liv-simbolo">${r.simbolo}</span>`
+                            + `<span class="liv-nome">${escapeHtmlDidascalia(String(r.nome))}</span><span class="liv-conta">${r.conta}</span></div>`).join('')
+                        + '</div></div>';
+                }).join('');
+            }
+            const pannelloLivelli3d = document.getElementById('pannelloLivelli3d');
+            try {
+                const ridotto = localStorage.getItem('dpsh.livelli3dRidotto');
+                if (ridotto === '1' || (ridotto === null && window.innerWidth < 760)) pannelloLivelli3d.classList.add('chiuso');
+            } catch (_) { /* aperto */ }
+            document.getElementById('btnLivelli3d').addEventListener('click', () => {
+                pannelloLivelli3d.classList.toggle('chiuso');
+                try { localStorage.setItem('dpsh.livelli3dRidotto', pannelloLivelli3d.classList.contains('chiuso') ? '1' : '0'); } catch (_) { /* solo per questa volta */ }
+            });
+            document.getElementById('livelliVista3d').addEventListener('click', (e) => {
+                const g = e.target.closest('[data-apri-gruppo]');
+                if (g) {
+                    // niente ridisegno: si cambia solo la classe, così il gruppo si apre o si chiude scorrendo
+                    const id = g.dataset.apriGruppo;
+                    livelliChiusi3d[id] = !livelliChiusi3d[id];
+                    try { localStorage.setItem('dpsh.livelli3dGruppiChiusi', JSON.stringify(livelliChiusi3d)); } catch (_) { /* solo per questa volta */ }
+                    g.closest('.liv-gruppo').classList.toggle('chiuso', livelliChiusi3d[id]);
+                    document.querySelector(`#livelliVista3d [data-corpo="${id}"]`).classList.toggle('chiuso', livelliChiusi3d[id]);
+                    return;
+                }
+                const tuttoGruppo = e.target.closest('[data-gruppo3d]');
+                const righe = tuttoGruppo ? [...document.querySelectorAll(`#livelliVista3d .liv-riga[data-gruppo="${tuttoGruppo.dataset.gruppo3d}"]`)] : [e.target.closest('.liv-riga')].filter(Boolean);
+                if (!righe.length) return;
+                // Spunta del gruppo: se è tutto acceso si spegne tutto, altrimenti si accende tutto.
+                const accendi = tuttoGruppo ? righe.some(r => r.classList.contains('spento')) : null;
+                righe.forEach(r => {
+                    const acceso = !r.classList.contains('spento'), nuovo = accendi === null ? !acceso : accendi;
+                    if (r.dataset.prova3d) vista3d.proveNascoste[nuovo ? 'delete' : 'add'](r.dataset.prova3d);
+                    else if (r.dataset.strato3d !== undefined) vista3d.stratiNascosti[nuovo ? 'delete' : 'add'](r.dataset.strato3d);
+                    else if (r.dataset.livello && tuttoGruppo) {
+                        if (r.dataset.livello === 'solido' && nuovo && !vista3d.livelli.solido) accendiSolido3d();
+                        vista3d.livelli[r.dataset.livello] = nuovo;
+                    }
+                });
+                // Una riga di livello (data-livello) la accende e spegne il gestore di tutta la finestra.
+                if (tuttoGruppo || !righe[0].dataset.livello) renderVista3d();
             });
             document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
 

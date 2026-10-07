@@ -92,6 +92,31 @@ const $ = (app, id) => app.d.getElementById(id);
   t('(e si spegne)', conta('.vista3d-falda') === 0 && conta('.vista3d-falda-segno') === 0);
   clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
   app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = ''; }); renderVista3d()`);
+  // IL PANNELLO LIVELLI: ogni prova e ogni strato sono un livello; i gruppi si accendono e spengono interi.
+  {
+    const righe = sel => [...app.d.querySelectorAll('#livelliVista3d ' + sel)];
+    const nomi = () => [...svg().querySelectorAll('.vista3d-nome')].map(e => e.textContent).sort().join();
+    t(`gruppi: ${[...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join(', ')}`, [...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join() === 'Prove,Strati,Modello,Riferimenti,Sfondo');
+    t('una riga per prova (con la profondità) e una per strato', righe('[data-prova3d]').length === 3 && righe('[data-strato3d]').length >= 2 && /m$/.test(righe('[data-prova3d]')[0].querySelector('.liv-conta').textContent));
+    const colonne0 = conta('.vista3d-colonna');
+    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)));
+    t('spenta una prova: spariscono la sua colonna e il suo nome', conta('.vista3d-colonna') < colonne0 && nomi() === 'DPSH 1,DPSH 3' && righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)).classList.contains('spento'));
+    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)));
+    const strato = righe('[data-strato3d]')[0], nomeStrato = strato.dataset.strato3d;
+    clic(app, strato);
+    t(`spento uno strato («${nomeStrato}»): non c'è più nelle colonne`, ![...svg().querySelectorAll('.vista3d-colonna title')].some(e => e.textContent.endsWith(': ' + nomeStrato)) && conta('.vista3d-colonna') > 0);
+    clic(app, righe('[data-strato3d]')[0]);
+    clic(app, app.d.querySelector('#livelliVista3d [data-gruppo3d="prove"]'));
+    t('la spunta del gruppo «Prove» le spegne tutte', conta('.vista3d-colonna') === 0 && nomi() === '');
+    clic(app, app.d.querySelector('#livelliVista3d [data-gruppo3d="prove"]'));
+    t('(e le riaccende)', conta('.vista3d-colonna') === colonne0 && nomi() === 'DPSH 1,DPSH 2,DPSH 3');
+    clic(app, app.d.querySelector('#livelliVista3d [data-apri-gruppo="strati"]'));
+    t('un gruppo si richiude (e lo ricorda)', app.d.querySelector('#livelliVista3d [data-corpo="strati"]').classList.contains('chiuso') && /strati/.test(app.w.localStorage.getItem('dpsh.livelli3dGruppiChiusi')));
+    clic(app, app.d.querySelector('#livelliVista3d [data-apri-gruppo="strati"]'));
+    clic(app, $(app, 'btnLivelli3d'));
+    t('il pannello si richiude in una pillola', $(app, 'pannelloLivelli3d').classList.contains('chiuso'));
+    clic(app, $(app, 'btnLivelli3d'));
+  }
   const n0 = app.scaricati.length;
   clic(app, $(app, 'btnScaricaObj3d'));
   const zip = app.scaricati.length > n0 ? Buffer.from(await app.scaricati[app.scaricati.length - 1].blob.arrayBuffer()).toString('latin1') : '';
@@ -141,7 +166,7 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
 
   // I COMANDI DELLA VISTA
-  t('cinque schede: Vista, Livelli, Modello e tagli, Immagine, Sezioni', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Livelli,Modello e tagli,Immagine,Sezioni');
+  t('quattro schede: Vista, Modello e tagli, Immagine, Sezioni (i livelli stanno nel pannello sulla figura)', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Modello e tagli,Immagine,Sezioni' && !!app.d.querySelector('.vista3d-scena #pannelloLivelli3d #livelliVista3d'));
   clic(app, app.d.querySelector('[data-scheda3d="immagine"]'));
   t('una scheda alla volta', !app.d.querySelector('[data-pannello3d="immagine"]').hidden && app.d.querySelector('[data-pannello3d="vista"]').hidden);
   clic(app, app.d.querySelector('[data-scheda3d="vista"]'));

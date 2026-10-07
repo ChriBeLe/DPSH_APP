@@ -32,7 +32,7 @@
 
             /** Le tracce nella figura 3D: una linea rossa sul terreno, i nomi agli estremi. */
             function tracceNellaScena3d(d, P, sopra, testo) {
-                const tracce = tracceDelProgetto().map(t => ({ t, ...tracciaInScena(d, t) }));
+                const tracce = vista3d.livelli.sezioni ? tracceDelProgetto().map(t => ({ t, ...tracciaInScena(d, t) })) : [];
                 const dis = vista3d.disegno;
                 if (dis && dis.a && dis.cursore) tracce.push({ t: null, a: dis.a, b: dis.cursore });
                 const zMedia = (d.zMin + d.zMax) / 2;
