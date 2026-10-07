@@ -32,13 +32,13 @@
             const centroDisegno = x => ({ lat: x.punti.reduce((a, p) => a + p.lat, 0) / x.punti.length, lng: x.punti.reduce((a, p) => a + p.lng, 0) / x.punti.length });
 
             /** Sulla mappa 2D, nel gruppo delle prove. */
-            function disegniNellaMappa2d(gruppo) {
+            function disegniNellaMappa2d(gruppo, nuovo) {
                 const esc = escapeHtmlDidascalia;
                 disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
-                    const o = vista3d.opacita['d:' + x.id] ?? 1, ll = x.punti.map(p => [p.lat, p.lng]);
+                    const o = vista3d.opacita['d:' + x.id] ?? 1, ll = x.punti.map(p => [p.lat, p.lng]), className = nuovo && nuovo('d:' + x.id) ? 'am-entra' : '';
                     const forma = x.tipo === 'punto'
-                        ? L.circleMarker(ll[0], { radius: 6, color: '#111827', weight: 1.5, fillColor: x.colore, fillOpacity: o, opacity: o })
-                        : L.polygon(ll, { color: x.colore, weight: 2.5, opacity: o, fillOpacity: 0.22 * o });
+                        ? L.circleMarker(ll[0], { radius: 6, color: '#111827', weight: 1.5, fillColor: x.colore, fillOpacity: o, opacity: o, className })
+                        : L.polygon(ll, { color: x.colore, weight: 2.5, opacity: o, fillOpacity: 0.22 * o, className });
                     forma.addTo(gruppo).bindTooltip(`${esc(x.nome)} · ${testoDisegno(x)}`, { sticky: true })
                         .on('contextmenu', (e) => { L.DomEvent.stop(e); menuDisegno(e.originalEvent, x.id); });
                     if (!vista3d.etichette.disegni) return;

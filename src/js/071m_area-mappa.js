@@ -71,7 +71,8 @@
                     renderSchedaProvaMappa();
                 }
                 if (mappaProgetto.mappa) mappaProgetto.mappa.doubleClickZoom[DISEGNA_COME_MISURA.includes(nome) ? 'disable' : 'enable']();
-                document.getElementById('lblMappaProgetto').textContent = SUGGERIMENTI_STRUMENTO[nome] || '';
+                const lbl = document.getElementById('lblMappaProgetto'), testo = SUGGERIMENTI_STRUMENTO[nome] || '';
+                if (lbl.textContent !== testo) { lbl.textContent = testo; lbl.classList.remove('am-ravviva'); void lbl.offsetWidth; lbl.classList.add('am-ravviva'); }
                 renderElencoSezioni3d();
             }
             modaleAreaMappa.querySelector('#railMappa').addEventListener('click', (e) => {
@@ -79,9 +80,9 @@
                 if (!b) return;
                 const rt = b.dataset.rt;
                 if (rt === 'tutti') {
-                    if (areaMappa.modo === 'mappa') inquadraTutteMappa2d();
-                    else { vista3d.centro = [0, 0, 0]; vista3d.zoom = 1.4; renderVista3d(); }
-                } else if (rt === 'iniziale') { vistaIniziale3d(); renderVista3d(); }
+                    if (areaMappa.modo === 'mappa') inquadraTutteMappa2d(true);
+                    else vaiAVista3d({ centro: [0, 0, 0], zoom: 1.4 });
+                } else if (rt === 'iniziale') vistaIniziale3d(true);
                 else if (rt === 'alto') vaiAVista3d(VISTE_PRONTE_3D.alto);
                 else if (rt === 'tasti') document.getElementById('tastiMappa3d').hidden = !document.getElementById('tastiMappa3d').hidden;
                 else scegliStrumentoMappa(areaMappa.strumento === rt && rt !== 'sel' ? 'sel' : rt);
@@ -130,7 +131,7 @@
                 m.livello = L.layerGroup([
                     m.area && pt.length > 2 ? L.polygon(pt.map(p => [p.lat, p.lng]), { ...stile, fillOpacity: 0.18 }) : L.polyline(pt.map(p => [p.lat, p.lng]), stile),
                     ...m.punti.map(p => L.circleMarker([p.lat, p.lng], { radius: 4, color: '#111827', weight: 1.5, fillColor: '#facc15', fillOpacity: 1, interactive: false })),
-                    ...(pt.length > 1 && qui ? [L.marker([qui.lat, qui.lng], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="mappa-misura-etichetta">${testo}</span>`, iconSize: null, iconAnchor: m.area && pt.length > 2 ? [0, 0] : [-12, 10] }) })] : [])
+                    ...(pt.length > 1 && qui ? [L.marker([qui.lat, qui.lng], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="mappa-misura-etichetta${m.finita ? ' fatta' : ''}">${testo}</span>`, iconSize: null, iconAnchor: m.area && pt.length > 2 ? [0, 0] : [-12, 10] }) })] : [])
                 ]).addTo(carta);
                 misuraAreaMappa(testo);
             }
@@ -247,7 +248,7 @@
             });
             box3d.addEventListener('dblclick', (e) => {
                 if (areaMappa.misura) { finisciMisura(); return; }
-                if (areaMappa.strumento === 'sel' || areaMappa.strumento === 'orbita') { e.preventDefault(); vistaIniziale3d(); renderVista3d(); }
+                if (areaMappa.strumento === 'sel' || areaMappa.strumento === 'orbita') { e.preventDefault(); vistaIniziale3d(true); }
             });
 
             // ---- Il menu del tasto destro: sulle prove (2D e 3D) e sulle tracce (2D) ----

@@ -862,12 +862,14 @@
             }
 
             /** Il punto di vista di partenza: da sopra, di sbieco, la scena al centro. */
-            function vistaIniziale3d() {
-                vista3d.az = -0.6; vista3d.el = 0.62; vista3d.centro = [0, 0, 0];
+            function vistaIniziale3d(animata) {
                 vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 };
                 document.getElementById('rngTaglioV3d').value = 50;
                 document.getElementById('rngTaglioH3d').value = 0;
-                vista3d.zoom = 1.4; // le prove grandi, il terreno ai bordi si può tagliare
+                // le prove grandi, il terreno ai bordi si può tagliare
+                if (animata) { vaiAVista3d({ az: -0.6, el: 0.62, centro: [0, 0, 0], zoom: 1.4 }); return; }
+                vista3d.az = -0.6; vista3d.el = 0.62; vista3d.centro = [0, 0, 0];
+                vista3d.zoom = 1.4;
             }
 
             const box3d = document.getElementById('graficoVista3d');
@@ -977,6 +979,7 @@
             document.getElementById('modalVista3d').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-livello]');
                 if (!b || b.classList.contains('liv-riga')) return; // le righe del pannello hanno la loro spunta
+                dissolvenza3d();
                 if (b.dataset.livello === 'solido' && !vista3d.livelli.solido) { accendiSolido3d(); renderVista3d(); return; }
                 vista3d.livelli[b.dataset.livello] = !vista3d.livelli[b.dataset.livello];
                 renderVista3d();
@@ -1045,15 +1048,15 @@
                 const albero = document.getElementById('livelliVista3d');
                 if (!albero) return;
                 const esc = v => escapeHtmlDidascalia(String(v)), ico = n => `<svg class="ico"><use href="#i-${n}"/></svg>`;
-                albero._righe = new Map();
-                albero.innerHTML = righeLivelli3d().map(g => {
+                const righe = new Map();
+                const html = righeLivelli3d().map(g => {
                     const chiuso = gruppoChiuso3d(g.id, g.righe.length), tutti = g.righe.every(r => r.acceso);
                     return `<div class="liv-gruppo${chiuso ? ' chiuso' : ''}" data-gruppo="${g.id}"><button type="button" data-apri-gruppo="${g.id}" title="Apri o chiudi il gruppo">${ico('chevron-down')}</button>`
                         + `<input type="checkbox" data-gruppo3d="${g.id}"${tutti ? ' checked' : ''} title="Mostra o nascondi tutto il gruppo"><span>${g.nome}</span>`
                         + (g.etichette === undefined ? '' : `<button type="button" class="liv-etichette${g.etichette ? ' attivo' : ''}" data-etichette-gruppo="${g.id}" aria-pressed="${g.etichette}" title="Etichette: ${g.id === 'prove' ? 'i nomi delle prove' : 'le lettere delle sezioni'}">${ico('type')}</button>`) + '</div>'
                         + `<div class="liv-gruppo-corpo${chiuso ? ' chiuso' : ''}" data-corpo="${g.id}"><div class="liv-gruppo-dentro">`
                         + g.righe.map(r => {
-                            albero._righe.set(r.chiave, r);
+                            righe.set(r.chiave, r);
                             return `<div class="liv-riga${r.acceso ? '' : ' spento'}${r.chiave === livelloScelto3d ? ' sel' : ''}" ${r.attr} data-chiave="${esc(r.chiave)}" data-gruppo="${g.id}"${r.titolo ? ` title="${esc(r.titolo)}"` : ''}>`
                                 + `<input type="checkbox"${r.acceso ? ' checked' : ''} tabindex="-1" aria-label="Mostra o nascondi ${esc(r.nome)}"><span class="liv-simbolo">${r.simbolo}</span>`
                                 + `<span class="liv-nome">${esc(r.nome)}</span>`
@@ -1061,6 +1064,57 @@
                                 + `<span class="liv-conta">${r.conta}</span></div>`;
                         }).join('') + '</div></div>';
                 }).join('');
+                // Uguale a prima (succede a ogni fotogramma mentre si gira): non si tocca, le animazioni restano.
+                if (html === albero._html) return;
+                // Come in HyperGram: le righe spostate scivolano dal posto di prima, le nuove entrano.
+                const prima = new Map();
+                albero.querySelectorAll('.liv-riga').forEach(r => prima.set(r.dataset.chiave, r.getBoundingClientRect().top));
+                const cerano = albero._righe;
+                albero._righe = righe;
+                albero._html = html;
+                albero.innerHTML = html;
+                const cambiata = albero._cambiata;
+                albero._cambiata = null;
+                if (cambiata) {
+                    const el = cambiata.gruppo ? albero.querySelector(`[data-etichette-gruppo="${cambiata.gruppo}"]`) : [...albero.querySelectorAll('.liv-riga')].find(r => r.dataset.chiave === cambiata.chiave);
+                    const bersaglio = el && (cambiata.t && !cambiata.gruppo ? el.querySelector('.liv-etichette') : el);
+                    if (bersaglio) bersaglio.classList.add('cambiata');
+                }
+                if (movimentoRidotto3d()) return;
+                const mosse = [];
+                albero.querySelectorAll('.liv-riga').forEach(r => {
+                    if (r.closest('.liv-gruppo-corpo.chiuso')) return;
+                    const y0 = prima.get(r.dataset.chiave);
+                    if (y0 === undefined) { if (cerano && cerano.size) r.classList.add('entra'); return; }
+                    const dy = y0 - r.getBoundingClientRect().top;
+                    if (Math.abs(dy) < 1) return;
+                    r.style.transform = `translateY(${dy}px)`;
+                    r.style.transition = 'none';
+                    mosse.push(r);
+                });
+                if (mosse.length) requestAnimationFrame(() => requestAnimationFrame(() => mosse.forEach(r => {
+                    r.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    r.style.transform = '';
+                    r.addEventListener('transitionend', () => { r.style.transition = ''; }, { once: true });
+                })));
+            }
+            const movimentoRidotto3d = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            /** LA DISSOLVENZA DEL 3D: prima di un cambio (un livello acceso o spento, un'opacità, la mesh…) la
+             * figura di adesso si copia sopra la scena e sfuma, scoprendo quella nuova. */
+            function dissolvenza3d() {
+                if (areaMappa.modo !== '3d' || movimentoRidotto3d()) return;
+                const tela = document.querySelector('#graficoVista3d canvas'), ctx = tela && tela.getContext && tela.getContext('2d');
+                if (!ctx || !tela.width) return;
+                const copia = document.createElement('canvas');
+                copia.width = tela.width; copia.height = tela.height;
+                copia.className = 'vista3d-dissolvenza';
+                copia.style.width = tela.style.width; copia.style.height = tela.style.height;
+                const c2 = copia.getContext('2d');
+                if (!c2) return;
+                c2.drawImage(tela, 0, 0);
+                tela.parentElement.appendChild(copia);
+                requestAnimationFrame(() => requestAnimationFrame(() => { copia.style.opacity = '0'; }));
+                setTimeout(() => copia.remove(), 400);
             }
             function accendiLivello3d(r, on) {
                 if (r.prova) vista3d.proveNascoste[on ? 'delete' : 'add'](r.prova);
@@ -1091,25 +1145,22 @@
                     if (!m) return;
                     const punti = t ? (t.punti || [t.a, t.b]).map(p => [p.lat, p.lng]) : prove ? prove.map(id => proj.surveys[id]).filter(Boolean).map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)]) : null;
                     if (!punti) inquadraTutteMappa2d();
-                    else if (punti.length > 1) m.fitBounds(L.latLngBounds(punti).pad(0.3), { maxZoom: 19 });
-                    else if (punti.length) m.setView(punti[0], 19);
+                    else if (punti.length > 1) m.flyToBounds(L.latLngBounds(punti).pad(0.3), { maxZoom: 19, duration: 0.6 });
+                    else if (punti.length) m.flyTo(punti[0], 19, { duration: 0.6 });
                     return;
                 }
                 if (!d) return;
                 const xy = t ? (t.punti ? t.punti.map(p => d.daGeo(p.lat, p.lng)) : (sc => [sc.a, sc.b])(tracciaInScena(d, t))) : prove ? d.prove.filter(p => prove.includes(p.s.id)).map(p => [p.x, p.y]) : null;
-                if (!xy || !xy.length) { vista3d.centro = [0, 0, 0]; vista3d.zoom = 1.4; }
-                else {
-                    const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
-                    const diametro = Math.max(15, Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
-                    vista3d.centro = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2, 0];
-                    vista3d.zoom = Math.max(1, Math.min(40, d.lato / diametro * 1.2));
-                }
-                renderVista3d();
+                if (!xy || !xy.length) { vaiAVista3d({ centro: [0, 0, 0], zoom: 1.4 }); return; }
+                const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
+                const diametro = Math.max(15, Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
+                vaiAVista3d({ centro: [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2, 0], zoom: Math.max(1, Math.min(40, d.lato / diametro * 1.2)) });
             }
             const menuQui = (x, y, titolo, voci) => apriMenuContesto({ preventDefault() {}, clientX: x, clientY: y }, titolo, voci);
             function menuOpacita3d(r, x, y) {
                 const attuale = vista3d.opacita[r.chiave] ?? 1;
                 menuQui(x, y, 'Opacità · ' + r.nome, [1, 0.8, 0.6, 0.4, 0.2].map(v => [Math.round(v * 100) + '%', Math.abs(v - attuale) < 0.01 ? 'i-check' : 'i-eye', '', () => {
+                    dissolvenza3d();
                     if (v === 1) delete vista3d.opacita[r.chiave]; else vista3d.opacita[r.chiave] = v;
                     if (r.sfondo2d) sfondo2dAcceso(!mappaProgetto.sfondoSpento);
                     renderVista3d();
@@ -1150,17 +1201,24 @@
                     // Spunta del gruppo: se è tutto acceso si spegne tutto, altrimenti si accende tutto.
                     const tutto = e.target.closest('[data-gruppo3d]');
                     if (tutto) {
+                        dissolvenza3d();
                         const gr = righeLivelli3d().find(x => x.id === tutto.dataset.gruppo3d), accendi = gr.righe.some(r => !r.acceso);
                         gr.righe.forEach(r => accendiLivello3d(r, accendi));
                         renderVista3d();
                         return;
                     }
                     const tg = e.target.closest('[data-etichette-gruppo]');
-                    if (tg) { vista3d.etichette[tg.dataset.etichetteGruppo] = !vista3d.etichette[tg.dataset.etichetteGruppo]; renderVista3d(); return; }
+                    if (tg) {
+                        dissolvenza3d();
+                        albero._cambiata = { gruppo: tg.dataset.etichetteGruppo };
+                        vista3d.etichette[tg.dataset.etichetteGruppo] = !vista3d.etichette[tg.dataset.etichetteGruppo];
+                        renderVista3d();
+                        return;
+                    }
                     const r = riga(e);
                     if (!r) return;
-                    if (e.target.closest('.liv-etichette')) { etichetteLivello3d(r); return; }
-                    if (e.target.matches('input')) { accendiLivello3d(r, !r.acceso); renderVista3d(); return; }
+                    if (e.target.closest('.liv-etichette')) { dissolvenza3d(); albero._cambiata = { chiave: r.chiave, t: true }; etichetteLivello3d(r); return; }
+                    if (e.target.matches('input')) { dissolvenza3d(); albero._cambiata = { chiave: r.chiave }; accendiLivello3d(r, !r.acceso); renderVista3d(); return; }
                     livelloScelto3d = r.chiave;
                     if (r.prova) scegliProvaMappa(r.prova);
                     renderLivelli3d();
@@ -1210,18 +1268,24 @@
             }
             /** Porta la vista a una posizione, con un breve movimento (per l'azimut, dalla parte più corta). */
             let animazione3d = null;
+            /** Il volo della telecamera: direzione, inclinazione, punto di mira e zoom (questo in scala
+             * logaritmica, così avvicinarsi e allontanarsi hanno lo stesso passo). */
             function vaiAVista3d(meta) {
-                const da = { az: vista3d.az, el: vista3d.el }, a = Object.assign({}, da, meta);
+                const da = { az: vista3d.az, el: vista3d.el, centro: vista3d.centro.slice(), zoom: vista3d.zoom }, a = Object.assign({}, da, meta);
                 let dAz = (a.az - da.az) % (2 * Math.PI);
                 if (dAz > Math.PI) dAz -= 2 * Math.PI; else if (dAz < -Math.PI) dAz += 2 * Math.PI;
-                const t0 = performance.now(), durata = 350;
+                const lungo = meta.centro || meta.zoom !== undefined;
+                const t0 = performance.now(), durata = movimentoRidotto3d() ? 0 : lungo ? 520 : 350;
                 cancelAnimationFrame(animazione3d);
                 const passo = (t) => {
-                    const u = Math.min(1, (t - t0) / durata), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+                    const u = durata ? Math.min(1, (t - t0) / durata) : 1, e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
                     vista3d.az = da.az + dAz * e; vista3d.el = da.el + (a.el - da.el) * e;
+                    vista3d.centro = da.centro.map((v, i) => v + (a.centro[i] - v) * e);
+                    vista3d.zoom = Math.exp(Math.log(da.zoom) + (Math.log(a.zoom) - Math.log(da.zoom)) * e);
                     renderVista3d(u < 1);
                     if (u < 1) animazione3d = requestAnimationFrame(passo);
                 };
+                if (!durata) { passo(t0); return; }
                 animazione3d = requestAnimationFrame(passo);
             }
             const VISTE_PRONTE_3D = {

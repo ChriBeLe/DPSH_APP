@@ -74,8 +74,9 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, prova2().querySelector('.liv-nome'));
   t('clic sulla riga: si evidenzia, e della prova esce la scheda (non si spegne)', prova2().classList.contains('sel') && !prova2().classList.contains('spento') && /Prova 2/.test($(app, 'schedaProvaMappa').textContent));
   ev(app, prova2().querySelector('.liv-nome'), 'dblclick');
+  await attesa(800); // la telecamera ci vola
   const c = app.E('vista3d.centro'), p2 = app.E(`datiVista3dCorrenti.prove.find(p => p.s.id === ${JSON.stringify(id2)})`);
-  t('doppio clic: inquadra la prova', Math.abs(c[0] - p2.x) < 1e-6 && Math.abs(c[1] - p2.y) < 1e-6 && app.E('vista3d.zoom') > 1.4);
+  t('doppio clic: inquadra la prova (con un volo)', Math.abs(c[0] - p2.x) < 1e-6 && Math.abs(c[1] - p2.y) < 1e-6 && app.E('vista3d.zoom') > 1.4);
   ev(app, prova2(), 'contextmenu');
   t(`tasto destro su una prova: ${voci().join(', ')}`, menu.classList.contains('open') && ['Inquadra', 'Opacità…100%', 'Mostra sulla mappa', 'Apri la prova', 'Modifica dati', 'Sposta'].every(v => voci().includes(v)));
   clic(app, voce(/^Opacità/));

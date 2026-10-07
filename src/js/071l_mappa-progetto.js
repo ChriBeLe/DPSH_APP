@@ -63,8 +63,11 @@
                 m.livelli = L.layerGroup().addTo(m.mappa);
                 // Livelli del pannello: spenti non si disegnano; etichette («T») e opacità di ciascuno.
                 const op = k => vista3d.opacita[k] ?? 1;
+                // Quel che compare per la prima volta (o si riaccende) entra animato; la prova scelta pulsa una volta.
+                if (m.progettoVisti !== state.currentProjectId) { m.visti = new Set(); m.progettoVisti = state.currentProjectId; m.pulsata = null; }
+                const ora = new Set(), nuovo = k => { ora.add(k); return !m.visti.has(k); };
                 if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
-                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4, opacity: op('t:' + t.id) }).addTo(m.livelli)
+                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4, opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
                         .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
                     if (vista3d.etichette.sezioni) estremiTraccia(t.nome).forEach((n, i) => {
@@ -72,7 +75,7 @@
                         L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
-                disegniNellaMappa2d(m.livelli);
+                disegniNellaMappa2d(m.livelli, nuovo);
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
                 proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
                     const h = s.header, nr = !vista3d.etichette.prove ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
@@ -86,7 +89,12 @@
                     mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
                     mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
                     if (m.spostando === s.id) mk.on('dragend', () => spostaProvaDallaMappa(s.id, mk.getLatLng()));
+                    const appena = nuovo('p:' + s.id), pin = mk.getElement && mk.getElement() && mk.getElement().firstElementChild;
+                    if (pin && appena) pin.classList.add('entra');
+                    else if (pin && scelta && m.pulsata !== s.id) pin.classList.add('pulsa');
                 });
+                m.pulsata = m.scelta;
+                m.visti = ora;
             }
             function scegliProvaMappa(survId) {
                 mappaProgetto.scelta = survId;
@@ -172,13 +180,13 @@
                     aggiornaBussola2d();
                 }, 60);
             }
-            function inquadraTutteMappa2d() {
+            function inquadraTutteMappa2d(animata) {
                 const m = mappaProgetto, proj = state.projects[state.currentProjectId];
                 if (!m.mappa || !proj) return;
                 const punti = proveFisiche(proveConCoordinate(proj)).map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)])
                     .concat((proj.sezioniTracciate || []).flatMap(t => [[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]));
-                if (punti.length > 1) m.mappa.fitBounds(L.latLngBounds(punti).pad(0.25), { maxZoom: 19 });
-                else if (punti.length) m.mappa.setView(punti[0], 18);
+                if (punti.length > 1) m.mappa[animata ? 'flyToBounds' : 'fitBounds'](L.latLngBounds(punti).pad(0.25), { maxZoom: 19, duration: 0.6 });
+                else if (punti.length) m.mappa[animata ? 'flyTo' : 'setView'](punti[0], 18, { duration: 0.6 });
                 else m.mappa.setView([41.87, 12.57], 6);
             }
             /** «Mostra sulla mappa»: si apre (o si passa al) modo Mappa sulla prova, con la sua scheda. */
@@ -187,15 +195,15 @@
                 if (!s) return;
                 if (!proveConCoordinate(proj).includes(s)) { appAlert('Questa prova non ha ancora le coordinate GPS: non si può mostrare sulla mappa.'); return; }
                 mappaProgetto.spostando = null;
-                if (areaMappaAperta() && areaMappa.modo === 'mappa' && mappaProgetto.mappa) { vaiAllaProva2d(survId); return; }
+                if (areaMappaAperta() && areaMappa.modo === 'mappa' && mappaProgetto.mappa) { vaiAllaProva2d(survId, true); return; }
                 mappaProgetto.daMostrare = survId;
                 if (areaMappaAperta()) modoAreaMappa('mappa'); else apriVista3d('mappa');
             }
-            function vaiAllaProva2d(survId) {
+            function vaiAllaProva2d(survId, volo) {
                 const s = state.projects[state.currentProjectId].surveys[survId];
                 mappaProgetto.daMostrare = null;
                 if (!s || !mappaProgetto.mappa) return;
-                mappaProgetto.mappa.setView([parseFloat(s.header.lat), parseFloat(s.header.lng)], 19);
+                mappaProgetto.mappa[volo ? 'flyTo' : 'setView']([parseFloat(s.header.lat), parseFloat(s.header.lng)], 19, { duration: 0.7 });
                 scegliProvaMappa(survId);
             }
             /** «Modifica dati» dalla mappa: la scheda dei dati della prova, e finita la modifica (chiuse

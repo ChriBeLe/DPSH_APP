@@ -702,3 +702,42 @@
         .b-rotta.b-rotta2d { font-size: 15px; }
         .b-sotto { fill: var(--b-tenue); font: 700 8px var(--font-sans); text-anchor: middle; letter-spacing: 0.06em; pointer-events: none; }
         #bussola2d .b-riga { height: 30px; }
+        /* ===== TUTTO ANIMATO nell'area di lavoro (mappa e 3D). Chi chiede al sistema di ridurre il movimento
+           vede gli stati finali e basta (regola generale in 01_app.css). ===== */
+        @keyframes amComparsa { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+        @keyframes amSale { from { opacity: 0; translate: 0 24px; scale: 0.97; } to { opacity: 1; translate: 0 0; scale: 1; } }
+        @keyframes amPop { 0% { opacity: 0; scale: 0.2; } 65% { opacity: 1; scale: 1.18; } 100% { scale: 1; } }
+        @keyframes amPulsa { 0% { scale: 1; } 35% { scale: 1.35; } 100% { scale: 1; } }
+        @keyframes amRimbalzo { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1; } }
+        @keyframes amRigaEntra { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: 0 0; } }
+        @keyframes amSfuma { from { opacity: 0; } to { opacity: 1; } }
+        /* la finestra entra ed esce sfumando, con un filo di ingrandimento (la posizione resta inchiodata) */
+        #modalVista3d.area-mappa { scale: 0.985; transition: opacity var(--mov-lungo) var(--ease-entra), scale var(--mov-lungo) var(--ease-entra); }
+        #modalVista3d.area-mappa.open { scale: 1; }
+        /* Mappa ⇄ 3D: dissolvenza incrociata (la scena nascosta resta della sua misura) */
+        .area-mappa .vista3d-scena, .area-mappa .mappa2d-scena { transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s; }
+        .area-mappa[data-modo="mappa"] .vista3d-scena, .area-mappa[data-modo="3d"] .mappa2d-scena { display: block; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s var(--mov-lungo); }
+        /* quel che compare (strumenti e comandi del modo, schede, riquadri) entra scivolando */
+        .area-mappa .am-solo-3d, .area-mappa .am-solo-mappa, .area-mappa [data-pannello3d]:not([hidden]),
+        .area-mappa #tastiMappa3d:not([hidden]), #lblAreaMappaMisura:not([hidden]) { animation: amComparsa var(--mov-medio) var(--ease-entra); }
+        .area-mappa #schedaProvaMappa:not([hidden]) { animation: amSale var(--mov-lungo) var(--ease-entra); }
+        .am-stato .am-ravviva { animation: amSfuma var(--mov-medio) var(--ease-entra); }
+        /* la barra degli strumenti: lo strumento si accende scorrendo, l'icona fa un piccolo salto */
+        .mappa-rt { transition: background var(--mov-breve) var(--ease-inloco), color var(--mov-breve) var(--ease-inloco), box-shadow var(--mov-breve) var(--ease-inloco); }
+        .mappa-rt.attivo .ico { animation: amRimbalzo var(--mov-medio) var(--ease-entra); }
+        .am-modi [data-modo-mappa] { transition: background var(--mov-medio) var(--ease-inloco), color var(--mov-medio) var(--ease-inloco); }
+        /* i Livelli: righe nuove entrano, quelle spostate scivolano (FLIP in 071h), spunte e «T» rimbalzano */
+        .vista3d-livelli .liv-riga.entra { animation: amRigaEntra var(--mov-medio) var(--ease-entra) both; }
+        .vista3d-livelli .liv-riga, .vista3d-livelli .liv-riga .liv-nome, .vista3d-livelli .liv-riga .liv-simbolo { transition: opacity var(--mov-breve) var(--ease-inloco), background var(--mov-breve) var(--ease-inloco), box-shadow var(--mov-breve) var(--ease-inloco); }
+        .vista3d-livelli .cambiata input, .vista3d-livelli .cambiata.liv-etichette, .vista3d-livelli .liv-riga.cambiata .liv-simbolo { animation: amRimbalzo var(--mov-medio) var(--ease-entra); }
+        .vista3d-livelli .liv-etichette { transition: color var(--mov-breve) var(--ease-inloco), border-color var(--mov-breve) var(--ease-inloco), background var(--mov-breve) var(--ease-inloco); }
+        /* la mappa 2D: segnaposto e disegni nuovi «pop», la prova scelta pulsa una volta, la misura finita appare */
+        .gps-altra-prova-pin.entra, .gps-mia-prova-pin.entra { animation: amPop 0.42s var(--ease-entra) both; }
+        .gps-mia-prova-pin.pulsa { animation: amPulsa 0.5s var(--ease-entra); }
+        .leaflet-interactive.am-entra { animation: amSfuma var(--mov-lungo) var(--ease-entra); }
+        .mappa-misura-etichetta.fatta, .mappa-disegno-nome, .mappa-progetto-nome-traccia { animation: amSfuma var(--mov-medio) var(--ease-entra); }
+        /* il 3D: dissolvenza tra un disegno e l'altro (livelli accesi o spenti, opacità, mesh…) */
+        .vista3d-dissolvenza { position: absolute; left: 0; top: 0; pointer-events: none; transition: opacity 0.26s var(--ease-inloco); }
+        /* il menu delle schede: la linguetta scelta scorre di colore */
+        .area-mappa .vista3d-schede [role="tab"] { transition: background var(--mov-medio) var(--ease-inloco), color var(--mov-medio) var(--ease-inloco); }
