@@ -1,0 +1,21 @@
+    <!-- MAPPA DEL PROGETTO: tutte le prove (e le tracce delle sezioni) su una mappa. Toccando una prova
+         si vede la sua scheda (profondità, strati, falda, foto, coordinate) e da lì la si apre, se ne
+         cambiano i dati (numero compreso) o la si sposta trascinando il segnaposto, con doppia
+         conferma come «Sposta la prova». La riempie il 071l. -->
+    <div class="modal-overlay" id="modalMappaProgettoOverlay"></div>
+    <div class="modal sezione" id="modalMappaProgetto" role="dialog" aria-labelledby="titoloMappaProgetto">
+        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span id="titoloMappaProgetto">Mappa delle prove</span>
+            <button type="button" class="chiudi-x" id="btnChiudiMappaProgetto" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="gps-map-layer-switch" id="sfondoMappaProgetto">
+            <button type="button" class="gps-map-layer-btn" data-layer="street">Strada</button>
+            <button type="button" class="gps-map-layer-btn active" data-layer="satellite">Satellite</button>
+            <button type="button" class="gps-map-layer-btn" data-layer="hybrid">Ibrida</button>
+        </div>
+        <div class="mappa-progetto-scena">
+            <div id="mappaProgettoEl"></div>
+            <div id="schedaProvaMappa" class="mappa-progetto-scheda card" hidden></div>
+        </div>
+        <p class="t-didascalia" id="lblMappaProgetto">Tocca una prova per la sua scheda.</p>
+    </div>
