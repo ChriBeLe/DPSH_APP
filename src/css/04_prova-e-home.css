@@ -555,8 +555,13 @@
         .vista3d-livelli .liv-gruppo-corpo.chiuso { grid-template-rows: 0fr; opacity: 0; }
         .vista3d-livelli .liv-gruppo-dentro { min-height: 0; overflow: hidden; }
         .vista3d-livelli .liv-gruppo-corpo.chiuso .liv-gruppo-dentro { visibility: hidden; transition: visibility 0s 0.3s; }
-        .vista3d-livelli .liv-riga { display: flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.5rem 0.22rem 1.1rem; cursor: pointer; }
+        .vista3d-livelli .liv-riga { display: flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.5rem 0.22rem 1.1rem; cursor: default; }
         .vista3d-livelli .liv-riga:hover { background: rgba(127, 127, 127, 0.1); }
+        .vista3d-livelli .liv-riga.sel { background: rgba(127, 127, 127, 0.16); box-shadow: inset 3px 0 0 var(--accent); }
+        /* il tasto «T» delle etichette del livello (HyperGram) */
+        .vista3d-livelli .liv-etichette { flex: none; display: flex; min-height: 0; padding: 0 3px; border: 1px solid transparent; border-radius: 4px; background: none; color: var(--text-muted); cursor: pointer; }
+        .vista3d-livelli .liv-etichette .ico { width: 13px; height: 13px; margin: 0; }
+        .vista3d-livelli .liv-etichette.attivo { color: var(--accent); border-color: var(--border); }
         .vista3d-livelli input[type="checkbox"] { margin: 0; flex: none; accent-color: var(--accent); cursor: pointer; }
         .vista3d-livelli .liv-simbolo { flex: none; width: 18px; display: flex; align-items: center; justify-content: center; }
         .vista3d-livelli .liv-simbolo .ico { width: 14px; height: 14px; margin: 0; }

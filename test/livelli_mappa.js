@@ -1,0 +1,120 @@
+// IL PANNELLO LIVELLI DELLA MAPPA, come in HyperGram: le etichette non sono livelli a sé, le accende il
+// tasto «T» sulla riga del loro livello (per prove e sezioni, una per una); clic = la riga si
+// evidenzia, doppio clic = inquadra, tasto destro = il menu del livello (inquadra, etichette,
+// opacità e le voci sue); la mappa di base è una riga sola, col tasto destro per cambiarla.
+const fs = require('fs');
+const path = require('path');
+const { avviaApp, attesa, telefonoV0 } = require('./dati/app_in_jsdom');
+
+let ok = 0, ko = 0;
+const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; console.log('  KO  ' + n); } };
+const STATO_V0 = fs.readFileSync(path.join(__dirname, 'dati', 'stato_v0.json'), 'utf8');
+const ev = (app, el, tipo, extra = {}) => el && el.dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, cancelable: true, clientX: 300, clientY: 200, ...extra }));
+const clic = (app, el) => ev(app, el, 'click');
+const $ = (app, id) => app.d.getElementById(id);
+
+(async () => {
+  const app = await avviaApp({ stato: STATO_V0, idb: telefonoV0() });
+  app.w.HTMLCanvasElement.prototype.getContext = () => null;
+  if (app.dialogo()) clic(app, app.dialogo().ok);
+  await attesa(30);
+  const pid = app.E("Object.keys(state.projects).find(id => /Nard/.test(state.projects[id].name))");
+  const P = `state.projects[${JSON.stringify(pid)}]`;
+  app.E(`openProject(${JSON.stringify(pid)}); switchView('project')`);
+  app.E(`(() => { const s = Object.values(${P}.surveys).find(s => s.header.provaNr == '3'); s.header.lat = 40.19690; s.header.lng = 17.99320; })()`);
+  app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = '1.5'; })`);
+  app.E('apriVista3d()');
+  const albero = $(app, 'livelliVista3d'), menu = $(app, 'menuRiga');
+  const svg = () => { const div = app.d.createElement('div'); div.innerHTML = app.E('svgDaScena(ultimaScena3d)'); return div.firstElementChild; };
+  const conta = sel => svg().querySelectorAll(sel).length;
+  const riga = sel => albero.querySelector(sel);
+  const prova2 = () => [...albero.querySelectorAll('[data-prova3d]')].find(r => /DPSH 2/.test(r.textContent));
+  const id2 = prova2().dataset.prova3d;
+  const voci = () => [...menu.querySelectorAll('[data-voce]')].map(b => b.textContent);
+  const voce = re => [...menu.querySelectorAll('[data-voce]')].find(b => re.test(b.textContent));
+  const nomi = () => [...svg().querySelectorAll('.vista3d-nome')].map(e => e.textContent).sort().join();
+
+  console.log('--- Le righe ---');
+  t('niente più righe «Nomi delle prove» e «Nomi degli strati»: le etichette sono il tasto «T»', !riga('[data-livello="nomi"]') && !riga('[data-livello="nomiGiaciture"]'));
+  const conT = [...albero.querySelectorAll('.liv-riga')].filter(r => r.querySelector('.liv-etichette')).map(r => r.querySelector('.liv-nome').textContent);
+  t(`«T» su: ${conT.join(', ')}`, conT.join() === 'DPSH 1,DPSH 2,DPSH 3,Giaciture,Falda,Misure' && !riga('[data-strato3d] .liv-etichette') && !riga('[data-livello="terreno"] .liv-etichette'));
+
+  console.log('--- Le etichette ---');
+  clic(app, prova2().querySelector('.liv-etichette'));
+  t('«T» della DPSH 2: il suo nome sparisce, la colonna resta', nomi() === 'DPSH 1,DPSH 3' && svg().querySelectorAll('.vista3d-colonna').length > 0 && !prova2().querySelector('.liv-etichette').classList.contains('attivo') && !prova2().classList.contains('spento'));
+  clic(app, prova2().querySelector('.liv-etichette'));
+  t('(ritoccato torna)', nomi() === 'DPSH 1,DPSH 2,DPSH 3');
+  const d0 = conta('.vista3d-distanza');
+  clic(app, riga('[data-livello="misure"] .liv-etichette'));
+  t(`«T» delle Misure: via i numeri (${d0} distanze e l'asta), resta l'asta`, d0 === 3 && conta('.vista3d-distanza') === 0 && conta('text.vista3d-misure') === 0 && conta('line.vista3d-misure') > 0);
+  clic(app, riga('[data-livello="misure"] .liv-etichette'));
+  clic(app, riga('[data-livello="falda"] .liv-etichette'));
+  t('«T» della Falda: la profondità su ogni colonna', conta('.vista3d-falda-nome') === 3 && /falda 1,50? m/.test(svg().querySelector('.vista3d-falda-nome').textContent));
+  clic(app, riga('[data-livello="falda"] .liv-etichette'));
+  clic(app, riga('[data-livello="giaciture"] .liv-etichette'));
+  t('«T» delle Giaciture: il nome dello strato', app.E('vista3d.etichette.giaciture') === true && riga('[data-livello="giaciture"] .liv-etichette').classList.contains('attivo'));
+  clic(app, riga('[data-livello="giaciture"] .liv-etichette'));
+
+  console.log('--- Clic, doppio clic, tasto destro ---');
+  clic(app, prova2().querySelector('.liv-nome'));
+  t('clic sulla riga: si evidenzia, e della prova esce la scheda (non si spegne)', prova2().classList.contains('sel') && !prova2().classList.contains('spento') && /Prova 2/.test($(app, 'schedaProvaMappa').textContent));
+  ev(app, prova2().querySelector('.liv-nome'), 'dblclick');
+  const c = app.E('vista3d.centro'), p2 = app.E(`datiVista3dCorrenti.prove.find(p => p.s.id === ${JSON.stringify(id2)})`);
+  t('doppio clic: inquadra la prova', Math.abs(c[0] - p2.x) < 1e-6 && Math.abs(c[1] - p2.y) < 1e-6 && app.E('vista3d.zoom') > 1.4);
+  ev(app, prova2(), 'contextmenu');
+  t(`tasto destro su una prova: ${voci().join(', ')}`, menu.classList.contains('open') && ['Inquadra', 'Nascondi etichette', 'Opacità…100%', 'Apri la prova', 'Modifica dati', 'Sposta'].every(v => voci().includes(v)));
+  clic(app, voce(/^Opacità/));
+  await attesa(20);
+  t(`«Opacità…»: ${voci().join(', ')}`, menu.classList.contains('open') && voci().join() === '100%,80%,60%,40%,20%');
+  clic(app, voce(/^40%/));
+  t('al 40%: la colonna della prova è trasparente, le altre no', app.E(`vista3d.opacita['p:' + ${JSON.stringify(id2)}]`) === 0.4
+    && [...svg().querySelectorAll('.vista3d-colonna')].filter(e => e.getAttribute('opacity') === '0.4').length > 0 && [...svg().querySelectorAll('.vista3d-colonna')].some(e => !e.hasAttribute('opacity')));
+  ev(app, riga('[data-livello="pannelli"]'), 'contextmenu');
+  t(`tasto destro sui pannelli: ${voci().join(', ')}`, voci().join() === 'Inquadra,Opacità…100%');
+  clic(app, voce(/^Opacità/)); await attesa(20); clic(app, voce(/^60%/));
+  t('e anche loro si fanno trasparenti', [...svg().querySelectorAll('.vista3d-pannello')].every(e => e.getAttribute('opacity') === '0.6'));
+
+  console.log('--- Le sezioni, una riga ciascuna ---');
+  app.E("modoAreaMappa('mappa'); scegliStrumentoMappa('profilo')");
+  app.E('clicStrumentoMappa2d({ latlng: { lat: 40.1970, lng: 17.9920 } }); clicStrumentoMappa2d({ latlng: { lat: 40.1975, lng: 17.9935 } })');
+  app.E("modoAreaMappa('3d')");
+  const traccia = () => riga('[data-traccia3d]');
+  t('nel gruppo «Sezioni» la traccia A-A\', con la sua «T»', [...albero.querySelectorAll('.liv-gruppo span')].map(e => e.textContent).includes('Sezioni') && /A-A'/.test(traccia().textContent) && !!traccia().querySelector('.liv-etichette.attivo'));
+  t('(nella scena: la linea e le lettere)', conta('.vista3d-traccia') > 0 && conta('.vista3d-traccia-nome') === 2);
+  clic(app, traccia().querySelector('.liv-etichette'));
+  t('«T»: via le lettere, la linea resta', conta('.vista3d-traccia-nome') === 0 && conta('.vista3d-traccia') > 0);
+  clic(app, traccia().querySelector('.liv-etichette'));
+  clic(app, traccia().querySelector('input'));
+  t('la spunta: via la traccia', conta('.vista3d-traccia') === 0);
+  clic(app, traccia().querySelector('input'));
+  ev(app, traccia(), 'contextmenu');
+  t(`tasto destro sulla traccia: ${voci().join(', ')}`, ['Inquadra', 'Nascondi etichette', 'Vedi la sezione', 'PDF', 'Rinomina…', 'Elimina'].every(v => voci().includes(v)));
+  app.E('chiudiMenuRiga()');
+
+  console.log('--- La spunta del gruppo ---');
+  clic(app, riga('[data-gruppo3d="prove"]'));
+  t('«Prove»: tutte spente', conta('.vista3d-colonna') === 0 && albero.querySelectorAll('[data-prova3d].spento').length === 3);
+  clic(app, riga('[data-gruppo3d="prove"]'));
+  t('(e riaccese)', conta('.vista3d-colonna') > 0 && albero.querySelectorAll('[data-prova3d].spento').length === 0);
+
+  console.log('--- La mappa di base (modo Mappa) ---');
+  app.E("modoAreaMappa('mappa')");
+  const base = () => riga('[data-sfondo2d]');
+  t(`una riga sola: «${base().querySelector('.liv-nome').textContent}» ${base().querySelector('.liv-conta').textContent}`, albero.querySelectorAll('[data-sfondo2d]').length === 1 && /Satellite/.test(base().textContent) && /100%/.test(base().textContent));
+  ev(app, base(), 'contextmenu');
+  t(`tasto destro: ${voci().join(', ')}`, voci().join() === 'Cambia mappa di base…,Opacità…100%');
+  clic(app, voce(/^Cambia/));
+  await attesa(20);
+  t(`«Cambia mappa di base…»: ${voci().join(', ')}`, voci().length === 3 && /Strade/.test(voci().join()));
+  clic(app, voce(/^Strade/));
+  t('scelta «Strade»: la riga la dice', app.E('mappaProgetto.stile') === 'street' && /Strade/.test(base().textContent));
+  clic(app, base().querySelector('input'));
+  t('la spunta la spegne', app.E('mappaProgetto.sfondoSpento') === true && base().classList.contains('spento'));
+  clic(app, base().querySelector('input'));
+  app.E("sfondoMappaProgetto('satellite'); modoAreaMappa('3d')");
+
+  t('nessun errore', app.errori.length === 0);
+  if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
+  console.log(`\n${ok} ok, ${ko} KO`);
+  process.exit(ko ? 1 : 0);
+})();

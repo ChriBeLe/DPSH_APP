@@ -71,9 +71,10 @@ const $ = (app, id) => app.d.getElementById(id);
   t('con due prove: pannelli di correlazione tra loro e la distanza scritta; niente superfici (serve un triangolo)', conta('.vista3d-pannello') > 0 && conta('.vista3d-distanza') === 1 && conta('.vista3d-superficie') === 0);
   t('misure: l\'asta graduata delle quote', conta('text.vista3d-misure') >= 3);
   const livello = n => $(app, 'livelliVista3d').querySelector(`[data-livello="${n}"]`);
-  clic(app, livello('terreno')); clic(app, livello('pannelli')); clic(app, livello('misure'));
+  const spunta = n => livello(n).querySelector('input');
+  clic(app, spunta('terreno')); clic(app, spunta('pannelli')); clic(app, spunta('misure'));
   t('i livelli si spengono (terreno, pannelli, misure)', conta('.vista3d-faccia') === 0 && conta('.vista3d-pannello') === 0 && conta('.vista3d-misure') === 0 && livello('terreno').getAttribute('aria-pressed') === 'false');
-  clic(app, livello('terreno')); clic(app, livello('pannelli')); clic(app, livello('misure'));
+  clic(app, spunta('terreno')); clic(app, spunta('pannelli')); clic(app, spunta('misure'));
   const nome = app.E('ultimaScena3d.sopra.find(f => f.cls === "vista3d-nome")');
   t('a schermo è un canvas', !!$(app, 'graficoVista3d').querySelector('canvas'));
   $(app, 'graficoVista3d').querySelector('canvas').dispatchEvent(new app.w.MouseEvent('click', { bubbles: true, clientX: nome.x, clientY: nome.y - 5 }));
@@ -88,9 +89,9 @@ const $ = (app, id) => app.d.getElementById(id);
   // La falda: con la falda in tutte e tre, la sua superficie nel triangolo e un segno su ogni colonna.
   app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = '1.5'; }); renderVista3d()`);
   t('la falda: superficie tra le prove che l\'hanno e un segno blu su ogni colonna', conta('.vista3d-falda') === 1 && conta('.vista3d-falda-segno') === 6 && !!app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
-  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
+  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"] input'));
   t('(e si spegne)', conta('.vista3d-falda') === 0 && conta('.vista3d-falda-segno') === 0);
-  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"]'));
+  clic(app, app.d.querySelector('#livelliVista3d [data-livello="falda"] input'));
   app.E(`Object.values(${P}.surveys).forEach(s => { s.header.faldaDa = ''; }); renderVista3d()`);
   // IL PANNELLO LIVELLI: ogni prova e ogni strato sono un livello; i gruppi si accendono e spengono interi.
   {
@@ -99,13 +100,13 @@ const $ = (app, id) => app.d.getElementById(id);
     t(`gruppi: ${[...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join(', ')}`, [...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join() === 'Prove,Strati,Modello,Riferimenti,Sfondo');
     t('una riga per prova (con la profondità) e una per strato', righe('[data-prova3d]').length === 3 && righe('[data-strato3d]').length >= 2 && /m$/.test(righe('[data-prova3d]')[0].querySelector('.liv-conta').textContent));
     const colonne0 = conta('.vista3d-colonna');
-    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)));
+    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)).querySelector('input'));
     t('spenta una prova: spariscono la sua colonna e il suo nome', conta('.vista3d-colonna') < colonne0 && nomi() === 'DPSH 1,DPSH 3' && righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)).classList.contains('spento'));
-    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)));
+    clic(app, righe('[data-prova3d]').find(r => /DPSH 2/.test(r.textContent)).querySelector('input'));
     const strato = righe('[data-strato3d]')[0], nomeStrato = strato.dataset.strato3d;
-    clic(app, strato);
+    clic(app, strato.querySelector('input'));
     t(`spento uno strato («${nomeStrato}»): non c'è più nelle colonne`, ![...svg().querySelectorAll('.vista3d-colonna title')].some(e => e.textContent.endsWith(': ' + nomeStrato)) && conta('.vista3d-colonna') > 0);
-    clic(app, righe('[data-strato3d]')[0]);
+    clic(app, righe('[data-strato3d]')[0].querySelector('input'));
     clic(app, app.d.querySelector('#livelliVista3d [data-gruppo3d="prove"]'));
     t('la spunta del gruppo «Prove» le spegne tutte', conta('.vista3d-colonna') === 0 && nomi() === '');
     clic(app, app.d.querySelector('#livelliVista3d [data-gruppo3d="prove"]'));
@@ -135,8 +136,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`giacitura del tetto della sabbia: ${JSON.stringify(g.sup)} (attesa 090°/5,71°; il tetto del limo è il terreno e non conta)`, JSON.stringify(g.sup) === JSON.stringify([['Sabbia', 90, 5.71]]) && g.pannelli === 6);
   {
     const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071h_vista-3d.js'), 'utf8');
-    t('giaciture: simbolo col colore dello strato, scritta solo immersione/inclinazione; il nome dello strato a richiesta (spento)', /\[sf\.f\.colore, 2\.6\]/.test(src) && /\$\{L\.nomiGiaciture \? ' ' \+ sf\.f\.nome : ''\}/.test(src)
-      && app.E('vista3d.livelli.nomiGiaciture') === false && !!app.d.querySelector('#livelliVista3d [data-livello="nomiGiaciture"]'));
+    t('giaciture: simbolo col colore dello strato, scritta solo immersione/inclinazione; il nome dello strato a richiesta (spento)', /\[sf\.f\.colore, 2\.6\]/.test(src) && /\$\{vista3d\.etichette\.giaciture \? ' ' \+ sf\.f\.nome : ''\}/.test(src)
+      && app.E('vista3d.etichette.giaciture') === false && !!app.d.querySelector('#livelliVista3d [data-livello="giaciture"] .liv-etichette:not(.attivo)'));
     t('e le scritte non si accavallano: una che ne coprirebbe un\'altra non si scrive', /if \(scrittaLibera\(o\[0\] \+ 8, y,/.test(src) && /if \(scrittaLibera\(m\[0\] - w \/ 2/.test(src));
   }
   const tri = app.E('triangolaDelaunay([{x:0,y:0},{x:10,y:0},{x:0,y:10},{x:10,y:10},{x:5,y:5}])');

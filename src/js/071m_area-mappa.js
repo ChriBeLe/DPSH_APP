@@ -231,20 +231,27 @@
             });
 
             // ---- Il menu del tasto destro: sulle prove (2D e 3D) e sulle tracce (2D) ----
+            // Le voci di una prova e di una traccia: nel loro menu sulla scena e in quello della loro riga nei Livelli.
+            const vociProvaMappa = survId => [
+                ['Apri la prova', 'i-folder-open', '', () => { chiudiMappaProgetto(); if (survId !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, survId); switchView('field'); }],
+                ['Modifica dati', 'i-edit', '', () => { chiudiMappaProgetto(); openSurveySettingsModal(survId, 'dati'); }],
+                ['Sposta', 'i-move-y', '', () => { scegliProvaMappa(survId); scegliStrumentoMappa('sposta'); }]
+            ];
             function menuProvaMappa(e, survId) {
                 const proj = state.projects[state.currentProjectId], s = proj && proj.surveys[survId];
                 if (!s) return;
                 scegliProvaMappa(survId);
                 apriMenuContesto(e, nomeDpsh(s), [
-                    ['Apri la prova', 'i-folder-open', '', () => { chiudiMappaProgetto(); if (survId !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, survId); switchView('field'); }],
-                    ['Modifica dati', 'i-edit', '', () => { chiudiMappaProgetto(); openSurveySettingsModal(survId, 'dati'); }],
-                    ['Sposta', 'i-move-y', '', () => scegliStrumentoMappa('sposta')],
+                    ...vociProvaMappa(survId),
                     '-',
                     ['Nascondi in questa mappa', 'i-eye', '', () => { vista3d.proveNascoste.add(survId); renderLivelli3d(); disegnaProveMappa(); renderVista3d(); }]
                 ]);
             }
             function menuTracciaMappa(e, t) {
-                apriMenuContesto(e, 'Sezione ' + t.nome, [
+                apriMenuContesto(e, 'Sezione ' + t.nome, vociTracciaMappa(t));
+            }
+            function vociTracciaMappa(t) {
+                return [
                     ['Vedi la sezione', 'i-eye', '', () => { sezioniTracciateStato.vista = t.id; mostraSchedaComandi('sezioni'); renderElencoSezioni3d(); }],
                     ['PDF', 'i-print', '', () => esportaPdfSezioni([t])],
                     ['Rinomina…', 'i-rinomina', '', async () => {
@@ -262,7 +269,7 @@
                         saveState();
                         disegnaProveMappa(); renderVista3d(); renderElencoSezioni3d(); infoAreaMappa(); renderLivelli3d();
                     }, true]
-                ]);
+                ];
             }
             box3d.addEventListener('contextmenu', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
@@ -278,10 +285,12 @@
             // ---- La tastiera, come in HyperGram: nel 3D WASD, Q/Z, R/F tenuti premuti; N, U, H, 1–5, O; Esc ----
             const TASTI_MOTO_3D = { w: 'w', s: 's', a: 'a', d: 'd', q: 'q', z: 'z', r: 'giu', f: 'su' };
             const VISTE_TASTI_3D = ['alto', 'iso', 'nord', 'est', 'sud'];
-            const scriveInUnCampo = (e) => !!(e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]'));
+            const scriveInUnCampo = (e) => !!(e.target.closest && e.target.closest('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select, [contenteditable="true"]'));
             // Prima di tutti gli altri (fase di cattura sulla finestra): Esc che lascia uno strumento non deve chiudere la mappa.
             window.addEventListener('keydown', (e) => {
                 if (!areaMappaAperta() || e.ctrlKey || e.metaKey || e.altKey || scriveInUnCampo(e)) return;
+                // Esc col menu del tasto destro aperto chiude solo il menu.
+                if (e.key === 'Escape' && menuRiga.classList.contains('open')) { e.preventDefault(); e.stopImmediatePropagation(); chiudiMenuRiga(); return; }
                 if (e.key === 'Escape' && (areaMappa.strumento !== 'sel' || areaMappa.misura)) {
                     e.preventDefault(); e.stopImmediatePropagation();
                     if (areaMappa.misura && !areaMappa.misura.finita && (areaMappa.misura.punti.length || 0) > 1) { finisciMisura(); return; }

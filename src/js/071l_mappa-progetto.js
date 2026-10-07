@@ -5,7 +5,7 @@
             // compreso, nella scheda «Dati» della prova) o spostarla trascinando il segnaposto, con la
             // doppia conferma e la memoria della posizione di prima di «Sposta la prova» (022).
 
-            const mappaProgetto = { mappa: null, sfondo: null, etichette: null, livelli: null, scelta: null, spostando: null, stile: 'satellite' };
+            const mappaProgetto = { mappa: null, sfondo: null, etichette: null, livelli: null, scelta: null, spostando: null, stile: 'satellite', sfondoSpento: false };
 
             /** La scheda di una prova: colonna degli strati (con la falda), dati, azioni. */
             function schedaProvaMappaHtml(proj, s) {
@@ -58,25 +58,27 @@
                 if (!m.mappa || !proj) return;
                 if (m.livelli) m.livelli.remove();
                 m.livelli = L.layerGroup().addTo(m.mappa);
-                if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).forEach(t => {
-                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4 }).addTo(m.livelli)
+                // Livelli del pannello: spenti non si disegnano; etichette («T») e opacità di ciascuno.
+                const op = k => vista3d.opacita[k] ?? 1;
+                if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
+                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: '#ef4444', weight: 4, opacity: op('t:' + t.id) }).addTo(m.livelli)
                         .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
-                    estremiTraccia(t.nome).forEach((n, i) => {
+                    if (!vista3d.nomiNascosti.has(t.id)) estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
-                        L.marker([p.lat, p.lng], { interactive: false, icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
+                        L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
                 proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
-                    const h = s.header, nr = escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
+                    const h = s.header, nr = vista3d.nomiNascosti.has(s.id) ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
                     // Spostata a mano: dov'era prima, tratteggiato.
                     if (sp) {
                         const stile = { color: '#eab308', weight: 2, dashArray: '5 5', interactive: false };
                         L.circleMarker([sp.da.lat, sp.da.lng], { ...stile, radius: 8, fillOpacity: 0.15 }).addTo(m.livelli);
                         L.polyline([[sp.da.lat, sp.da.lng], [parseFloat(h.lat), parseFloat(h.lng)]], stile).addTo(m.livelli);
                     }
-                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: scelta ? gpsMiaProvaIcon(nr) : gpsAltraProvaIcon(nr), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?') }).addTo(m.livelli);
+                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: scelta ? gpsMiaProvaIcon(nr) : gpsAltraProvaIcon(nr), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
                     mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
                     mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
                     if (m.spostando === s.id) mk.on('dragend', () => spostaProvaDallaMappa(s.id, mk.getLatLng()));
@@ -116,6 +118,19 @@
                 m.sfondo = L.tileLayer(src.url, src.options).addTo(m.mappa);
                 m.sfondo.bringToBack();
                 if (stile === 'hybrid') m.etichette = L.tileLayer(GPS_MAP_TILE_SOURCES.hybridLabels.url, GPS_MAP_TILE_SOURCES.hybridLabels.options).addTo(m.mappa);
+                sfondo2dAcceso(true); // scegliendo una mappa la si vuole vedere
+            }
+            const SFONDI_2D = [['satellite', 'Satellite (Esri)'], ['street', 'Strade (OpenStreetMap)'], ['hybrid', 'Satellite con nomi']];
+            /** La mappa di base accesa o spenta (la spunta della sua riga nei Livelli), con la sua opacità. */
+            function sfondo2dAcceso(on) {
+                const m = mappaProgetto;
+                m.sfondoSpento = !on;
+                if (!m.mappa) return;
+                [m.sfondo, m.etichette].forEach(l => {
+                    if (!l) return;
+                    if (on) l.addTo(m.mappa).setOpacity(vista3d.opacita['sf-base'] ?? 1); else l.remove();
+                });
+                if (on && m.sfondo) m.sfondo.bringToBack();
             }
 
             /** La mappa 2D dell'area di lavoro (il modo «Mappa»): Leaflet si carica e si crea la prima volta;

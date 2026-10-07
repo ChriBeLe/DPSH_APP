@@ -32,7 +32,7 @@
 
             /** Le tracce nella figura 3D: una linea rossa sul terreno, i nomi agli estremi. */
             function tracceNellaScena3d(d, P, sopra, testo) {
-                const tracce = vista3d.livelli.sezioni ? tracceDelProgetto().map(t => ({ t, ...tracciaInScena(d, t) })) : [];
+                const tracce = vista3d.livelli.sezioni ? tracceDelProgetto().filter(t => !vista3d.tracceNascoste.has(t.id)).map(t => ({ t, ...tracciaInScena(d, t) })) : [];
                 const dis = vista3d.disegno;
                 if (dis && dis.a && dis.cursore) tracce.push({ t: null, a: dis.a, b: dis.cursore });
                 const zMedia = (d.zMin + d.zMax) / 2;
@@ -42,11 +42,11 @@
                         const x = a[0] + (b[0] - a[0]) * i / 24, y = a[1] + (b[1] - a[1]) * i / 24, z = d.zSuolo(x, y);
                         pt.push(P(x, y, Number.isFinite(z) ? z : zMedia));
                     }
-                    for (let i = 1; i < pt.length; i++) sopra.push({ t: 'linea', x1: pt[i - 1][0], y1: pt[i - 1][1], x2: pt[i][0], y2: pt[i][1], stroke: '#dc2626', sw: t ? 2.6 : 1.6, cls: 'vista3d-traccia' });
-                    if (!t) return;
+                    for (let i = 1; i < pt.length; i++) sopra.push({ t: 'linea', x1: pt[i - 1][0], y1: pt[i - 1][1], x2: pt[i][0], y2: pt[i][1], stroke: '#dc2626', sw: t ? 2.6 : 1.6, cls: 'vista3d-traccia', traccia: t && t.id });
+                    if (!t || vista3d.nomiNascosti.has(t.id)) return;
                     const [e1, e2] = estremiTraccia(t.nome);
-                    testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome' });
-                    testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome' });
+                    testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome', traccia: t.id });
+                    testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-traccia-nome', traccia: t.id });
                 });
                 misuraNellaScena3d(d, P, sopra, testo);
             }

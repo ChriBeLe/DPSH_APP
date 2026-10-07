@@ -32,7 +32,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`gli strumenti di HyperGram: ${[...am.querySelectorAll('.mappa-rt span')].map(s => s.textContent).join(', ')}`, ['sel', 'orbita', 'sposta', 'profilo', 'misura', 'area', 'tutti', 'iniziale', 'alto', 'tasti'].every(n => rt(n)));
   clic(app, am.querySelector('[data-modo-mappa="mappa"]'));
   t('il modo Mappa: la scena 2D, gli strumenti del 2D (Area sì, Orbita no)', am.dataset.modo === 'mappa' && app.E('areaMappa.modo') === 'mappa');
-  t('nel modo Mappa i livelli sono prove, sezioni e sfondo', [...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join() === 'Prove,Riferimenti,Sfondo' && app.d.querySelectorAll('#livelliVista3d [data-sfondo2d]').length === 3);
+  t('nel modo Mappa i livelli sono le prove e la mappa di base (le sezioni quando ci sono)', [...app.d.querySelectorAll('#livelliVista3d .liv-gruppo span')].map(e => e.textContent).join() === 'Prove,Sfondo' && app.d.querySelectorAll('#livelliVista3d [data-sfondo2d]').length === 1);
   clic(app, am.querySelector('[data-modo-mappa="3d"]'));
 
   console.log('--- Gli strumenti ---');
