@@ -92,6 +92,7 @@
                 const zs = nodi.flat().map(n => n[2]).filter(isFinite);
                 return {
                     nodi, nodiLeggeri: griglia(28), zSuolo, cx, cy, crs: dtm.crs,
+                    geo: (x, y) => geo ? { lat: y / ky + cy, lng: x / kx + cx } : geoDaUtm(x / kx + cx, y / ky + cy, dtm.crs.zona),
                     zMin: Math.min(...zs), zMax: Math.max(...zs), prove: provePos, ...latiDelleProve(provePos),
                     lato: isFinite(raggio) ? 2 * raggio : Math.max(dtm.nx * dtm.dx * kx, dtm.ny * dtm.dy * ky)
                 };
@@ -122,6 +123,7 @@
                 };
                 return {
                     nodi: griglia(24), nodiLeggeri: griglia(12), zSuolo: () => 0, cx, cy, crs, senzaDtm: true,
+                    geo: (x, y) => geoDaUtm(x + cx, y + cy, crs.zona),
                     zMin: 0, zMax: 0, prove: provePos, ...latiDelleProve(provePos), lato: 2 * raggio
                 };
             }
@@ -269,6 +271,85 @@
                 return k < 0 ? colonna.basi.length - 1 : k;
             }
 
+            /** LE IMMAGINI SUL TERRENO. I fornitori a tessere (Google, Esri, OpenStreetMap) e il WMS.
+             * Le tessere si caricano come immagini semplici, senza chiedere il permesso di rileggerle:
+             * la tela della vista si limita a mostrarle, quindi non serve, e così funzionano anche i
+             * servizi che non lo concedono (Google). Il file SVG scaricato non le contiene. */
+            const google3d = (lyrs, nome, zoomMax) => ({ nome, zoomMax, url: (z, x, y) => `https://mt${(x + y) % 4}.google.com/vt/lyrs=${lyrs}&x=${x}&y=${y}&z=${z}`, attribuzione: '© Google' });
+            const SFONDI_3D = {
+                'google-satellite': google3d('s', 'Google · Satellite', 20),
+                'google-ibrida': google3d('y', 'Google · Satellite con nomi', 20),
+                'google-strade': google3d('m', 'Google · Stradale', 20),
+                'google-rilievo': google3d('p', 'Google · Rilievo', 17),
+                'esri-satellite': Object.assign({}, PROVIDER_MAPPA['esri-satellite'], { nome: 'Esri · Satellite' }),
+                'esri-topo': Object.assign({}, PROVIDER_MAPPA['esri-topo'], { nome: 'Esri · Topografica' }),
+                'esri-strade': Object.assign({}, PROVIDER_MAPPA['esri-strade'], { nome: 'Esri · Stradale' }),
+                'osm': Object.assign({}, PROVIDER_MAPPA['osm'], { nome: 'OpenStreetMap · Stradale' }),
+                'opentopo': Object.assign({}, PROVIDER_MAPPA['opentopo'], { nome: 'OpenStreetMap · Curve di livello (OpenTopoMap)' })
+            };
+            /** La scelta, ricordata nelle impostazioni dell'app (vale per tutti i progetti). */
+            function sceltaSfondo3d() {
+                const sf = (state.settings && state.settings.sfondo3d) || {};
+                return { id: sf.id || '', wmsUrl: sf.wmsUrl || '', wmsLayer: sf.wmsLayer || '', attribuzione: sf.attribuzione || '', opacita: sf.opacita || 0 };
+            }
+            function salvaSceltaSfondo3d(modifiche) {
+                if (!state.settings) state.settings = {};
+                state.settings.sfondo3d = Object.assign(sceltaSfondo3d(), modifiche);
+                saveState();
+            }
+
+            /** Il mosaico dell'immagine sotto la scena: tessere di Web Mercator (o un'immagine WMS in
+             * gradi) su una tela, e la funzione che porta latitudine e longitudine al suo pixel. Si
+             * costruisce una volta per scena e per scelta; man mano che arrivano i pezzi si ridisegna. */
+            function sfondoPerScena(d) {
+                const sc = sceltaSfondo3d();
+                if (!sc.id) return null;
+                const chiave = [sc.id, sc.wmsUrl, sc.wmsLayer].join('|');
+                if (d._sfondo && d._sfondo.chiave === chiave) return d._sfondo;
+                // L'area: il quadrato del terreno disegnato, in gradi.
+                const mezzo = d.lato / 2, angoli = [[-mezzo, -mezzo], [mezzo, -mezzo], [mezzo, mezzo], [-mezzo, mezzo]].map(([x, y]) => d.geo(x, y));
+                const ovest = Math.min(...angoli.map(g => g.lng)), est = Math.max(...angoli.map(g => g.lng));
+                const sud = Math.min(...angoli.map(g => g.lat)), nord = Math.max(...angoli.map(g => g.lat));
+                const tela = document.createElement('canvas');
+                const sf = { chiave, tela, caricate: 0, totali: 0, errori: 0 };
+                if (sc.id === 'wms') {
+                    const base = sc.wmsUrl.trim();
+                    sf.attribuzione = sc.attribuzione || 'WMS';
+                    if (!base) { sf.errori = 1; return (d._sfondo = sf); }
+                    const lato = 2048;
+                    tela.width = lato; tela.height = Math.max(256, Math.min(2048, Math.round(lato * (nord - sud) / ((est - ovest) * Math.cos((nord + sud) / 2 * Math.PI / 180)))));
+                    sf.uv = (lat, lng) => [(lng - ovest) / (est - ovest) * tela.width, (nord - lat) / (nord - sud) * tela.height];
+                    const sep = base.indexOf('?') === -1 ? '?' : '&';
+                    const url = base + sep + 'service=WMS&version=1.1.1&request=GetMap&srs=EPSG:4326&layers=' + encodeURIComponent(sc.wmsLayer)
+                        + `&styles=&format=image/jpeg&transparent=false&width=${tela.width}&height=${tela.height}&bbox=${ovest},${sud},${est},${nord}`;
+                    sf.totali = 1;
+                    caricaImmagine3d(url, img => tela.getContext('2d').drawImage(img, 0, 0, tela.width, tela.height), sf);
+                    return (d._sfondo = sf);
+                }
+                const fornitore = SFONDI_3D[sc.id];
+                if (!fornitore) return null;
+                sf.attribuzione = fornitore.attribuzione;
+                // Lo zoom: il più dettagliato che sta in circa 2048 pixel di lato.
+                const larghezza0 = tessereXDaLng(est, 0) - tessereXDaLng(ovest, 0);
+                const z = Math.max(1, Math.min(fornitore.zoomMax || 19, Math.floor(Math.log2(2048 / 256 / larghezza0))));
+                const x0 = Math.floor(tessereXDaLng(ovest, z)), x1 = Math.floor(tessereXDaLng(est, z));
+                const y0 = Math.floor(tessereYDaLat(nord, z)), y1 = Math.floor(tessereYDaLat(sud, z));
+                tela.width = (x1 - x0 + 1) * 256; tela.height = (y1 - y0 + 1) * 256;
+                sf.uv = (lat, lng) => [(tessereXDaLng(lng, z) - x0) * 256, (tessereYDaLat(lat, z) - y0) * 256];
+                const g = tela.getContext('2d');
+                for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+                    sf.totali++;
+                    caricaImmagine3d(fornitore.url(z, x, y), img => g.drawImage(img, (x - x0) * 256, (y - y0) * 256), sf);
+                }
+                return (d._sfondo = sf);
+            }
+            function caricaImmagine3d(url, posa, sf) {
+                const img = new Image();
+                img.onload = () => { posa(img); sf.caricate++; if (datiVista3dCorrenti && datiVista3dCorrenti._sfondo === sf) { aggiornaStatoSfondo3d(); ridisegna3d(); } };
+                img.onerror = () => { sf.errori++; if (datiVista3dCorrenti && datiVista3dCorrenti._sfondo === sf) aggiornaStatoSfondo3d(); };
+                img.src = url;
+            }
+
             // La scena: forme già proiettate sullo schermo, dalla più lontana alla più vicina (pezzi),
             // poi quelle che stanno sempre sopra (sopra), e i segmenti delle colonne per sapere quale
             // si è toccata. La disegnano sia il canvas (a schermo, veloce) sia l'SVG (il file).
@@ -308,6 +389,21 @@
                         return `rgb(${Math.round(r * lum)},${Math.round(g * lum)},${Math.round(b * lum)})`;
                     };
                     const nodi = leggera ? d.nodiLeggeri : d.nodi;
+                    const sf = sfondoPerScena(d), opacita = sceltaSfondo3d().opacita || (sf ? 0.85 : 0.62);
+                    const uvCache = new Map();
+                    const uvDi = (x, y) => { const k = x.toFixed(2) + ',' + y.toFixed(2); if (!uvCache.has(k)) { const gg = d.geo(x, y); uvCache.set(k, sf.uv(gg.lat, gg.lng)); } return uvCache.get(k); };
+                    // Un poligono del terreno (in metri, con le quote): coi colori della quota, o
+                    // spezzato in triangoli ciascuno col suo pezzo d'immagine.
+                    // Col modello solido il terreno è il contesto: si disegna per primo, sotto a tutto,
+                    // così il corpo (che starebbe sottoterra, coperto) resta in vista.
+                    const sottoTutto = so ? 1e9 : 0;
+                    const terreno = (pp, fill) => {
+                        if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); return; }
+                        for (let n = 1; n + 1 < pp.length; n++) {
+                            const tri = [pp[0], pp[n], pp[n + 1]], sp = tri.map(q => P(...q));
+                            pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia' });
+                        }
+                    };
                     for (let j = 0; j + 1 < nodi.length; j++) for (let i = 0; i + 1 < Math.min(nodi[j].length, nodi[j + 1].length); i++) {
                         const a = nodi[j][i], b = nodi[j][i + 1], c = nodi[j + 1][i + 1], e = nodi[j + 1][i];
                         if (![a, b, c, e].every(n => isFinite(n[2]))) continue;
@@ -316,7 +412,7 @@
                         if (n[2] < 0) n = n.map(x => -x);
                         const lum = 0.55 + 0.45 * Math.max(0, (n[0] * luce[0] + n[1] * luce[1] + n[2] * luce[2]) / (Math.hypot(...n) || 1));
                         const fill = colore((a[2] + c[2]) / 2, lum);
-                        if (!so) { poli([a, b, c, e].map(p => P(...p)), { fill, fo: 0.62, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); continue; }
+                        if (!so) { terreno([a, b, c, e], fill); continue; }
                         // Col modello solido il terreno si ferma sul bordo del corpo: del riquadro resta
                         // solo la parte fuori (riquadro meno poligono convesso, un lato alla volta).
                         let resto = [a, b, c, e].map(n => [n[0], n[1]]);
@@ -327,7 +423,7 @@
                             const fuori = ritagliaPoligono(resto, q => -lato(q)), dentroQui = ritagliaPoligono(resto, lato);
                             if (fuori.length >= 3) {
                                 const z = ([x, y]) => { const v = d.zSuolo(x, y); return Number.isFinite(v) ? v : (a[2] + c[2]) / 2; };
-                                poli(fuori.map(q => P(q[0], q[1], z(q))), { fill, fo: 0.62, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' });
+                                terreno(fuori.map(q => [q[0], q[1], z(q)]), fill);
                             }
                             resto = dentroQui;
                         });
@@ -455,6 +551,9 @@
                     testo(tx, ty - 10, nomeDpsh(p.s), { size: 13, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nome', prova: p.s.id });
                     colonne.push({ id: p.s.id, x1: tx, y1: ty - 22, x2: tx, y2: ty });
                 });
+                // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
+                const sfAttr = L.terreno && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
+                if (sfAttr) testo(W - 12, 16, sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
                 // Il nord, in basso a destra.
                 const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
                 const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
@@ -497,7 +596,29 @@
                 ctx.lineJoin = 'round';
                 sc.tutte.forEach(f => {
                     ctx.setLineDash(f.dash || []);
-                    if (f.t === 'poli') {
+                    if (f.t === 'poli' && f.sfondo) {
+                        // Il pezzo d'immagine sul triangolo: la trasformazione affine che porta i tre
+                        // punti dell'immagine sui tre dello schermo, col triangolo come ritaglio
+                        // (allargato di mezzo pixel, perché tra triangoli vicini non resti una riga).
+                        const [p0, p1, p2] = f.p, [u0, u1, u2] = f.uv;
+                        const gx = (p0[0] + p1[0] + p2[0]) / 3, gy = (p0[1] + p1[1] + p2[1]) / 3;
+                        const allarga = p => { const dx = p[0] - gx, dy = p[1] - gy, l = Math.hypot(dx, dy) || 1; return [p[0] + dx / l * 0.6, p[1] + dy / l * 0.6]; };
+                        const den = (u1[0] - u0[0]) * (u2[1] - u0[1]) - (u2[0] - u0[0]) * (u1[1] - u0[1]);
+                        if (!den) return;
+                        const a = ((p1[0] - p0[0]) * (u2[1] - u0[1]) - (p2[0] - p0[0]) * (u1[1] - u0[1])) / den;
+                        const b = ((p1[1] - p0[1]) * (u2[1] - u0[1]) - (p2[1] - p0[1]) * (u1[1] - u0[1])) / den;
+                        const c = ((p2[0] - p0[0]) * (u1[0] - u0[0]) - (p1[0] - p0[0]) * (u2[0] - u0[0])) / den;
+                        const dd = ((p2[1] - p0[1]) * (u1[0] - u0[0]) - (p1[1] - p0[1]) * (u2[0] - u0[0])) / den;
+                        const e = p0[0] - a * u0[0] - c * u0[1], ff = p0[1] - b * u0[0] - dd * u0[1];
+                        ctx.save();
+                        ctx.beginPath(); [p0, p1, p2].map(allarga).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+                        ctx.clip();
+                        ctx.globalAlpha = f.fo ?? 1;
+                        ctx.transform(a, b, c, dd, e, ff);
+                        ctx.drawImage(f.sfondo, 0, 0);
+                        ctx.restore();
+                        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    } else if (f.t === 'poli') {
                         ctx.beginPath(); f.p.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
                         ctx.globalAlpha = f.fo ?? 1; ctx.fillStyle = col(f.fill); ctx.fill();
                         if (f.stroke && f.sw) { ctx.globalAlpha = Math.min(1, (f.fo ?? 1) + 0.25); ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw; ctx.stroke(); }
@@ -571,7 +692,9 @@
                 }
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
+                riempiSceltaSfondo3d();
                 renderVista3d();
+                aggiornaStatoSfondo3d();
             }
 
             /** Il punto di vista di partenza: da sopra, di sbieco, la scena al centro. */
@@ -675,6 +798,74 @@
                 renderVista3d();
             });
             document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
+
+            // ---- L'immagine sul terreno: scelta, opacità, WMS ----
+            /** Il menù: nessuna, i fornitori a tessere, i WMS pronti e i propri, e un WMS qualsiasi. */
+            function riempiSceltaSfondo3d() {
+                const sel = document.getElementById('selSfondo3d'), sc = sceltaSfondo3d(), esc = escapeHtmlDidascalia;
+                const gruppi = { Google: [], Esri: [], OpenStreetMap: [] };
+                Object.entries(SFONDI_3D).forEach(([id, f]) => gruppi[f.nome.split(' · ')[0]].push(`<option value="${id}">${esc(f.nome.split(' · ')[1])}</option>`));
+                const wms = wmsDisponibili().map((w, i) => `<option value="wms:${i}">${esc(w.nome)}</option>`).join('');
+                sel.innerHTML = '<option value="">Nessuna (colori della quota)</option>'
+                    + Object.entries(gruppi).map(([g, o]) => `<optgroup label="${g}">${o.join('')}</optgroup>`).join('')
+                    + `<optgroup label="WMS">${wms}<option value="wms">Altro indirizzo WMS…</option></optgroup>`;
+                // Un WMS scelto dall'elenco si riconosce dall'indirizzo; se non c'è più, è «altro».
+                const k = wmsDisponibili().findIndex(w => w.url === sc.wmsUrl && (w.layer || '') === sc.wmsLayer);
+                sel.value = sc.id === 'wms' ? (k >= 0 ? 'wms:' + k : 'wms') : sc.id;
+                document.getElementById('txtWmsUrl3d').value = sc.wmsUrl;
+                document.getElementById('txtWmsLayer3d').value = sc.wmsLayer;
+                document.getElementById('rigaWms3d').style.display = sel.value === 'wms' ? '' : 'none';
+                document.getElementById('rngOpacita3d').value = Math.round((sc.opacita || (sc.id ? 0.85 : 0.62)) * 100);
+                aggiornaStatoSfondo3d();
+            }
+            function aggiornaStatoSfondo3d() {
+                const lbl = document.getElementById('lblSfondo3d'), sc = sceltaSfondo3d();
+                const sf = datiVista3dCorrenti && datiVista3dCorrenti._sfondo;
+                if (!sc.id || !sf) { lbl.textContent = ''; return; }
+                if (sc.id === 'wms' && !sc.wmsUrl) { lbl.textContent = 'Incolla l\'indirizzo del servizio e premi «Carica».'; return; }
+                const misto = sc.id === 'wms' && /^http:/i.test(sc.wmsUrl) && location.protocol === 'https:';
+                lbl.textContent = misto ? 'Questo servizio è in http: da una pagina https il browser lo blocca.'
+                    : sf.errori && sf.caricate < sf.totali && sf.caricate + sf.errori >= sf.totali ? `${sf.errori} su ${sf.totali} pezzi non sono arrivati: senza rete, o il servizio non risponde.`
+                    : sf.caricate < sf.totali ? `Carico l'immagine… ${sf.caricate} di ${sf.totali}` : '';
+            }
+            function cambiaSfondo3d(modifiche) {
+                salvaSceltaSfondo3d(modifiche);
+                if (datiVista3dCorrenti) datiVista3dCorrenti._sfondo = undefined;
+                riempiSceltaSfondo3d();
+                if (sceltaSfondo3d().id) vista3d.livelli.terreno = true;
+                renderVista3d();
+                aggiornaStatoSfondo3d();
+            }
+            document.getElementById('selSfondo3d').addEventListener('change', (e) => {
+                const v = e.target.value;
+                if (v.startsWith('wms:')) {
+                    const w = wmsDisponibili()[parseInt(v.slice(4), 10)];
+                    cambiaSfondo3d({ id: 'wms', wmsUrl: w.url, wmsLayer: w.layer || '', attribuzione: w.attribuzione || w.nome });
+                } else if (v === 'wms') {
+                    cambiaSfondo3d({ id: 'wms', wmsUrl: '', wmsLayer: '', attribuzione: '' });
+                } else cambiaSfondo3d({ id: v });
+            });
+            document.getElementById('btnWmsCarica3d').addEventListener('click', () => {
+                const url = document.getElementById('txtWmsUrl3d').value.trim();
+                cambiaSfondo3d({ id: 'wms', wmsUrl: url, wmsLayer: document.getElementById('txtWmsLayer3d').value.trim(), attribuzione: url.replace(/^https?:\/\//, '').split('/')[0] });
+            });
+            document.getElementById('btnWmsSalva3d').addEventListener('click', async () => {
+                const url = document.getElementById('txtWmsUrl3d').value.trim();
+                if (!url) { appAlert('Prima incolla l\'indirizzo del servizio, poi lo salvo fra i tuoi.'); return; }
+                const nome = await appPrompt('Resta fra i tuoi servizi: lo ritrovi qui e nell\'inquadramento del report.\n' + url, 'Ortofoto',
+                    { title: 'Salva questo servizio', label: 'Come lo chiamo?', okLabel: 'Salva' });
+                if (!nome || !String(nome).trim()) return;
+                if (!Array.isArray(state.settings.wmsPersonalizzati)) state.settings.wmsPersonalizzati = [];
+                const layer = document.getElementById('txtWmsLayer3d').value.trim();
+                state.settings.wmsPersonalizzati.push({ nome: String(nome).trim(), url, layer, attribuzione: String(nome).trim() });
+                cambiaSfondo3d({ id: 'wms', wmsUrl: url, wmsLayer: layer, attribuzione: String(nome).trim() });
+            });
+            document.getElementById('rngOpacita3d').addEventListener('input', (e) => {
+                if (!state.settings) state.settings = {};
+                state.settings.sfondo3d = Object.assign(sceltaSfondo3d(), { opacita: Number(e.target.value) / 100 });
+                ridisegna3d();
+            });
+            document.getElementById('rngOpacita3d').addEventListener('change', () => saveState());
             // I tagli: toccarli accende il modello solido, che è quello che si taglia.
             const conSolido = () => { if (!vista3d.livelli.solido) accendiSolido3d(); };
             document.getElementById('direzioneTaglio3d').addEventListener('click', (e) => {

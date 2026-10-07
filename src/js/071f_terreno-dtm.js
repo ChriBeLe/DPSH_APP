@@ -27,6 +27,23 @@
                 };
             }
 
+            /** Il contrario di utmDaGeo (emisfero nord, come quella): serve a sapere dove sta sulla
+             * mappa un punto del terreno della vista 3D, per stenderci sopra l'immagine. */
+            function geoDaUtm(x, y, zona) {
+                const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996;
+                const e2 = f * (2 - f), ep2 = e2 / (1 - e2), e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+                const mu = y / k0 / (a * (1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256));
+                const fi1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu) + (21 * e1 ** 2 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu)
+                    + (151 * e1 ** 3 / 96) * Math.sin(6 * mu) + (1097 * e1 ** 4 / 512) * Math.sin(8 * mu);
+                const s1 = Math.sin(fi1), c1 = Math.cos(fi1), t1 = Math.tan(fi1);
+                const N1 = a / Math.sqrt(1 - e2 * s1 ** 2), T1 = t1 ** 2, C1 = ep2 * c1 ** 2, R1 = a * (1 - e2) / Math.pow(1 - e2 * s1 ** 2, 1.5);
+                const D = (x - 500000) / (N1 * k0);
+                const lat = fi1 - (N1 * t1 / R1) * (D ** 2 / 2 - (5 + 3 * T1 + 10 * C1 - 4 * C1 ** 2 - 9 * ep2) * D ** 4 / 24
+                    + (61 + 90 * T1 + 298 * C1 + 45 * T1 ** 2 - 252 * ep2 - 3 * C1 ** 2) * D ** 6 / 720);
+                const lng = (D - (1 + 2 * T1 + C1) * D ** 3 / 6 + (5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * ep2 + 24 * T1 ** 2) * D ** 5 / 120) / c1;
+                return { lat: lat * 180 / Math.PI, lng: ((zona - 1) * 6 - 180 + 3) + lng * 180 / Math.PI };
+            }
+
             function puntoNelCrs(crs, lat, lng) {
                 return crs.tipo === 'geo' ? { x: lng, y: lat } : utmDaGeo(lat, lng, crs.zona);
             }

@@ -122,6 +122,23 @@ const $ = (app, id) => app.d.getElementById(id);
   t('tagliato di lato e in profondità: si vede il contorno del taglio', conta('.vista3d-solido') > 0 && conta('.vista3d-taglio') > 0);
   app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
 
+  // IMMAGINE SUL TERRENO
+  const rt = app.E('(() => { const u = utmDaGeo(40.1974, 17.9912, 33), g = geoDaUtm(u.x, u.y, 33); return [g.lat, g.lng]; })()');
+  t(`UTM → gradi: andata e ritorno tornano al punto (${rt.map(v => v.toFixed(7)).join(', ')})`, Math.abs(rt[0] - 40.1974) < 1e-7 && Math.abs(rt[1] - 17.9912) < 1e-7);
+  const voci = [...$(app, 'selSfondo3d').querySelectorAll('optgroup')].map(g => g.label);
+  t(`il menù delle immagini: ${voci.join(', ')}, più «Nessuna»`, voci.join() === 'Google,Esri,OpenStreetMap,WMS' && $(app, 'selSfondo3d').querySelector('option[value="google-satellite"]') && $(app, 'selSfondo3d').querySelector('option[value="osm"]'));
+  $(app, 'selSfondo3d').value = 'esri-satellite';
+  $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
+  t('scelta Esri satellite: si ricorda nelle impostazioni, e il terreno prende i pezzi d\'immagine', app.E('state.settings.sfondo3d.id') === 'esri-satellite' && app.E('ultimaScena3d.pezzi.some(f => f.sfondo && f.uv && f.uv.length === 3)'));
+  t('le tessere chieste sono quelle di Esri, allo zoom che sta in circa 2048 pixel', app.E('datiVista3dCorrenti._sfondo.totali') > 0 && app.E('datiVista3dCorrenti._sfondo.totali') <= 81);
+  t('(un cambio di immagine non tocca il progetto: è una preferenza dell\'app)', app.E("IMPOSTAZIONI_DELL_APP.has('sfondo3d')"));
+  $(app, 'selSfondo3d').value = 'wms';
+  $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
+  t('«Altro indirizzo WMS…» apre la riga per indirizzo e layer', $(app, 'rigaWms3d').style.display === '' && /Incolla l'indirizzo/.test($(app, 'lblSfondo3d').textContent));
+  $(app, 'selSfondo3d').value = '';
+  $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
+  t('«Nessuna» torna ai colori della quota', !app.E('ultimaScena3d.pezzi.some(f => f.sfondo)'));
+
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

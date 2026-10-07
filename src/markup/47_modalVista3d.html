@@ -32,6 +32,20 @@
             </div>
             <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
                 <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
+            <!-- L'immagine stesa sul terreno: Google, Esri, OpenStreetMap o un WMS. La scelta si
+                 ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
+            <div class="vista3d-taglio-riga">
+                <span class="vista3d-taglio-nome">Immagine sul terreno</span>
+                <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
+                <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
+                <span class="t-didascalia" id="lblSfondo3d"></span>
+            </div>
+            <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
+                <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
+                <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">
+                <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
+                <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
+            </div>
         </div>
         <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
         <div class="terreno-comandi" style="align-items: center;">
