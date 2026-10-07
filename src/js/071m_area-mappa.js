@@ -1,5 +1,5 @@
             // ===================== L'AREA DI LAVORO DELLA MAPPA (presa da HyperGram 6.0b) =====================
-            // Una finestra sola, due modi: Mappa (2D, Leaflet, che ruota) e 3D (071h). A sinistra la barra degli
+            // Una schermata a sé (copre tutto, non si divide con altre finestre), due modi: Mappa (2D, Leaflet, che ruota) e 3D (071h). A sinistra la barra degli
             // strumenti: Seleziona, Orbita (3D), Sposta, Profilo (A-A' → sezione tracciata), Misura, Area (2D);
             // in fondo Tutti, Iniziale, Dall'alto, Tasti. Sotto la barra di stato: cosa c'è, le coordinate e la
             // quota sotto il mouse, la misura in corso. Nel 3D la tastiera di HyperGram (WASD, Q/Z, R/F, N, U, H,
@@ -332,15 +332,13 @@
                 return rotazioneMappaPromessa;
             }
 
-            // ---- I PANNELLI (da HyperGram 6.0b, «Pannelli»): Livelli e Comandi. Ciascuno agganciato a sinistra o
-            // a destra (fissato: la vista rientra; non fissato: resta al bordo una striscia e col mouse esce),
-            // oppure libero sopra la scena; ridotto resta la testata. Si trascina dalla testata: lasciato
-            // vicino a un lato si aggancia lì, altrove resta libero. Tutto ricordato. Sul telefono galleggiano.
+            // ---- I PANNELLI: fermi, Livelli a sinistra e Comandi a destra (la vista rientra di quanto sono larghi);
+            // si possono solo ridurre alla testata, e la scelta si ricorda. Sul telefono galleggiano sopra la scena.
+            // (Qui non c'è niente da disegnare a mano: la versatilità dei pannelli di HyperGram non serve.)
             const LARGHEZZA_PNL = { liv: 250, cmd: 340 };
-            const PANNELLI_PREDEFINITI = { liv: { dock: 'l', pin: true, red: false, fx: 20, fy: 20 }, cmd: { dock: 'r', pin: true, red: false, fx: 80, fy: 60 } };
             const pannelli = (() => {
-                try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return s; } catch (_) { /* predefiniti */ }
-                return JSON.parse(JSON.stringify(PANNELLI_PREDEFINITI));
+                try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return { liv: { red: !!s.liv.red }, cmd: { red: !!s.cmd.red } }; } catch (_) { /* predefiniti */ }
+                return { liv: { red: false }, cmd: { red: false } };
             })();
             const elPannello = k => document.querySelector(`.am-pnl[data-pnl="${k}"]`);
             const scenaMappa = document.getElementById('scenaAreaMappa');
@@ -348,110 +346,40 @@
             function salvaPannelli() { try { localStorage.setItem('dpsh.pannelliMappa', JSON.stringify(pannelli)); } catch (_) { /* solo per questa volta */ } }
             function applicaPannelli() {
                 const stretto = telefonoMappa();
-                let vl = 0, vr = 0;
-                const perLato = { l: [], r: [] };
                 ['liv', 'cmd'].forEach(k => {
-                    const p = pannelli[k], el = elPannello(k);
-                    const dock = stretto ? null : (p.dock === 'l' || p.dock === 'r' ? p.dock : null);
-                    el.classList.toggle('dk', !!dock);
-                    el.classList.toggle('dl', dock === 'l');
-                    el.classList.toggle('dr', dock === 'r');
-                    el.classList.toggle('fl', !dock);
-                    el.classList.toggle('un', !!dock && !p.pin);
-                    el.classList.toggle('red', !!p.red);
+                    const el = elPannello(k), lato = k === 'liv' ? 'l' : 'r';
+                    el.classList.toggle('dk', !stretto);
+                    el.classList.toggle('dl', !stretto && lato === 'l');
+                    el.classList.toggle('dr', !stretto && lato === 'r');
+                    el.classList.toggle('fl', stretto);
+                    el.classList.toggle('red', !!pannelli[k].red);
                     el.style.width = stretto ? '' : LARGHEZZA_PNL[k] + 'px';
-                    if (dock) {
-                        el.style.left = el.style.top = '';
-                        perLato[dock].push(k);
-                        if (p.pin && !p.red) { if (dock === 'l') vl = Math.max(vl, LARGHEZZA_PNL[k]); else vr = Math.max(vr, LARGHEZZA_PNL[k]); }
-                    } else {
-                        // libero: dove l'ha lasciato, ma sempre dentro la scena (sul telefono, uno sopra e uno sotto)
-                        const W = scenaMappa.clientWidth || 800, H = scenaMappa.clientHeight || 600;
-                        const x = stretto ? (k === 'liv' ? W - el.offsetWidth - 8 : 8) : Math.max(0, Math.min(W - 60, p.fx));
-                        const y = stretto ? (k === 'liv' ? 8 : Math.max(8, H - Math.min(el.offsetHeight, H * 0.5) - 8)) : Math.max(0, Math.min(H - 40, p.fy));
-                        el.style.left = x + 'px'; el.style.top = y + 'px';
-                        el.style.removeProperty('--pt'); el.style.removeProperty('--ph');
-                    }
-                });
-                // Due pannelli sullo stesso lato: uno sopra e uno sotto (a metà altezza; uno ridotto lascia tutto all'altro).
-                ['l', 'r'].forEach(lato => {
-                    const ks = perLato[lato];
-                    ks.forEach((k, i) => {
-                        const el = elPannello(k), altro = ks[1 - i] && pannelli[ks[1 - i]];
-                        el.classList.toggle('pila', ks.length > 1 && i === 0);
-                        if (ks.length < 2) { el.style.setProperty('--pt', '0px'); el.style.setProperty('--ph', '100%'); return; }
-                        const met = altro && altro.red ? 'calc(100% - 41px)' : '50%';
-                        el.style.setProperty('--pt', i === 0 ? '0px' : (pannelli[ks[0]].red ? '41px' : '50%'));
-                        el.style.setProperty('--ph', pannelli[k].red ? 'auto' : (i === 0 ? met : (pannelli[ks[0]].red ? 'calc(100% - 41px)' : '50%')));
-                    });
+                    el.style.setProperty('--pt', '0px');
+                    el.style.setProperty('--ph', '100%');
+                    if (stretto) {
+                        const W = scenaMappa.clientWidth || 360, H = scenaMappa.clientHeight || 600;
+                        el.style.left = (k === 'liv' ? Math.max(8, W - el.offsetWidth - 8) : 8) + 'px';
+                        el.style.top = (k === 'liv' ? 8 : Math.max(8, H - Math.min(el.offsetHeight, H * 0.5) - 8)) + 'px';
+                    } else el.style.left = el.style.top = '';
                 });
                 const vista = scenaMappa.querySelector('.am-vista');
-                vista.style.setProperty('--vl', vl + 'px');
-                vista.style.setProperty('--vr', vr + 'px');
-                elPannello('liv').querySelector('[data-pnl-azione="lato"] use').setAttribute('href', pannelli.liv.dock === 'r' ? '#i-flusso-sx' : '#i-flusso-dx');
-                elPannello('cmd').querySelector('[data-pnl-azione="lato"] use').setAttribute('href', pannelli.cmd.dock === 'r' ? '#i-flusso-sx' : '#i-flusso-dx');
+                vista.style.setProperty('--vl', (!telefonoMappa() && !pannelli.liv.red ? LARGHEZZA_PNL.liv : 0) + 'px');
+                vista.style.setProperty('--vr', (!telefonoMappa() && !pannelli.cmd.red ? LARGHEZZA_PNL.cmd : 0) + 'px');
                 // La vista ha cambiato misura: alla fine dello scorrimento si ridisegna.
                 clearTimeout(applicaPannelli.t);
                 applicaPannelli.t = setTimeout(() => { if (!areaMappaAperta()) return; if (areaMappa.modo === '3d') renderVista3d(); else if (mappaProgetto.mappa) mappaProgetto.mappa.invalidateSize(); }, 320);
             }
-            function azionePannello(k, azione) {
-                const p = pannelli[k];
-                if (azione === 'pin') p.pin = !p.pin;
-                else if (azione === 'riduci') p.red = !p.red;
-                else if (azione === 'lato') {
-                    // sinistra → destra → libero → sinistra
-                    if (p.dock === 'l') p.dock = 'r';
-                    else if (p.dock === 'r') { p.dock = 'f'; p.fx = Math.max(10, (scenaMappa.clientWidth || 800) - LARGHEZZA_PNL[k] - 30); p.fy = 30; }
-                    else p.dock = 'l';
-                    p.red = false;
-                }
+            function riduciPannello(k) {
+                pannelli[k].red = !pannelli[k].red;
                 salvaPannelli();
                 applicaPannelli();
             }
-            ['liv', 'cmd'].forEach(k => {
-                const el = elPannello(k), testa = el.querySelector('.am-pnl-testa');
-                el.querySelector('.am-pnl-ctrl').addEventListener('click', (e) => {
-                    const b = e.target.closest('[data-pnl-azione]');
-                    if (b) { e.stopPropagation(); azionePannello(k, b.dataset.pnlAzione); }
-                });
-                // Trascinare dalla testata: segue il mouse; lasciato a meno di 90 px da un lato si aggancia lì.
-                testa.addEventListener('pointerdown', (e) => {
-                    if (e.button !== 0 || telefonoMappa() || e.target.closest('button:not(.mappa-livelli-titolo)')) return;
-                    const r0 = el.getBoundingClientRect(), rs = scenaMappa.getBoundingClientRect(), dx = e.clientX - r0.left, dy = e.clientY - r0.top, x0 = e.clientX, y0 = e.clientY;
-                    let mosso = false;
-                    const muovi = (ev) => {
-                        if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return;
-                        if (!mosso) {
-                            mosso = true;
-                            pannelli[k].dock = 'f';
-                            el.classList.add('trascina');
-                            applicaPannelli();
-                        }
-                        pannelli[k].fx = ev.clientX - rs.left - dx;
-                        pannelli[k].fy = ev.clientY - rs.top - dy;
-                        el.style.left = Math.max(0, Math.min(rs.width - 60, pannelli[k].fx)) + 'px';
-                        el.style.top = Math.max(0, Math.min(rs.height - 40, pannelli[k].fy)) + 'px';
-                    };
-                    const fine = (ev) => {
-                        window.removeEventListener('pointermove', muovi);
-                        window.removeEventListener('pointerup', fine);
-                        el.classList.remove('trascina');
-                        if (!mosso) return;
-                        // il clic che chiude il trascinamento non deve aprire o ridurre il pannello
-                        const ferma = (c) => { c.stopPropagation(); c.preventDefault(); };
-                        window.addEventListener('click', ferma, { capture: true, once: true });
-                        setTimeout(() => window.removeEventListener('click', ferma, { capture: true }), 0);
-                        if (ev.clientX - rs.left < 90) pannelli[k].dock = 'l';
-                        else if (rs.right - ev.clientX < 90) pannelli[k].dock = 'r';
-                        salvaPannelli();
-                        applicaPannelli();
-                    };
-                    window.addEventListener('pointermove', muovi);
-                    window.addEventListener('pointerup', fine);
-                });
-            });
-            // Il titolo «Livelli» apre e riduce il suo pannello, come la freccia.
-            document.getElementById('btnLivelli3d').addEventListener('click', () => azionePannello('liv', 'riduci'));
+            ['liv', 'cmd'].forEach(k => elPannello(k).querySelector('.am-pnl-ctrl').addEventListener('click', (e) => {
+                if (e.target.closest('[data-pnl-azione="riduci"]')) { e.stopPropagation(); riduciPannello(k); }
+            }));
+            // Il titolo apre e riduce il suo pannello, come il tasto.
+            document.getElementById('btnLivelli3d').addEventListener('click', () => riduciPannello('liv'));
+            elPannello('cmd').querySelector('.am-pnl-tit').addEventListener('click', () => riduciPannello('cmd'));
             try { if (telefonoMappa() && !localStorage.getItem('dpsh.pannelliMappa')) { pannelli.liv.red = true; pannelli.cmd.red = true; } } catch (_) { /* come sono */ }
             applicaPannelli();
             window.addEventListener('resize', () => { if (areaMappaAperta()) applicaPannelli(); });

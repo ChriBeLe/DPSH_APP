@@ -1,5 +1,5 @@
 // L'AREA DI LAVORO DELLA MAPPA (presa da HyperGram): una finestra con i modi Mappa e 3D, la barra degli
-// strumenti, i pannelli Livelli e Comandi (agganciati, liberi, non fissati, ridotti; ricordati), la barra di
+// strumenti, i pannelli Livelli e Comandi (fissi ai lati, si possono solo ridurre; ricordati), la barra di
 // stato, la tastiera del 3D, il tasto destro. (La mappa 2D vera, Leaflet con la rotazione, si è provata nel
 // browser: qui jsdom non la carica; si provano la logica e il 3D.)
 const fs = require('fs');
@@ -79,18 +79,14 @@ const $ = (app, id) => app.d.getElementById(id);
   const pnl = k => app.d.querySelector(`.am-pnl[data-pnl="${k}"]`);
   t('Livelli agganciato a sinistra, Comandi a destra; la vista rientra di quanto sono larghi', pnl('liv').classList.contains('dl') && pnl('cmd').classList.contains('dr')
     && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '250px' && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '340px');
-  clic(app, pnl('cmd').querySelector('[data-pnl-azione="pin"]'));
-  t('non fissato: resta al bordo (la vista non rientra più)', pnl('cmd').classList.contains('un') && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '0px');
-  clic(app, pnl('cmd').querySelector('[data-pnl-azione="pin"]'));
-  clic(app, pnl('cmd').querySelector('[data-pnl-azione="lato"]'));
-  t('«lato»: da destra… a libero sopra la scena', pnl('cmd').classList.contains('fl') && app.E('pannelli.cmd.dock') === 'f');
-  clic(app, pnl('cmd').querySelector('[data-pnl-azione="lato"]'));
-  t('…a sinistra, sotto i Livelli (uno sopra e uno sotto)', pnl('cmd').classList.contains('dl') && pnl('liv').classList.contains('pila'));
-  clic(app, pnl('cmd').querySelector('[data-pnl-azione="lato"]'));
+  t('fissi: niente da staccare, spostare o cambiare di lato (solo «riduci»)', !am.querySelector('[data-pnl-azione="pin"], [data-pnl-azione="lato"]') && !!pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
+  clic(app, pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
+  t('Comandi ridotto: resta la testata, la vista prende il posto', pnl('cmd').classList.contains('red') && pnl('cmd').classList.contains('dr') && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '0px');
+  clic(app, pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
   clic(app, $(app, 'btnLivelli3d'));
-  t('ridotto: resta la testata', pnl('liv').classList.contains('red') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px');
+  t('Livelli ridotto dal suo titolo', pnl('liv').classList.contains('red') && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px');
+  t('ricordato', app.w.localStorage.getItem('dpsh.pannelliMappa') === '{"liv":{"red":true},"cmd":{"red":false}}');
   clic(app, $(app, 'btnLivelli3d'));
-  t('tutto ricordato', /"dock":"r"/.test(app.w.localStorage.getItem('dpsh.pannelliMappa')));
 
   console.log('--- Il tasto destro ---');
   const id1 = app.E(`Object.values(${P}.surveys).find(s => s.header.provaNr == '1').id`);

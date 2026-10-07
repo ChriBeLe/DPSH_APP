@@ -1,8 +1,9 @@
     <!-- MAPPA DEL PROGETTO (presa da HyperGram 6.0b): un'area di lavoro sola con due modi, Mappa (2D,
          Leaflet) e 3D (canvas, 071h). A sinistra la barra degli strumenti, in mezzo la scena, sopra la
-         scena i pannelli (Livelli; Comandi con le schede Vista, Modello e tagli, Immagine, Sezioni) che si
-         agganciano a sinistra o a destra, galleggiano, si fissano o si nascondono (071m); sotto la barra di
-         stato con le coordinate sotto il mouse. La scheda della prova è la stessa nei due modi (071l). -->
+         scena i pannelli (Livelli; Comandi con le schede Vista, Modello e tagli, Immagine, Sezioni); sotto la barra di
+         stato con le coordinate sotto il mouse. La scheda della prova è la stessa nei due modi (071l).
+         È una schermata a sé: copre tutto e non si divide con altre finestre; i pannelli stanno fermi
+         (Livelli a sinistra, Comandi a destra), si possono solo ridurre. -->
     <div class="modal-overlay" id="modalVista3dOverlay"></div>
     <div class="modal area-mappa" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d" data-modo="3d">
         <div class="am-testa">
@@ -48,13 +49,13 @@
                 <div id="pannelloLivelli3d" class="vista3d-livelli am-pnl" data-pnl="liv">
                     <div class="mappa-livelli-testa am-pnl-testa">
                         <button type="button" class="mappa-livelli-titolo" id="btnLivelli3d" title="Apri o richiudi i livelli"><svg class="ico"><use href="#i-layers"/></svg><span>Livelli</span><svg class="ico chevron"><use href="#i-chevron-down"/></svg></button>
-                        <span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="pin" title="Fissa o lascia nascondere al bordo"><svg class="ico"><use href="#i-pin"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="lato" title="Aggancia a sinistra, a destra o lascia libero (si può anche trascinare dalla testata)"><svg class="ico"><use href="#i-flusso-dx"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
+                        <span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
                     </div>
                     <div id="livelliVista3d" class="mappa-livelli-albero" aria-label="Livelli"></div>
                 </div>
                 <div id="pannelloComandi3d" class="am-pnl am-comandi" data-pnl="cmd">
                     <div class="am-pnl-testa">
-                        <span class="am-pnl-tit"><svg class="ico"><use href="#i-settings"/></svg><b>Comandi</b></span><span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="pin" title="Fissa o lascia nascondere al bordo"><svg class="ico"><use href="#i-pin"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="lato" title="Aggancia a sinistra, a destra o lascia libero (si può anche trascinare dalla testata)"><svg class="ico"><use href="#i-flusso-dx"/></svg></button><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
+                        <span class="am-pnl-tit"><svg class="ico"><use href="#i-settings"/></svg><b>Comandi</b></span><span class="am-pnl-ctrl"><button type="button" class="am-pnl-bt" data-pnl-azione="riduci" title="Riduci o apri"><svg class="ico"><use href="#i-minimize"/></svg></button></span>
                     </div>
                     <div class="am-pnl-corpo">
                     <div class="gps-map-layer-switch am-solo-mappa" id="sfondoMappaProgetto">

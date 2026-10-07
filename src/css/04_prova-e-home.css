@@ -238,7 +238,7 @@
         .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pc-lato button:hover { background: var(--bg-card-hover); }
         .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
-        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 250; transform-origin: top left; } /* sopra anche la mappa del progetto */
+        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 350; transform-origin: top left; } /* sopra anche la mappa del progetto */
         .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
         .menu-contesto kbd { margin-left: auto; padding-left: var(--sp-4); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
         .menu-contesto .pericolo, .menu-contesto .pericolo .ico { color: var(--danger); }
@@ -575,6 +575,11 @@
         #modalVista3d.area-mappa { top: 0; left: 0; transform: none; width: 100vw; height: 100dvh; max-width: none; max-height: none !important; margin: 0; padding: 0; border-radius: 0; border: 0; overflow: hidden !important;
             display: grid; grid-template-rows: auto 1fr auto; }
         #modalVista3d.area-mappa.open { transform: none; }
+        /* È una schermata a sé, mai una finestra fra le altre: inchiodata a tutto lo schermo (niente regole delle
+           finestre la può spostare o dimezzare) e sopra a tutto, barre dell'app comprese. */
+        #modalVista3d.area-mappa { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+            width: auto !important; height: auto !important; max-width: none !important; transform: none !important; z-index: 300; }
+        #modalVista3dOverlay { display: none !important; }
         .am-testa { display: flex; align-items: center; gap: var(--sp-2); padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--border); min-width: 0; }
         .am-titolo { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .am-modi { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--bg-sunken); border: 1px solid var(--border); }
@@ -612,15 +617,8 @@
         .am-pnl.dk { top: var(--pt, 0px); height: var(--ph, 100%); border-radius: 0; box-shadow: none; }
         .am-pnl.dk.dl { left: 0; right: auto; border-width: 0 1px 0 0; }
         .am-pnl.dk.dr { right: 0; left: auto; border-width: 0 0 0 1px; }
-        .am-pnl.dk.pila { border-bottom-width: 1px; }
         .am-pnl.fl { right: auto; bottom: auto; border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); max-height: calc(100% - 20px); }
-        /* non fissato: resta al bordo una striscia; col mouse sopra (o col fuoco dentro) esce */
-        .am-pnl.dk.un.dl { transform: translateX(calc(-100% + 22px)); }
-        .am-pnl.dk.un.dr { transform: translateX(calc(100% - 22px)); }
-        .am-pnl.dk.un:hover, .am-pnl.dk.un:focus-within { transform: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
-        .am-pnl.dk.un:not(:hover):not(:focus-within) { border-color: var(--accent); }
-        .am-pnl.trascina { transition: none; box-shadow: 0 24px 56px rgba(0, 0, 0, 0.6); opacity: 0.94; z-index: 760; }
-        .am-pnl-testa { flex: none; display: flex; align-items: center; gap: 2px; min-height: 40px; padding: 0 4px 0 10px; border-bottom: 1px solid var(--border); cursor: grab; user-select: none; }
+        .am-pnl-testa { flex: none; display: flex; align-items: center; gap: 2px; min-height: 40px; padding: 0 4px 0 10px; border-bottom: 1px solid var(--border); user-select: none; }
         .vista3d-livelli .am-pnl-testa { padding-left: 2px; }
         .am-pnl-tit { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
         .am-pnl-tit .ico { width: 15px; height: 15px; margin: 0; color: var(--accent); }
@@ -628,8 +626,6 @@
         .am-pnl-bt { width: 28px; height: 28px; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 7px; background: none; color: var(--text-muted); cursor: pointer; }
         .am-pnl-bt:hover { background: rgba(127, 127, 127, 0.14); color: var(--text-main); }
         .am-pnl-bt .ico { width: 14px; height: 14px; margin: 0; }
-        .am-pnl.un [data-pnl-azione="pin"] { color: var(--text-muted); opacity: 0.6; }
-        .am-pnl:not(.un) [data-pnl-azione="pin"] { color: var(--accent); }
         .am-pnl-corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 12px; }
         .area-mappa .vista3d-livelli .mappa-livelli-albero { flex: 1; }
         /* ridotto: resta la testata */
