@@ -101,6 +101,12 @@ const $ = (app, id) => app.d.getElementById(id);
     return { sup: m.superfici.map(s => [s.f.nome, Math.round(s.immersione), +s.inclinazione.toFixed(2)]), pannelli: m.pannelli.length };
   })()`);
   t(`giacitura del tetto della sabbia: ${JSON.stringify(g.sup)} (attesa 090°/5,71°; il tetto del limo è il terreno e non conta)`, JSON.stringify(g.sup) === JSON.stringify([['Sabbia', 90, 5.71]]) && g.pannelli === 6);
+  {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071h_vista-3d.js'), 'utf8');
+    t('giaciture: simbolo col colore dello strato, scritta solo immersione/inclinazione; il nome dello strato a richiesta (spento)', /\[sf\.f\.colore, 2\.6\]/.test(src) && /\$\{L\.nomiGiaciture \? ' ' \+ sf\.f\.nome : ''\}/.test(src)
+      && app.E('vista3d.livelli.nomiGiaciture') === false && !!app.d.querySelector('#livelliVista3d [data-livello="nomiGiaciture"]'));
+    t('e le scritte non si accavallano: una che ne coprirebbe un\'altra non si scrive', /if \(scrittaLibera\(o\[0\] \+ 8, y,/.test(src) && /if \(scrittaLibera\(m\[0\] - w \/ 2/.test(src));
+  }
   const tri = app.E('triangolaDelaunay([{x:0,y:0},{x:10,y:0},{x:0,y:10},{x:10,y:10},{x:5,y:5}])');
   t(`Delaunay: 5 punti (quadrato e centro) → 4 triangoli (${tri.length})`, tri.length === 4);
   t('(punti in fila: nessun triangolo)', app.E('triangolaDelaunay([{x:0,y:0},{x:10,y:0},{x:20,y:0}])').length === 0);

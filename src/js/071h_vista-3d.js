@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, panX: 0, panY: 0, prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomi: true, misure: true, solido: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, nomi: true, misure: true, solido: false },
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
                 taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 } };
@@ -520,6 +520,19 @@
                 pezzi.sort((m, n) => n.prof - m.prof);
                 const testo = (x, y, s, extra) => sopra.push({ t: 'testo', x, y, s, size: 11, ...extra });
                 const perTriangolo = new Map(); // più tetti nello stesso triangolo: scritte una sotto l'altra
+                // GIACITURE LEGGIBILI: il simbolo ha il colore dello strato, la scritta è solo
+                // immersione/inclinazione (il nome dello strato a richiesta). Un simbolo dello stesso
+                // strato troppo vicino a uno già messo non si ripete, e una scritta che ne coprirebbe
+                // un'altra non si scrive (il simbolo resta).
+                const segni = [], scritte = [];
+                const scrittaLibera = (x, y, w) => {
+                    const b = [x - 2, y - 12, x + w + 2, y + 4];
+                    if (scritte.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1])) return false;
+                    scritte.push(b);
+                    return true;
+                };
+                // I nomi delle prove hanno la precedenza: giaciture e distanze lasciano loro il posto.
+                if (L.nomi) d.prove.forEach(p => { if (tieni(p.x, p.y)) { const [tx, ty] = P(p.x, p.y, p.z), w = nomeDpsh(p.s).length * 8; scritte.push([tx - w / 2, ty - 24, tx + w / 2, ty - 6]); } });
                 if (L.giaciture && L.superfici && !so) superfici.forEach(sf => {
                     const riga = perTriangolo.get(sf.t) || 0;
                     perTriangolo.set(sf.t, riga + 1);
@@ -527,9 +540,15 @@
                     const rad = sf.immersione * Math.PI / 180, lung = Math.max(4, d.lato / 30);
                     const dx = Math.sin(rad), dy = Math.cos(rad); // verso dell'immersione (x est, y nord)
                     const [a1, a2, tk, o] = [P(c[0] - dy * lung, c[1] + dx * lung, c[2]), P(c[0] + dy * lung, c[1] - dx * lung, c[2]), P(c[0] + dx * lung * 0.6, c[1] + dy * lung * 0.6, c[2]), P(...c)];
-                    sopra.push({ t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke: 'currentColor', sw: 2.2, cls: 'vista3d-giacitura-segno' });
-                    sopra.push({ t: 'linea', x1: o[0], y1: o[1], x2: tk[0], y2: tk[1], stroke: 'currentColor', sw: 2.2, cls: 'vista3d-giacitura-segno' });
-                    testo(o[0] + 8, o[1] - 6 + riga * 14, `${String(Math.round(sf.immersione)).padStart(3, '0')}°/${numeroConVirgola(sf.inclinazione, 1)}° ${sf.f.nome}`, { alone: true, cls: 'vista3d-giacitura' });
+                    if (segni.some(g => g.f === sf.f && Math.hypot(g.x - o[0], g.y - o[1]) < 28)) return;
+                    segni.push({ f: sf.f, x: o[0], y: o[1] });
+                    [['rgba(0,0,0,0.55)', 4.4], [sf.f.colore, 2.6]].forEach(([stroke, sw]) => {
+                        sopra.push({ t: 'linea', x1: a1[0], y1: a1[1], x2: a2[0], y2: a2[1], stroke, sw, cls: 'vista3d-giacitura-segno' });
+                        sopra.push({ t: 'linea', x1: o[0], y1: o[1], x2: tk[0], y2: tk[1], stroke, sw, cls: 'vista3d-giacitura-segno' });
+                    });
+                    const scritta = `${String(Math.round(sf.immersione)).padStart(3, '0')}°/${numeroConVirgola(sf.inclinazione, 1)}°${L.nomiGiaciture ? ' ' + sf.f.nome : ''}`;
+                    const y = o[1] - 6 + riga * 14;
+                    if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura' });
                 });
                 if (L.misure) {
                     // Asta graduata delle quote, all'angolo della scena più vicino a chi guarda.
@@ -546,7 +565,8 @@
                     }
                     d.lati.forEach(([i, j]) => {
                         const A = d.prove[i], B = d.prove[j], m = P((A.x + B.x) / 2, (A.y + B.y) / 2, Math.max(A.z, B.z) + (d.zMax - d.zMin) * 0.05);
-                        testo(m[0], m[1], numeroConVirgola(Math.hypot(B.x - A.x, B.y - A.y), 0) + ' m', { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
+                        const s = numeroConVirgola(Math.hypot(B.x - A.x, B.y - A.y), 0) + ' m', w = s.length * 6.7;
+                        if (scrittaLibera(m[0] - w / 2, m[1], w)) testo(m[0], m[1], s, { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
                     });
                 }
                 if (L.nomi) d.prove.forEach(p => {
