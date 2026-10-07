@@ -151,6 +151,17 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'btnProspettiva3d'));
   t('la bussola: anello, leva, quattro tasti agli angoli, righe di zoom, inclinazione ed esagerazione', !!app.d.querySelector('#bussola3d .b-presa-anello') && !!app.d.querySelector('#bussola3d .b-pomello') && app.d.querySelectorAll('#bussola3d .b-ang').length === 4 && [...app.d.querySelectorAll('#bussola3d [data-riga]')].map(r => r.dataset.riga).join() === 'zoom,incl,esag');
   t('le viste pronte: dall\'alto, isometrica (35,26°), dai quattro lati, da sotto', app.E('Object.keys(VISTE_PRONTE_3D).join()') === 'alto,iso,nord,est,sud,ovest,sotto' && Math.abs(app.E('VISTE_PRONTE_3D.iso.el') * 180 / Math.PI - 35.264) < 0.01);
+  // SPOSTARSI E GIRARE ATTORNO A LÌ: il punto spostato al centro resta al centro girando.
+  {
+    const testa = () => { const W = app.E('ultimaScena3d.W'), H = app.E('ultimaScena3d.H'), c = app.E('ultimaScena3d.sopra').find(f => f.cls === 'vista3d-testa' && f.prova === app.E('datiVista3dCorrenti.prove[0].s.id')); return [c.x - W / 2, c.y - H / 2]; };
+    app.E('vista3d.prospettiva = false; const p0 = datiVista3dCorrenti.prove[0], d0 = datiVista3dCorrenti; vista3d.centro = [p0.x, p0.y, p0.z - (d0.zMin + d0.zMax) / 2]; renderVista3d()');
+    const giri = [0.3, 1.7, -2.4].map(az => { app.E(`vista3d.az = ${az}; vista3d.el = 0.9; renderVista3d()`); return testa(); });
+    t('girando, il punto attorno a cui si gira resta fermo al centro', giri.every(([x, y]) => Math.abs(x) < 0.01 && Math.abs(y) < 0.01));
+    app.E('sposta3d(100, 40); renderVista3d()');
+    const [x, y] = testa();
+    t('trascinare col tasto destro (o centrale) porta la scena con sé, di quanto si trascina', Math.abs(x - 100) < 0.01 && Math.abs(y - 40) < 0.01);
+    t('(il centrale sposta come il destro)', /sposta: e\.button === 1 \|\| e\.button === 2/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071h_vista-3d.js'), 'utf8')));
+  }
   app.E('vistaIniziale3d(); renderVista3d()');
 
   // IMMAGINE SUL TERRENO

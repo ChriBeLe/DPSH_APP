@@ -14,7 +14,7 @@
             // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
-            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, panX: 0, panY: 0, prospettiva: false, fov: 45, trascina: null, mosso: 0,
+            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomiGiaciture: false, nomi: true, misure: true, solido: false },
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
@@ -368,10 +368,13 @@
                 // centro della scena che dipende dal campo visivo (stretto = lontano, quasi assonometria;
                 // largo = vicino, prospettiva forte). Al centro la grandezza è la stessa di senza.
                 const occhio = vista3d.prospettiva ? R / Math.tan(vista3d.fov * Math.PI / 360) : 0;
+                // Si gira attorno a vista3d.centro (metri veri, dal centro della scena): spostandolo col
+                // tasto destro si va dove si vuole, e poi si gira attorno a lì.
+                const [cx, cy, cz] = vista3d.centro;
                 const P = (x, y, z) => {
-                    const X = x * ca - y * sa, Yd = x * sa + y * ca, Z = (z - zRif) * ex;
+                    const X = (x - cx) * ca - (y - cy) * sa, Yd = (x - cx) * sa + (y - cy) * ca, Z = (z - zRif - cz) * ex;
                     const prof = Yd * ce - Z * se, s = occhio ? occhio / Math.max(occhio * 0.08, occhio + prof) : 1;
-                    return [W / 2 + X * k * s + vista3d.panX, H / 2 + (-Z * ce - Yd * se) * k * s + vista3d.panY, prof];
+                    return [W / 2 + X * k * s, H / 2 + (-Z * ce - Yd * se) * k * s, prof];
                 };
                 const pezzi = [], sopra = [], colonne = [];
                 const poli = (pp, extra) => pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
@@ -592,7 +595,7 @@
                 const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
                 if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
                 else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
-                return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
+                return { W, H, k, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
             }
 
             /** La scena in SVG: per il file scaricato (e per i test). */
@@ -727,7 +730,7 @@
 
             /** Il punto di vista di partenza: da sopra, di sbieco, la scena al centro. */
             function vistaIniziale3d() {
-                vista3d.az = -0.6; vista3d.el = 0.62; vista3d.panX = 0; vista3d.panY = 0;
+                vista3d.az = -0.6; vista3d.el = 0.62; vista3d.centro = [0, 0, 0];
                 vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 };
                 document.getElementById('rngTaglioV3d').value = 50;
                 document.getElementById('rngTaglioH3d').value = 0;
@@ -749,9 +752,20 @@
             const dita3d = new Map();
             const pizzicoDita = () => { const [a, b] = [...dita3d.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
             box3d.addEventListener('contextmenu', (e) => e.preventDefault());
+            // Il tasto centrale sposta come il destro: niente scorrimento automatico del browser.
+            box3d.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
+            /** Sposta il punto attorno a cui si gira, in metri veri: trascinare di dx, dy pixel porta la
+             * scena con sé (lungo l'orizzontale e la verticale dello schermo), e poi si gira attorno a lì. */
+            function sposta3d(dx, dy) {
+                const k = (ultimaScena3d && ultimaScena3d.k) || 1, u = dx / k, v = dy / k, c = vista3d.centro;
+                const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), ce = Math.cos(vista3d.el), se = Math.sin(vista3d.el);
+                c[0] += -u * ca + v * se * sa;
+                c[1] += u * sa + v * se * ca;
+                c[2] += v * ce / vista3d.ex;
+            }
             box3d.addEventListener('pointerdown', (e) => {
                 dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
-                vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY, sposta: e.button === 2 || e.shiftKey } : null;
+                vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY, sposta: e.button === 1 || e.button === 2 || e.shiftKey } : null;
                 vista3d.pizzico = dita3d.size === 2 ? pizzicoDita() : null;
                 vista3d.mosso = 0;
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
@@ -760,7 +774,7 @@
                 if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (vista3d.pizzico && dita3d.size === 2) {
                     const p = pizzicoDita(), prima = vista3d.pizzico;
-                    vista3d.panX += p.x - prima.x; vista3d.panY += p.y - prima.y;
+                    sposta3d(p.x - prima.x, p.y - prima.y);
                     zoom3d(prima.d ? p.d / prima.d : 1);
                     vista3d.pizzico = p;
                     vista3d.mosso += 10;
@@ -769,7 +783,7 @@
                 if (!vista3d.trascina) return;
                 const dx = e.clientX - vista3d.trascina.x, dy = e.clientY - vista3d.trascina.y;
                 vista3d.mosso += Math.abs(dx) + Math.abs(dy);
-                if (vista3d.trascina.sposta) { vista3d.panX += dx; vista3d.panY += dy; }
+                if (vista3d.trascina.sposta) sposta3d(dx, dy);
                 else { vista3d.az += dx * 0.008; vista3d.el += dy * 0.006; }
                 vista3d.trascina = { x: e.clientX, y: e.clientY, sposta: vista3d.trascina.sposta };
                 ridisegna3d();
@@ -800,12 +814,20 @@
                 if (!mosse) return;
                 e.preventDefault();
                 // Con Maiusc le frecce spostano la scena invece di girarla.
-                if (e.shiftKey) { vista3d.panX -= mosse[0] * 200; vista3d.panY += mosse[1] * 300; }
+                if (e.shiftKey) sposta3d(-mosse[0] * 200, mosse[1] * 300);
                 else { vista3d.az += mosse[0]; vista3d.el += mosse[1]; }
                 renderVista3d();
             });
             function zoom3d(f) { vista3d.zoom = Math.max(0.1, Math.min(40, vista3d.zoom * f)); ridisegna3d(); }
-            box3d.addEventListener('wheel', (e) => { e.preventDefault(); zoom3d(Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+            // La rotella avvicina verso il punto sotto il cursore, che resta fermo.
+            box3d.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const prima = vista3d.zoom;
+                zoom3d(Math.exp(-e.deltaY * 0.0015));
+                if (!ultimaScena3d || !box3d.querySelector('canvas')) return;
+                const [mx, my] = puntoCanvas(e), f = 1 - prima / vista3d.zoom;
+                sposta3d(-(mx - ultimaScena3d.W / 2) * f, -(my - ultimaScena3d.H / 2) * f);
+            }, { passive: false });
             /** Accende il modello solido e lo inquadra: il corpo sta tra le prove, la scena intorno
              * comprende tutto il terreno, e da lontano il corpo sarebbe un francobollo. */
             function accendiSolido3d() {
@@ -815,7 +837,7 @@
                 const xs = so.involucro.map(p => p[0]), ys = so.involucro.map(p => p[1]);
                 const diametro = Math.max(10, Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)));
                 vista3d.zoom = Math.max(vista3d.zoom, Math.min(40, d.lato / diametro * 2.2));
-                vista3d.panX = 0; vista3d.panY = 0;
+                vista3d.centro = [0, 0, 0];
             }
             document.getElementById('modalVista3d').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-livello]');
@@ -1046,7 +1068,7 @@
                     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, su));
                 });
                 div.querySelectorAll('[data-azione]').forEach(b => b.addEventListener('click', () => {
-                    if (b.dataset.azione === 'casa') { vista3d.panX = 0; vista3d.panY = 0; vista3d.zoom = 1.4; }
+                    if (b.dataset.azione === 'casa') { vista3d.centro = [0, 0, 0]; vista3d.zoom = 1.4; }
                     vaiAVista3d(b.dataset.azione === 'alto' ? VISTE_PRONTE_3D.alto : { az: -0.6, el: 0.62 });
                 }));
 
@@ -1162,7 +1184,7 @@
                 const passo = () => {
                     const t = moto3d.tasti, v = moto3d.veloce ? 3 : 1, f = moto3d.fotogramma++;
                     if (!moto3d.leva && !t.size) { moto3d.attivo = false; renderVista3d(); return; }
-                    if (moto3d.leva) { vista3d.panX -= moto3d.leva[0] * 9 * v; vista3d.panY -= moto3d.leva[1] * 9 * v; }
+                    if (moto3d.leva) sposta3d(-moto3d.leva[0] * 9 * v, -moto3d.leva[1] * 9 * v);
                     if (t.has('giras')) vista3d.az += 0.025 * v;
                     if (t.has('girad')) vista3d.az -= 0.025 * v;
                     if (t.has('piu')) vista3d.zoom = Math.min(ZOOM_MAX, vista3d.zoom * (1 + 0.025 * v));
