@@ -1,44 +1,97 @@
     <!-- VISTA 3D: il terreno del DTM e le colonne stratigrafiche delle prove, ruotabili col mouse o
-         col dito. Disegnata in SVG, senza librerie. La riempie il pezzo 071h. -->
+         col dito. Disegnata su canvas (e in SVG per il file), senza librerie. La riempie il pezzo 071h.
+         I comandi stanno in quattro schede, una aperta alla volta, sopra la figura che resta sempre
+         in vista: Vista (da dove si guarda), Livelli (cosa si vede), Modello e tagli, Immagine. -->
     <div class="modal-overlay" id="modalVista3dOverlay"></div>
     <div class="modal sezione" id="modalVista3d" role="dialog" aria-labelledby="titoloVista3d">
         <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between;">
             <span id="titoloVista3d">Vista 3D</span>
             <button type="button" class="chiudi-x" id="btnChiudiVista3d" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <p class="t-didascalia">Trascina per girare in ogni direzione, anche sotto l'orizzonte. Per spostare la scena: tasto destro, Maiusc + trascina o due dita. Per avvicinarti: due dita, la rotella o + −. Da tastiera ← → ↑ ↓ (con Maiusc spostano). Tocca una colonna per il suo fumetto.</p>
-        <div class="pillole" id="livelliVista3d" aria-label="Livelli">
-            <button type="button" class="pillola" data-livello="solido">Modello solido</button>
-            <button type="button" class="pillola" data-livello="terreno">Terreno</button>
-            <button type="button" class="pillola" data-livello="colonne">Colonne</button>
-            <button type="button" class="pillola" data-livello="pannelli">Pannelli di correlazione</button>
-            <button type="button" class="pillola" data-livello="superfici">Superfici di contatto</button>
-            <button type="button" class="pillola" data-livello="giaciture">Giaciture</button>
-            <button type="button" class="pillola" data-livello="nomi">Nomi</button>
-            <button type="button" class="pillola" data-livello="misure">Misure</button>
+
+        <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
+            <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
+            <button type="button" role="tab" data-scheda3d="livelli" aria-selected="false">Livelli</button>
+            <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
+            <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
         </div>
-        <!-- I tagli del modello solido: un piano verticale che scorre (Nord–Sud o Est–Ovest) e uno
-             in profondità. Toccarli accende il modello solido. -->
-        <div class="vista3d-tagli" id="tagliVista3d">
-            <div class="vista3d-taglio-riga">
-                <span class="vista3d-taglio-nome">Taglio laterale</span>
-                <div class="pillole" id="direzioneTaglio3d" aria-label="Direzione del taglio">
-                    <button type="button" class="pillola" data-taglio-dir="">Nessuno</button>
-                    <button type="button" class="pillola" data-taglio-dir="ns">Nord–Sud</button>
-                    <button type="button" class="pillola" data-taglio-dir="eo">Est–Ovest</button>
-                </div>
-                <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
-                <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+
+        <!-- VISTA: da dove si guarda. Le viste pronte, poi i cursori che le regolano a mano. -->
+        <div class="vista3d-pannello" data-pannello3d="vista" role="tabpanel">
+            <div class="pillole vista3d-preset" id="presetVista3d" aria-label="Viste pronte">
+                <button type="button" class="pillola" data-preset3d="alto">Dall'alto</button>
+                <button type="button" class="pillola" data-preset3d="iso">Isometrica</button>
+                <button type="button" class="pillola" data-preset3d="nord">Da Nord</button>
+                <button type="button" class="pillola" data-preset3d="est">Da Est</button>
+                <button type="button" class="pillola" data-preset3d="sud">Da Sud</button>
+                <button type="button" class="pillola" data-preset3d="ovest">Da Ovest</button>
+                <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
             </div>
-            <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
-                <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
-            <!-- L'immagine stesa sul terreno: Google, Esri, OpenStreetMap o un WMS. La scelta si
-                 ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
+            <div class="vista3d-cursori">
+                <label class="vista3d-cursore"><span>Direzione di vista</span>
+                    <input type="range" id="rngAz3d" min="0" max="359" step="1" value="326">
+                    <strong id="lblAz3d"></strong></label>
+                <label class="vista3d-cursore"><span>Inclinazione</span>
+                    <input type="range" id="rngEl3d" min="-90" max="90" step="1" value="36">
+                    <strong id="lblEl3d"></strong></label>
+                <label class="vista3d-cursore"><span>Zoom</span>
+                    <input type="range" id="rngZoom3d" min="0" max="100" step="1" value="50">
+                    <strong id="lblZoom3d"></strong></label>
+                <label class="vista3d-cursore"><span>Esagerazione verticale</span>
+                    <input type="range" id="rngEsag3d" min="1" max="30" step="1" value="5">
+                    <strong id="lblEsag3d">×5</strong></label>
+                <div class="vista3d-cursore"><span>Prospettiva</span>
+                    <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
+                    <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
+                    <strong id="lblFov3d"></strong></div>
+            </div>
+            <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro, Maiusc + trascina o due dita per spostare; rotella, due dita o + − per avvicinarti. Tocca la bussola per mettere il Nord in alto, una colonna per il suo fumetto.</p>
+        </div>
+
+        <!-- LIVELLI: cosa si vede. -->
+        <div class="vista3d-pannello" data-pannello3d="livelli" role="tabpanel" hidden>
+            <div class="pillole" id="livelliVista3d" aria-label="Livelli">
+                <button type="button" class="pillola" data-livello="terreno">Terreno</button>
+                <button type="button" class="pillola" data-livello="colonne">Colonne</button>
+                <button type="button" class="pillola" data-livello="pannelli">Pannelli di correlazione</button>
+                <button type="button" class="pillola" data-livello="superfici">Superfici di contatto</button>
+                <button type="button" class="pillola" data-livello="giaciture">Giaciture</button>
+                <button type="button" class="pillola" data-livello="nomi">Nomi</button>
+                <button type="button" class="pillola" data-livello="misure">Misure</button>
+            </div>
+        </div>
+
+        <!-- MODELLO E TAGLI: il corpo chiuso tra le prove e i due piani che lo tagliano. Toccare un
+             taglio accende il modello solido. -->
+        <div class="vista3d-pannello" data-pannello3d="tagli" role="tabpanel" hidden>
+            <div class="vista3d-tagli" id="tagliVista3d">
+                <div class="vista3d-taglio-riga">
+                    <span class="vista3d-taglio-nome">Modello solido</span>
+                    <button type="button" class="pillola" data-livello="solido">Mostra il corpo chiuso</button>
+                </div>
+                <div class="vista3d-taglio-riga">
+                    <span class="vista3d-taglio-nome">Taglio laterale</span>
+                    <div class="pillole" id="direzioneTaglio3d" aria-label="Direzione del taglio">
+                        <button type="button" class="pillola" data-taglio-dir="">Nessuno</button>
+                        <button type="button" class="pillola" data-taglio-dir="ns">Nord–Sud</button>
+                        <button type="button" class="pillola" data-taglio-dir="eo">Est–Ovest</button>
+                    </div>
+                    <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
+                    <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+                </div>
+                <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
+                    <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
+            </div>
+            <p class="t-didascalia" id="notaTagli3d" hidden>Il modello solido serve almeno tre prove col GPS, non in fila.</p>
+        </div>
+
+        <!-- IMMAGINE: quella stesa sul terreno. Google, Esri, OpenStreetMap o un WMS; la scelta si
+             ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
+        <div class="vista3d-pannello" data-pannello3d="immagine" role="tabpanel" hidden>
             <div class="vista3d-taglio-riga">
                 <span class="vista3d-taglio-nome">Immagine sul terreno</span>
                 <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
                 <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
-                <span class="t-didascalia" id="lblSfondo3d"></span>
             </div>
             <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
                 <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
@@ -46,10 +99,11 @@
                 <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
                 <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
             </div>
+            <p class="t-didascalia" id="lblSfondo3d"></p>
         </div>
+
         <div id="graficoVista3d" tabindex="0" aria-label="Vista 3D del terreno e delle prove"></div>
         <div class="terreno-comandi" style="align-items: center;">
-            <label class="vista3d-esag">Esagerazione verticale <input type="range" id="rngEsag3d" min="1" max="30" step="1" value="5"> <strong id="lblEsag3d">×5</strong></label>
             <button type="button" class="bt" id="btnVistaIniziale3d" title="Torna al punto di vista di partenza"><svg class="ico"><use href="#i-back"/></svg>Vista iniziale</button>
             <button type="button" class="bt" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>Scarica (SVG)</button>
             <button type="button" class="bt" id="btnScaricaObj3d" title="Terreno, colonne, pannelli e superfici in metri veri, per Blender, MeshLab, QGIS"><svg class="ico"><use href="#i-download"/></svg>Modello 3D (OBJ)</button>

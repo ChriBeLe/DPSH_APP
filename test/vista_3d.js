@@ -49,9 +49,9 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`il terreno è una superficie (${nQuad} facce) con le colonne delle prove col GPS (${prove.join(', ')})`, nQuad > 300 && prove.join() === 'DPSH 1,DPSH 2');
   const colori = new Set([...svg().querySelectorAll('.vista3d-faccia')].map(p => p.getAttribute('fill')));
   t('ombreggiato e colorato per quota (tanti colori, non uno)', colori.size > 20);
-  const prima = svg().querySelector('line.vista3d-nord').getAttribute('x2');
+  const prima = svg().querySelector('line.vista3d-nord').getAttribute('x1');
   $(app, 'graficoVista3d').dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-  t('→ gira la vista (il nord si sposta)', svg().querySelector('line.vista3d-nord').getAttribute('x2') !== prima);
+  t('→ gira la vista (il nord si sposta)', svg().querySelector('line.vista3d-nord').getAttribute('x1') !== prima);
   const testoEsag = () => svg().lastElementChild.previousElementSibling.textContent;
   const r = $(app, 'rngEsag3d'); r.value = '12'; r.dispatchEvent(new app.w.Event('input'));
   await attesa(60);
@@ -121,6 +121,27 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E("vista3d.taglio = { dir: 'ns', pos: 0.5, lato: 1, prof: 1 }; renderVista3d()");
   t('tagliato di lato e in profondità: si vede il contorno del taglio', conta('.vista3d-solido') > 0 && conta('.vista3d-taglio') > 0);
   app.E("vista3d.livelli.solido = false; vista3d.taglio = { dir: null, pos: 0.5, lato: 1, prof: 0 }; renderVista3d()");
+
+  // I COMANDI DELLA VISTA
+  t('quattro schede: Vista, Livelli, Modello e tagli, Immagine', [...app.d.querySelectorAll('#schedeVista3d [data-scheda3d]')].map(b => b.textContent).join() === 'Vista,Livelli,Modello e tagli,Immagine');
+  clic(app, app.d.querySelector('[data-scheda3d="immagine"]'));
+  t('una scheda alla volta', !app.d.querySelector('[data-pannello3d="immagine"]').hidden && app.d.querySelector('[data-pannello3d="vista"]').hidden);
+  clic(app, app.d.querySelector('[data-scheda3d="vista"]'));
+  const rngEl = $(app, 'rngEl3d');
+  rngEl.value = 90; rngEl.dispatchEvent(new app.w.Event('input'));
+  t('il cursore dell\'inclinazione porta la vista dall\'alto', Math.abs(app.E('vista3d.el') - Math.PI / 2) < 1e-9);
+  const rngAz = $(app, 'rngAz3d');
+  rngAz.value = 90; rngAz.dispatchEvent(new app.w.Event('input'));
+  app.E('renderVista3d()');
+  t('direzione di vista 90°: «verso Est»', /verso Est · 90°/.test($(app, 'lblAz3d').textContent) && /dall'alto/.test($(app, 'lblEl3d').textContent));
+  const larghezza = () => { const xs = app.E('ultimaScena3d.pezzi').filter(f => f.cls === 'vista3d-faccia').flatMap(f => f.p.map(q => q[0])); return Math.max(...xs) - Math.min(...xs); };
+  const senza = larghezza();
+  clic(app, $(app, 'btnProspettiva3d'));
+  t('la prospettiva si accende e cambia il disegno (dall\'alto, il terreno lontano rimpicciolisce)', app.E('vista3d.prospettiva') === true && Math.abs(larghezza() - senza) > 1 && /campo visivo/.test($(app, 'lblFov3d').textContent));
+  clic(app, $(app, 'btnProspettiva3d'));
+  t('la bussola ha il suo posto nella figura, per toccarla', !!app.E('ultimaScena3d.bussola'));
+  t('le viste pronte: dall\'alto, isometrica (35,26°), dai quattro lati, da sotto', app.E('Object.keys(VISTE_PRONTE_3D).join()') === 'alto,iso,nord,est,sud,ovest,sotto' && Math.abs(app.E('VISTE_PRONTE_3D.iso.el') * 180 / Math.PI - 35.264) < 0.01);
+  app.E('vistaIniziale3d(); renderVista3d()');
 
   // IMMAGINE SUL TERRENO
   const rt = app.E('(() => { const u = utmDaGeo(40.1974, 17.9912, 33), g = geoDaUtm(u.x, u.y, 33); return [g.lat, g.lng]; })()');

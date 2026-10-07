@@ -14,7 +14,7 @@
             // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
-            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, panX: 0, panY: 0, trascina: null, mosso: 0,
+            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, panX: 0, panY: 0, prospettiva: false, fov: 45, trascina: null, mosso: 0,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, nomi: true, misure: true, solido: false },
                 // I tagli del modello solido: un piano verticale (dir 'ns' = parete Nord–Sud, 'eo' =
                 // Est–Ovest; pos 0–1 sull'estensione; lato = quale metà resta) e uno in profondità (m).
@@ -364,9 +364,14 @@
                 const profMax = Math.max(0, ...d.prove.map(p => p.fondo));
                 const R = Math.hypot(d.lato / 2 * Math.SQRT2, Math.max(d.zMax - zRif, zRif - d.zMin + profMax) * ex) || 1;
                 const k = Math.min(W, H) / 2.15 / R * vista3d.zoom;
+                // Con la prospettiva ciò che è lontano rimpicciolisce: l'occhio sta a una distanza dal
+                // centro della scena che dipende dal campo visivo (stretto = lontano, quasi assonometria;
+                // largo = vicino, prospettiva forte). Al centro la grandezza è la stessa di senza.
+                const occhio = vista3d.prospettiva ? R / Math.tan(vista3d.fov * Math.PI / 360) : 0;
                 const P = (x, y, z) => {
                     const X = x * ca - y * sa, Yd = x * sa + y * ca, Z = (z - zRif) * ex;
-                    return [W / 2 + X * k + vista3d.panX, H / 2 + (-Z * ce - Yd * se) * k + vista3d.panY, Yd * ce - Z * se];
+                    const prof = Yd * ce - Z * se, s = occhio ? occhio / Math.max(occhio * 0.08, occhio + prof) : 1;
+                    return [W / 2 + X * k * s + vista3d.panX, H / 2 + (-Z * ce - Yd * se) * k * s + vista3d.panY, prof];
                 };
                 const pezzi = [], sopra = [], colonne = [];
                 const poli = (pp, extra) => pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
@@ -558,12 +563,14 @@
                 const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
                 const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
                 sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
-                sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50 + ax * 16, y2: H - 50 + ay * 16, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
-                testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 13, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
+                // La metà verso Nord in rosso, come una bussola; toccarla mette il Nord in alto.
+                sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50, y2: H - 50, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
+                sopra.push({ t: 'linea', x1: W - 50, y1: H - 50, x2: W - 50 + ax * 18, y2: H - 50 + ay * 18, stroke: '#dc2626', sw: 3.5, cls: 'vista3d-nord' });
+                testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 14, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
                 const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
                 if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
                 else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
-                return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
+                return { W, H, pezzi, sopra, colonne, tutte: pezzi.concat(sopra), bussola: { x: W - 50, y: H - 50, r: 24 } };
             }
 
             /** La scena in SVG: per il file scaricato (e per i test). */
@@ -654,7 +661,8 @@
             let datiVista3dCorrenti = null, ultimaScena3d = null;
             function renderVista3d(leggera) {
                 const box = document.getElementById('graficoVista3d');
-                document.querySelectorAll('#livelliVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
+                document.querySelectorAll('#modalVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
+                sincronizzaCursori3d();
                 const tg = vista3d.taglio, so = datiVista3dCorrenti && modelloSolido(datiVista3dCorrenti);
                 document.querySelectorAll('#direzioneTaglio3d [data-taglio-dir]').forEach(b => b.setAttribute('aria-pressed', String((tg.dir || '') === b.dataset.taglioDir)));
                 document.getElementById('rngTaglioV3d').disabled = !tg.dir;
@@ -662,7 +670,7 @@
                 document.getElementById('lblTaglioH3d').textContent = numeroConVirgola(so ? Math.min(tg.prof, so.fondo) : 0, 1) + ' m';
                 // Il modello solido serve almeno un triangolo di prove: con meno, i tagli non ci sono.
                 document.getElementById('tagliVista3d').style.display = so ? '' : 'none';
-                document.querySelector('#livelliVista3d [data-livello="solido"]').style.display = so ? '' : 'none';
+                document.getElementById('notaTagli3d').hidden = !!so;
                 if (!datiVista3dCorrenti) {
                     ultimaScena3d = null;
                     box.innerHTML = '<div class="palette-vuota">Per la vista 3D serve almeno una prova col GPS e con le letture.</div>';
@@ -756,6 +764,8 @@
             const puntoCanvas = e => { const c = box3d.querySelector('canvas'), r = c ? c.getBoundingClientRect() : { left: 0, top: 0 }; return [e.clientX - r.left, e.clientY - r.top]; };
             box3d.addEventListener('click', (e) => {
                 if (!ultimaScena3d || vista3d.mosso > 3) return;
+                const [cx3, cy3] = puntoCanvas(e), bu = ultimaScena3d.bussola;
+                if (bu && Math.hypot(cx3 - bu.x, cy3 - bu.y) <= bu.r + 8) { vaiAVista3d({ az: 0 }); return; }
                 const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
                 if (id) apriFumettoProva(id, e.clientX, e.clientY);
                 else chiudiFumetti(false);
@@ -763,8 +773,9 @@
             // Col mouse sopra una colonna, la manina.
             box3d.addEventListener('pointermove', (e) => {
                 if (vista3d.trascina || !ultimaScena3d) return;
-                const c = box3d.querySelector('canvas');
-                if (c) c.style.cursor = provaNelPunto(ultimaScena3d, ...puntoCanvas(e)) ? 'pointer' : 'grab';
+                const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e), bu = ultimaScena3d.bussola;
+                const suBussola = bu && Math.hypot(mx - bu.x, my - bu.y) <= bu.r + 8;
+                if (c) { c.style.cursor = suBussola || provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab'; c.title = suBussola ? 'Nord in alto' : ''; }
             });
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }
@@ -790,7 +801,7 @@
                 vista3d.zoom = Math.max(vista3d.zoom, Math.min(40, d.lato / diametro * 2.2));
                 vista3d.panX = 0; vista3d.panY = 0;
             }
-            document.getElementById('livelliVista3d').addEventListener('click', (e) => {
+            document.getElementById('modalVista3d').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-livello]');
                 if (!b) return;
                 if (b.dataset.livello === 'solido' && !vista3d.livelli.solido) { accendiSolido3d(); renderVista3d(); return; }
@@ -798,6 +809,74 @@
                 renderVista3d();
             });
             document.getElementById('btnApriVista3d').addEventListener('click', apriVista3d);
+
+            // ---- I comandi della vista: schede, viste pronte, cursori ----
+            document.getElementById('schedeVista3d').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-scheda3d]');
+                if (!b) return;
+                document.querySelectorAll('#schedeVista3d [data-scheda3d]').forEach(t => t.setAttribute('aria-selected', String(t === b)));
+                document.querySelectorAll('#modalVista3d [data-pannello3d]').forEach(pn => { pn.hidden = pn.dataset.pannello3d !== b.dataset.scheda3d; });
+            });
+            const gradi = r => r * 180 / Math.PI, radianti = g => g * Math.PI / 180;
+            /** La direzione verso cui si guarda (0 = verso Nord) e il suo nome. */
+            const direzioneVista3d = () => ((Math.round(gradi(vista3d.az)) % 360) + 360) % 360;
+            const nomeDirezione = g => ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ovest', 'Ovest', 'Nord-Ovest'][Math.round(g / 45) % 8];
+            const ZOOM_MIN = 0.1, ZOOM_MAX = 40;
+            function sincronizzaCursori3d() {
+                const az = direzioneVista3d();
+                // L'inclinazione si legge tra −90 e 90: oltre, la vista è capovolta e vale come la sua gemella.
+                let el = gradi(Math.atan2(Math.sin(vista3d.el), Math.abs(Math.cos(vista3d.el))));
+                el = Math.round(el);
+                document.getElementById('rngAz3d').value = az;
+                document.getElementById('lblAz3d').textContent = `verso ${nomeDirezione(az)} · ${az}°`;
+                document.getElementById('rngEl3d').value = el;
+                document.getElementById('lblEl3d').textContent = el === 90 ? 'dall\'alto · 90°' : el === -90 ? 'da sotto · −90°' : el === 0 ? 'orizzonte · 0°' : (el > 0 ? 'da sopra · ' : 'da sotto · ') + String(el).replace('-', '−') + '°';
+                document.getElementById('rngZoom3d').value = Math.round(Math.log(vista3d.zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN) * 100);
+                document.getElementById('lblZoom3d').textContent = '×' + numeroConVirgola(vista3d.zoom, vista3d.zoom < 10 ? 1 : 0);
+                document.getElementById('rngEsag3d').value = vista3d.ex;
+                const bp = document.getElementById('btnProspettiva3d');
+                bp.setAttribute('aria-pressed', String(vista3d.prospettiva));
+                bp.textContent = vista3d.prospettiva ? 'Accesa' : 'Spenta';
+                document.getElementById('rngFov3d').value = vista3d.fov;
+                document.getElementById('rngFov3d').disabled = !vista3d.prospettiva;
+                document.getElementById('lblFov3d').textContent = vista3d.prospettiva ? `campo visivo ${vista3d.fov}°` : 'assonometria';
+                document.querySelectorAll('#presetVista3d [data-preset3d]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+            }
+            /** Porta la vista a una posizione, con un breve movimento (per l'azimut, dalla parte più corta). */
+            let animazione3d = null;
+            function vaiAVista3d(meta) {
+                const da = { az: vista3d.az, el: vista3d.el }, a = Object.assign({}, da, meta);
+                let dAz = (a.az - da.az) % (2 * Math.PI);
+                if (dAz > Math.PI) dAz -= 2 * Math.PI; else if (dAz < -Math.PI) dAz += 2 * Math.PI;
+                const t0 = performance.now(), durata = 350;
+                cancelAnimationFrame(animazione3d);
+                const passo = (t) => {
+                    const u = Math.min(1, (t - t0) / durata), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+                    vista3d.az = da.az + dAz * e; vista3d.el = da.el + (a.el - da.el) * e;
+                    renderVista3d(u < 1);
+                    if (u < 1) animazione3d = requestAnimationFrame(passo);
+                };
+                animazione3d = requestAnimationFrame(passo);
+            }
+            const VISTE_PRONTE_3D = {
+                alto: { az: 0, el: Math.PI / 2 },
+                iso: { az: Math.PI / 4, el: Math.atan(1 / Math.SQRT2), prospettiva: false },  // isometrica vera: 35,26° e 45°
+                nord: { az: Math.PI, el: 0 }, est: { az: -Math.PI / 2, el: 0 },
+                sud: { az: 0, el: 0 }, ovest: { az: Math.PI / 2, el: 0 },
+                sotto: { az: 0, el: -Math.PI / 2 }
+            };
+            document.getElementById('presetVista3d').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-preset3d]');
+                if (!b) return;
+                const v = VISTE_PRONTE_3D[b.dataset.preset3d];
+                if (v.prospettiva !== undefined) vista3d.prospettiva = v.prospettiva;
+                vaiAVista3d({ az: v.az, el: v.el });
+            });
+            document.getElementById('rngAz3d').addEventListener('input', (e) => { vista3d.az = radianti(Number(e.target.value)); ridisegna3d(); });
+            document.getElementById('rngEl3d').addEventListener('input', (e) => { vista3d.el = radianti(Number(e.target.value)); ridisegna3d(); });
+            document.getElementById('rngZoom3d').addEventListener('input', (e) => { vista3d.zoom = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 100); ridisegna3d(); });
+            document.getElementById('btnProspettiva3d').addEventListener('click', () => { vista3d.prospettiva = !vista3d.prospettiva; renderVista3d(); });
+            document.getElementById('rngFov3d').addEventListener('input', (e) => { vista3d.fov = Number(e.target.value); ridisegna3d(); });
 
             // ---- L'immagine sul terreno: scelta, opacità, WMS ----
             /** Il menù: nessuna, i fornitori a tessere, i WMS pronti e i propri, e un WMS qualsiasi. */

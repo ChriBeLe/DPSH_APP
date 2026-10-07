@@ -304,6 +304,24 @@
         #proveSezione .pillola[disabled] { opacity: .5; cursor: not-allowed; }
         #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
         #graficoVista3d:focus-visible { outline: 2px solid var(--accent); }
+        /* La vista 3D: quattro schede di comandi sopra la figura, una aperta alla volta. */
+        .vista3d-schede { margin: var(--sp-2) 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .vista3d-schede button { padding: 0 var(--sp-1); line-height: 1.15; }
+        .vista3d-pannello { margin-bottom: var(--sp-2); }
+        .vista3d-preset { margin-bottom: var(--sp-2); }
+        .vista3d-cursori { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--sp-1) var(--sp-5, 24px); }
+        .vista3d-cursore { display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; min-height: var(--h-bottone); }
+        .vista3d-cursore > span { min-width: 170px; }
+        .vista3d-cursore input[type="range"] { flex: 1; min-width: 90px; accent-color: var(--accent); }
+        .vista3d-cursore input[type="range"]:disabled { opacity: .4; }
+        .vista3d-cursore > strong { min-width: 150px; font-size: var(--fs-didascalia); color: var(--text-muted); font-weight: 700; }
+        .vista3d-aiuto { margin: var(--sp-2) 0 0; }
+        @media (max-width: 760px) {
+            .vista3d-cursori { grid-template-columns: 1fr; }
+            .vista3d-cursore { flex-wrap: wrap; }
+            .vista3d-cursore > span { min-width: 0; flex: 1 1 100%; }
+            .vista3d-schede button { font-size: var(--fs-didascalia); }
+        }
         .vista3d-tagli { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; }
         .vista3d-taglio-riga { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-weight: 600; }
         .vista3d-taglio-nome { min-width: 150px; }
