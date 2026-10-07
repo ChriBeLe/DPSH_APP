@@ -145,6 +145,98 @@
                 });
             }
 
+            // ---- SPOSTA LA PROVA. Con le coordinate già impostate si sposta il pin sulla mappa e si
+            // conferma due volte. Solo così la posizione di prima (GPS o a mano) resta in memoria in
+            // header.spostamento = { da: {lat, lng, alt, acc}, a: {lat, lng}, il }: vale finché la prova
+            // sta ancora in «a»; se poi la posizione cambia in un altro modo, la memoria non conta più.
+            // Spostata due volte, «da» resta la posizione di partenza (non quella intermedia).
+            const btnSpostaProva = document.getElementById('btnSpostaProva');
+            const btnRipristinaPosizione = document.getElementById('btnRipristinaPosizione');
+            const numeroGps = v => (v === null || v === undefined || v === '' ? NaN : Number(v));
+            function spostamentoProva(h) {
+                const sp = h && h.spostamento;
+                if (!sp || !sp.da || !sp.a) return null;
+                return Math.abs(numeroGps(h.lat) - sp.a.lat) < 1e-9 && Math.abs(numeroGps(h.lng) - sp.a.lng) < 1e-9 ? sp : null;
+            }
+            const metriTra = (p, q) => {
+                const k = Math.PI / 180, x = (q.lng - p.lng) * k * Math.cos((p.lat + q.lat) / 2 * k), y = (q.lat - p.lat) * k;
+                return Math.round(Math.hypot(x, y) * 6371000);
+            };
+            const coppiaGps = p => `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
+            function aggiornaSpostaProva() {
+                const box = document.getElementById('boxSpostaProva'), lbl = document.getElementById('lblProvaSpostata');
+                if (!box) return;
+                const h = state.header || {}, sp = spostamentoProva(h);
+                box.style.display = Number.isFinite(numeroGps(h.lat)) && Number.isFinite(numeroGps(h.lng)) ? 'block' : 'none';
+                lbl.style.display = sp ? 'block' : 'none';
+                btnRipristinaPosizione.style.display = sp ? '' : 'none';
+                if (sp) lbl.innerHTML = `<strong>Prova spostata a mano</strong> il ${new Date(sp.il).toLocaleDateString('it-IT')} di ${metriTra(sp.da, sp.a)} m.<br>` +
+                    `Posizione di prima, in memoria: ${coppiaGps(sp.da)}`;
+            }
+            function aggiornaModoSposta() {
+                const nota = document.getElementById('notaSpostaProva');
+                if (nota) nota.style.display = spostandoProva ? 'block' : 'none';
+                if (btnUseGpsMapPin) btnUseGpsMapPin.innerHTML = spostandoProva ? `${ico('pin')} Sposta qui la prova…` : `${ico('check')} Usa la Posizione del Pin`;
+                aggiornaTracciaSpostamento();
+            }
+            /** Sulla mappa: un cerchio tratteggiato da dove parte (spostando: dov'è adesso; dopo: la
+             * posizione di prima in memoria) e una linea fino al pin. */
+            function aggiornaTracciaSpostamento() {
+                if (!gpsModalMapInstance || !gpsModalMapMarker || typeof L === 'undefined') return;
+                if (gpsModalMapTracciaSpostamento) gpsModalMapTracciaSpostamento.remove();
+                gpsModalMapTracciaSpostamento = null;
+                const h = state.header || {}, sp = spostamentoProva(h);
+                const da = spostandoProva ? { lat: numeroGps(h.lat), lng: numeroGps(h.lng) } : sp && sp.da;
+                if (!da || !Number.isFinite(da.lat) || !Number.isFinite(da.lng)) return;
+                const stile = { color: '#eab308', weight: 2, dashArray: '5 5', interactive: false };
+                gpsModalMapTracciaSpostamento = L.layerGroup([
+                    L.circleMarker([da.lat, da.lng], { ...stile, radius: 9, fillOpacity: 0.15 }),
+                    L.polyline([[da.lat, da.lng], gpsModalMapMarker.getLatLng()], stile)
+                ]).addTo(gpsModalMapInstance);
+            }
+            if (btnSpostaProva) btnSpostaProva.addEventListener('click', () => {
+                openGpsAccordion('Manual');
+                spostandoProva = true;
+                aggiornaModoSposta();
+            });
+            /** Il pin confermato due volte: la prova va lì, la posizione di prima resta in memoria. */
+            async function confermaSpostamentoProva(ll) {
+                const h = state.header, ora = { lat: numeroGps(h.lat), lng: numeroGps(h.lng) }, dove = { lat: ll.lat, lng: ll.lng };
+                const nr = h.provaNr || '1', m = metriTra(ora, dove);
+                if (m === 0) { appAlert('Il pin è ancora dove sta la prova: trascinalo nel punto nuovo.'); return; }
+                if (!await appConfirm(`Spostare la Prova N° ${nr}?\n\nDa: ${coppiaGps(ora)}\nA: ${coppiaGps(dove)}\nDistanza: ${m} m`)) return;
+                if (!await appDialog(`Sei sicuro di spostare la Prova N° ${nr} di ${m} m, lì?\n\nLa posizione di prima resta in memoria: la vedi nella finestra GPS e puoi tornarci.`,
+                    { confirm: true, danger: true, title: 'Seconda conferma', okLabel: 'Sì, spostala' })) return;
+                const sp = spostamentoProva(h);
+                h.spostamento = { da: sp ? sp.da : { ...ora, alt: h.alt ?? null, acc: h.acc ?? null }, a: dove, il: new Date().toISOString() };
+                h.lat = dove.lat; h.lng = dove.lng;
+                h.alt = null; h.acc = null;      // quota e precisione del GPS erano del punto di prima
+                if (numModalGpsLat) numModalGpsLat.value = dove.lat;
+                if (numModalGpsLng) numModalGpsLng.value = dove.lng;
+                spostandoProva = false;
+                aggiornaModoSposta();
+                updateModalGpsStatusText();
+                updateUI();
+                saveState();
+                triggerVibrate([40, 40, 40]);
+                mostraToast(`Prova N° ${nr} spostata di ${m} m. La posizione di prima resta in memoria.`);
+            }
+            if (btnRipristinaPosizione) btnRipristinaPosizione.addEventListener('click', async () => {
+                const h = state.header, sp = spostamentoProva(h);
+                if (!sp) return;
+                if (!await appConfirm(`Riportare la Prova N° ${h.provaNr || '1'} alla posizione di prima?\n\n${coppiaGps(sp.da)}`)) return;
+                h.lat = sp.da.lat; h.lng = sp.da.lng; h.alt = sp.da.alt; h.acc = sp.da.acc;
+                delete h.spostamento;
+                if (numModalGpsLat) numModalGpsLat.value = h.lat;
+                if (numModalGpsLng) numModalGpsLng.value = h.lng;
+                if (gpsModalMapMarker) gpsModalMapMarker.setLatLng([h.lat, h.lng]);
+                updateModalGpsStatusText();
+                aggiornaTracciaSpostamento();
+                updateUI();
+                saveState();
+                mostraToast('Prova riportata alla posizione di prima.');
+            });
+
             if (btnCloseGpsModalX) btnCloseGpsModalX.addEventListener('click', closeGpsModal);
             if (modalGpsOverlay) modalGpsOverlay.addEventListener('click', closeGpsModal);
 

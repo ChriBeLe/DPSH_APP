@@ -13,6 +13,18 @@
             GPS: Non acquisito
         </div>
 
+        <!-- SPOSTA LA PROVA (con coordinate già impostate): si sposta il pin sulla mappa e si conferma due
+             volte. Solo in questo caso la posizione di prima (presa col GPS o messa a mano) resta in memoria,
+             scritta qui sotto, segnata sulla mappa e ripristinabile; la spia GPS della prova dice «spostata».
+             La riempie il 022. -->
+        <div id="boxSpostaProva" style="display: none; margin: -4px 0 12px;">
+            <div id="lblProvaSpostata" style="display: none; font-size: 11px; line-height: 1.45; color: var(--warning); background: var(--bg-card-hover); padding: 8px; border-radius: var(--radius-sm); border: 1px dashed var(--warning); margin-bottom: 6px;"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <button type="button" class="btn-action" id="btnSpostaProva" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-pin"/></svg> Sposta la prova</button>
+                <button type="button" class="btn-action" id="btnRipristinaPosizione" style="display: none; justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-undo"/></svg> Torna a prima</button>
+            </div>
+        </div>
+
         <!-- APRI IN MAPPE — PROVA SUL TELEFONO (Piano_Menu_e_Funzioni.md, voce 8, passo 0).
              Dentro l'APK window.open() non apre niente, e non si sa ancora quale di questi modi l'APK
              lascia passare al sistema. Restano tutti e tre finché non si prova sul telefono; poi si
@@ -102,6 +114,9 @@
                         <button class="btn-action" id="btnGpsMapSearch" style="background: var(--info); color:#fff; border:none; font-weight:700; font-size:12px; white-space:nowrap; padding:10px 12px; flex:0 0 auto;">Cerca</button>
                     </div>
                     <div id="gpsMapSearchResults" style="display:none; max-height:130px; overflow-y:auto; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); margin-bottom:6px;"></div>
+                    <div id="notaSpostaProva" style="display: none; font-size: 11px; line-height: 1.45; font-weight: 600; color: var(--warning); margin-bottom: 6px;">
+                        Spostamento della prova: trascina il pin (o tocca la mappa) nel punto nuovo, poi «Sposta qui la prova». Il cerchio tratteggiato è dov'è adesso. Ti chiedo conferma due volte.
+                    </div>
                     <div id="gpsMapModalEl" style="width:100%; height:220px; border-radius: var(--radius-md); border:1px solid var(--border); background:var(--bg-sunken);"></div>
                     <button class="btn-action" id="btnGpsMapGoToMe" style="width:100%; margin-top:6px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-weight: 700; font-size: 12px;">
                         <svg class="ico"><use href="#i-satellite"/></svg> Vai alla Mia Posizione

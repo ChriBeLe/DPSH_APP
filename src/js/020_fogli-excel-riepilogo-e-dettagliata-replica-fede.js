@@ -448,7 +448,7 @@ ${contenuto}
                 };
                 const h = state.header || {};
                 const haGps = h.lat !== null && h.lat !== undefined && h.lat !== '' && h.lng !== null && h.lng !== undefined && h.lng !== '';
-                imposta('btnGetGpsHeader', haGps ? 'fatto' : 'non-ancora', 'GPS', 'lblSpiaGps');
+                imposta('btnGetGpsHeader', haGps ? 'fatto' : 'non-ancora', spostamentoProva(h) ? 'GPS spostato' : 'GPS', 'lblSpiaGps');
                 const ico = document.getElementById('icoSpiaGps');
                 if (ico) ico.innerHTML = `<use href="#i-${haGps ? 'check' : 'pin'}"/>`;
                 const nFoto = (state.photos || []).length;
@@ -1542,6 +1542,7 @@ ${contenuto}
                     lblModalGpsStatus.style.color = 'var(--text-muted)';
                 }
                 aggiornaApriInMappe();
+                aggiornaSpostaProva();
             }
 
             /** Gli indirizzi per aprire un punto nelle mappe. `geo:` è lo standard Android (apre la
@@ -1745,6 +1746,8 @@ ${contenuto}
                     if (body) body.classList.remove('open');
                     if (toggle) toggle.classList.remove('open');
                 });
+                spostandoProva = false;
+                aggiornaModoSposta();
             }
             async function openGpsAccordion(key) {
                 closeAllGpsAccordion();
@@ -1780,6 +1783,8 @@ ${contenuto}
             let gpsModalMapLabelsLayer = null;
             let gpsModalMapStyle = 'street';
             let gpsModalMapAltreProveMarkers = [];
+            let spostandoProva = false;          // «Sposta la prova» (022): il pin della mappa sposta, con doppia conferma
+            let gpsModalMapTracciaSpostamento = null;
             const btnUseGpsMapPin = document.getElementById('btnUseGpsMapPin');
             const btnGpsMapGoToMe = document.getElementById('btnGpsMapGoToMe');
 
@@ -1912,6 +1917,7 @@ ${contenuto}
                         setGpsMapStyle(gpsModalMapStyle);
                         gpsModalMapMarker = L.marker([centerLat, centerLng], { draggable: true, icon: gpsMiaProvaIcon((state.header && state.header.provaNr) || '?') }).addTo(gpsModalMapInstance);
                         gpsModalMapInstance.on('click', (e) => { gpsModalMapMarker.setLatLng(e.latlng); });
+                        gpsModalMapMarker.on('move', aggiornaTracciaSpostamento);
                     } else {
                         gpsModalMapInstance.invalidateSize();
                         gpsModalMapInstance.setView([centerLat, centerLng], 15);
@@ -1920,6 +1926,7 @@ ${contenuto}
                     updateGpsModalMapLiveDot();
                     aggiornaAltreProveMarkersSuMappaGps();
                     aggiornaIconaMiaProvaMappaGps();
+                    aggiornaTracciaSpostamento();
                 }, 300);
             }
 
