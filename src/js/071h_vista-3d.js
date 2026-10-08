@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, sezioni: true, immagine: true, solido: false, mesh: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, distanze: true, sezioni: true, immagine: true, solido: false, mesh: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -713,9 +713,14 @@
                     if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura', giacitura: sf.f.nome });
                 });
                 if (L.misure) {
-                    // Asta graduata delle quote, all'angolo della scena più vicino a chi guarda.
-                    const mezzo = d.lato / 2;
-                    const angoli = [[-mezzo, -mezzo], [mezzo, -mezzo], [mezzo, mezzo], [-mezzo, mezzo]];
+                    // Asta graduata delle quote, ATTACCATA AL MODELLO: all'angolo del riquadro delle
+                    // prove più vicino a chi guarda, appena fuori. Prima stava all'angolo della scena
+                    // intera (le prove più un margine largo), e con le prove raccolte restava a
+                    // galleggiare lontano dal modello.
+                    const xs = d.prove.length ? d.prove.map(p => p.x) : [-d.lato / 2, d.lato / 2], ys = d.prove.length ? d.prove.map(p => p.y) : [-d.lato / 2, d.lato / 2];
+                    const fuori = Math.max(2, (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.03);
+                    const angoli = [[Math.min(...xs) - fuori, Math.min(...ys) - fuori], [Math.max(...xs) + fuori, Math.min(...ys) - fuori],
+                        [Math.max(...xs) + fuori, Math.max(...ys) + fuori], [Math.min(...xs) - fuori, Math.max(...ys) + fuori]];
                     const [ax, ay] = angoli.reduce((m, a) => P(a[0], a[1], zRif)[2] < P(m[0], m[1], zRif)[2] ? a : m);
                     const zBasso = d.zMin - profMax, passo = massimoTondo((d.zMax - zBasso) / 5);
                     const b0 = P(ax, ay, zBasso), b1 = P(ax, ay, d.zMax);
@@ -725,12 +730,13 @@
                         sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
                         if (vista3d.etichette.misure) testo(t[0] - 8, t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: 'end', cls: 'vista3d-misure' });
                     }
-                    if (vista3d.etichette.misure) d.lati.forEach(([i, j]) => {
-                        const A = d.prove[i], B = d.prove[j], m = P((A.x + B.x) / 2, (A.y + B.y) / 2, Math.max(A.z, B.z) + (d.zMax - d.zMin) * 0.05);
-                        const s = numeroConVirgola(Math.hypot(B.x - A.x, B.y - A.y), 0) + ' m', w = s.length * 6.7;
-                        if (scrittaLibera(m[0] - w / 2, m[1], w)) testo(m[0], m[1], s, { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
-                    });
                 }
+                // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
+                if (L.distanze) d.lati.forEach(([i, j]) => {
+                    const A = d.prove[i], B = d.prove[j], m = P((A.x + B.x) / 2, (A.y + B.y) / 2, Math.max(A.z, B.z) + (d.zMax - d.zMin) * 0.05);
+                    const s = numeroConVirgola(Math.hypot(B.x - A.x, B.y - A.y), 0) + ' m', w = s.length * 6.7;
+                    if (scrittaLibera(m[0] - w / 2, m[1], w)) testo(m[0], m[1], s, { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
+                });
                 tracceNellaScena3d(d, P, sopra, testo);
                 disegniNellaScena3d(d, P, sopra, testo);
                 d.prove.forEach(p => {
@@ -771,7 +777,7 @@
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
                 'vista3d-giacitura': 'giaciture', 'vista3d-giacitura-segno': 'giaciture', 'vista3d-falda': 'falda', 'vista3d-falda-segno': 'falda', 'vista3d-falda-nome': 'falda',
-                'vista3d-misure': 'misure', 'vista3d-distanza': 'misure' };
+                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze' };
             /** La scena in SVG: per il file scaricato (e per i test). */
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
@@ -1079,7 +1085,8 @@
                         attr: `data-solido3d="${String(st.nome).replace(/"/g, '&quot;')}"`, acceso: !vista3d.stratiSolidoNascosti.has(st.nome),
                         simbolo: sw('aree', `background:${st.colore}; border-color:${st.colore}`), nome: st.nome, conta: '', titolo: 'Lo strato nel corpo solido' })) },
                     { id: 'riferimenti', nome: 'Riferimenti', righe: [
-                        liv('misure', ico('ruler'), 'Misure', 'Distanze tra le prove e asta delle quote; «T»: i numeri', E.misure) ] },
+                        liv('misure', ico('ruler'), 'Asta delle quote', 'L\'asta graduata attaccata al modello; «T»: i numeri', E.misure),
+                        liv('distanze', ico('ruler'), 'Distanze tra le prove', 'I metri tra una prova e l\'altra') ] },
                     { id: 'sezioni', nome: 'Sezioni', righe: tracceDelProgetto().map(t => ({ chiave: 't:' + t.id, traccia: t.id, attr: `data-traccia3d="${t.id}"`, acceso: !vista3d.tracceNascoste.has(t.id),
                         simbolo: sw('linee', 'background:#dc2626'), nome: t.nome, conta: '', titolo: 'La traccia della sezione' })), etichette: E.sezioni },
                     // I disegni dell'utente (strumenti Punto e Poligono): uno per riga.
