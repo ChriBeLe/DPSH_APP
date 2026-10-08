@@ -80,6 +80,15 @@
                 return g(lat, 'N', 'S') + ' — ' + g(lng, 'E', 'O');
             }
 
+            /** I valori della PROVA che si sta stampando (non del progetto): nome e numero. */
+            function valoriDellaProva(provaNr) {
+                const nr = (provaNr === null || provaNr === undefined) ? '' : String(provaNr).trim();
+                return {
+                    nomeProva: { testo: nr ? 'DPSH ' + nr : '', etichetta: 'Nome della prova', origine: 'Prova', mancante: !nr },
+                    numeroProva: { testo: nr, etichetta: 'Numero della prova', origine: 'Prova', mancante: !nr }
+                };
+            }
+
             function valoriCantiere(proj) {
                 // Una prova per verticale: le interpretazioni alternative («3B») sono la stessa prova
                 // eseguita, non una in più. Senza, il testo direbbe «4 prove» invece di 3.

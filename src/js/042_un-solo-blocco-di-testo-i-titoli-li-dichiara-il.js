@@ -28,7 +28,9 @@
                     // valoriCantiere(undefined) risponde senza errori, e OGNI tag sarebbe uscito
                     // come «mancante» fra parentesi quadre in una relazione firmata.
                     const proj = (ctx && ctx.projId && state.projects) ? state.projects[ctx.projId] : null;
-                    const valori = valoriCantiere(proj);
+                    // Più i valori della prova di questo pezzo di documento (nome, numero): nel
+                    // Report Completo ogni prova ha i suoi.
+                    const valori = Object.assign(valoriCantiere(proj), valoriDellaProva(ctx && ctx.provaNr));
                     const doc = new DOMParser().parseFromString('<div id="r">' + html + '</div>', 'text/html');
                     doc.getElementById('r').querySelectorAll('span[data-tag]').forEach((el, iTag) => {
                         // IL NUMERO D'ORDINE DEL TAG dentro questo blocco. E' cio' che permette
