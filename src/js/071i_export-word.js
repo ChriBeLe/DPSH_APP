@@ -353,6 +353,18 @@
                 return tops.size && r.height ? r.height / tops.size : (parseFloat(cs.fontSize) || 13) * 1.15;
             }
 
+            /** I run con la scala orizzontale moltiplicata per f (w:w; 100 = normale). */
+            function stringiRunWord(runs, f) {
+                return runs.replace(/<w:rPr>([\s\S]*?)<\/w:rPr>/g, (m, p) => {
+                    const w = /<w:w w:val="(\d+)"\/>/.exec(p);
+                    const nuovo = `<w:w w:val="${Math.max(1, Math.round((w ? parseInt(w[1], 10) : 100) * f))}"/>`;
+                    if (w) return `<w:rPr>${p.replace(w[0], nuovo)}</w:rPr>`;
+                    // Nell'ordine che Word pretende: dopo la spaziatura, prima di posizione e corpo.
+                    const dove = p.search(/<w:position |<w:sz /);
+                    return `<w:rPr>${dove < 0 ? p + nuovo : p.slice(0, dove) + nuovo + p.slice(dove)}</w:rPr>`;
+                });
+            }
+
             function marcatoreElencoWord(el) {
                 // Il pallino lo porta la voce d'elenco, o il primo paragrafo dentro la voce.
                 const li = el.tagName === 'LI' ? el
@@ -369,18 +381,51 @@
             async function paragrafoWord(ctx, foglia, xRegione) {
                 const el = foglia.el || foglia.stile;
                 const cs = ctx.win.getComputedStyle(el);
-                const runs = await runDelParagrafoWord(ctx, el, foglia.nodi || Array.from(el.childNodes));
+                let runs = await runDelParagrafoWord(ctx, el, foglia.nodi || Array.from(el.childNodes));
                 if (!runs) return '';
                 const allineamenti = { left: 'left', start: 'left', right: 'right', end: 'right', center: 'center', justify: 'both', '-webkit-center': 'center' };
                 const jc = allineamenti[cs.textAlign] || 'left';
                 const lh = altezzaRigaWord(ctx, el, foglia.nodi);
                 const sinistra = Math.max(0, foglia.r.x - xRegione);
-                let ind = sinistra > 0.5 ? ` w:left="${tw(sinistra)}"` : '';
+                // TESTO NELLE CELLE: Word misura le lettere un po' diversamente dal browser, e in una
+                // colonna stretta una riga che nel PDF ci sta in Word andrebbe a capo, raddoppiando
+                // la riga della tabella (che poi esce dal foglio). Il paragrafo può allora allargarsi
+                // nel margine della cella (rientro negativo) dal lato che non sposta l'allineamento:
+                // a destra per il testo a sinistra, a sinistra per quello a destra, metà e metà per
+                // quello centrato. A vista non cambia niente; la riga resta una.
+                const margine = foglia.margineCella || { sx: 0, dx: 0 };
+                let indSx = sinistra, indDx = 0;
+                if (jc === 'left' || jc === 'both') indDx = -margine.dx;
+                else if (jc === 'right') indSx -= margine.sx;
+                else { const m = Math.min(margine.sx, margine.dx); indSx -= m; indDx = -m; }
+                const twSegno = (px) => Math.round(px * PX_TWIP);
+                // Se una riga nel PDF riempie quasi tutta la cella, anche il margine può non bastare:
+                // il testo si stringe in larghezza (scala orizzontale di Word) quanto serve a
+                // lasciare l'8% di sicurezza alla riga più larga. Solo se le righe sono quelle
+                // del PDF (una sola, o separate da a capo veri) e solo se serve.
+                if (foglia.margineCella && !/<w:drawing>/.test(runs)) {
+                    const rg = ctx.doc.createRange(); rg.selectNodeContents(el);
+                    const righe = new Map();
+                    Array.from(rg.getClientRects()).filter(r => r.width > 0 && r.height > 0).forEach(r => {
+                        const k = Math.round(r.top + r.height / 2);
+                        const chiave = [...righe.keys()].find(y => Math.abs(y - k) < lh / 2);
+                        const g = righe.get(chiave) || { sx: Infinity, dx: -Infinity };
+                        g.sx = Math.min(g.sx, r.left); g.dx = Math.max(g.dx, r.right);
+                        righe.set(chiave !== undefined ? chiave : k, g);
+                    });
+                    const larghezza = Math.max(0, ...[...righe.values()].map(g => g.dx - g.sx));
+                    const aCapoVeri = (runs.match(/<w:br\/>/g) || []).length;
+                    const spazio = foglia.r.w + (jc === 'center' ? 2 * Math.min(margine.sx, margine.dx) : jc === 'right' ? margine.sx : margine.dx);
+                    const f = larghezza > 0 && righe.size === aCapoVeri + 1 ? Math.min(1, spazio / (larghezza * 1.08)) : 1;
+                    if (f < 0.995) runs = stringiRunWord(runs, f);
+                }
+                const destra = indDx < -0.5 ? ` w:right="${twSegno(indDx)}"` : '';
+                let ind = (Math.abs(indSx) > 0.5 ? ` w:left="${twSegno(indSx)}"` : '') + destra;
                 const rientro = parseFloat(cs.textIndent) || 0;
                 let prima = '';
                 const marcatore = foglia.el ? marcatoreElencoWord(foglia.el) : '';
                 if (marcatore) {
-                    ind = ` w:left="${tw(sinistra)}" w:hanging="${tw(Math.min(sinistra, 18))}"`;
+                    ind = ` w:left="${tw(sinistra)}"${destra} w:hanging="${tw(Math.min(sinistra, 18))}"`;
                     prima = `<w:r><w:rPr>${proprietaRunWord(ctx, el, { paragrafo: el }).xml}</w:rPr><w:t xml:space="preserve">${marcatore}</w:t></w:r><w:r><w:tab/></w:r>`;
                 } else if (rientro) {
                     ind += rientro > 0 ? ` w:firstLine="${tw(rientro)}"` : ` w:hanging="${tw(-rientro)}"`;
@@ -438,7 +483,10 @@
                 const c = rettangoloContenuto(ctx, el);
                 if (soloInLineaWord(ctx, el)) {
                     if (!testoVisibileWord(el)) return '';
-                    return paragrafoWord(ctx, { el, r: c }, c.x);
+                    // In una cella di tabella il testo può usare il margine della cella (paragrafoWord).
+                    const cs = ctx.win.getComputedStyle(el);
+                    const margineCella = /^T[DH]$/.test(el.tagName) ? { sx: parseFloat(cs.paddingLeft) || 0, dx: parseFloat(cs.paddingRight) || 0 } : null;
+                    return paragrafoWord(ctx, { el, r: c, margineCella }, c.x);
                 }
                 const foglie = raccogliFoglieWord(ctx, el, []).filter(f => f.tipo !== 'vuoto');
                 if (!foglie.length) return '';

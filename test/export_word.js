@@ -111,6 +111,34 @@ const $ = (app, id) => app.d.getElementById(id);
       && /segnalibroWord\(ctx, titoloIndice\.getAttribute\('data-voce-indice'\)\)/.test(sorg) && / TC "\$\{/.test(sorg));
   }
 
+  console.log('--- Le celle delle tabelle: niente a capo in più ---');
+  {
+    // Word misura le lettere un po' diversamente dal browser: in una colonna stretta una riga che
+    // nel PDF sta su una riga in Word andava a capo e raddoppiava la riga della tabella. Il
+    // paragrafo ora può allargarsi nel margine della cella, dal lato che non sposta l'allineamento.
+    const tab = app.d.createElement('table');
+    tab.innerHTML = '<tr><td style="padding:3px 4px; text-align:right; font-size:10px; line-height:12px">1.234,5</td>'
+      + '<td style="padding:3px 4px; text-align:left; font-size:10px; line-height:12px">Sabbia limosa</td>'
+      + '<td style="padding:3px 6px 3px 4px; text-align:center; font-size:10px; line-height:12px">N</td></tr>';
+    app.d.body.appendChild(tab);
+    const misura = app.w.Element.prototype.getBoundingClientRect;
+    app.w.Element.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, right: 60, bottom: 18, width: 60, height: 18, x: 0, y: 0 });
+    const creaRange = app.d.createRange;
+    app.d.createRange = () => ({ selectNodeContents() {}, getClientRects: () => [{ top: 3, height: 12 }], getBoundingClientRect: () => ({ height: 12 }) });
+    const ctx = app.E('nuovoContestoWord')(app.d, {});
+    const [destra, sinistra, centro] = tab.rows[0].cells;
+    const pDestra = await app.E('contenutoWord')(ctx, destra), pSinistra = await app.E('contenutoWord')(ctx, sinistra), pCentro = await app.E('contenutoWord')(ctx, centro);
+    app.w.Element.prototype.getBoundingClientRect = misura;
+    app.d.createRange = creaRange;
+    tab.remove();
+    t('testo a destra: si allarga nel margine sinistro della cella (4 px = 60 twip)', /<w:ind w:left="-60"\/>/.test(pDestra) && /<w:jc w:val="right"\/>/.test(pDestra));
+    t('testo a sinistra: nel margine destro', /<w:ind w:right="-60"\/>/.test(pSinistra) && /<w:jc w:val="left"\/>/.test(pSinistra));
+    t('testo centrato: metà e metà, quanto il margine più piccolo (il centro non si sposta)', /<w:ind w:left="-60" w:right="-60"\/>/.test(pCentro));
+    const stretto = app.E('stringiRunWord')('<w:r><w:rPr><w:b/><w:sz w:val="11"/></w:rPr><w:t>a</w:t></w:r><w:r><w:rPr><w:w w:val="102"/><w:sz w:val="11"/></w:rPr><w:t>b</w:t></w:r>', 0.9);
+    t('una riga che riempie la cella si stringe un poco (scala di Word, al suo posto prima del corpo)', /<w:b\/><w:w w:val="90"\/><w:sz /.test(stretto) && /<w:w w:val="92"\/><w:sz /.test(stretto));
+    t('fuori dalle tabelle niente rientri negativi', !/w:(left|right)="-/.test(await app.E('paragrafoWord')(ctx, { el: app.d.body, r: { x: 0, y: 0, w: 100, h: 12 } }, 0)));
+  }
+
   console.log('--- Il vecchio .doc ---');
   const sorgente = fs.readFileSync(path.join(__dirname, '..', 'dist', 'DPSH.html'), 'utf8');
   t('niente più HTML salvato come .doc', !/application\/msword/.test(sorgente) && !/function costruisciDocumentoWord/.test(sorgente));
