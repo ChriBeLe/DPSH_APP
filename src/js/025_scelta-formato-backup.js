@@ -210,6 +210,7 @@
                 document.getElementById('consegnaParametri').style.display = targetType === 'project' && projIdControllo === state.currentProjectId ? '' : 'none';
                 document.getElementById('btnOptConfrontoProve').style.display = targetType === 'project' ? '' : 'none';
                 renderProveConsegna();
+                document.getElementById('sceltaProveConsegna').open = Object.keys((state.projects[projIdControllo] || {}).surveys || {}).length <= 8;
                 if (lblExportModalTitle) lblExportModalTitle.textContent = 'Consegna';
 
                 if (targetType === 'project') {
@@ -243,8 +244,9 @@
                 box.style.display = prove.length > 1 ? '' : 'none';
                 if (prove.length < 2) { exportModalContext.soloProve = null; return; }
                 const scelte = exportModalContext.soloProve || new Set(prove.map(s => s.id));
-                document.getElementById('pilloleProveConsegna').innerHTML = prove.map(s => `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${scelte.has(s.id)}">Prova ${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}</button>`).join('');
+                document.getElementById('pilloleProveConsegna').innerHTML = prove.map(s => `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${scelte.has(s.id)}" title="Prova ${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}">${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}</button>`).join('');
                 const n = prove.filter(s => scelte.has(s.id)).length;
+                document.getElementById('lblProveConsegnaBreve').textContent = n === prove.length ? `tutte (${n})` : `${n} su ${prove.length}`;
                 document.getElementById('lblProveConsegna').textContent = n === prove.length
                     ? 'Tutte le prove. Tocca una prova per toglierla da Excel, KML e foto.'
                     : n === 0 ? 'Scegli almeno una prova.'
@@ -260,6 +262,8 @@
                 exportModalContext.soloProve = scelte.size === Object.keys(proj.surveys || {}).length ? null : scelte;
                 renderProveConsegna();
             });
+            document.getElementById('btnProveConsegnaTutte').addEventListener('click', () => { exportModalContext.soloProve = null; renderProveConsegna(); });
+            document.getElementById('btnProveConsegnaNessuna').addEventListener('click', () => { exportModalContext.soloProve = new Set(); renderProveConsegna(); });
 
             function closeExportModal() {
                 if (modalExportOverlay) modalExportOverlay.classList.remove('open');

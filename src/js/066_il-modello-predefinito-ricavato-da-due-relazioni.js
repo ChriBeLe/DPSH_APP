@@ -939,7 +939,7 @@
                 // templateEditorState.footerShowPageNumber). Il contenuto (immagine/testo) resta
                 // per-pagina in hd/ft qui sopra.
                 const headerHtml = headerEnabled ? `
-                    <div style="margin-bottom:8px; ${hHMm ? `height:${hHMm}mm; overflow:hidden; display:flex; flex-direction:column; justify-content:center;` : ''}">
+                    <div data-blocco="intestazione" style="margin-bottom:8px; ${hHMm ? `height:${hHMm}mm; overflow:hidden; display:flex; flex-direction:column; justify-content:center;` : ''}">
                         ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; ${hHMm ? 'max-height:100%; object-fit:contain;' : 'max-height:28mm;'} display:block; margin:0 auto;"/>` : ''}
                         ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:4px; flex-shrink:0;">${hd.text}</div>` : ''}
                     </div>
@@ -977,7 +977,7 @@
                 // pagina, era una decorazione fissa mia non richiesta — solo lo spazio (padding-top)
                 // per staccare il testo dal contenuto, nessun bordo disegnato.
                 const footerHtml = footerEnabled ? `
-                    <div style="position:absolute; left:0; right:0; bottom:0; padding-top:6px; font-size:9px; color:#94a3b8; background:#fff;">
+                    <div data-blocco="pie" style="position:absolute; left:0; right:0; bottom:0; padding-top:6px; font-size:9px; color:#94a3b8; background:#fff;">
                         <span>${ft.text || ''}</span>
                     </div>
                 ` : '';
@@ -1038,14 +1038,16 @@
                         // esplicitamente, riorganizzazione posizionamento/ridimensionamento: niente
                         // più "compattezza" separata dalla larghezza) — l'allineamento è ora gestito
                         // a monte, sul blocco stesso (vedi styleDimensioneVoce), non più qui dentro.
-                        return `<div style="page-break-inside: avoid; ${styleScala(item)}">${content}</div>`;
+                        return `<div data-blocco="${item.type}" style="page-break-inside: avoid; ${styleScala(item)}">${content}</div>`;
                     }).join('');
                     if (!itemsHtml) return '';
                     return { html: itemsHtml, isStack: true };
                 }
                 const content = buildBlockContentHtml(entry.type, ctx, entry, { span, cols });
                 if (!content) return '';
-                return { html: `<div style="${styleScala(entry)}">${content}</div>`, isStack: false };
+                // data-blocco: il tipo del blocco viaggia nel documento stampato. Lo legge l'export
+                // Word, che deve sapere cosa e' testo (diventa testo di Word) e cosa e' disegno.
+                return { html: `<div data-blocco="${entry.type}" style="${styleScala(entry)}">${content}</div>`, isStack: false };
             }
 
             /** Equivalente in stampa/PDF di renderaGruppoRowSpanEditor: rende un gruppo di righe

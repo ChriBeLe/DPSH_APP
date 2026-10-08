@@ -433,7 +433,7 @@ let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;
     t('tornare in colonna toglie il galleggiamento', !/float/.test(stile()) && /width:\s*25%/.test(stile()));
     t('e tutto questo e finito nell HTML salvato', /width:\s*25%/.test(w.localStorage.getItem('dpsh_app_state')||''));
     t('il contenitore chiude i galleggianti (regola CSS presente)', /\.note-editor-body > \.ProseMirror:after\{content:"";display:block;clear:both;\}/.test(src));
-    t('e lo fanno anche stampa e Word', /\.note-print-body:after\{content:"";display:block;clear:both;\}/.test(src) && /\.note-body:after\{content:"";display:block;clear:both;\}/.test(src));
+    t('e lo fanno anche stampa e Word', /\.note-print-body:after\{content:"";display:block;clear:both;\}/.test(src) && /documentoStampaInDocx\(documentoNotaStampa\(/.test(src));
     t('nessun errore usando la disposizione', errori.length === 0);
     if (errori.length) console.log('      ', errori.slice(0,3));
   }

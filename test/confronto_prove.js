@@ -61,7 +61,7 @@ t('profondità massima e strati usati dalle prove accese', Math.abs(d.maxProf - 
 const dis = api.disegnoConfronto(d, { larghezza: 1400, altezza: 990, fs: 14, perFile: true, data: '06/10/2026' });
 const testi = dis.el.filter(e => e.t === 'testo').map(e => e.testo);
 t('il disegno riempie lo spazio dato in altezza', dis.H === 990 && dis.W <= 1400);
-t('nel file: titolo col progetto e legenda degli strati dentro la figura', testi.includes('Confronto prove · Cantiere (prova)') && testi.includes('Riporto') && testi.includes('Argilla'));
+t('nel file: solo il titolo «Confronto tra prove», niente progetto né data, e la legenda degli strati', testi.includes('Confronto tra prove') && !testi.some(x => /Cantiere|colonne stratigrafiche|\d{2}\/\d{2}\/\d{4}/.test(x)) && testi.includes('Riporto') && testi.includes('Argilla'));
 const asse = dis.el.filter(e => e.t === 'testo' && e.ancora === 'middle' && e.mono && !e.grassetto && /^[\d,]+$/.test(e.testo)).map(e => e.testo);
 t('asse dei valori a passi tondi che arrivano al fondo scala', asse[0] === '0' && asse.every((v, i) => i === 0 || parseFloat(v) > parseFloat(asse[i - 1])) && parseFloat(asse[asse.length - 1]) >= 14);
 const fasceRett = dis.el.filter(e => e.t === 'rett' && /^DPSH/.test(e.titolo || ''));
@@ -71,7 +71,7 @@ t('colonne e curve sulla stessa scala delle profondità', percorsi.length === 2
   && Math.abs(Math.min(...percorsi[0].punti.map(p => p[1])) - yMin) < 1e-6
   && Math.abs(Math.max(...percorsi[1].punti.map(p => p[1])) - yMax) < 1e-6);
 const schermo = api.disegnoConfronto(d, { larghezza: 900, altezza: 500, fs: 12 });
-t('a schermo niente titolo né legenda nella figura (sono nella finestra)', !schermo.el.some(e => e.testo === 'Riporto' || /^Confronto prove/.test(e.testo || '')));
+t('a schermo niente titolo né legenda nella figura (sono nella finestra)', !schermo.el.some(e => e.testo === 'Riporto' || /^Confronto/.test(e.testo || '')));
 const svg = api.svgDaDisegno(dis, api.TEMA_CONFRONTO_FILE);
 t('SVG per il file: colori veri e fondo bianco, nessuna variabile dell\'app', /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/.test(svg) && !svg.includes('var(--') && svg.includes('fill="#ffffff"'));
 const nomeStrano = api.svgDaDisegno({ W: 10, H: 10, el: [{ t: 'testo', x: 0, y: 0, testo: 'A<B & "C"', dim: 10, colore: '#000', ancora: 'start' }] }, api.TEMA_CONFRONTO_FILE);
@@ -98,6 +98,8 @@ t('si scarica in SVG, PNG e PDF', ['svg', 'png', 'pdf'].every(f => src.includes(
 t('la finestra è grande: quasi tutto lo schermo', /\.modal\.confronto \{ max-width: 1680px; width: 97vw;/.test(src));
 t('con meno di due prove confrontabili lo dice invece di aprire una figura vuota',
   /prove\.length < 2\) \{\s*appAlert\('Per confrontare servono almeno due prove/.test(src));
+t('dal confronto si passa alla vista 3D delle stesse prove, anche col progetto chiuso',
+  src.includes('id="btnConfronto3d"') && /btnConfronto3d'\)\.addEventListener\('click', \(\) => \{\s*if \(confrontoStato\.projId !== state\.currentProjectId\) \{ openProject\(confrontoStato\.projId\); switchView\('project'\); \}\s*apriVista3d\(\);/.test(src));
 
 console.log('\n' + ok + ' ok, ' + ko + ' KO');
 process.exit(ko?1:0);

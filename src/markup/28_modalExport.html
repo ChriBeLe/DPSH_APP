@@ -23,10 +23,17 @@
         </div>
         <!-- ALCUNE PROVE: nella consegna del progetto si possono togliere delle prove. Valgono per Excel,
              KML e foto; il PDF le fa scegliere nel passo dopo; backup e parametri restano del progetto. -->
-        <div id="sceltaProveConsegna" style="display: none; margin-bottom: 12px;">
-            <div class="pillole" id="pilloleProveConsegna" aria-label="Prove da consegnare"></div>
+        <!-- Con tante prove le pillole riempivano mezza finestra: stanno in un riquadro che si apre
+             (chiuso oltre le 8 prove) e che scorre da sé; la riga chiusa dice già quante sono. -->
+        <details class="scelta-prove" id="sceltaProveConsegna" style="display: none; margin-bottom: 12px;">
+            <summary><span>Prove da consegnare</span> <strong id="lblProveConsegnaBreve"></strong></summary>
+            <div class="scelta-prove-comandi">
+                <button type="button" class="bt-link accento" id="btnProveConsegnaTutte">Tutte</button>
+                <button type="button" class="bt-link" id="btnProveConsegnaNessuna">Nessuna</button>
+            </div>
+            <div class="pillole elenco-prove" id="pilloleProveConsegna" aria-label="Prove da consegnare"></div>
             <div class="t-didascalia" id="lblProveConsegna" style="margin-top: 6px;"></div>
-        </div>
+        </details>
         <!-- CONTROLLO DEI DATI (Fase 1): anomalie vere (intervalli con buchi, colpi non validi, foto o
              strati che non esistono più). Nascosto se non c'è niente; non blocca. Lo riempie
              renderIntegritaPrimaExport. -->

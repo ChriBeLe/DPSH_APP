@@ -76,8 +76,8 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
   t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
   destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
-  t('tasto destro su una prova: Apri, Dati, Strumento', voci().join('|') === 'Apri|Dati della prova|Strumento');
-  clic(app, $(app, 'menuRiga').querySelector('[data-voce="1"]'));
+  t('tasto destro su una prova: Apri, Mostra sulla mappa, Dati, Strumento', voci().join('|') === 'Apri|Mostra sulla mappa|Dati della prova|Strumento');
+  clic(app, $(app, 'menuRiga').querySelector('[data-voce="2"]'));
   t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
   app.E('closeAnyOpenModal()');
   clic(app, $(app, 'pcBtnImpostazioni'));

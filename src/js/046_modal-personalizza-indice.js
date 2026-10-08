@@ -551,7 +551,7 @@
          proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
          da cui nascevano le pagine bianche. -->
     <div class="dpsh-sheet-stack">${pagesHtml}</div>
-    ${getControlloImpaginazioneScriptTag(true)}
+    ${esportaPdfContext.formato === 'word' ? '' : getControlloImpaginazioneScriptTag(true)}
 </body>
 </html>`;
 
@@ -566,6 +566,27 @@
                     // window.print() quando tutto è caricato — su Android si apre direttamente il
                     // pannello di stampa del sistema, da cui "Salva come PDF". Nessuna seconda
                     // pagina da attraversare, come richiesto.
+                    // WORD: lo stesso identico documento, che invece di andare in stampa diventa un
+                    // .docx (vedi 071i). Niente controllo di stampa dentro: non si stampa niente.
+                    if (esportaPdfContext.formato === 'word') {
+                        const risultato = await documentoStampaInDocx(fullDoc, {
+                            qualitaJpeg: qualitaScelta,
+                            onAvanzamento: (testo, quota) => {
+                                if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = testo;
+                                if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = (95 + Math.round(quota * 5)) + '%';
+                            }
+                        });
+                        scaricaBlobFile(risultato.blob, titolo.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_') + '.docx');
+                        if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = '100%';
+                        if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = 'Completato';
+                        if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `${risultato.pagine} pagine in Word`;
+                        if (risultato.mancanti > 0) {
+                            await appDialog(`${risultato.mancanti} riquadr${risultato.mancanti === 1 ? 'o' : 'i'} di mappa non si sono scaricati: nel Word quella parte della mappa resta vuota. Se sei senza rete riprova più tardi.`, { title: 'Mappe incomplete' });
+                        }
+                        setTimeout(chiudiEsportazionePdfModal, 900);
+                        return;
+                    }
+
                     const vecchioIframeStampa = document.getElementById('iframeStampaReport');
                     if (vecchioIframeStampa) vecchioIframeStampa.remove();
                     const iframeStampa = document.createElement('iframe');

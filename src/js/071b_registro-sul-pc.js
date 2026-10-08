@@ -69,6 +69,7 @@
                 const s = state.projects[state.currentProjectId].surveys[survId];
                 apriMenuContesto(e, 'Prova ' + ((s.header || {}).provaNr || '?'), [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(null, survId)],
+                    ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
                     ['Dati della prova', 'i-file', '', () => openSurveySettingsModal(survId, 'dati')],
                     ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')]
                 ]);

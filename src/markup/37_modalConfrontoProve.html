@@ -11,6 +11,8 @@
                 </span>
                 <span id="lblConfrontoTitolo" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Confronta prove</span>
             </span>
+            <!-- Le stesse prove nello spazio: colonne alle posizioni GPS vere (vedi 071h). -->
+            <button type="button" class="bt" id="btnConfronto3d" title="Le prove nello spazio, alle loro posizioni GPS" style="margin-left:auto; margin-right:6px; flex-shrink:0;"><svg class="ico"><use href="#i-map"/></svg>Vista 3D</button>
             <button class="btn-icon" id="btnCloseConfrontoX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
@@ -18,7 +20,6 @@
         </div>
         <div style="display: flex; align-items: center; gap: 6px 12px; margin-bottom: 8px; flex-wrap: wrap;">
             <div id="confrontoGrandezza" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
-            <button type="button" class="bt" id="btnConfrontoA3d" title="Le stesse prove nello spazio, col terreno se c'è il DTM"><svg class="ico"><use href="#i-map"/></svg>Vista 3D</button>
             <div class="confronto-scarica" aria-label="Scarica la figura">
                 <span>Scarica</span>
                 <button type="button" data-formato="svg"><svg class="ico"><use href="#i-download"/></svg>SVG</button>
