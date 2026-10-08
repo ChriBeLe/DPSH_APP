@@ -712,23 +712,36 @@
                     const y = o[1] - 6 + riga * 14;
                     if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura', giacitura: sf.f.nome });
                 });
-                if (L.misure) {
-                    // Asta graduata delle quote, ATTACCATA AL MODELLO: all'angolo del riquadro delle
-                    // prove più vicino a chi guarda, appena fuori. Prima stava all'angolo della scena
-                    // intera (le prove più un margine largo), e con le prove raccolte restava a
-                    // galleggiare lontano dal modello.
-                    const xs = d.prove.length ? d.prove.map(p => p.x) : [-d.lato / 2, d.lato / 2], ys = d.prove.length ? d.prove.map(p => p.y) : [-d.lato / 2, d.lato / 2];
-                    const fuori = Math.max(2, (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.03);
-                    const angoli = [[Math.min(...xs) - fuori, Math.min(...ys) - fuori], [Math.max(...xs) + fuori, Math.min(...ys) - fuori],
-                        [Math.max(...xs) + fuori, Math.max(...ys) + fuori], [Math.min(...xs) - fuori, Math.max(...ys) + fuori]];
-                    const [ax, ay] = angoli.reduce((m, a) => P(a[0], a[1], zRif)[2] < P(m[0], m[1], zRif)[2] ? a : m);
-                    const zBasso = d.zMin - profMax, passo = massimoTondo((d.zMax - zBasso) / 5);
-                    const b0 = P(ax, ay, zBasso), b1 = P(ax, ay, d.zMax);
+                if (L.misure && d.prove.length) {
+                    // ASTA GRADUATA DELLE QUOTE, SUL FIANCO DEL MODELLO: lungo lo spigolo verticale del
+                    // contorno delle prove che sullo schermo sta più a destra, appena fuori, con lo zero
+                    // al piano campagna di quel punto e i numeri verso l'esterno. Prima stava all'angolo
+                    // del rettangolo nord-est delle prove: con le prove su una griglia ruotata
+                    // quell'angolo cadeva nel vuoto, lontano dal modello.
+                    const pt = d.prove.map(p => [p.x, p.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                    const giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+                    const giu = [], su = [];
+                    pt.forEach(q => { while (giu.length >= 2 && giro(giu[giu.length - 2], giu[giu.length - 1], q) <= 0) giu.pop(); giu.push(q); });
+                    pt.slice().reverse().forEach(q => { while (su.length >= 2 && giro(su[su.length - 2], su[su.length - 1], q) <= 0) su.pop(); su.push(q); });
+                    const contorno = pt.length < 3 ? pt : giu.slice(0, -1).concat(su.slice(0, -1));
+                    const mx = d.prove.reduce((a, q) => a + q.x, 0) / d.prove.length, my = d.prove.reduce((a, q) => a + q.y, 0) / d.prove.length;
+                    const v = contorno.reduce((m, q) => P(q[0], q[1], zRif)[0] > P(m[0], m[1], zRif)[0] ? q : m);
+                    const estensione = Math.max(...pt.map(q => Math.hypot(q[0] - mx, q[1] - my)), 5);
+                    const lv = Math.hypot(v[0] - mx, v[1] - my) || 1, fuori = Math.max(1.5, estensione * 0.04);
+                    const ax = v[0] + (v[0] - mx) / lv * fuori, ay = v[1] + (v[1] - my) / lv * fuori;
+                    const vicina = d.prove.reduce((m, q) => Math.hypot(q.x - v[0], q.y - v[1]) < Math.hypot(m.x - v[0], m.y - v[1]) ? q : m);
+                    const zTesta = (d.zSuolo && d.zSuolo(ax, ay)) ?? vicina.z;
+                    const so = L.solido && modelloSolido(d);
+                    const zFondo = so ? zTesta - so.fondo : Math.min(d.zMin - profMax, zTesta - profMax);
+                    const passo = massimoTondo((zTesta - zFondo) / 5);
+                    const b0 = P(ax, ay, zFondo), b1 = P(ax, ay, zTesta);
+                    // I numeri dalla parte esterna: a destra se lo spigolo sta a destra del centro.
+                    const aDestra = b1[0] >= P(mx, my, zRif)[0];
                     sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
-                    for (let z = Math.ceil(zBasso / passo) * passo; z <= d.zMax + 0.001; z += passo) {
+                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) {
                         const t = P(ax, ay, z);
                         sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
-                        if (vista3d.etichette.misure) testo(t[0] - 8, t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: 'end', cls: 'vista3d-misure' });
+                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
                     }
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
