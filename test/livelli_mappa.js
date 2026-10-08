@@ -38,7 +38,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('niente più righe «Nomi delle prove» e «Nomi degli strati»: le etichette sono il tasto «T»', !riga('[data-livello="nomi"]') && !riga('[data-livello="nomiGiaciture"]'));
   const conT = [...albero.querySelectorAll('.liv-riga')].filter(r => r.querySelector('.liv-etichette')).map(r => r.querySelector('.liv-nome').textContent);
   const gruppiT = [...albero.querySelectorAll('[data-etichette-gruppo]')].map(b => b.dataset.etichetteGruppo);
-  t(`«T» sul gruppo Prove (uno solo per tutte: ${gruppiT.join(', ')}) e sulle righe ${conT.join(', ')}`, gruppiT.join() === 'prove' && conT.join() === 'Falda,Misure' && !riga('[data-prova3d] .liv-etichette'));
+  t(`«T» sul gruppo Prove (uno solo per tutte: ${gruppiT.join(', ')}) e sulle righe ${conT.join(', ')}`, gruppiT.join() === 'prove' && conT.join() === 'Falda,Asta delle quote' && !riga('[data-prova3d] .liv-etichette'));
 
   console.log('--- Le etichette ---');
   clic(app, riga('[data-etichette-gruppo="prove"]'));
@@ -47,8 +47,13 @@ const $ = (app, id) => app.d.getElementById(id);
   t('(ritoccato tornano)', nomi() === 'DPSH 1,DPSH 2,DPSH 3');
   const d0 = conta('.vista3d-distanza');
   clic(app, riga('[data-livello="misure"] .liv-etichette'));
-  t(`«T» delle Misure: via i numeri (${d0} distanze e l'asta), resta l'asta`, d0 === 3 && conta('.vista3d-distanza') === 0 && conta('text.vista3d-misure') === 0 && conta('line.vista3d-misure') > 0);
+  t(`«T» dell'asta delle quote: via i suoi numeri, l'asta resta (e le ${d0} distanze anche)`, d0 === 3 && conta('.vista3d-distanza') === 3 && conta('text.vista3d-misure') === 0 && conta('line.vista3d-misure') > 0);
   clic(app, riga('[data-livello="misure"] .liv-etichette'));
+  // Le distanze tra le prove sono un livello a sé: si spengono senza toccare l'asta.
+  clic(app, riga('[data-livello="distanze"] input'));
+  t('«Distanze tra le prove» spento: via i metri, l\'asta delle quote resta coi suoi numeri', conta('.vista3d-distanza') === 0 && conta('line.vista3d-misure') > 0 && conta('text.vista3d-misure') > 0);
+  clic(app, riga('[data-livello="distanze"] input'));
+  t('(riacceso tornano)', conta('.vista3d-distanza') === 3);
   clic(app, riga('[data-livello="falda"] .liv-etichette'));
   t('«T» della Falda: la profondità su ogni colonna', conta('.vista3d-falda-nome') === 3 && /falda 1,50? m/.test(svg().querySelector('.vista3d-falda-nome').textContent));
   clic(app, riga('[data-livello="falda"] .liv-etichette'));
