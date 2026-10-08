@@ -13,7 +13,7 @@ function corpo(nome){
   throw new Error('fine non trovata: '+nome);
 }
 const NOMI=['radiceProva','proveFisiche','generatoreCasualeDaSeme','espandiAlternativeTesto','elencoItaliano','formattaCoordinateProve',
-  'valoriCantiere','valoriCantiereConCorrezioni','applicaSegnapostiTesto','generaTestoDaModello',
+  'valoriCantiere','valoriDellaProva','valoriCantiereConCorrezioni','applicaSegnapostiTesto','generaTestoDaModello',
   'quotaDellaProva','quotaDtm', // la quota del piano campagna, dal DTM del progetto
   'contaDatiMancanti','betaTStrumento','betaTCalcolato','fmtIT','formattaDataIT','escapeHtmlDidascalia',
   'tagPerTipo','etichettaTag','risolviTagInStampa','eRiferimentoFigura','bersaglioFigura',

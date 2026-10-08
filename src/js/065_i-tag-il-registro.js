@@ -9,6 +9,11 @@
             // del testo, senza tornare all'anagrafica — la parte piu' utile di tutta questa
             // funzione, perche' quel dato tipicamente arriva dopo il cantiere.
             const TAG_DISPONIBILI = [
+                // LA PROVA CHE SI STA STAMPANDO: nel Report Completo il template si ripete per ogni
+                // prova, e ognuna ha il suo nome. Serve soprattutto nei titoli (H2 «DPSH 3»), che
+                // così entrano nell'indice col nome giusto. Valori in valoriDellaProva.
+                { tipo: 'nomeProva', etichetta: 'Nome della prova', gruppo: 'Prova' },
+                { tipo: 'numeroProva', etichetta: 'Numero della prova', gruppo: 'Prova' },
                 { tipo: 'committente', etichetta: 'Committente', gruppo: 'Cantiere', campo: 'committente' , dove: 'prova' },
                 { tipo: 'sedeCommittente', etichetta: 'Sede del committente', gruppo: 'Cantiere', campo: 'sedeCommittente' , dove: 'progetto' },
                 { tipo: 'denominazioneIntervento', etichetta: 'Denominazione dell\'intervento', gruppo: 'Cantiere', campo: 'denominazioneIntervento' , dove: 'progetto' },
@@ -245,7 +250,10 @@
                              valore: el ? ('fig. ' + el.numero) : etichettaVuotaFigura(b), attesa: !el };
                 }
                 try {
-                    const v = valoriCantiere(progettoPerTag());
+                    // Nell'editor la prova è quella dell'anteprima (o la prova aperta).
+                    const ctxEd = (typeof templateEditorState !== 'undefined' && templateEditorState.ctx) || null;
+                    const provaNr = (ctxEd && ctxEd.provaNr) || (state.header && state.header.provaNr) || '';
+                    const v = Object.assign(valoriCantiere(progettoPerTag()), valoriDellaProva(provaNr));
                     const voce = v && v[tipo];
                     return { etichetta: etichettaTag(tipo, v), valore: (voce && !voce.mancante) ? voce.testo : '' };
                 } catch (e) {
