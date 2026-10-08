@@ -509,10 +509,14 @@
         /* VISTA 3D, scheda Sezioni: la griglia, l'elenco delle tracce, la sezione lungo la traccia. */
         .vista3d-griglia label { display: flex; align-items: center; gap: var(--sp-1); font-weight: 600; }
         .vista3d-griglia input[type="number"], #numFasciaSezione3d { width: 76px; }
+        #numGrigliaNS3d, #numGrigliaEO3d { width: 56px; }
+        .vista3d-griglia-libera > summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-muted); margin: var(--sp-1) 0; }
         .vista3d-sezioni { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; max-height: 220px; overflow-y: auto; }
         .vista3d-sezione-riga { display: flex; align-items: center; gap: var(--sp-2); }
-        .vista3d-sezione-riga input[type="text"] { width: 120px; font-weight: 700; }
-        .vista3d-sezione-riga .t-didascalia { min-width: 60px; }
+        /* Nel pannello stretto il nome resta leggibile (A-A') e i comandi non vanno a capo. */
+        .vista3d-sezione-riga input[type="text"] { width: 64px; min-width: 64px; flex: 1 1 64px; font-weight: 700; }
+        .vista3d-sezione-riga .t-didascalia { min-width: 44px; white-space: nowrap; }
+        .vista3d-sezione-riga .bt-link, .vista3d-sezione-riga .pillola { white-space: nowrap; flex-shrink: 0; }
         #vistaSezioneTracciata { overflow-x: auto; background: #fff; border-radius: var(--radius-md); }
         #vistaSezioneTracciata:empty { display: none; }
         #vistaSezioneTracciata svg { display: block; max-width: 100%; height: auto; }

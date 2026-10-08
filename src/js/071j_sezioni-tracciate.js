@@ -17,8 +17,9 @@
                 return m ? [m[1], m[2]] : [nome || '?', (nome || '?') + "'"];
             }
             /** Il primo nome libero: lettere (A, B, … Z, AA…) o numeri (1, 2, …). */
-            function prossimoNomeTraccia(numeri, usati) {
-                const presi = new Set([...tracceDelProgetto(), ...(usati || [])].map(t => estremiTraccia(t.nome)[0]));
+            function prossimoNomeTraccia(numeri, usati, senzaGriglia) {
+                // senzaGriglia: la griglia rapida che sta per essere sostituita non occupa nomi.
+                const presi = new Set([...tracceDelProgetto().filter(t => !(senzaGriglia && t.griglia)), ...(usati || [])].map(t => estremiTraccia(t.nome)[0]));
                 for (let i = 0; ; i++) {
                     const s = numeri ? String(i + 1) : (i < 26 ? '' : String.fromCharCode(65 + Math.floor(i / 26) - 1)) + String.fromCharCode(65 + i % 26);
                     if (!presi.has(s)) return `${s}-${s}'`;
@@ -106,6 +107,65 @@
                 saveState();
                 renderVista3d();
                 renderElencoSezioni3d();
+            }
+
+            /** Il contorno del modello su cui si appoggiano griglia e taglio: quello del corpo solido
+             * (lo stesso che usa il cursore del taglio), altrimenti l'involucro delle prove. */
+            function contornoPerGriglia3d(d) {
+                const so = modelloSolido(d);
+                if (so) return involucroModello(so);
+                const pt = d.prove.map(p => [p.x, p.y]);
+                const xs = pt.map(p => p[0]), ys = pt.map(p => p[1]), m = 10;
+                // Una o due prove: un rettangolo attorno, abbastanza largo da tracciarci dentro.
+                return [[Math.min(...xs) - m, Math.min(...ys) - m], [Math.max(...xs) + m, Math.min(...ys) - m], [Math.max(...xs) + m, Math.max(...ys) + m], [Math.min(...xs) - m, Math.max(...ys) + m]];
+            }
+            /** LA GRIGLIA RAPIDA: «nNS» linee Nord–Sud e «nEO» Est–Ovest, a distanze uguali sul modello
+             * (alle frazioni k/(n+1) della sua estensione), da bordo a bordo. La frazione è la stessa
+             * scala del cursore del taglio laterale (pos), quindi ogni linea si può far coincidere col
+             * taglio («Taglia qui», e il cursore vi si aggancia). Sostituisce la griglia rapida di prima;
+             * le tracce disegnate a mano e quelle della griglia con direzione restano. */
+            function creaGrigliaAssi3d(nNS, nEO) {
+                const d = datiVista3dCorrenti, proj = state.projects[state.currentProjectId];
+                if (!d || !d.prove.length) return;
+                const contorno = contornoPerGriglia3d(d), nuove = [];
+                const serie = (asse, n, numeri) => {
+                    const ax = asse === 'ns' ? 0 : 1, altro = 1 - ax;
+                    const valori = contorno.map(p => p[ax]), lo = Math.min(...valori), hi = Math.max(...valori);
+                    for (let k = 1; k <= n; k++) {
+                        const pos = k / (n + 1), c = lo + (hi - lo) * pos, incroci = [];
+                        contorno.forEach((p, i) => {
+                            const q = contorno[(i + 1) % contorno.length], u = p[ax] - c, v = q[ax] - c;
+                            if ((u <= 0 && v > 0) || (u > 0 && v <= 0)) incroci.push(p[altro] + (q[altro] - p[altro]) * u / (u - v));
+                        });
+                        if (incroci.length < 2) continue;
+                        const punto = w => ax === 0 ? [c, w] : [w, c];
+                        nuove.push({ id: 'sez_' + Date.now().toString(36) + '_' + nuove.length, nome: prossimoNomeTraccia(numeri, nuove, true),
+                            a: d.geo(...punto(Math.min(...incroci))), b: d.geo(...punto(Math.max(...incroci))), griglia: true, asse, pos });
+                    }
+                };
+                serie('ns', Math.max(0, nNS | 0), false);
+                serie('eo', Math.max(0, nEO | 0), true);
+                if (sezioniTracciateStato.vista && !tracceDelProgetto().some(t => t.id === sezioniTracciateStato.vista && !t.griglia)) sezioniTracciateStato.vista = null;
+                proj.sezioniTracciate = tracceDelProgetto().filter(t => !t.griglia).concat(nuove);
+                saveState();
+                renderVista3d();
+                renderElencoSezioni3d();
+            }
+            /** «Taglia qui»: il taglio laterale del corpo solido esattamente sulla linea della griglia. */
+            function tagliaSullaTraccia3d(t) {
+                if (!t || !t.asse) return;
+                if (!vista3d.livelli.solido) accendiSolido3d();
+                vista3d.taglio.dir = t.asse;
+                vista3d.taglio.pos = t.pos;
+                const rng = document.getElementById('rngTaglioV3d');
+                if (rng) rng.value = Math.round(t.pos * 100);
+                renderVista3d();
+                mostraToast(`Taglio sulla sezione ${t.nome}`);
+            }
+            /** Il cursore del taglio si aggancia alla linea della griglia vicina (entro il 2,5%). */
+            function agganciaTaglioAllaGriglia3d(pos, dir) {
+                const vicina = tracceDelProgetto().filter(t => t.griglia && t.asse === dir).find(t => Math.abs(t.pos - pos) < 0.025);
+                return vicina ? vicina.pos : pos;
             }
 
             /** IL TAGLIO VERTICALE DEL CORPO SOLIDO COME TRACCIA: la retta del taglio, da un lato all'altro
@@ -239,6 +299,7 @@
                         <input type="text" class="form-control" data-nome-sezione value="${String(t.nome).replace(/"/g, '&quot;')}" aria-label="Nome della sezione">
                         <span class="t-didascalia">${d ? numeroConVirgola(tracciaInScena(d, t).L, 0) + ' m' : ''}</span>
                         <button type="button" class="pillola" data-vedi-sezione aria-pressed="${sezioniTracciateStato.vista === t.id}">Vedi</button>
+                        ${t.asse ? `<button type="button" class="bt-link" data-taglia-sezione title="Il taglio del modello su questa linea">Taglia</button>` : ''}
                         <button type="button" class="bt-link" data-pdf-sezione>PDF</button>
                         <button type="button" class="chiudi-x" data-elimina-sezione title="Elimina la traccia" aria-label="Elimina la traccia"><svg class="ico"><use href="#i-trash"/></svg></button>
                     </div>`).join('') : '<p class="t-didascalia">Nessuna traccia: «Traccia una sezione» e due clic sulla figura, oppure una griglia.</p>';
@@ -263,6 +324,18 @@
             });
             // «Traccia una sezione» è lo strumento Profilo della barra (nel 3D si traccia dall'alto).
             document.getElementById('btnTracciaSezione3d').addEventListener('click', () => scegliStrumentoMappa(areaMappa.strumento === 'profilo' ? 'sel' : 'profilo'));
+            document.getElementById('btnCreaGrigliaAssi3d').addEventListener('click', () => {
+                const v = id => Math.max(0, Math.min(12, Math.round(Number(document.getElementById(id).value) || 0)));
+                creaGrigliaAssi3d(v('numGrigliaNS3d'), v('numGrigliaEO3d'));
+            });
+            document.getElementById('presetGriglia3d').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-griglia]');
+                if (!b) return;
+                const [ns, eo] = b.dataset.griglia.split('x').map(Number);
+                document.getElementById('numGrigliaNS3d').value = ns;
+                document.getElementById('numGrigliaEO3d').value = eo;
+                creaGrigliaAssi3d(ns, eo);
+            });
             document.getElementById('btnCreaGriglia3d').addEventListener('click', () => {
                 const v = id => Number(document.getElementById(id).value);
                 creaGrigliaSezioni3d(v('numGrigliaDir3d') || 0, Math.max(1, v('numGrigliaPasso3d') || 25), Math.max(1, Math.min(26, Math.round(v('numGrigliaN3d') || 1))), document.getElementById('chkGrigliaIncrociata3d').checked);
@@ -282,6 +355,8 @@
                 if (e.target.closest('[data-vedi-sezione]')) {
                     sezioniTracciateStato.vista = sezioniTracciateStato.vista === t.id ? null : t.id;
                     renderElencoSezioni3d();
+                } else if (e.target.closest('[data-taglia-sezione]')) {
+                    tagliaSullaTraccia3d(t);
                 } else if (e.target.closest('[data-pdf-sezione]')) {
                     esportaPdfSezioni([t]);
                 } else if (e.target.closest('[data-elimina-sezione]')) {

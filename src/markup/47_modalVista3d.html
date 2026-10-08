@@ -145,14 +145,30 @@
                             <button type="button" class="pillola" id="btnTracciaSezione3d" aria-pressed="false">Traccia una sezione</button>
                             <span class="t-didascalia">Due clic sulla figura (dall'alto): inizio e fine. Il nome si cambia nell'elenco.</span>
                         </div>
+                        <!-- LA GRIGLIA RAPIDA: linee Nord–Sud ed Est–Ovest a distanze uguali sul modello, da bordo a
+                             bordo, sulla stessa scala del taglio laterale: «Taglia qui» le fa coincidere col taglio. -->
                         <div class="vista3d-taglio-riga vista3d-griglia">
                             <span class="vista3d-taglio-nome">Griglia</span>
-                            <label>Direzione <input type="number" id="numGrigliaDir3d" class="form-control" min="0" max="359" step="5" value="0"> °</label>
-                            <label>Passo <input type="number" id="numGrigliaPasso3d" class="form-control" min="1" step="5" value="25"> m</label>
-                            <label>Linee <input type="number" id="numGrigliaN3d" class="form-control" min="1" max="26" value="3"></label>
-                            <label><input type="checkbox" id="chkGrigliaIncrociata3d"> anche di traverso (1-1', 2-2'…)</label>
-                            <button type="button" class="bt" id="btnCreaGriglia3d">Crea la griglia</button>
+                            <div class="pillole" id="presetGriglia3d" aria-label="Griglie pronte">
+                                <button type="button" class="pillola" data-griglia="1x1">1×1</button>
+                                <button type="button" class="pillola" data-griglia="2x2">2×2</button>
+                                <button type="button" class="pillola" data-griglia="3x3">3×3</button>
+                            </div>
+                            <label>Nord–Sud <input type="number" id="numGrigliaNS3d" class="form-control" min="0" max="12" value="2"> linee</label>
+                            <label>Est–Ovest <input type="number" id="numGrigliaEO3d" class="form-control" min="0" max="12" value="2"> linee</label>
+                            <button type="button" class="bt" id="btnCreaGrigliaAssi3d">Crea la griglia</button>
                         </div>
+                        <p class="t-didascalia">Nord–Sud: A-A', B-B'… da ovest a est (A a sud). Est–Ovest: 1-1', 2-2'… da sud a nord (1 a ovest). Una griglia nuova sostituisce la precedente; «Taglia qui» porta il taglio del modello sulla linea.</p>
+                        <details class="vista3d-griglia-libera">
+                            <summary>Griglia con direzione e passo</summary>
+                            <div class="vista3d-taglio-riga vista3d-griglia">
+                                <label>Direzione <input type="number" id="numGrigliaDir3d" class="form-control" min="0" max="359" step="5" value="0"> °</label>
+                                <label>Passo <input type="number" id="numGrigliaPasso3d" class="form-control" min="1" step="5" value="25"> m</label>
+                                <label>Linee <input type="number" id="numGrigliaN3d" class="form-control" min="1" max="26" value="3"></label>
+                                <label><input type="checkbox" id="chkGrigliaIncrociata3d"> anche di traverso (1-1', 2-2'…)</label>
+                                <button type="button" class="bt" id="btnCreaGriglia3d">Crea la griglia</button>
+                            </div>
+                        </details>
                         <div id="elencoSezioni3d" class="vista3d-sezioni"></div>
                         <div class="vista3d-taglio-riga">
                             <label>Prove entro <input type="number" id="numFasciaSezione3d" class="form-control" min="0" step="5" value="25"> m dalla traccia</label>

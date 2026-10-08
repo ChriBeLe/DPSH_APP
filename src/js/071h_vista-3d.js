@@ -1765,7 +1765,8 @@
                 if (vista3d.taglio.dir) conSolido();
                 renderVista3d();
             });
-            document.getElementById('rngTaglioV3d').addEventListener('input', (e) => { vista3d.taglio.pos = Number(e.target.value) / 100; conSolido(); ridisegna3d(); });
+            // Vicino a una linea della griglia rapida il taglio vi si aggancia (agganciaTaglioAllaGriglia3d).
+            document.getElementById('rngTaglioV3d').addEventListener('input', (e) => { vista3d.taglio.pos = agganciaTaglioAllaGriglia3d(Number(e.target.value) / 100, vista3d.taglio.dir); conSolido(); ridisegna3d(); });
             document.getElementById('rngOmbre3d').addEventListener('input', (e) => {
                 vista3d.ombre = Number(e.target.value) / 100;
                 document.getElementById('lblOmbre3d').textContent = e.target.value + '%';
