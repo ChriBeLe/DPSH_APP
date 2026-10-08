@@ -761,20 +761,39 @@
                 });
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
                 const sfAttr = L.terreno && L.immagine && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
-                if (sfAttr) testo(W - 12, H - (W < 700 ? 46 : 30), sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
-                // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola).
+                if (sfAttr) { if (file) testo(16, H - 14, sfAttr, { size: 10, alone: true, cls: 'vista3d-attribuzione' }); else testo(W - 12, H - (W < 700 ? 46 : 30), sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' }); }
+                // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola). Una rosa vera:
+                // quadrante con le tacche, ago a due colori (rosso verso Nord) e una N grande in punta,
+                // girati come il nord della vista (la direzione Nord sul piano delle prove, proiettata).
                 if (file) {
                     const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
-                    const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
-                    sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
-                    // La metà verso Nord in rosso, come una bussola.
-                    sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50, y2: H - 50, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
-                    sopra.push({ t: 'linea', x1: W - 50, y1: H - 50, x2: W - 50 + ax * 18, y2: H - 50 + ay * 18, stroke: '#dc2626', sw: 3.5, cls: 'vista3d-nord' });
-                    testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 14, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
+                    const lung = Math.hypot(nx - ox, ny - oy);
+                    const ax = lung > 1e-6 ? (nx - ox) / lung : 0, ay = lung > 1e-6 ? (ny - oy) / lung : -1, px = -ay, py = ax;
+                    const R = 42, cx = W - 24 - R - 20, cy = H - 24 - R - 20, fondo = 'var(--bg-card, #fff)';
+                    const pt = (a, b) => [cx + ax * a + px * b, cy + ay * a + py * b];
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: R, fill: fondo, stroke: 'currentColor', so: 0.7, sw: 1.5, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: R - 6, fill: 'none', stroke: 'currentColor', so: 0.25, sw: 1, cls: 'vista3d-nord' });
+                    for (let k = 0; k < 8; k++) {
+                        const ang = k * Math.PI / 4, c = Math.cos(ang), s = Math.sin(ang), dentro = k % 2 ? R - 5 : R - 11;
+                        const [x1, y1] = pt(c * dentro, s * dentro), [x2, y2] = pt(c * R, s * R);
+                        sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: 'currentColor', sw: k % 2 ? 1 : 2, cls: 'vista3d-nord' });
+                    }
+                    const punta = pt(R - 13, 0), coda = pt(-(R - 13), 0), sx = pt(0, 8), dx = pt(0, -8), centro = [cx, cy];
+                    sopra.push({ t: 'poli', p: [punta, sx, centro], fill: '#dc2626', stroke: '#991b1b', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [punta, dx, centro], fill: '#991b1b', stroke: '#991b1b', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [coda, sx, centro], fill: fondo, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [coda, dx, centro], fill: 'currentColor', fo: 0.35, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: 2.5, fill: 'currentColor', cls: 'vista3d-nord' });
+                    const [tx, ty] = pt(R + 15, 0);
+                    testo(tx, ty + 7, 'N', { size: 20, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord' });
                 }
-                const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
-                if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
-                else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
+                // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
+                // scaricato, che va in una tavola.
+                if (!file) {
+                    const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
+                    if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
+                    else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
+                }
                 // L'opacità dei livelli (menu del tasto destro): quella del livello del pezzo per quella
                 // della sua prova, del suo strato e della sua traccia.
                 const O = vista3d.opacita, o1 = k => (k && O[k] !== undefined ? O[k] : 1);
@@ -798,7 +817,7 @@
                     const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
                     if (f.t === 'poli') return `<polygon points="${f.p.map(p => n(p[0]) + ',' + n(p[1])).join(' ')}" fill="${f.fill}" fill-opacity="${f.fo ?? 1}" stroke="${f.stroke || 'none'}" stroke-width="${f.sw || 0}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</polygon>`;
                     if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</line>`;
-                    if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"` : ''}${cls}/>`;
+                    if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"${f.sw ? ` stroke-width="${f.sw}"` : ''}` : ''}${cls}/>`;
                     // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
                     const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
                     const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
@@ -857,7 +876,7 @@
                     } else if (f.t === 'cerchio') {
                         ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
                         if (f.fill !== 'none') { ctx.globalAlpha = op; ctx.fillStyle = col(f.fill); ctx.fill(); }
-                        if (f.stroke) { ctx.globalAlpha = (f.so ?? 1) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = 1; ctx.stroke(); }
+                        if (f.stroke) { ctx.globalAlpha = (f.so ?? 1) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw || 1; ctx.stroke(); }
                     } else {
                         ctx.globalAlpha = op; ctx.font = `${f.bold ? '700 ' : ''}${f.size}px ${mono}`;
                         ctx.textAlign = f.anchor === 'middle' ? 'center' : f.anchor === 'end' ? 'right' : 'left';
@@ -1799,10 +1818,18 @@
                 apriVista3d(areaMappa.modo);
             }));
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
-            document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
+            // I colori del disegno scaricato: lo sfondo lo sceglie chi scarica, chiaro o scuro.
+            const SFONDI_SVG_3D = { chiaro: { fondo: '#ffffff', testo: '#1f2937' }, scuro: { fondo: '#0f172a', testo: '#e5e7eb' } };
+            function svgVista3dDaScaricare(sfondo) {
+                const c = SFONDI_SVG_3D[sfondo] || SFONDI_SVG_3D.chiaro;
+                return svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H)).replace(/var\(--bg-card, #fff\)/g, c.fondo).replace(/currentColor/g, c.testo).replace(/var\(--font-mono\), monospace/g, 'monospace');
+            }
+            document.getElementById('btnScaricaVista3d').addEventListener('click', async () => {
                 if (!ultimaScena3d) return;
-                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
-                scaricaBlobFile(new Blob([testo], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}.svg`);
+                const scelta = await appDialog('Il disegno lo vuoi su sfondo chiaro o scuro?', { confirm: true, title: 'Scarica la vista 3D (SVG)', icona: 'download', okLabel: 'Sfondo chiaro', extraLabel: 'Sfondo scuro', cancelLabel: 'Annulla' });
+                if (scelta !== true && scelta !== 'extra') return;
+                const sfondo = scelta === 'extra' ? 'scuro' : 'chiaro';
+                scaricaBlobFile(new Blob([svgVista3dDaScaricare(sfondo)], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}${sfondo === 'scuro' ? '_scuro' : ''}.svg`);
             });
 
             /** Il modello in OBJ (+ MTL) dentro uno ZIP: metri veri, senza esagerazione, asse Y in alto
