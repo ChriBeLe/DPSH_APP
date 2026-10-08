@@ -34,6 +34,7 @@
                     stileTesto: templateEditorState.stileTesto,
                     footerShowPageNumber: templateEditorState.footerShowPageNumber,
                     headerEnabled: templateEditorState.headerEnabled,
+                    headerTutte: !!templateEditorState.headerTutte,
                     footerEnabled: templateEditorState.footerEnabled
                 });
             }

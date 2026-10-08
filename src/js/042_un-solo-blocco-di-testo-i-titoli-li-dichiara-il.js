@@ -453,6 +453,8 @@
                 // non hanno questi campi, "!!undefined" è false, coerente col nuovo default.
                 const headerEnabled = !!tpl.headerEnabled;
                 const footerEnabled = !!tpl.footerEnabled;
+                // «Usa per tutte le pagine» (vedi allineaIntestazioniEditor): spenta di base.
+                const headerTutte = !!tpl.headerTutte;
 
                 // I vecchi blocchi 'titolo' diventano blocchi di testo con dentro un'intestazione
                 // vera. Si converte all'apertura, come gia' fatto per le note e per il modello
@@ -461,7 +463,7 @@
                 const titoliConvertiti = convertiTitoliDelTemplate(pages);
                 if (titoliConvertiti > 0) console.info('Template: convertiti ' + titoliConvertiti + ' blocchi Titolo in blocchi Testo.');
                 const stileTesto = stileTestoDelTemplate(tpl);
-                templateEditorState = { templateId, pages, margins, stileTesto, footerShowPageNumber, headerEnabled, footerEnabled, activePageIdx: 0, ctx: null, manualZoom: null, pagesStripExpanded: true, undoStack: [], redoStack: [], redoStackScartato: [], previewMode: false, selectedBlockId: null, justSelectedAnimKey: null, pageSelectionMode: false, selectedPageIndices: [], gridGuidesVisible: false, pageHandlesVisible: false, previewProjectId: state.currentProjectId || null, previewSurveyId: null, flowSyncNecessario: true, avvisiOverflowPerBlocco: {}, verificaPagineReali: {} };
+                templateEditorState = { templateId, pages, margins, stileTesto, footerShowPageNumber, headerEnabled, headerTutte, footerEnabled, activePageIdx: 0, ctx: null, manualZoom: null, pagesStripExpanded: true, undoStack: [], redoStack: [], redoStackScartato: [], previewMode: false, selectedBlockId: null, justSelectedAnimKey: null, pageSelectionMode: false, selectedPageIndices: [], gridGuidesVisible: false, pageHandlesVisible: false, previewProjectId: state.currentProjectId || null, previewSurveyId: null, flowSyncNecessario: true, avvisiOverflowPerBlocco: {}, verificaPagineReali: {} };
                 // Istantanea di riferimento per capire, alla chiusura, se ci sono modifiche non
                 // salvate (vedi templateEditorHasUnsavedChanges/richiediChiusuraTemplateEditor):
                 // stesso identico contenuto che salvaTemplateEditor scriverebbe sul template.
@@ -576,6 +578,7 @@
                 tpl.footerShowPageNumber = !!templateEditorState.footerShowPageNumber;
                     tpl.stileTesto = Object.assign(stileTestoDiDefault(), templateEditorState.stileTesto || {});
                 tpl.headerEnabled = !!templateEditorState.headerEnabled;
+                tpl.headerTutte = !!templateEditorState.headerTutte;
                 tpl.footerEnabled = !!templateEditorState.footerEnabled;
                 tpl.updatedAt = Date.now();
                 saveState();
@@ -614,6 +617,7 @@
                     margins: marginiPuliti,
                     footerShowPageNumber: !!templateEditorState.footerShowPageNumber,
                     headerEnabled: !!templateEditorState.headerEnabled,
+                    headerTutte: !!templateEditorState.headerTutte,
                     footerEnabled: !!templateEditorState.footerEnabled,
                     createdAt: ora,
                     updatedAt: ora
@@ -1072,6 +1076,7 @@
                 salvaUndoSnapshotEditor();
                 if (side === 'header') {
                     if (page.header) page.header.heightMm = null;
+                    allineaIntestazioniEditor(page);
                 } else {
                     templateEditorState.margins = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                     templateEditorState.margins[side] = marginiPaginaDiDefault()[side];
@@ -1169,6 +1174,7 @@
                         const page = templateEditorState.pages[templateEditorState.activePageIdx];
                         if (side === 'header') {
                             if (page.header) page.header.heightMm = st.valoreCorrente;
+                            allineaIntestazioniEditor(page);
                         } else {
                             templateEditorState.margins = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                             templateEditorState.margins[side] = st.valoreCorrente;
@@ -1233,6 +1239,20 @@
                     renderTemplateEditorCanvas();
                 });
             }
+            // «Usa per tutte le pagine»: accendendola, l'intestazione della pagina aperta va su
+            // tutte (si annulla con Annulla); spegnendola ogni pagina tiene la sua copia.
+            const chkHeaderTuttePagine = document.getElementById('chkHeaderTuttePagine');
+            if (chkHeaderTuttePagine) {
+                chkHeaderTuttePagine.addEventListener('change', (e) => {
+                    templateEditorState.headerTutte = e.target.checked;
+                    if (e.target.checked) {
+                        salvaUndoSnapshotEditor();
+                        allineaIntestazioniEditor(templateEditorState.pages[templateEditorState.activePageIdx]);
+                    }
+                    renderTemplateEditorPageControls();
+                    renderTemplateEditorCanvas();
+                });
+            }
             const inputHeaderText = document.getElementById('inputHeaderText');
             if (inputHeaderText) {
                 inputHeaderText.addEventListener('input', (e) => {
@@ -1240,6 +1260,7 @@
                     if (!page) return;
                     if (!page.header) page.header = { imageDataUrl: null, text: '' };
                     page.header.text = e.target.value;
+                    allineaIntestazioniEditor(page);
                     renderTemplateEditorCanvas();
                 });
             }
@@ -1257,6 +1278,7 @@
                         salvaUndoSnapshotEditor();
                         if (!page.header) page.header = { imageDataUrl: null, text: '' };
                         page.header.imageDataUrl = reader.result;
+                        allineaIntestazioniEditor(page);
                         // Caricare un'immagine accende l'intestazione per l'intero template, non
                         // solo per questa pagina (stesso ragionamento del checkbox qui sopra) — utile
                         // di suo, chi carica un logo si aspetta di vederlo comparire subito.
@@ -1275,6 +1297,7 @@
                     if (!page || !page.header) return;
                     salvaUndoSnapshotEditor();
                     page.header.imageDataUrl = null;
+                    allineaIntestazioniEditor(page);
                     renderTemplateEditorPageControls();
                     renderTemplateEditorCanvas();
                 });
