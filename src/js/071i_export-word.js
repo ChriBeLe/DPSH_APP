@@ -698,16 +698,29 @@
              * ruba spazio al corpo del foglio, che resta impaginato com'è. */
             function piedeWord(ctx, numero) {
                 const rs = numero.closest('.dpsh-sheet').getBoundingClientRect(), rn = rettangoloContenuto(ctx, numero);
+                // Con l'indice davanti la numerazione parte dopo (foglioWord: l'indice non ha piè e la
+                // prima pagina dopo riparte da 1), quindi il totale non è quello di Word (NUMPAGES
+                // conterebbe anche l'indice): si scrive quello del PDF, che conta solo le pagine numerate.
+                const conIndice = !!numero.ownerDocument.querySelector('.dpsh-sheet[data-sommario]');
+                const totale = (/di\s+(\d+)/.exec(numero.textContent || '') || [])[1];
                 const rPr = proprietaRunWord(ctx, numero, { paragrafo: numero }).xml;
                 const t = (s) => `<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${s}</w:t></w:r>`;
                 const h = Math.max(20, tw(rn.h));
                 return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`
                     + `<w:p><w:pPr><w:framePr w:w="11906" w:h="${h}" w:hRule="exact" w:hAnchor="page" w:vAnchor="page" w:x="0" w:y="${tw(rn.y - rs.top)}"/>`
                     + `<w:spacing w:before="0" w:after="0" w:line="${h}" w:lineRule="exact"/><w:jc w:val="center"/></w:pPr>`
-                    + `${t('Pagina ')}${campoWord(' PAGE ', t('1'), rPr)}${t(' di ')}${campoWord(' NUMPAGES ', t('1'), rPr)}</w:p>`
+                    + `${t('Pagina ')}${campoWord(' PAGE ', t('1'), rPr)}${t(' di ')}${conIndice && totale ? t(totale) : campoWord(' NUMPAGES ', t('1'), rPr)}</w:p>`
                     + `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr></w:p></w:ftr>`;
             }
-            const piedeInSezione = (ctx) => ctx.piede ? '<w:footerReference w:type="default" r:id="rIdPiede"/>' : '';
+            const piedeInSezione = (ctx, foglio) => ctx.piede && !(foglio && foglio.hasAttribute('data-sommario')) ? '<w:footerReference w:type="default" r:id="rIdPiede"/>' : '';
+            /** La prima pagina dopo l'indice riparte da 1, come nel PDF (numeraPagineDocumento).
+             * L'indice è in testa: le sue sezioni non hanno piè di pagina, e Word non ne eredita
+             * nessuno perché nessuna sezione prima ne ha uno. */
+            function numerazioneInSezione(ctx, foglio) {
+                if (!ctx.piede || !foglio || foglio.hasAttribute('data-sommario') || ctx.numerazioneIniziata) return '';
+                ctx.numerazioneIniziata = true;
+                return '<w:pgNumType w:start="1"/>';
+            }
 
             /** Un foglio del report: una sezione di Word con gli stessi margini. */
             async function foglioWord(ctx, foglio) {
@@ -729,9 +742,9 @@
                 }
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
-                const sezione = `<w:sectPr>${piedeInSezione(ctx)}<w:pgSz w:w="11906" w:h="16838"/>`
+                const sezione = `<w:sectPr>${piedeInSezione(ctx, foglio)}<w:pgSz w:w="11906" w:h="16838"/>`
                     + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), 280)}" w:left="${tw(ri.left - rf.left)}" w:header="0" w:footer="0" w:gutter="0"/>`
-                    + `<w:cols w:space="0"/></w:sectPr>`;
+                    + `${numerazioneInSezione(ctx, foglio)}<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
 

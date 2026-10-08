@@ -423,11 +423,15 @@
                 return r.innerHTML;
             }
 
+            // I numeri partono DOPO L'INDICE: i fogli dell'indice ([data-sommario]) non hanno
+            // numero e non contano nel totale; la prima pagina dopo l'indice e' la 1. Le pagine
+            // scritte nell'indice contano allo stesso modo (raccogliVociIndice con scarto 0), e il
+            // Word fa lo stesso (piedeWord, foglioWord).
             function numeraPagineDocumento(html) {
                 if (!html) return html;
                 const doc = new DOMParser().parseFromString('<div id="r">' + html + '</div>', 'text/html');
                 const r = doc.getElementById('r');
-                const fogli = Array.from(r.querySelectorAll('.dpsh-sheet'));
+                const fogli = Array.from(r.querySelectorAll('.dpsh-sheet')).filter(f => !f.hasAttribute('data-sommario'));
                 if (fogli.length === 0) return html;
                 fogli.forEach((foglio, i) => {
                     const dentro = foglio.querySelector('.dpsh-sheet-inner') || foglio;
@@ -515,8 +519,9 @@
                     });
                 }
 
-                // Pagina indice: se inclusa è sempre la 1 del documento, quindi la prima prova parte
-                // da pagina 2 (altrimenti da pagina 1). id passato a ogni riga (vedi
+                // Pagina indice: se inclusa sta davanti a tutto ma NON si conta: la numerazione
+                // parte dopo l'indice, quindi la prima prova è a pagina 1 in ogni caso (vedi
+                // numeraPagineDocumento). id passato a ogni riga (vedi
                 // buildIndiceReportCompletoHtml): serve a costruire il link cliccabile verso
                 // l'ancora <a id="prova-report-{id}"> messa a inizio prova da buildSurveyReportHtml.
                 // L'INDICE SI COSTRUISCE DAL DOCUMENTO GIA' ASSEMBLATO, non da un elenco tenuto
@@ -525,7 +530,7 @@
                 // risultato e' un indice che prima o poi mente.
                 let corpoHtml = sezioni.map(s => s.html).join('');
                 let vociIndice = [];
-                if (includiIndice) ({ voci: vociIndice, html: corpoHtml } = raccogliVociIndice(corpoHtml, sezioni, 1));
+                if (includiIndice) ({ voci: vociIndice, html: corpoHtml } = raccogliVociIndice(corpoHtml, sezioni, 0));
                 // Le figure si numerano PRIMA dell'indice: cosi' un titolo dell'indice puo'
                 // anche essere una figura, e comunque i riferimenti nel testo sono gia' risolti
                 // quando il documento viene consegnato al resto della catena.

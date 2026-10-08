@@ -70,8 +70,11 @@ const $ = (app, id) => app.d.getElementById(id);
     // La pagina indice com'è nel documento di stampa, con due voci (un titolo e un sottotitolo).
     const proj = app.E(`state.projects[${JSON.stringify(pid)}]`);
     const indiceHtml = app.E('buildIndiceReportCompletoHtml')(proj, [{ etichetta: 'Introduzione', livello: 1, id: 'a', pagina: 2 }, { etichetta: 'Dati della prova', livello: 2, id: 'b', pagina: 3 }], null);
-    const box = app.d.createElement('div'); box.innerHTML = app.E('numeraPagineDocumento')(indiceHtml); app.d.body.appendChild(box);
+    const corpoProva = '<div class="dpsh-sheet"><div class="dpsh-sheet-inner"><p>prova</p></div></div>';
+    const box = app.d.createElement('div'); box.innerHTML = app.E('numeraPagineDocumento')(indiceHtml + corpoProva + corpoProva); app.d.body.appendChild(box);
     const foglio = box.querySelector('.dpsh-sheet');
+    t('i numeri partono dopo l\'indice: l\'indice non è numerato, la pagina dopo è «Pagina 1 di 2»', !foglio.querySelector('[data-numero-pagina]')
+      && [...box.querySelectorAll('[data-numero-pagina]')].map(n => n.textContent).join('|') === 'Pagina 1 di 2|Pagina 2 di 2');
     t('la pagina indice dice al Word che è un indice: voci, livelli, testo e pagina segnati', foglio.hasAttribute('data-sommario')
       && foglio.querySelectorAll('a[data-voce-indice][data-livello]').length === 2 && foglio.querySelectorAll('[data-testo-voce]').length === 2 && foglio.querySelectorAll('[data-pagina-voce]').length === 2);
     const ctx = app.E('nuovoContestoWord')(app.d, {});
@@ -85,9 +88,19 @@ const $ = (app, id) => app.d.getElementById(id);
     t('ogni voce è cliccabile verso il segnalibro del suo titolo', /<w:hyperlink w:anchor="_TocDpsh0"[^>]*>.*Introduzione/.test(som) && /<w:hyperlink w:anchor="_TocDpsh1"/.test(som));
     t('col numero di pagina in un campo PAGEREF (già calcolato: 2 e 3)', /PAGEREF _TocDpsh0 \\h [\s\S]*?separate[\s\S]*?<w:t[^>]*>2<\/w:t>/.test(som) && /PAGEREF _TocDpsh1 \\h /.test(som));
     t('l\'aspetto sta negli stili «Sommario 1/2» di Word', /w:styleId="TOC1"><w:name w:val="toc 1"\/>/.test(ctx.stiliSommario) && /w:styleId="TOC2"/.test(ctx.stiliSommario) && /<w:pStyle w:val="TOC2"\/>/.test(som));
-    const piede = app.E('piedeWord')(ctx, foglio.querySelector('[data-numero-pagina]'));
-    t('il numero di pagina è il piè di pagina di Word: «Pagina {PAGE} di {NUMPAGES}»', /Pagina [\s\S]*> PAGE <[\s\S]* di [\s\S]*> NUMPAGES </.test(piede.replace(/<w:t xml:space="preserve">/g, '>')) && /<w:framePr /.test(piede));
+    const piede = app.E('piedeWord')(ctx, box.querySelector('[data-numero-pagina]'));
+    t('il numero di pagina è il piè di pagina di Word: «Pagina {PAGE} di 2» (il totale del PDF, senza l\'indice)', /Pagina [\s\S]*> PAGE <[\s\S]* di [\s\S]*>2</.test(piede.replace(/<w:t xml:space="preserve">/g, '>')) && !/NUMPAGES/.test(piede) && /<w:framePr /.test(piede));
+    ctx.piede = piede;
+    const [fIndice, fProva1, fProva2] = box.querySelectorAll('.dpsh-sheet');
+    const sez = f => app.E('piedeInSezione')(ctx, f) + app.E('numerazioneInSezione')(ctx, f);
+    const sIndice = sez(fIndice), sProva1 = sez(fProva1), sProva2 = sez(fProva2);
+    t('nel Word l\'indice non ha piè di pagina, la prima pagina dopo riparte da 1, le altre seguono', sIndice === ''
+      && /footerReference/.test(sProva1) && /<w:pgNumType w:start="1"\/>/.test(sProva1) && /footerReference/.test(sProva2) && !/pgNumType/.test(sProva2));
+    ctx.piede = null; ctx.numerazioneIniziata = false;
     box.remove();
+    const senzaIndice = app.d.createElement('div'); senzaIndice.innerHTML = app.E('numeraPagineDocumento')(corpoProva); app.d.body.appendChild(senzaIndice);
+    t('senza indice il totale resta il campo NUMPAGES di Word', /NUMPAGES/.test(app.E('piedeWord')(ctx, senzaIndice.querySelector('[data-numero-pagina]'))));
+    senzaIndice.remove();
     const conPiede = await app.E('readZipStoreOnly')(app.E('pacchettoDocxWord')(xml, '<w:sectPr><w:footerReference w:type="default" r:id="rIdPiede"/><w:pgSz w:w="11906" w:h="16838"/></w:sectPr>', [], { piede, stiliSommario: ctx.stiliSommario }));
     const tst = (n) => new TextDecoder().decode(conPiede.find(v => v.name === n).bytes);
     t('nel pacchetto: il piè di pagina, collegato e dichiarato, e gli stili del sommario', conPiede.some(v => v.name === 'word/footer1.xml')

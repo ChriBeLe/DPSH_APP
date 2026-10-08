@@ -60,6 +60,13 @@ const spunta = (app, el, v) => { el.checked = v; el.dispatchEvent(new app.w.Even
   await attesa(30);
   t('si salva col template, e le pagine salvate hanno tutte la stessa intestazione', app.E(`state.reportTemplates.tplIntest.headerTutte === true && state.reportTemplates.tplIntest.pages.every(p => p.header.text === 'Studio Rossi')`));
 
+  // Nel documento di stampa (lo stesso da cui nascono PDF e Word) ogni pagina porta l'intestazione,
+  // dentro il foglio che il Word converte (immagine come immagine, testo come testo di Word).
+  const fogli = app.E(`state.reportTemplates.tplIntest.pages.map(p => buildPaginaHeaderFooterHtml(p, 0, 0, '<p>corpo</p>', false, true, false))`);
+  t('nel documento di stampa (PDF e Word) l\'intestazione è su ogni pagina', fogli.length === 4 && fogli.every(h => /data-blocco="intestazione"[\s\S]*Studio Rossi/.test(h)));
+  t('(e il Word la legge: è dentro il foglio, non un\'aggiunta del solo PDF)', /if \(n\.hasAttribute\('data-numero-pagina'\)\) continue;/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8'))
+    && !/intestazione/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
+
   app.E(`apriTemplateEditor('tplIntest')`);
   await attesa(30);
   t('riaprendo il template la spunta è accesa', $(app, 'chkHeaderTuttePagine').checked);
