@@ -342,16 +342,18 @@
                 // (templateEditorState.headerEnabled, vedi apriTemplateEditor) — richiesto
                 // esplicitamente, "come per il numero pagine, questi devono essere globali per
                 // tutte le pagine". Il contenuto (immagine/testo/altezza) resta per-pagina.
-                if (templateEditorState.headerEnabled && page.header) {
-                    // Altezza libera (page.header.heightMm, regolabile con la maniglia in basso
-                    // sull'intestazione — vedi renderManigliePaginaEditor): se impostata, il riquadro
-                    // ha un'altezza FISSA e l'immagine si adatta dentro (contain); altrimenti resta
-                    // come sempre alta quanto il contenuto, col vecchio limite di 28mm sull'immagine.
-                    const hMm = page.header.heightMm;
-                    html += `<div id="templateEditorHeaderZone" class="tpl-editor-header-zone" style="position:relative; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #cbd5e1; ${hMm ? `height:${hMm}mm; overflow:hidden; display:flex; flex-direction:column; justify-content:center;` : ''}">
-                        ${page.header.imageDataUrl ? `<img src="${page.header.imageDataUrl}" style="max-width:100%; ${hMm ? 'max-height:100%; object-fit:contain;' : 'max-height:28mm;'} display:block; margin:0 auto;">` : ''}
-                        ${page.header.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:4px; flex-shrink:0;">${page.header.text}</div>` : ''}
-                    </div>`;
+                // L'intestazione non sta più nel contenuto: va nella fascia del margine superiore del
+                // foglio, come nell'export (htmlIntestazioneNelMargine, margineConIntestazione). Il
+                // riquadro sta nel FOGLIO (che ha i margini come padding), non nella tela.
+                {
+                    const foglioEditor = document.getElementById('templateEditorPageFrame');
+                    const vecchia = document.getElementById('templateEditorHeaderZone');
+                    if (vecchia) vecchia.remove();
+                    if (foglioEditor && templateEditorState.headerEnabled && page.header) {
+                        const mrgH = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                        foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true }));
+                        document.getElementById('templateEditorHeaderZone').style.outline = '1px dashed #cbd5e1';
+                    }
                 }
 
                 // Spaziatura verticale distribuita (richiesta esplicitamente, "SI ASSOLUTAMENTE DA
@@ -497,7 +499,7 @@
                 // renderManigliePaginaEditor): applicati qui al riquadro invece che fissi in CSS,
                 // così il resto del canvas (area stampabile, guide, riflusso automatico) li segue
                 // automaticamente ad ogni render senza doverli ricalcolare altrove.
-                const mrg = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                const mrg = margineConIntestazione(templateEditorState.margins, page.header, templateEditorState.headerEnabled);
                 const frame = document.getElementById('templateEditorPageFrame');
                 if (frame) frame.style.padding = `${mrg.top}mm ${mrg.right}mm ${mrg.bottom}mm ${mrg.left}mm`;
 
@@ -519,7 +521,8 @@
                 // restare un cambiamento isolato SOLO all'intestazione (bug segnalato). Senza
                 // un'altezza fissa (intestazione ad altezza naturale, comportamento storico) non c'è
                 // nulla da sottrarre: la sua altezza reale non è nota prima del layout.
-                const headerHeightMm = (templateEditorState.headerEnabled && page.header && page.header.heightMm) ? page.header.heightMm : 0;
+                // Ora l'intestazione sta nel margine (mrg qui sopra ne tiene già conto): niente da togliere.
+                const headerHeightMm = 0;
                 // Fase A del piano di unificazione: area stampabile dalla fonte unica
                 // (calcolaBudgetPaginaMm), non più ricalcolata qui a mano.
                 canvas.style.minHeight = `calc(${calcolaBudgetPaginaMm(mrg, false).areaStampabileMm}mm - ${headerHeightMm}mm)`;

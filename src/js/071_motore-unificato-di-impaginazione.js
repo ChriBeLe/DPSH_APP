@@ -142,7 +142,12 @@
                 // non possono più disallinearsi come successo finora (bug storico: "alcune categorie
                 // di tabelle sono state escluse... si trovavano molto in prossimità dei margini ma
                 // comunque all'interno della grandezza dell'A4").
-                const { riservaFooterMm, areaStampabileMm, limiteImpaginazioneMm: maxAltezzaPaginaMm } = calcolaBudgetPaginaMm(mrg, footerEnabled);
+                // L'intestazione sta nel margine superiore; se è più alta del margine, il contenuto
+                // parte più in basso e qui lo spazio si riduce di conseguenza (margineConIntestazione).
+                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled);
+                const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '';
+                const stileSopra = mrgFoglio.top !== mrg.top ? ` padding-top:${mrgFoglio.top}mm;` : '';
+                const { riservaFooterMm, areaStampabileMm, limiteImpaginazioneMm: maxAltezzaPaginaMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled);
                 const pagineContenuto = impaginaBlocchiSuPagineFisiche(atomi, maxAltezzaPaginaMm, indiciForzati);
                 const maxHeightMm = areaStampabileMm.toFixed(2);
                 const numPagineFisiche = pagineContenuto.length;
@@ -176,7 +181,7 @@
                     // di pagina, fuori dal flusso, si disegna senza che il contenuto ci finisca
                     // sopra — e "bottom:0" del piè di pagina ora si appoggia al bordo interno del
                     // margine inferiore di QUESTO foglio, mai più al bordo di un blocco cresciuto.
-                    return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);"><div class="dpsh-sheet-inner" style="padding-bottom:${riservaFooterMm}mm;">${corpo}</div></div>`;
+                    return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${riservaFooterMm}mm;">${corpo}</div></div>`;
                 });
                 return { pagine, pageCount: pagine.length };
             }

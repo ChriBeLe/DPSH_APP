@@ -919,6 +919,38 @@
              * totalPages/placeholderNumerazione restano parametri della funzione (e dei suoi
              * chiamanti) solo per non dover toccare tutte le firme a cascata: non producono più
              * nessun testo, sono vestigiali. */
+            // L'INTESTAZIONE STA NEL MARGINE SUPERIORE, COME IN WORD. Prima era il primo pezzo del
+            // contenuto: rubava spazio alle tabelle senza che l'impaginazione lo sapesse, e il fondo
+            // del foglio le tagliava. Ora vive nella fascia sopra il contenuto (il margine superiore):
+            // se ci sta, il contenuto ha tutto il suo spazio; se le si è data un'altezza (maniglia,
+            // header.heightMm) più grande del margine, la fascia si allarga e il contenuto parte più
+            // in basso — e l'impaginazione lo sa (margineConIntestazione), quindi niente tagli.
+            // Una sola regola per export, miniature, editor e controlli di impaginazione.
+            const INTESTAZIONE_RESPIRO_MM = 5; // 3 mm sopra, 2 mm sotto l'intestazione
+
+            /** I margini del foglio con la fascia dell'intestazione: sopra vale il più grande tra il
+             * margine e l'altezza scelta per l'intestazione (più il respiro). */
+            function margineConIntestazione(margins, header, headerEnabled) {
+                const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
+                const hMm = headerEnabled && header && header.heightMm;
+                if (hMm) mrg.top = Math.max(mrg.top, hMm + INTESTAZIONE_RESPIRO_MM);
+                return mrg;
+            }
+
+            /** L'intestazione disegnata nella fascia del margine superiore: un riquadro assoluto dentro
+             * il foglio (che è position:relative), largo quanto il contenuto, alto quanto la fascia.
+             * L'immagine si adatta dentro, il testo sotto. classeExtra/idExtra servono all'editor. */
+            function htmlIntestazioneNelMargine(header, margins, extra) {
+                const hd = header || {};
+                if (!hd.imageDataUrl && !hd.text && !(extra && extra.anche_vuota)) return '';
+                const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
+                const fascia = hd.heightMm ? hd.heightMm + INTESTAZIONE_RESPIRO_MM : Math.max(mrg.top, INTESTAZIONE_RESPIRO_MM + 2);
+                return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:3mm 0 2mm; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+                        ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; display:block;"/>` : ''}
+                        ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
+                    </div>`;
+            }
+
             function buildPaginaHeaderFooterHtml(pageDef, pageIndex, totalPages, innerHtml, placeholderNumerazione, headerEnabled, footerEnabled) {
                 const hd = pageDef.header || {};
                 const ft = pageDef.footer || {};
@@ -938,12 +970,10 @@
                 // mi continua a sminchiare tutto", stesso identico ragionamento di
                 // templateEditorState.footerShowPageNumber). Il contenuto (immagine/testo) resta
                 // per-pagina in hd/ft qui sopra.
-                const headerHtml = headerEnabled ? `
-                    <div data-blocco="intestazione" style="margin-bottom:8px; ${hHMm ? `height:${hHMm}mm; overflow:hidden; display:flex; flex-direction:column; justify-content:center;` : ''}">
-                        ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; ${hHMm ? 'max-height:100%; object-fit:contain;' : 'max-height:28mm;'} display:block; margin:0 auto;"/>` : ''}
-                        ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:4px; flex-shrink:0;">${hd.text}</div>` : ''}
-                    </div>
-                ` : '';
+                // L'intestazione non è più qui dentro: la mette nel margine superiore del foglio chi
+                // costruisce il foglio (htmlIntestazioneNelMargine).
+                void hd; void hHMm;
+                const headerHtml = '';
                 // position:absolute; bottom:0 (non più margin-top:auto dentro un flex a colonna)
                 // inchioda il piè di pagina al fondo FISICO del foglio — richiesto esplicitamente
                 // ("il numero delle pagine deve trovarsi sempre in fondo al foglio"). Bug segnalato
@@ -1153,7 +1183,10 @@
                 // Fase A del piano di unificazione: stessa fonte unica di
                 // costruisciPagineTemplateUnificato qui sopra, invece di ricalcolare a mano —
                 // coerenza garantita tra miniatura editor ed export vero.
-                const { riservaFooterMm: paddingBottomMm, areaStampabileMm } = calcolaBudgetPaginaMm(mrg, footerEnabled);
+                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled);
+                const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '';
+                const stileSopra = mrgFoglio.top !== mrg.top ? ` padding-top:${mrgFoglio.top}mm;` : '';
+                const { riservaFooterMm: paddingBottomMm, areaStampabileMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled);
                 const maxHeightMm = areaStampabileMm.toFixed(2);
                 const pageLabel = `Prova ${provaNr || '?'} — pagina ${pageIndex}/${totalPages}`;
                 // FOGLIO RIGIDO: stessa identica struttura di costruisciPagineTemplateUnificato
@@ -1162,7 +1195,7 @@
                 // esattamente la stessa geometria dell'export, altrimenti la miniatura tornerebbe a
                 // mentire su come verrà stampata la pagina. Il salto pagina non è più deciso qui:
                 // lo impone la regola CSS .dpsh-sheet:last-child sull'ultimo foglio reale.
-                return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);"><div class="dpsh-sheet-inner" style="padding-bottom:${paddingBottomMm}mm;">${corpo}</div></div>`;
+                return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${paddingBottomMm}mm;">${corpo}</div></div>`;
             }
 
             /** Il template assegnato a una prova: quello scelto esplicitamente sulla prova, altrimenti

@@ -61,11 +61,17 @@ const spunta = (app, el, v) => { el.checked = v; el.dispatchEvent(new app.w.Even
   t('si salva col template, e le pagine salvate hanno tutte la stessa intestazione', app.E(`state.reportTemplates.tplIntest.headerTutte === true && state.reportTemplates.tplIntest.pages.every(p => p.header.text === 'Studio Rossi')`));
 
   // Nel documento di stampa (lo stesso da cui nascono PDF e Word) ogni pagina porta l'intestazione,
-  // dentro il foglio che il Word converte (immagine come immagine, testo come testo di Word).
-  const fogli = app.E(`state.reportTemplates.tplIntest.pages.map(p => buildPaginaHeaderFooterHtml(p, 0, 0, '<p>corpo</p>', false, true, false))`);
+  // NEL MARGINE SUPERIORE del foglio, come in Word: fuori dall'area del contenuto, che così non
+  // perde spazio (prima l'intestazione stava nel contenuto e il fondo del foglio tagliava le tabelle).
+  const fogli = app.E(`state.reportTemplates.tplIntest.pages.map(p => buildPaginaRigheHtml(p, templateEditorState.ctx, 1, 4, true, null, '1', false, true, false))`);
+  const leggi = h => { const d = app.d.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
   t('nel documento di stampa (PDF e Word) l\'intestazione è su ogni pagina', fogli.length === 4 && fogli.every(h => /data-blocco="intestazione"[\s\S]*Studio Rossi/.test(h)));
-  t('(e il Word la legge: è dentro il foglio, non un\'aggiunta del solo PDF)', /if \(n\.hasAttribute\('data-numero-pagina'\)\) continue;/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8'))
-    && !/intestazione/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
+  t('nel margine superiore del foglio, fuori dall\'area del contenuto', fogli.every(h => { const f = leggi(h), i = f.querySelector('[data-blocco="intestazione"]');
+    return i && i.parentElement === f && !i.closest('.dpsh-sheet-inner') && /position:absolute; top:0/.test(i.getAttribute('style')); }));
+  t('alta 22 mm (più del margine di 14): la fascia si allarga e il contenuto parte più in basso', /padding-top:27mm/.test(leggi(fogli[0]).getAttribute('style'))
+    && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, true).top`) === 27 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 6 }, true).top`) === 14 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, false).top`) === 14);
+  t('(senza altezza scelta sta nel margine: il contenuto non perde niente)', !/padding-top/.test(app.E(`buildPaginaRigheHtml(Object.assign({}, state.reportTemplates.tplIntest.pages[0], { header: { text: 'x' } }), templateEditorState.ctx, 1, 1, true, null, '1', false, true, false)`).match(/<div class="dpsh-sheet"[^>]*>/)[0]));
+  t('(e il Word la legge: la pagina di Word comincia dall\'intestazione)', /data-blocco'\) === 'intestazione'/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
 
   app.E(`apriTemplateEditor('tplIntest')`);
   await attesa(30);

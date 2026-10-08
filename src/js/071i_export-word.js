@@ -791,14 +791,22 @@
             /** Un foglio del report: una sezione di Word con gli stessi margini. */
             async function foglioWord(ctx, foglio) {
                 const interno = foglio.querySelector('.dpsh-sheet-inner') || foglio;
-                const rf = foglio.getBoundingClientRect(), ri = interno.getBoundingClientRect();
+                const rf = foglio.getBoundingClientRect();
+                let ri = interno.getBoundingClientRect();
                 ctx.limite = ri.bottom;
+                // L'intestazione sta nel margine superiore del foglio, fuori dall'area del contenuto
+                // (htmlIntestazioneNelMargine): in Word la pagina comincia dove comincia lei, e
+                // il contenuto la segue alla stessa distanza del PDF.
+                const intestazione = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'intestazione' && !nascostoWord(ctx, c));
+                const foglieSopra = intestazione ? raccogliFoglieWord(ctx, intestazione, [], [intestazione]) : [];
+                const topPagina = foglieSopra.length ? Math.min(ri.top, ...foglieSopra.map(f => f.r.y)) : ri.top;
                 let corpo;
                 if (foglio.hasAttribute('data-sommario')) corpo = await sommarioWord(ctx, foglio, ri);
                 else {
-                    const foglie = raccogliFoglieWord(ctx, interno, []);
-                    corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, ri.top)).xml : '';
+                    const foglie = foglieSopra.concat(raccogliFoglieWord(ctx, interno, []));
+                    corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, topPagina)).xml : '';
                 }
+                ri = { top: topPagina, bottom: ri.bottom, left: ri.left, right: ri.right, width: ri.width };
                 // Una prova senza titoli: nell'indice c'è la sua riga («Prova N° 3»). In Word un campo
                 // VOCE DI SOMMARIO (TC), che non si vede, col segnalibro: il Sommario la ritrova.
                 if (foglio.hasAttribute('data-voce-testo')) {
