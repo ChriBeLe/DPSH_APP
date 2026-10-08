@@ -579,8 +579,13 @@
                 salvaUndoSnapshotEditor();
                 // Dalla fine verso l'inizio: eliminare prima un indice più basso sposterebbe tutti
                 // quelli successivi, invalidando gli indici ancora da togliere in questo stesso giro.
+                const unaDiPrima = templateEditorState.pages[0];
                 indici.slice().reverse().forEach(i => templateEditorState.pages.splice(i, 1));
-                if (eliminaTutte) templateEditorState.pages.push(nuovaPaginaVuota());
+                if (eliminaTutte) {
+                    // Con «Usa per tutte le pagine» la pagina che resta tiene l'intestazione.
+                    templateEditorState.pages.push(nuovaPaginaVuota());
+                    allineaIntestazioniEditor(unaDiPrima);
+                }
                 if (templateEditorState.activePageIdx >= templateEditorState.pages.length) {
                     templateEditorState.activePageIdx = templateEditorState.pages.length - 1;
                 }
@@ -802,6 +807,7 @@
             function aggiungiPaginaEditor() {
                 salvaUndoSnapshotEditor();
                 templateEditorState.pages.push(nuovaPaginaVuota());
+                allineaIntestazioniEditor(templateEditorState.pages[0]);
                 templateEditorState.activePageIdx = templateEditorState.pages.length - 1;
                 renderTemplateEditorPagesStrip();
                 renderTemplateEditorPageControls();

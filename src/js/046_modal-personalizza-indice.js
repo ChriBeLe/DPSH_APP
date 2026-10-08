@@ -402,6 +402,7 @@
                     tpl.footerShowPageNumber = !!templateEditorState.footerShowPageNumber;
                     tpl.stileTesto = Object.assign(stileTestoDiDefault(), templateEditorState.stileTesto || {});
                     tpl.headerEnabled = !!templateEditorState.headerEnabled;
+                    tpl.headerTutte = !!templateEditorState.headerTutte;
                     tpl.footerEnabled = !!templateEditorState.footerEnabled;
                     saveState();
                     // Aggiorna anche lo snapshot "salvato" dell'editor: se l'utente ci torna dopo

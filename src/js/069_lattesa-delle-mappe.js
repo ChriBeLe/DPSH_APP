@@ -255,7 +255,7 @@
                     sezioni.push({ numero: (survList[i].header && survList[i].header.provaNr) || (i + 1), id: survList[i].id, html: result.html, pageCount: result.pageCount });
                     if (typeof onProgress === 'function') onProgress(i + 1, survList.length);
                 }
-                let paginaCorrente = includiIndice ? 2 : 1;
+                let paginaCorrente = 1; // la numerazione parte dopo l'indice (numeraPagineDocumento)
                 const righeIndice = sezioni.map(s => {
                     const riga = { numero: s.numero, id: s.id, pagina: paginaCorrente };
                     paginaCorrente += s.pageCount;

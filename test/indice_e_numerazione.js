@@ -72,6 +72,10 @@ console.log('--- La numerazione delle pagine ---');
   t('e sono in ordine', numeri[0] === 'Pagina 1 di 5' && numeri[4] === 'Pagina 5 di 5');
   t('il numero sta DENTRO il foglio, in fondo', /dpsh-sheet-inner[^>]*>[\s\S]*?bottom:6mm/.test(numerato));
   t('un documento senza fogli non viene toccato', api.numeraPagineDocumento('<p>ciao</p>') === '<p>ciao</p>');
+  const indice = '<div class="dpsh-sheet" data-sommario="punti"><div class="dpsh-sheet-inner">Indice</div></div>';
+  const conIndice = (api.numeraPagineDocumento(indice + indice + doc5).match(/Pagina (\d+) di (\d+)/g) || []);
+  t('i numeri partono DOPO l indice: i fogli dell indice non sono numerati ne contati', conIndice.length === 5 && conIndice[0] === 'Pagina 1 di 5' && conIndice[4] === 'Pagina 5 di 5'
+    && !/data-sommario="punti"><div class="dpsh-sheet-inner">Indice<div data-numero-pagina/.test(api.numeraPagineDocumento(indice + doc5)));
   t('e nemmeno una stringa vuota', api.numeraPagineDocumento('') === '');
 }
 
@@ -164,7 +168,7 @@ t('e arriva davvero alla costruzione del documento', /numeraPagine: numeraPagine
 t('la numerazione si applica DOPO l indice, sul documento completo',
    src.indexOf('if (opzioni && opzioni.numeraPagine) pagesHtml = numeraPagineDocumento(pagesHtml);')
    > src.indexOf('let pagesHtml = (includiIndice ? buildIndiceReportCompletoHtml'));
-t('l indice si costruisce dal corpo assemblato', /raccogliVociIndice\(corpoHtml, sezioni, 1\)/.test(src));
+t('l indice si costruisce dal corpo assemblato, con le pagine contate dopo l indice', /raccogliVociIndice\(corpoHtml, sezioni, 0\)/.test(src));
 t('i blocchi Titolo si marcano per l indice', /data-titolo-indice="\$\{livelloIndice\}"/.test(src));
 // Il rientro non è più fisso a 6 mm per livello: lo decide il template dell'indice, livello per
 // livello (livelli.h1/h2/h3: rientroMm e peso). La gerarchia disegnata resta la stessa cosa.

@@ -1444,6 +1444,8 @@
                 const headerOn = !!templateEditorState.headerEnabled;
                 if (chkHeader) chkHeader.checked = headerOn;
                 if (headerControls) headerControls.style.display = headerOn ? 'flex' : 'none';
+                const chkTutte = document.getElementById('chkHeaderTuttePagine');
+                if (chkTutte) chkTutte.checked = !!templateEditorState.headerTutte;
 
                 const previewImg = document.getElementById('previewHeaderImage');
                 const btnRemoveImg = document.getElementById('btnRemoveHeaderImage');

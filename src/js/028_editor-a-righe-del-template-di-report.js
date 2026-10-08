@@ -8,6 +8,20 @@
             let editorDragLastPos = null;
             let editorIdCounter = 0;
 
+            // «Usa per tutte le pagine» (templateEditorState.headerTutte, del TEMPLATE): il contenuto
+            // dell'intestazione (immagine, testo, altezza) è lo stesso su ogni pagina. Si tiene
+            // copiandolo in tutte le pagine a ogni modifica, così l'export, che legge
+            // page.header pagina per pagina, non cambia.
+            function copiaIntestazione(h) {
+                return JSON.parse(JSON.stringify(h || { imageDataUrl: null, text: '' }));
+            }
+            /** Con «Usa per tutte le pagine» acceso, l'intestazione di «da» (la pagina appena
+             * modificata, o una di quelle che c'erano) va su tutte le altre, anche quelle nuove. */
+            function allineaIntestazioniEditor(da) {
+                if (!templateEditorState.headerTutte || !da) return;
+                templateEditorState.pages.forEach(p => { if (p !== da) p.header = copiaIntestazione(da.header); });
+            }
+
             function nuovoIdEditor(prefix) {
                 editorIdCounter++;
                 return `${prefix}_${Date.now()}_${editorIdCounter}`;
