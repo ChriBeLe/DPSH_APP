@@ -58,6 +58,33 @@ const $ = (app, id) => app.d.getElementById(id);
   campo.value = "X-X'"; campo.dispatchEvent(new app.w.Event('change', { bubbles: true }));
   t('il nome si cambia e la figura lo scrive', tracce()[0].nome === "X-X'" && [...svg().querySelectorAll('.vista3d-traccia-nome')].some(e => e.textContent === 'X'));
 
+  console.log('--- La griglia rapida, Nord–Sud ed Est–Ovest ---');
+  const prima = tracce().length;
+  const estremi = n => app.E(`estremiTraccia(${JSON.stringify(n)})[0]`);
+  clic(app, app.d.querySelector('#presetGriglia3d [data-griglia="2x2"]'));
+  const griglia = () => tracce().filter(x => x.griglia);
+  t(`«2×2»: due linee Nord–Sud e due Est–Ovest (${griglia().map(x => x.nome + ' ' + x.asse).join(', ')}), le altre tracce restano`, griglia().length === 4
+    && griglia().filter(x => x.asse === 'ns').length === 2 && griglia().filter(x => x.asse === 'eo').length === 2 && tracce().length === prima + 4);
+  const g = app.E(`(() => { const d = datiVista3dCorrenti; return ${P}.sezioniTracciate.filter(x => x.griglia).map(x => { const s = tracciaInScena(d, x); return { asse: x.asse, pos: x.pos, a: s.a, b: s.b }; }); })()`);
+  const ns = g.filter(x => x.asse === 'ns'), eo = g.filter(x => x.asse === 'eo');
+  t('le Nord–Sud vanno da sud a nord a x costante, le Est–Ovest da ovest a est a y costante', ns.every(x => Math.abs(x.a[0] - x.b[0]) < 1e-6 && x.b[1] > x.a[1]) && eo.every(x => Math.abs(x.a[1] - x.b[1]) < 1e-6 && x.b[0] > x.a[0]));
+  t('a distanze uguali sul modello: a 1/3 e 2/3', ns.map(x => +x.pos.toFixed(3)).join() === '0.333,0.667' && Math.abs((ns[1].a[0] - ns[0].a[0]) - (ns[0].a[0] - app.E('Math.min(...contornoPerGriglia3d(datiVista3dCorrenti).map(p => p[0]))'))) < 0.01);
+  t('da bordo a bordo del modello (gli estremi sul contorno)', app.E(`(() => { const c = contornoPerGriglia3d(datiVista3dCorrenti), ys = c.map(p => p[1]); return [Math.min(...ys), Math.max(...ys)]; })()`).every((v, i) => i === 0 ? ns.every(x => x.a[1] >= v - 1e-6) : ns.every(x => x.b[1] <= v + 1e-6)));
+  clic(app, app.d.querySelector('#presetGriglia3d [data-griglia="3x3"]'));
+  const nomiTutti = tracce().map(x => estremi(x.nome));
+  t(`una griglia nuova sostituisce la precedente (3×3: ${griglia().length} linee; nomi ${griglia().map(x => x.nome).join(' ')}), coi nomi liberi`, griglia().length === 6 && tracce().length === prima + 6
+    && new Set(nomiTutti).size === nomiTutti.length && griglia().filter(x => x.asse === 'eo').every(x => /^\d+-\d+'$/.test(x.nome)) && griglia().filter(x => x.asse === 'ns').every(x => /^[A-Z]+-[A-Z]+'$/.test(x.nome)));
+  // «Taglia qui»: il taglio del modello esattamente sulla linea.
+  const riga = app.d.querySelector(`#elencoSezioni3d [data-id="${griglia().find(x => x.asse === 'ns').id}"]`);
+  clic(app, riga.querySelector('[data-taglia-sezione]'));
+  t('«Taglia qui»: il taglio Nord–Sud del corpo solido sulla prima linea (pos 1/4), corpo solido acceso', app.E('vista3d.taglio.dir') === 'ns' && Math.abs(app.E('vista3d.taglio.pos') - 0.25) < 1e-9 && app.E('vista3d.livelli.solido') === true);
+  t('(e il taglio passa proprio sulla linea)', Math.abs(app.E('vista3d.taglio.c') - app.E(`tracciaInScena(datiVista3dCorrenti, ${P}.sezioniTracciate.find(x => x.griglia && x.asse === 'ns')).a[0]`)) < 0.01);
+  const rng = $(app, 'rngTaglioV3d'); rng.value = '52'; rng.dispatchEvent(new app.w.Event('input'));
+  t('il cursore del taglio vicino a una linea vi si aggancia (52% → 50%)', Math.abs(app.E('vista3d.taglio.pos') - 0.5) < 1e-9);
+  rng.value = '40'; rng.dispatchEvent(new app.w.Event('input'));
+  t('(lontano dalle linee resta dov\'è: 40%)', Math.abs(app.E('vista3d.taglio.pos') - 0.4) < 1e-9);
+  app.E(`vista3d.taglio.dir = null; vista3d.livelli.solido = false; ${P}.sezioniTracciate = ${P}.sezioniTracciate.filter(x => !x.griglia); renderVista3d(); renderElencoSezioni3d();`);
+
   console.log('--- La sezione lungo la traccia ---');
   // Una traccia che passa per la prova 1 e la prova 3.
   app.E(`(() => { const S = Object.values(${P}.surveys), p1 = S.find(s => s.header.provaNr == '1').header, p3 = S.find(s => s.header.provaNr == '3').header;

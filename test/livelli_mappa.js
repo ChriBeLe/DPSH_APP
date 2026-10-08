@@ -54,6 +54,12 @@ const $ = (app, id) => app.d.getElementById(id);
   t('«Distanze tra le prove» spento: via i metri, l\'asta delle quote resta coi suoi numeri', conta('.vista3d-distanza') === 0 && conta('line.vista3d-misure') > 0 && conta('text.vista3d-misure') > 0);
   clic(app, riga('[data-livello="distanze"] input'));
   t('(riacceso tornano)', conta('.vista3d-distanza') === 3);
+  // Le colonne delle prove (i pozzi) si spengono da sole: resta il punto di ogni prova, col nome.
+  const col0 = conta('.vista3d-colonna');
+  clic(app, riga('[data-livello="colonne"] input'));
+  t(`«Colonne delle prove» spento: via i pozzi (${col0} pezzi), restano i punti e i nomi delle prove`, col0 > 0 && conta('.vista3d-colonna') === 0 && conta('.vista3d-testa') === 3 && nomi() === 'DPSH 1,DPSH 2,DPSH 3');
+  clic(app, riga('[data-livello="colonne"] input'));
+  t('(riacceso tornano)', conta('.vista3d-colonna') === col0);
   clic(app, riga('[data-livello="falda"] .liv-etichette'));
   t('«T» della Falda: la profondità su ogni colonna', conta('.vista3d-falda-nome') === 3 && /falda 1,50? m/.test(svg().querySelector('.vista3d-falda-nome').textContent));
   clic(app, riga('[data-livello="falda"] .liv-etichette'));

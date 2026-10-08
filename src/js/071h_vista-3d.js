@@ -512,7 +512,7 @@
                 };
                 const poliW = (pw, extra) => {
                     const fill = ombra(extra.fill, pw);
-                    return poli(pw.map(p => P(...p)), { ...extra, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
+                    return poli(pw.map(p => P(...p)), { ...extra, base: extra.fill, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
                 };
                 const so = L.solido ? modelloSolido(d) : null;
                 const tg = vista3d.taglio;
@@ -712,23 +712,36 @@
                     const y = o[1] - 6 + riga * 14;
                     if (scrittaLibera(o[0] + 8, y, scritta.length * 6.7)) testo(o[0] + 8, y, scritta, { alone: true, cls: 'vista3d-giacitura', giacitura: sf.f.nome });
                 });
-                if (L.misure) {
-                    // Asta graduata delle quote, ATTACCATA AL MODELLO: all'angolo del riquadro delle
-                    // prove più vicino a chi guarda, appena fuori. Prima stava all'angolo della scena
-                    // intera (le prove più un margine largo), e con le prove raccolte restava a
-                    // galleggiare lontano dal modello.
-                    const xs = d.prove.length ? d.prove.map(p => p.x) : [-d.lato / 2, d.lato / 2], ys = d.prove.length ? d.prove.map(p => p.y) : [-d.lato / 2, d.lato / 2];
-                    const fuori = Math.max(2, (Math.max(...xs) - Math.min(...xs) + Math.max(...ys) - Math.min(...ys)) * 0.03);
-                    const angoli = [[Math.min(...xs) - fuori, Math.min(...ys) - fuori], [Math.max(...xs) + fuori, Math.min(...ys) - fuori],
-                        [Math.max(...xs) + fuori, Math.max(...ys) + fuori], [Math.min(...xs) - fuori, Math.max(...ys) + fuori]];
-                    const [ax, ay] = angoli.reduce((m, a) => P(a[0], a[1], zRif)[2] < P(m[0], m[1], zRif)[2] ? a : m);
-                    const zBasso = d.zMin - profMax, passo = massimoTondo((d.zMax - zBasso) / 5);
-                    const b0 = P(ax, ay, zBasso), b1 = P(ax, ay, d.zMax);
+                if (L.misure && d.prove.length) {
+                    // ASTA GRADUATA DELLE QUOTE, SUL FIANCO DEL MODELLO: lungo lo spigolo verticale del
+                    // contorno delle prove che sullo schermo sta più a destra, appena fuori, con lo zero
+                    // al piano campagna di quel punto e i numeri verso l'esterno. Prima stava all'angolo
+                    // del rettangolo nord-est delle prove: con le prove su una griglia ruotata
+                    // quell'angolo cadeva nel vuoto, lontano dal modello.
+                    const pt = d.prove.map(p => [p.x, p.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                    const giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+                    const giu = [], su = [];
+                    pt.forEach(q => { while (giu.length >= 2 && giro(giu[giu.length - 2], giu[giu.length - 1], q) <= 0) giu.pop(); giu.push(q); });
+                    pt.slice().reverse().forEach(q => { while (su.length >= 2 && giro(su[su.length - 2], su[su.length - 1], q) <= 0) su.pop(); su.push(q); });
+                    const contorno = pt.length < 3 ? pt : giu.slice(0, -1).concat(su.slice(0, -1));
+                    const mx = d.prove.reduce((a, q) => a + q.x, 0) / d.prove.length, my = d.prove.reduce((a, q) => a + q.y, 0) / d.prove.length;
+                    const v = contorno.reduce((m, q) => P(q[0], q[1], zRif)[0] > P(m[0], m[1], zRif)[0] ? q : m);
+                    const estensione = Math.max(...pt.map(q => Math.hypot(q[0] - mx, q[1] - my)), 5);
+                    const lv = Math.hypot(v[0] - mx, v[1] - my) || 1, fuori = Math.max(1.5, estensione * 0.04);
+                    const ax = v[0] + (v[0] - mx) / lv * fuori, ay = v[1] + (v[1] - my) / lv * fuori;
+                    const vicina = d.prove.reduce((m, q) => Math.hypot(q.x - v[0], q.y - v[1]) < Math.hypot(m.x - v[0], m.y - v[1]) ? q : m);
+                    const zTesta = (d.zSuolo && d.zSuolo(ax, ay)) ?? vicina.z;
+                    const so = L.solido && modelloSolido(d);
+                    const zFondo = so ? zTesta - so.fondo : Math.min(d.zMin - profMax, zTesta - profMax);
+                    const passo = massimoTondo((zTesta - zFondo) / 5);
+                    const b0 = P(ax, ay, zFondo), b1 = P(ax, ay, zTesta);
+                    // I numeri dalla parte esterna: a destra se lo spigolo sta a destra del centro.
+                    const aDestra = b1[0] >= P(mx, my, zRif)[0];
                     sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
-                    for (let z = Math.ceil(zBasso / passo) * passo; z <= d.zMax + 0.001; z += passo) {
+                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) {
                         const t = P(ax, ay, z);
                         sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
-                        if (vista3d.etichette.misure) testo(t[0] - 8, t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: 'end', cls: 'vista3d-misure' });
+                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
                     }
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
@@ -748,20 +761,39 @@
                 });
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
                 const sfAttr = L.terreno && L.immagine && d._sfondo && d._sfondo.uv && sceltaSfondo3d().id ? d._sfondo.attribuzione : '';
-                if (sfAttr) testo(W - 12, H - (W < 700 ? 46 : 30), sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' });
-                // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola).
+                if (sfAttr) { if (file) testo(16, H - 14, sfAttr, { size: 10, alone: true, cls: 'vista3d-attribuzione' }); else testo(W - 12, H - (W < 700 ? 46 : 30), sfAttr, { size: 10, anchor: 'end', alone: true, cls: 'vista3d-attribuzione' }); }
+                // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola). Una rosa vera:
+                // quadrante con le tacche, ago a due colori (rosso verso Nord) e una N grande in punta,
+                // girati come il nord della vista (la direzione Nord sul piano delle prove, proiettata).
                 if (file) {
                     const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
-                    const lung = Math.hypot(nx - ox, ny - oy) || 1, ax = (nx - ox) / lung, ay = (ny - oy) / lung;
-                    sopra.push({ t: 'cerchio', x: W - 50, y: H - 50, r: 24, fill: 'none', stroke: 'currentColor', so: 0.3, cls: 'vista3d-nord' });
-                    // La metà verso Nord in rosso, come una bussola.
-                    sopra.push({ t: 'linea', x1: W - 50 - ax * 16, y1: H - 50 - ay * 16, x2: W - 50, y2: H - 50, stroke: 'currentColor', sw: 2, cls: 'vista3d-nord' });
-                    sopra.push({ t: 'linea', x1: W - 50, y1: H - 50, x2: W - 50 + ax * 18, y2: H - 50 + ay * 18, stroke: '#dc2626', sw: 3.5, cls: 'vista3d-nord' });
-                    testo(W - 50 + ax * 34, H - 50 + ay * 34 + 4, 'N', { size: 14, bold: true, anchor: 'middle', cls: 'vista3d-nord' });
+                    const lung = Math.hypot(nx - ox, ny - oy);
+                    const ax = lung > 1e-6 ? (nx - ox) / lung : 0, ay = lung > 1e-6 ? (ny - oy) / lung : -1, px = -ay, py = ax;
+                    const R = 42, cx = W - 24 - R - 20, cy = H - 24 - R - 20, fondo = 'var(--bg-card, #fff)';
+                    const pt = (a, b) => [cx + ax * a + px * b, cy + ay * a + py * b];
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: R, fill: fondo, stroke: 'currentColor', so: 0.7, sw: 1.5, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: R - 6, fill: 'none', stroke: 'currentColor', so: 0.25, sw: 1, cls: 'vista3d-nord' });
+                    for (let k = 0; k < 8; k++) {
+                        const ang = k * Math.PI / 4, c = Math.cos(ang), s = Math.sin(ang), dentro = k % 2 ? R - 5 : R - 11;
+                        const [x1, y1] = pt(c * dentro, s * dentro), [x2, y2] = pt(c * R, s * R);
+                        sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: 'currentColor', sw: k % 2 ? 1 : 2, cls: 'vista3d-nord' });
+                    }
+                    const punta = pt(R - 13, 0), coda = pt(-(R - 13), 0), sx = pt(0, 8), dx = pt(0, -8), centro = [cx, cy];
+                    sopra.push({ t: 'poli', p: [punta, sx, centro], fill: '#dc2626', stroke: '#991b1b', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [punta, dx, centro], fill: '#991b1b', stroke: '#991b1b', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [coda, sx, centro], fill: fondo, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'poli', p: [coda, dx, centro], fill: 'currentColor', fo: 0.35, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-nord' });
+                    sopra.push({ t: 'cerchio', x: cx, y: cy, r: 2.5, fill: 'currentColor', cls: 'vista3d-nord' });
+                    const [tx, ty] = pt(R + 15, 0);
+                    testo(tx, ty + 7, 'N', { size: 20, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord' });
                 }
-                const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
-                if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
-                else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
+                // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
+                // scaricato, che va in una tavola.
+                if (!file) {
+                    const quote = d.senzaDtm ? 'senza DTM: prove tutte dal piano campagna (quota 0)' : `quote da ${numeroConVirgola(d.zMin, 1)} a ${numeroConVirgola(d.zMax, 1)} m s.l.m.`, esagTesto = `esagerazione verticale ×${ex}${so ? ' · modello solido: strati interpolati tra le prove, grigio = non indagato' : L.giaciture && L.superfici && superfici.length ? ' · giaciture reali' : ''}`;
+                    if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
+                    else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
+                }
                 // L'opacità dei livelli (menu del tasto destro): quella del livello del pezzo per quella
                 // della sua prova, del suo strato e della sua traccia.
                 const O = vista3d.opacita, o1 = k => (k && O[k] !== undefined ? O[k] : 1);
@@ -782,16 +814,92 @@
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
                 const forma = f => {
-                    const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
+                    const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op !== undefined && f.op < 1 ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
                     if (f.t === 'poli') return `<polygon points="${f.p.map(p => n(p[0]) + ',' + n(p[1])).join(' ')}" fill="${f.fill}" fill-opacity="${f.fo ?? 1}" stroke="${f.stroke || 'none'}" stroke-width="${f.sw || 0}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</polygon>`;
                     if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</line>`;
-                    if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"` : ''}${cls}/>`;
+                    if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"${f.sw ? ` stroke-width="${f.sw}"` : ''}` : ''}${cls}/>`;
                     // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
                     const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
                     const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
                     return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
+            }
+
+            /** LA LEGENDA del disegno scaricato: solo quello che si vede in quel momento (un livello
+             * spento, una prova nascosta, uno strato tolto non ci sono), letto dai pezzi della scena.
+             * Gli strati in ordine di profondità, ciascuno col suo colore vero (non quello ombreggiato). */
+            function vociLegenda3d(sc, d) {
+                const visti = sc.tutte.filter(f => (f.op ?? 1) > 0.01), voci = [];
+                const di = cls => visti.filter(f => f.cls === cls);
+                const prove = di('vista3d-testa');
+                if (prove.length) voci.push({ tipo: 'cerchio', fill: prove[0].fill, stroke: prove[0].stroke, testo: prove.length === 1 ? 'Prova DPSH' : `Prove DPSH (${prove.length})` });
+                const facce = di('vista3d-faccia');
+                if (facce.length) voci.push({ tipo: 'riquadro', fill: facce[Math.floor(facce.length / 2)].fill, fo: facce[0].fo, testo: d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)' });
+                // Gli strati: dalle colonne, dal corpo solido, dai pannelli e dalle superfici di tetto.
+                const strati = new Map();
+                visti.forEach(f => {
+                    if (!f.strato || strati.has(f.strato)) return;
+                    if (f.cls === 'vista3d-colonna') strati.set(f.strato, { fill: f.stroke, fo: 1 });
+                    else if (['vista3d-solido', 'vista3d-pannello', 'vista3d-superficie'].includes(f.cls)) strati.set(f.strato, { fill: f.base || f.fill, fo: Math.max(0.35, f.fo ?? 1) });
+                });
+                if (strati.size) {
+                    const prof = new Map();
+                    d.prove.forEach(p => p.fasce.forEach(fa => { const v = prof.get(fa.nome) || [0, 0]; prof.set(fa.nome, [v[0] + fa.da, v[1] + 1]); }));
+                    const media = n => prof.has(n) ? prof.get(n)[0] / prof.get(n)[1] : Infinity;
+                    voci.push({ tipo: 'titolo', testo: 'Strati' });
+                    [...strati].sort((a, b) => media(a[0]) - media(b[0])).forEach(([nome, v]) => voci.push({ tipo: 'riquadro', fill: v.fill, fo: v.fo, testo: nome }));
+                }
+                const altri = [];
+                const faldaSegno = di('vista3d-falda-segno')[0], faldaSup = di('vista3d-falda')[0];
+                if (faldaSegno) altri.push({ tipo: 'linea', stroke: faldaSegno.stroke, sw: Math.max(2, faldaSegno.sw || 2), dash: faldaSegno.dash, testo: 'Falda' });
+                if (faldaSup) altri.push({ tipo: 'riquadro', fill: faldaSup.fill, fo: faldaSup.fo, stroke: faldaSup.stroke, testo: 'Superficie della falda' });
+                if (di('vista3d-giacitura-segno').length) altri.push({ tipo: 'giacitura', testo: 'Giacitura (immersione/inclinazione)' });
+                if (di('vista3d-taglio').length) altri.push({ tipo: 'linea', stroke: 'currentColor', sw: 1.2, testo: 'Bordo del taglio' });
+                if (di('vista3d-misure').length) altri.push({ tipo: 'asta', testo: 'Quote (m)' });
+                const tracce = new Map();
+                di('vista3d-traccia').forEach(f => { if (f.traccia && !tracce.has(f.traccia)) tracce.set(f.traccia, f); });
+                const nomiTracce = new Map(tracceDelProgetto().map(t => [t.id, t.nome]));
+                tracce.forEach((f, id) => altri.push({ tipo: 'linea', stroke: f.stroke, sw: Math.max(1.6, f.sw || 1.6), dash: f.dash, testo: 'Sezione ' + (nomiTracce.get(id) || '') }));
+                const disegni = new Map();
+                di('vista3d-disegno').forEach(f => { const v = disegni.get(f.disegno) || {}; if (f.t === 'cerchio') v.punto = f; else if (f.t === 'poli') v.area = f; else v.bordo = v.bordo || f; disegni.set(f.disegno, v); });
+                const nomiDisegni = new Map(disegniDelProgetto().map(x => [x.id, x.nome]));
+                disegni.forEach((v, id) => {
+                    const nome = nomiDisegni.get(id) || '';
+                    if (v.punto) altri.push({ tipo: 'cerchio', fill: v.punto.fill, stroke: v.punto.stroke, r: 5, testo: nome });
+                    else altri.push({ tipo: 'riquadro', fill: v.area ? v.area.fill : 'none', fo: v.area ? v.area.fo : 0, stroke: v.bordo && v.bordo.stroke, dash: v.bordo && v.bordo.dash, testo: nome });
+                });
+                if (altri.length) { voci.push({ tipo: 'titolo', testo: 'Altro' }); voci.push(...altri); }
+                return voci;
+            }
+            /** La scena con la legenda in una colonna a destra: fuori dalla figura, che non copre. */
+            function conLegenda3d(sc, d) {
+                const voci = vociLegenda3d(sc, d);
+                if (!voci.length) return sc;
+                const CAR = 7.5, MAX = 30;
+                const aCapo = s => {
+                    const righe = [];
+                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= MAX) righe[u] += ' ' + p; else righe.push(p); });
+                    return righe;
+                };
+                voci.forEach(v => { v.righe = v.tipo === 'titolo' ? [v.testo] : aCapo(v.testo); });
+                const lw = Math.round(Math.min(320, Math.max(190, 64 + CAR * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length))))))) ;
+                const x0 = sc.W + 18, forme = [], cls = 'vista3d-legenda';
+                forme.push({ t: 'linea', x1: sc.W, y1: 16, x2: sc.W, y2: sc.H - 16, stroke: 'currentColor', sw: 1, op: 0.25, cls });
+                forme.push({ t: 'testo', x: x0, y: 34, s: 'Legenda', size: 15, bold: true, cls });
+                let y = 52;
+                voci.forEach(v => {
+                    if (v.tipo === 'titolo') { y += 8; forme.push({ t: 'testo', x: x0, y: y + 10, s: v.testo.toUpperCase(), size: 10.5, bold: true, op: 0.65, cls }); y += 18; return; }
+                    const cy = y + 8, xs = x0, xt = x0 + 34;
+                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - 6], [xs + 24, cy - 6], [xs + 24, cy + 6], [xs, cy + 6]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1.4 : 0.6, dash: v.dash, cls });
+                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + 24, y2: cy, stroke: v.stroke, sw: v.sw, dash: v.dash, cls });
+                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + 12, y: cy, r: v.r || 4.5, fill: v.fill || 'currentColor', stroke: v.stroke, cls });
+                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + 2, y1: cy - 2, x2: xs + 22, y2: cy - 2, stroke: 'currentColor', sw: 2, cls }); forme.push({ t: 'linea', x1: xs + 12, y1: cy - 2, x2: xs + 12, y2: cy + 6, stroke: 'currentColor', sw: 2, cls }); }
+                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + 12, y1: cy - 8, x2: xs + 12, y2: cy + 8, stroke: 'currentColor', sw: 1.4, cls }); [-7, 0, 7].forEach(k => forme.push({ t: 'linea', x1: xs + 8, y1: cy + k, x2: xs + 16, y2: cy + k, stroke: 'currentColor', sw: 1, cls })); }
+                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + 4 + i * 15, s: r, size: 12, cls }));
+                    y += 22 + (v.righe.length - 1) * 15;
+                });
+                return { ...sc, W: sc.W + lw, H: Math.max(sc.H, y + 16), tutte: sc.tutte.concat(forme) };
             }
 
             /** La scena sul canvas: stessa figura, disegnata in pochi millisecondi anche mentre gira. */
@@ -844,7 +952,7 @@
                     } else if (f.t === 'cerchio') {
                         ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
                         if (f.fill !== 'none') { ctx.globalAlpha = op; ctx.fillStyle = col(f.fill); ctx.fill(); }
-                        if (f.stroke) { ctx.globalAlpha = (f.so ?? 1) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = 1; ctx.stroke(); }
+                        if (f.stroke) { ctx.globalAlpha = (f.so ?? 1) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw || 1; ctx.stroke(); }
                     } else {
                         ctx.globalAlpha = op; ctx.font = `${f.bold ? '700 ' : ''}${f.size}px ${mono}`;
                         ctx.textAlign = f.anchor === 'middle' ? 'center' : f.anchor === 'end' ? 'right' : 'left';
@@ -1076,6 +1184,8 @@
                         acceso: !!L.giaciture && !vista3d.giacitureNascoste.has(nome), simbolo: `<svg class="ico" style="color:${v.colore}"><use href="#i-target"/></svg>`, nome, conta: v.n,
                         titolo: `Immersione e inclinazione del tetto di ${nome}` })) },
                     { id: 'modello', nome: 'Modello', righe: [
+                        // Spente le colonne, di ogni prova resta il punto col nome (e la falda, se accesa).
+                        liv('colonne', sw('linee', 'background:linear-gradient(#facc15 0 40%, #d97706 40% 70%, #65a30d 70%)'), 'Colonne delle prove', 'I pozzi con i loro strati: spenti resta il punto di ogni prova'),
                         liv('solido', ico('stack'), 'Corpo solido', 'Il modello chiuso tra le prove (i tagli nella scheda «Modello e tagli»)'),
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
@@ -1750,7 +1860,8 @@
                 if (vista3d.taglio.dir) conSolido();
                 renderVista3d();
             });
-            document.getElementById('rngTaglioV3d').addEventListener('input', (e) => { vista3d.taglio.pos = Number(e.target.value) / 100; conSolido(); ridisegna3d(); });
+            // Vicino a una linea della griglia rapida il taglio vi si aggancia (agganciaTaglioAllaGriglia3d).
+            document.getElementById('rngTaglioV3d').addEventListener('input', (e) => { vista3d.taglio.pos = agganciaTaglioAllaGriglia3d(Number(e.target.value) / 100, vista3d.taglio.dir); conSolido(); ridisegna3d(); });
             document.getElementById('rngOmbre3d').addEventListener('input', (e) => {
                 vista3d.ombre = Number(e.target.value) / 100;
                 document.getElementById('lblOmbre3d').textContent = e.target.value + '%';
@@ -1783,10 +1894,18 @@
                 apriVista3d(areaMappa.modo);
             }));
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
-            document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
+            // I colori del disegno scaricato: lo sfondo lo sceglie chi scarica, chiaro o scuro.
+            const SFONDI_SVG_3D = { chiaro: { fondo: '#ffffff', testo: '#1f2937' }, scuro: { fondo: '#0f172a', testo: '#e5e7eb' } };
+            function svgVista3dDaScaricare(sfondo) {
+                const c = SFONDI_SVG_3D[sfondo] || SFONDI_SVG_3D.chiaro;
+                return svgDaScena(conLegenda3d(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H), datiVista3dCorrenti)).replace(/var\(--bg-card, #fff\)/g, c.fondo).replace(/currentColor/g, c.testo).replace(/var\(--font-mono\), monospace/g, 'monospace');
+            }
+            document.getElementById('btnScaricaVista3d').addEventListener('click', async () => {
                 if (!ultimaScena3d) return;
-                const testo = svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H)).replace(/var\(--bg-card, #fff\)/g, '#ffffff').replace(/currentColor/g, '#1f2937').replace(/var\(--font-mono\), monospace/g, 'monospace');
-                scaricaBlobFile(new Blob([testo], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}.svg`);
+                const scelta = await appDialog('Il disegno lo vuoi su sfondo chiaro o scuro?', { confirm: true, title: 'Scarica la vista 3D (SVG)', icona: 'download', okLabel: 'Sfondo chiaro', extraLabel: 'Sfondo scuro', cancelLabel: 'Annulla' });
+                if (scelta !== true && scelta !== 'extra') return;
+                const sfondo = scelta === 'extra' ? 'scuro' : 'chiaro';
+                scaricaBlobFile(new Blob([svgVista3dDaScaricare(sfondo)], { type: 'image/svg+xml' }), `Vista3D_${nomeFileProgetto3d()}${sfondo === 'scuro' ? '_scuro' : ''}.svg`);
             });
 
             /** Il modello in OBJ (+ MTL) dentro uno ZIP: metri veri, senza esagerazione, asse Y in alto
