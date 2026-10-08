@@ -1076,6 +1076,8 @@
                         acceso: !!L.giaciture && !vista3d.giacitureNascoste.has(nome), simbolo: `<svg class="ico" style="color:${v.colore}"><use href="#i-target"/></svg>`, nome, conta: v.n,
                         titolo: `Immersione e inclinazione del tetto di ${nome}` })) },
                     { id: 'modello', nome: 'Modello', righe: [
+                        // Spente le colonne, di ogni prova resta il punto col nome (e la falda, se accesa).
+                        liv('colonne', sw('linee', 'background:linear-gradient(#facc15 0 40%, #d97706 40% 70%, #65a30d 70%)'), 'Colonne delle prove', 'I pozzi con i loro strati: spenti resta il punto di ogni prova'),
                         liv('solido', ico('stack'), 'Corpo solido', 'Il modello chiuso tra le prove (i tagli nella scheda «Modello e tagli»)'),
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
