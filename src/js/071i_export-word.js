@@ -699,7 +699,9 @@
                     xml += await paragrafoWord(ctx, { el: titolo, r: rt }, ri.left);
                     fondo = rt.y + rt.h;
                 }
-                const voci = Array.from(foglio.querySelectorAll('a[data-voce-indice]'));
+                // Un indice su più fogli è in Word UN solo Sommario: le voci di tutti i fogli dell'indice
+                // stanno qui, e Word le manda a capo da sé (i fogli «seguito» si saltano, vedi sotto).
+                const voci = Array.from(foglio.ownerDocument.querySelectorAll('.dpsh-sheet[data-sommario] a[data-voce-indice]'));
                 if (!voci.length) return xml;
                 // Lo spazio fra due voci sta tutto PRIMA della voce (il fondo della precedente più la
                 // cima della sua): Word e LibreOffice non sommano allo stesso modo spazio dopo e spazio prima.
@@ -733,9 +735,16 @@
                     const cs = ctx.win.getComputedStyle(el);
                     return xml.replace(/(<w:rPr><w:rFonts [^>]*\/>)((?:<w:b\/><w:bCs\/>)?)/g, (m, a, b) => a + (b || '<w:b w:val="0"/><w:bCs w:val="0"/>') + (cs.fontStyle === 'normal' ? '<w:i w:val="0"/><w:iCs w:val="0"/>' : ''));
                 };
+                // Il colore dei puntini è quello del divisore scelto nell'indice (--idx-colore-divisore),
+                // per ogni tipo di guida: prima, per i puntini radi (disegnati come sfondo, senza bordo),
+                // si ripiegava sul colore del testo e i puntini uscivano scuri invece che chiari.
+                const sonda = ctx.doc.createElement('span');
+                sonda.style.color = 'var(--idx-colore-divisore)';
+                foglio.appendChild(sonda);
+                const coloreDivisore = coloreWord(ctx.win.getComputedStyle(sonda).color);
+                sonda.remove();
                 const tabulazione = (v, testo) => {
-                    const guidaEl = testo && testo.nextElementSibling, cs = guidaEl && ctx.win.getComputedStyle(guidaEl);
-                    const colore = cs && (coloreWord(cs.borderBottomStyle !== 'none' ? cs.borderBottomColor : '') || coloreWord(ctx.win.getComputedStyle(v).color));
+                    const colore = coloreDivisore || coloreWord(ctx.win.getComputedStyle(v).color);
                     const rPr = testo ? proprietaRunWord(ctx, testo, { paragrafo: v }).xml.replace(/<w:b\/><w:bCs\/>/, '<w:b w:val="0"/><w:bCs w:val="0"/>').replace(/<w:color [^>]*\/>/, '') : '';
                     return `<w:r><w:rPr>${rPr.replace(/(<w:spacing |<w:w |<w:sz )/, (m) => (colore ? `<w:color w:val="${colore}"/>` : '') + m)}</w:rPr><w:tab/></w:r>`;
                 };
@@ -957,6 +966,8 @@
                     let corpo = '', sezione = '';
                     for (let i = 0; i < segmenti.length; i++) {
                         if (o.onAvanzamento) o.onAvanzamento(`Pagina ${i + 1} di ${segmenti.length}…`, (i + 1) / segmenti.length);
+                        // Il seguito dell'indice è già nel Sommario del primo foglio (sommarioWord).
+                        if (segmenti[i].foglio && segmenti[i].foglio.hasAttribute('data-sommario-seguito')) continue;
                         if (sezione) corpo += chiusuraSezioneWord(sezione);
                         const f = segmenti[i].foglio ? await foglioWord(ctx, segmenti[i].foglio) : await flussoWord(ctx, segmenti[i], mrg);
                         corpo += f.xml;

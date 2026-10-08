@@ -77,7 +77,7 @@ console.log('--- E arrivano nel documento di stampa, che e il punto ---');
   // nessun foglio con un carattere scritto a mano, ciascuno legge la variabile del suo stile.
   t('ma leggono la variabile dello stile del documento',
      (codice.match(/style="font-family: var\(--tpl-font, Arial, sans-serif\);\$\{stileSopra\}">\$\{intestazione\}<div class="dpsh-sheet-inner"/g) || []).length === 2
-     && (codice.match(/data-tpl-page-label="Indice" data-sommario="[^"]*" style="font-family: var\(--idx-font, Arial, sans-serif\);/g) || []).length === 1);
+     && (codice.match(/data-tpl-page-label="Indice" data-sommario="[^"]*"(\$\{k \? ' data-sommario-seguito="1"' : ''\})? style="font-family: var\(--idx-font, Arial, sans-serif\);/g) || []).length === 1);
 }
 
 console.log('--- Lo stile del documento: un punto solo che decide ---');
