@@ -207,6 +207,7 @@
                         width: 210mm;
                         height: 297mm;
                         padding: ${mrg.top}mm ${mrg.right}mm ${mrg.bottom}mm ${mrg.left}mm;
+                        --margine-sotto: ${mrg.bottom}mm; /* il piè di pagina col numero (numeraPagineDocumento) */
                         overflow: hidden;
                         background: #fff;
                         break-after: page;

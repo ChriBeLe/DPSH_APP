@@ -70,7 +70,11 @@ console.log('--- La numerazione delle pagine ---');
   t('ogni foglio riceve il suo numero', numeri.length === 5);
   t('il totale e quello vero, non una stima', numeri.every(n => / di 5$/.test(n)));
   t('e sono in ordine', numeri[0] === 'Pagina 1 di 5' && numeri[4] === 'Pagina 5 di 5');
-  t('il numero sta DENTRO il foglio, in fondo', /dpsh-sheet-inner[^>]*>[\s\S]*?bottom:6mm/.test(numerato));
+  t('il numero sta nel PIÈ DI PAGINA: nel margine inferiore del foglio, fuori dall area del contenuto', (() => {
+    const box = new (require('jsdom').JSDOM)('<div>' + numerato + '</div>').window.document;
+    const n = box.querySelector('[data-numero-pagina]');
+    return n && n.parentElement.classList.contains('dpsh-sheet') && !n.closest('.dpsh-sheet-inner') && /bottom:0; height:var\(--margine-sotto/.test(n.getAttribute('style'));
+  })());
   t('un documento senza fogli non viene toccato', api.numeraPagineDocumento('<p>ciao</p>') === '<p>ciao</p>');
   const indice = '<div class="dpsh-sheet" data-sommario="punti"><div class="dpsh-sheet-inner">Indice</div></div>';
   const conIndice = (api.numeraPagineDocumento(indice + indice + doc5).match(/Pagina (\d+) di (\d+)/g) || []);

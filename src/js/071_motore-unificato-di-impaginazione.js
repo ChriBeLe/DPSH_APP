@@ -434,15 +434,15 @@
                 const fogli = Array.from(r.querySelectorAll('.dpsh-sheet')).filter(f => !f.hasAttribute('data-sommario'));
                 if (fogli.length === 0) return html;
                 fogli.forEach((foglio, i) => {
-                    const dentro = foglio.querySelector('.dpsh-sheet-inner') || foglio;
-                    // position:relative sul foglio e' gia' garantito dal suo stile; il numero va
-                    // in fondo al FOGLIO, non in fondo al contenuto, altrimenti su una pagina
-                    // corta finirebbe a mezz'aria.
+                    // IL NUMERO STA NEL PIÈ DI PAGINA: nel margine inferiore del foglio, centrato,
+                    // fuori dall'area del contenuto. Prima stava 6 mm sopra il fondo del contenuto,
+                    // e una pagina piena gli finiva sotto (nel Word la tabella si spezzava attorno al
+                    // numero). Il foglio è position:relative; --margine-sotto è il suo margine.
                     const n = doc.createElement('div');
                     n.setAttribute('data-numero-pagina', String(i + 1));
-                    n.setAttribute('style', 'position:absolute; left:0; right:0; bottom:6mm; text-align:center; font-size:9px; color:#64748b; font-family:Arial,Helvetica,sans-serif;');
+                    n.setAttribute('style', 'position:absolute; left:0; right:0; bottom:0; height:var(--margine-sotto, 14mm); display:flex; align-items:center; justify-content:center; font-size:9px; line-height:1; color:#64748b; font-family:Arial,Helvetica,sans-serif;');
                     n.textContent = 'Pagina ' + (i + 1) + ' di ' + fogli.length;
-                    dentro.appendChild(n);
+                    foglio.appendChild(n);
                 });
                 return r.innerHTML;
             }

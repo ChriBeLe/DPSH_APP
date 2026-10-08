@@ -353,6 +353,22 @@
                 return tops.size && r.height ? r.height / tops.size : (parseFloat(cs.fontSize) || 13) * 1.15;
             }
 
+            /** Le righe del testo di un elemento come le ha disposte il browser: la più larga, e se
+             * vanno a capo solo dove c'è un a capo vero (<br>) — allora in Word sono le stesse. */
+            function righeDelTestoWord(ctx, el, lh) {
+                const rg = ctx.doc.createRange(); rg.selectNodeContents(el);
+                const righe = new Map();
+                Array.from(rg.getClientRects()).filter(r => r.width > 0 && r.height > 0).forEach(r => {
+                    const k = Math.round(r.top + r.height / 2);
+                    const chiave = [...righe.keys()].find(y => Math.abs(y - k) < lh / 2);
+                    const g = righe.get(chiave) || { sx: Infinity, dx: -Infinity };
+                    g.sx = Math.min(g.sx, r.left); g.dx = Math.max(g.dx, r.right);
+                    righe.set(chiave !== undefined ? chiave : k, g);
+                });
+                const larghezza = Math.max(0, ...[...righe.values()].map(g => g.dx - g.sx));
+                return { larghezza, righe: righe.size, soloACapoVeri: righe.size <= el.querySelectorAll('br').length + 1 };
+            }
+
             /** I run con la scala orizzontale moltiplicata per f (w:w; 100 = normale). */
             function stringiRunWord(runs, f) {
                 return runs.replace(/<w:rPr>([\s\S]*?)<\/w:rPr>/g, (m, p) => {
@@ -404,19 +420,9 @@
                 // lasciare l'8% di sicurezza alla riga più larga. Solo se le righe sono quelle
                 // del PDF (una sola, o separate da a capo veri) e solo se serve.
                 if (foglia.margineCella && !/<w:drawing>/.test(runs)) {
-                    const rg = ctx.doc.createRange(); rg.selectNodeContents(el);
-                    const righe = new Map();
-                    Array.from(rg.getClientRects()).filter(r => r.width > 0 && r.height > 0).forEach(r => {
-                        const k = Math.round(r.top + r.height / 2);
-                        const chiave = [...righe.keys()].find(y => Math.abs(y - k) < lh / 2);
-                        const g = righe.get(chiave) || { sx: Infinity, dx: -Infinity };
-                        g.sx = Math.min(g.sx, r.left); g.dx = Math.max(g.dx, r.right);
-                        righe.set(chiave !== undefined ? chiave : k, g);
-                    });
-                    const larghezza = Math.max(0, ...[...righe.values()].map(g => g.dx - g.sx));
-                    const aCapoVeri = (runs.match(/<w:br\/>/g) || []).length;
+                    const { larghezza, soloACapoVeri } = righeDelTestoWord(ctx, el, lh);
                     const spazio = foglia.r.w + (jc === 'center' ? 2 * Math.min(margine.sx, margine.dx) : jc === 'right' ? margine.sx : margine.dx);
-                    const f = larghezza > 0 && righe.size === aCapoVeri + 1 ? Math.min(1, spazio / (larghezza * 1.08)) : 1;
+                    const f = larghezza > 0 && soloACapoVeri ? Math.min(1, spazio / (larghezza * 1.08)) : 1;
                     if (f < 0.995) runs = stringiRunWord(runs, f);
                 }
                 const destra = indDx < -0.5 ? ` w:right="${twSegno(indDx)}"` : '';
@@ -525,6 +531,11 @@
                 for (let ir = 0; ir < righe.length; ir++) {
                     const tr = righe[ir];
                     const altezza = tr.getBoundingClientRect().height;
+                    // Altezza esatta solo se ogni cella ha in Word le stesse righe del PDF (testo
+                    // semplice, a capo solo dove c'è un a capo vero): altrimenti una riga in più in
+                    // Word verrebbe tagliata, e meglio una riga più alta che un testo perso.
+                    const esatta = celle[ir].every(td => !td.querySelector('table,img,svg,canvas') && (!testoVisibileWord(td)
+                        || (soloInLineaWord(ctx, td) && righeDelTestoWord(ctx, td, altezzaRigaWord(ctx, td)).soloACapoVeri)));
                     const occupate = [];
                     for (const td of celle[ir]) {
                         const r = td.getBoundingClientRect();
@@ -556,7 +567,11 @@
                         cursore = o.da + (m ? parseInt(m[1], 10) : 1);
                     });
                     if (cursore < larghezze.length) xml += `<w:tc><w:tcPr><w:tcW w:w="${tw(xs[larghezze.length] - xs[cursore])}" w:type="dxa"/>${larghezze.length - cursore > 1 ? `<w:gridSpan w:val="${larghezze.length - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`;
-                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="atLeast"/></w:trPr>${xml}</w:tr>`;
+                    // ALTEZZA ESATTA, quella del PDF: con «almeno» Word aggiungeva di suo frazioni di
+                    // punto (bordi, arrotondamenti) a ogni riga, e su decine di righe la tabella
+                    // usciva dal foglio. Il contenuto ci sta: è lo stesso del PDF, con le stesse righe
+                    // (paragrafoWord fa in modo che non vada a capo in più).
+                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="${esatta ? 'exact' : 'atLeast'}"/></w:trPr>${xml}</w:tr>`;
                 }
                 const sfondoTabella = coloreWord(ctx.win.getComputedStyle(tab).backgroundColor);
                 return `<w:tbl>${tblPrWord({ w: tw(xs[xs.length - 1] - xs[0]), ind: foglia.rientroTw, bordi: bordiWord(ctx, tab, 'tblBorders'), sfondo: sfondoTabella })}`
@@ -754,6 +769,9 @@
                 const rPr = proprietaRunWord(ctx, numero, { paragrafo: numero }).xml;
                 const t = (s) => `<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${s}</w:t></w:r>`;
                 const h = Math.max(20, tw(rn.h));
+                // Il corpo della pagina si ferma sopra il numero (foglioWord): se in Word il
+                // contenuto venisse un poco più lungo, va alla pagina dopo invece di avvolgerlo.
+                ctx.fondoPiedeTw = tw(rs.bottom - rn.y) + 57;
                 return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">`
                     + `<w:p><w:pPr><w:framePr w:w="11906" w:h="${h}" w:hRule="exact" w:hAnchor="page" w:vAnchor="page" w:x="0" w:y="${tw(rn.y - rs.top)}"/>`
                     + `<w:spacing w:before="0" w:after="0" w:line="${h}" w:lineRule="exact"/><w:jc w:val="center"/></w:pPr>`
@@ -791,7 +809,7 @@
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
                 const sezione = `<w:sectPr>${piedeInSezione(ctx, foglio)}<w:pgSz w:w="11906" w:h="16838"/>`
-                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), 280)}" w:left="${tw(ri.left - rf.left)}" w:header="0" w:footer="0" w:gutter="0"/>`
+                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0))}" w:left="${tw(ri.left - rf.left)}" w:header="0" w:footer="0" w:gutter="0"/>`
                     + `${numerazioneInSezione(ctx, foglio)}<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
