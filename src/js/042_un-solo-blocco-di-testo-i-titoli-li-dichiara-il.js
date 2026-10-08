@@ -1111,7 +1111,7 @@
                     let valoreIniziale;
                     if (side === 'header') {
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) : 20);
+                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.max(8, Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) - INTESTAZIONE_RESPIRO_MM) : 20);
                     } else {
                         const mrg = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                         valoreIniziale = mrg[side];
@@ -1140,8 +1140,13 @@
                     st.valoreCorrente = nuovo;
                     mostraEtichettaManigliaBlocco(handleEl, `${nuovo}mm`);
                     if (side === 'header') {
+                        // L'intestazione sta nel margine superiore: crescendo oltre il margine allarga
+                        // la fascia e il contenuto scende (margineConIntestazione), come nell'export.
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        if (hz) { hz.style.height = nuovo + 'mm'; hz.style.overflow = 'hidden'; hz.style.display = 'flex'; hz.style.flexDirection = 'column'; hz.style.justifyContent = 'center'; }
+                        if (hz) hz.style.height = (nuovo + INTESTAZIONE_RESPIRO_MM) + 'mm';
+                        const frameH = document.getElementById('templateEditorPageFrame');
+                        const pagH = templateEditorState.pages[templateEditorState.activePageIdx];
+                        if (frameH && pagH) frameH.style.paddingTop = margineConIntestazione(templateEditorState.margins, Object.assign({}, pagH.header, { heightMm: nuovo }), true).top + 'mm';
                         // Anche dal vivo (non solo dopo il rilascio, vedi renderTemplateEditorCanvas):
                         // il resto della pagina deve restare fermo, quindi lo spazio minimo del
                         // contenuto sotto si riduce esattamente di quanto cresce l'intestazione —
@@ -1151,16 +1156,21 @@
                         if (canvas) {
                             const mrgLive = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                             // Fase A del piano di unificazione: fonte unica anche nel trascinamento dal vivo.
-                            canvas.style.minHeight = `calc(${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm - ${nuovo}mm)`;
+                            const pagLive = templateEditorState.pages[templateEditorState.activePageIdx];
+                            canvas.style.minHeight = `${calcolaBudgetPaginaMm(margineConIntestazione(mrgLive, Object.assign({}, pagLive && pagLive.header, { heightMm: nuovo }), true), false).areaStampabileMm}mm`;
                         }
                     } else {
                         const frame = document.getElementById('templateEditorPageFrame');
                         const canvas = document.getElementById('templateEditorCanvas');
                         if (frame && canvas) {
-                            const mrgLive = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
-                            mrgLive[side] = nuovo;
+                            const base = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                            base[side] = nuovo;
+                            const pagLive = templateEditorState.pages[templateEditorState.activePageIdx];
+                            const mrgLive = margineConIntestazione(base, pagLive && pagLive.header, templateEditorState.headerEnabled);
                             frame.style.padding = `${mrgLive.top}mm ${mrgLive.right}mm ${mrgLive.bottom}mm ${mrgLive.left}mm`;
                             canvas.style.minHeight = `${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm`;
+                            const hz = document.getElementById('templateEditorHeaderZone');
+                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + INTESTAZIONE_RESPIRO_MM) + 'mm'; }
                         }
                     }
                 });

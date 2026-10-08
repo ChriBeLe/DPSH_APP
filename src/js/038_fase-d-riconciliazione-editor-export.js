@@ -51,7 +51,8 @@
                             risultati[pagina.id] = { paginaCanvasCount, paginePreviste: 0, disallineato: false };
                             continue;
                         }
-                        const { limiteImpaginazioneMm } = calcolaBudgetPaginaMm(mrg, templateEditorState.footerEnabled);
+                        // Come l'export: l'intestazione più alta del margine toglie spazio (margineConIntestazione).
+                        const { limiteImpaginazioneMm } = calcolaBudgetPaginaMm(margineConIntestazione(mrg, pagina.header, templateEditorState.headerEnabled), templateEditorState.footerEnabled);
                         const pagineFisiche = impaginaBlocchiSuPagineFisiche(atomi, limiteImpaginazioneMm, indiciForzati);
                         const paginePreviste = pagineFisiche.length;
                         risultati[pagina.id] = { paginaCanvasCount, paginePreviste, disallineato: paginePreviste !== paginaCanvasCount };
@@ -465,7 +466,8 @@
             function mostraLineaFinePaginaA4() {
                 const frame = document.getElementById('templateEditorPageFrame');
                 if (!frame) return;
-                const { riservaFooterMm, limiteAssolutoDaCimaFoglioMm: limiteMm } = calcolaBudgetPaginaMm(templateEditorState.margins, templateEditorState.footerEnabled);
+                const paginaA4 = templateEditorState.pages[templateEditorState.activePageIdx];
+                const { riservaFooterMm, limiteAssolutoDaCimaFoglioMm: limiteMm } = calcolaBudgetPaginaMm(margineConIntestazione(templateEditorState.margins, paginaA4 && paginaA4.header, templateEditorState.headerEnabled), templateEditorState.footerEnabled);
                 let linea = document.getElementById('templateEditorA4Line');
                 if (!linea) {
                     linea = document.createElement('div');

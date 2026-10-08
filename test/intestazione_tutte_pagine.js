@@ -61,11 +61,26 @@ const spunta = (app, el, v) => { el.checked = v; el.dispatchEvent(new app.w.Even
   t('si salva col template, e le pagine salvate hanno tutte la stessa intestazione', app.E(`state.reportTemplates.tplIntest.headerTutte === true && state.reportTemplates.tplIntest.pages.every(p => p.header.text === 'Studio Rossi')`));
 
   // Nel documento di stampa (lo stesso da cui nascono PDF e Word) ogni pagina porta l'intestazione,
-  // dentro il foglio che il Word converte (immagine come immagine, testo come testo di Word).
-  const fogli = app.E(`state.reportTemplates.tplIntest.pages.map(p => buildPaginaHeaderFooterHtml(p, 0, 0, '<p>corpo</p>', false, true, false))`);
+  // NEL MARGINE SUPERIORE del foglio, come in Word: fuori dall'area del contenuto, che così non
+  // perde spazio (prima l'intestazione stava nel contenuto e il fondo del foglio tagliava le tabelle).
+  const fogli = app.E(`state.reportTemplates.tplIntest.pages.map(p => buildPaginaRigheHtml(p, templateEditorState.ctx, 1, 4, true, null, '1', false, true, false))`);
+  const leggi = h => { const d = app.d.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
   t('nel documento di stampa (PDF e Word) l\'intestazione è su ogni pagina', fogli.length === 4 && fogli.every(h => /data-blocco="intestazione"[\s\S]*Studio Rossi/.test(h)));
-  t('(e il Word la legge: è dentro il foglio, non un\'aggiunta del solo PDF)', /if \(n\.hasAttribute\('data-numero-pagina'\)\) continue;/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8'))
-    && !/intestazione/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
+  t('nel margine superiore del foglio, fuori dall\'area del contenuto', fogli.every(h => { const f = leggi(h), i = f.querySelector('[data-blocco="intestazione"]');
+    return i && i.parentElement === f && !i.closest('.dpsh-sheet-inner') && /position:absolute; top:0/.test(i.getAttribute('style')); }));
+  t('alta 22 mm (più del margine di 14): la fascia si allarga e il contenuto parte più in basso', /padding-top:27mm/.test(leggi(fogli[0]).getAttribute('style'))
+    && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, true).top`) === 27 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 6 }, true).top`) === 14 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, false).top`) === 14);
+  t('(senza altezza scelta sta nel margine: il contenuto non perde niente)', !/padding-top/.test(app.E(`buildPaginaRigheHtml(Object.assign({}, state.reportTemplates.tplIntest.pages[0], { header: { text: 'x' } }), templateEditorState.ctx, 1, 1, true, null, '1', false, true, false)`).match(/<div class="dpsh-sheet"[^>]*>/)[0]));
+  // Un logo senza altezza scelta: la sua altezza NATURALE a tutta larghezza (come Word), letta
+  // dal file. PNG 1572×181 (un'intestazione larga e bassa) su 186 mm di larghezza → 21,4 mm.
+  const png = (w, h) => { const b = Buffer.alloc(24); b.write('\x89PNG\r\n\x1a\n', 0, 'latin1'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return 'data:image/png;base64,' + b.toString('base64'); };
+  t('le dimensioni di un PNG si leggono dal file', JSON.stringify(app.E(`dimensioniImmagineDataUrl(${JSON.stringify(png(1572, 181))})`)) === '{"w":1572,"h":181}');
+  const naturale = app.E(`altezzaIntestazioneMm({ imageDataUrl: ${JSON.stringify(png(1572, 181))} }, { left: 12, right: 12 })`);
+  t(`un logo largo e basso prende la sua altezza naturale a tutta larghezza (${naturale.toFixed(1)} mm)`, Math.abs(naturale - 21.4) < 0.1
+    && app.E(`margineConIntestazione({ top: 14, left: 12, right: 12 }, { imageDataUrl: ${JSON.stringify(png(1572, 181))} }, true).top`) > 26);
+  t('(un logo quadrato si ferma a 28 mm, come prima)', app.E(`altezzaIntestazioneMm({ imageDataUrl: ${JSON.stringify(png(500, 500))} }, null)`) === 28);
+  t('(un JPEG: le dimensioni dal suo segmento SOF)', JSON.stringify(app.E(`dimensioniImmagineDataUrl('data:image/jpeg;base64,' + btoa(String.fromCharCode(0xFF,0xD8,0xFF,0xE0,0,4,0,0,0xFF,0xC0,0,17,8,0,120,1,64,3)))`)) === '{"w":320,"h":120}');
+  t('(e il Word la legge: la pagina di Word comincia dall\'intestazione)', /data-blocco'\) === 'intestazione'/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
 
   app.E(`apriTemplateEditor('tplIntest')`);
   await attesa(30);

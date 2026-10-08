@@ -59,7 +59,10 @@
                     if (indiciForzati.has(idx)) { gruppi.push({ da: inizioGruppo, a: idx - 1 }); inizioGruppo = idx; }
                 }
                 gruppi.push({ da: inizioGruppo, a: numCategorie - 1 });
-                const { limiteImpaginazioneMm } = calcolaBudgetPaginaMm(mrg, templateEditorState.footerEnabled);
+                // La pagina del blocco: se la sua intestazione è più alta del margine, lo spazio cala
+                // come nell'export (margineConIntestazione).
+                const paginaBlocco = templateEditorState.pages.find(p => JSON.stringify(p.rows || []).includes(JSON.stringify(blk.id)));
+                const { limiteImpaginazioneMm } = calcolaBudgetPaginaMm(margineConIntestazione(mrg, paginaBlocco && paginaBlocco.header, templateEditorState.headerEnabled), templateEditorState.footerEnabled);
                 if (!(limiteImpaginazioneMm > 0)) return VUOTO;
                 const gruppiCalcolati = gruppi.map(g => {
                     let mmTotali = 0;
