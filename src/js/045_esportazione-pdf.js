@@ -269,6 +269,11 @@
              * ambito progetto. */
             function apriEsportazionePdfModal(context) {
                 esportaPdfContext = context;
+                const inWord = context.formato === 'word';
+                document.getElementById('lblEsportaPdfTitolo').textContent = inWord ? 'Esporta Word' : 'Esporta PDF';
+                if (btnEsportaPdfGenera) btnEsportaPdfGenera.innerHTML = inWord
+                    ? '<svg class="ico"><use href="#i-file"/></svg> Genera Word (.docx)'
+                    : '<svg class="ico"><use href="#i-print"/></svg> Genera PDF';
                 if (esportaPdfBodyOpzioni) esportaPdfBodyOpzioni.style.display = '';
                 if (esportaPdfBodyProgresso) esportaPdfBodyProgresso.style.display = 'none';
 

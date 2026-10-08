@@ -36,7 +36,7 @@ console.log('--- Le voci vengono dal documento, non da un elenco a parte ---');
     { id:'s1', numero:'1', pageCount:2 },
     { id:'s2', numero:'2', pageCount:1 }
   ];
-  const voci = api.raccogliVociIndice(corpoDoc, sezioni, 1);
+  const { voci, html: marcato } = api.raccogliVociIndice(corpoDoc, sezioni, 1);
   voci.forEach(v => console.log('       liv' + v.livello, 'pag' + v.pagina, '·', v.etichetta));
   t('cinque voci: tre titoli del capitolo, due prove senza titoli', voci.length === 5);
   t('il primo titolo e a pagina 2 (dopo l indice)', voci[0].pagina === 2 && voci[0].etichetta === '1. INTRODUZIONE');
@@ -46,17 +46,18 @@ console.log('--- Le voci vengono dal documento, non da un elenco a parte ---');
   t('e la pagina giusta: quarto foglio + indice', voci[3].pagina === 4);
   t('la seconda prova comincia al foglio successivo alla prima', voci[4].pagina === 6);
 
-  const senzaIndice = api.raccogliVociIndice(corpoDoc, sezioni, 0);
+  t('ogni voce segna nel documento dove punta (per il Sommario del Word)', (marcato.match(/data-voce-indice=/g) || []).length === 5 && /data-voce-testo="Prova N° 1"/.test(marcato));
+  const senzaIndice = api.raccogliVociIndice(corpoDoc, sezioni, 0).voci;
   t('senza pagina di indice davanti, tutto scala di uno', senzaIndice[0].pagina === 1);
 }
 
 console.log('--- La regola contro i doppioni ---');
 {
   const corpoDoc = foglio(titolo(1,'1. INTRODUZIONE'));
-  const voci = api.raccogliVociIndice(corpoDoc, [{ id:'i', etichetta:'Introduzione', pageCount:1 }], 0);
+  const voci = api.raccogliVociIndice(corpoDoc, [{ id:'i', etichetta:'Introduzione', pageCount:1 }], 0).voci;
   t('una sezione CON titoli non aggiunge anche la propria riga', voci.length === 1);
   t('e in indice compare il titolo vero, non l etichetta della sezione', voci[0].etichetta === '1. INTRODUZIONE');
-  const vuoto = api.raccogliVociIndice(foglio('<p>niente titoli</p>'), [{ id:'x', numero:'7', pageCount:1 }], 0);
+  const vuoto = api.raccogliVociIndice(foglio('<p>niente titoli</p>'), [{ id:'x', numero:'7', pageCount:1 }], 0).voci;
   t('una sezione SENZA titoli non sparisce dall indice', vuoto.length === 1 && vuoto[0].etichetta === 'Prova N° 7');
 }
 

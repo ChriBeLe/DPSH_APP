@@ -156,6 +156,8 @@
                 // non sono alternative, coesistono sempre — richiesto esplicitamente («naturalmente,
                 // come un normalissimo documento», dopo che una sessione precedente aveva tolto il
                 // numero perché in conflitto SOLO con l'elenco delle prove, non come rifiuto generale).
+                // Il Word ne fa un Sommario vero (071i): per questo ogni riga dice la sua voce e il suo
+                // livello, il foglio il divisore, e testo e pagina sono segnati.
                 // GERARCHIA. Il livello (1/2/3) viene dai blocchi Titolo del documento finito, non da
                 // un elenco scritto a parte: cosi' l'indice descrive il documento che esiste davvero,
                 // e non quello che qualcuno ha dichiarato.
@@ -203,11 +205,11 @@
                         ? `<span style="display:inline-block; min-width:30px; flex-shrink:0; font-variant-numeric:tabular-nums; font-size:var(--idx-numero-pt); font-weight:var(--idx-numero-peso); color:var(--idx-colore-testo);">${numeriGerarchici[i]}</span>`
                         : '';
                     return `
-                    <a href="#prova-report-${r.id}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${st.gutter ? '0' : cfgLiv.rientroMm + 'mm'}; text-decoration:none; color:inherit; font-family:var(--idx-font);">
+                    <a href="#prova-report-${r.id}" data-voce-indice="${i}" data-livello="${liv}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${st.gutter ? '0' : cfgLiv.rientroMm + 'mm'}; text-decoration:none; color:inherit; font-family:var(--idx-font);">
                         ${gutterHtml}
-                        <span style="font-size:var(${varLiv}-pt); font-weight:var(${varLiv}-peso); ${cfgLiv.corsivo ? 'font-style:italic;' : ''} color:var(--idx-colore-testo); white-space:nowrap;">${parti.testo}</span>
+                        <span data-testo-voce style="font-size:var(${varLiv}-pt); font-weight:var(${varLiv}-peso); ${cfgLiv.corsivo ? 'font-style:italic;' : ''} color:var(--idx-colore-testo); white-space:nowrap;">${parti.testo}</span>
                         ${divisoreHtml}
-                        ${st.mostraPagina && r.pagina ? `<span style="font-size:var(--idx-pagina-pt); font-weight:var(--idx-pagina-peso); color:var(--idx-colore-testo); white-space:nowrap; font-variant-numeric:tabular-nums;${stilePagina}">${r.pagina}</span>` : ''}
+                        ${st.mostraPagina && r.pagina ? `<span data-pagina-voce style="font-size:var(--idx-pagina-pt); font-weight:var(--idx-pagina-peso); color:var(--idx-colore-testo); white-space:nowrap; font-variant-numeric:tabular-nums;${stilePagina}">${r.pagina}</span>` : ''}
                     </a>`;
                 }).join('');
                 // data-tpl-report-page: anche l'indice è una pagina fisica vera come le altre, deve
@@ -224,7 +226,7 @@
                 // blocco a flusso libero sarebbe l'unico punto del documento ancora in grado di
                 // traboccare e far slittare tutte le pagine successive (indice lungo, molte prove).
                 return `
-                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}"><div class="dpsh-sheet-inner">
+                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}" style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}"><div class="dpsh-sheet-inner">
                         <h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${(st.titoloTesto || 'Indice')}</h1>
                         ${righe}
                     </div></div>`;

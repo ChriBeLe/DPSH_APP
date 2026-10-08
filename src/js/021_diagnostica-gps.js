@@ -182,6 +182,7 @@
                 btnUseGpsMapPin.addEventListener('click', () => {
                     if (!gpsModalMapMarker) return;
                     const ll = gpsModalMapMarker.getLatLng();
+                    if (spostandoProva) { confermaSpostamentoProva(ll); return; }
                     if (numModalGpsLat) numModalGpsLat.value = ll.lat;
                     if (numModalGpsLng) numModalGpsLng.value = ll.lng;
                     state.header.lat = ll.lat;

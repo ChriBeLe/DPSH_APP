@@ -238,7 +238,7 @@
         .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pc-lato button:hover { background: var(--bg-card-hover); }
         .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
-        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 150; transform-origin: top left; }
+        .menu-contesto { position: fixed; top: 0; right: auto; z-index: 350; transform-origin: top left; } /* sopra anche la mappa del progetto */
         .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
         .menu-contesto kbd { margin-left: auto; padding-left: var(--sp-4); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
         .menu-contesto .pericolo, .menu-contesto .pericolo .ico { color: var(--danger); }
@@ -304,6 +304,33 @@
         #proveSezione .pillola[disabled] { opacity: .5; cursor: not-allowed; }
         #graficoVista3d { color: var(--text-main); margin: var(--sp-2) 0; border-radius: var(--radius-md); overflow: hidden; }
         #graficoVista3d:focus-visible { outline: 2px solid var(--accent); }
+        /* La vista 3D: quattro schede di comandi sopra la figura, una aperta alla volta. */
+        .vista3d-schede { margin: var(--sp-2) 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .vista3d-schede button { padding: 0 var(--sp-1); line-height: 1.15; }
+        .vista3d-pannello { margin-bottom: var(--sp-2); }
+        .vista3d-preset { margin-bottom: var(--sp-2); }
+        .vista3d-cursori { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: var(--sp-1) var(--sp-5, 24px); }
+        .vista3d-cursore { display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; min-height: var(--h-bottone); }
+        .vista3d-cursore > span { min-width: 170px; }
+        .vista3d-cursore input[type="range"] { flex: 1; min-width: 90px; accent-color: var(--accent); }
+        .vista3d-cursore input[type="range"]:disabled { opacity: .4; }
+        .vista3d-cursore > strong { min-width: 150px; font-size: var(--fs-didascalia); color: var(--text-muted); font-weight: 700; }
+        .vista3d-aiuto { margin: var(--sp-2) 0 0; }
+        @media (max-width: 760px) {
+            .vista3d-cursori { grid-template-columns: 1fr; }
+            .vista3d-cursore { flex-wrap: wrap; }
+            .vista3d-cursore > span { min-width: 0; flex: 1 1 100%; }
+            .vista3d-schede button { font-size: var(--fs-didascalia); }
+        }
+        .vista3d-tagli { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; }
+        .vista3d-taglio-riga { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-weight: 600; }
+        .vista3d-taglio-nome { min-width: 150px; }
+        #selSfondo3d { flex: 1; min-width: 200px; max-width: 360px; }
+        #txtWmsUrl3d { flex: 2; min-width: 220px; }
+        #txtWmsLayer3d { flex: 1; min-width: 120px; max-width: 220px; }
+        .vista3d-opacita { display: flex; align-items: center; gap: var(--sp-1); font-weight: 600; }
+        .vista3d-opacita input { width: 110px; accent-color: var(--accent); }
+        .vista3d-taglio-riga input[type="range"] { flex: 1; min-width: 140px; max-width: 320px; accent-color: var(--accent); }
         .vista3d-esag { display: flex; align-items: center; gap: var(--sp-2); flex: 1; font-weight: 600; }
         .vista3d-esag input { flex: 1; max-width: 260px; accent-color: var(--accent); }
         #btnApriVista3d:disabled { opacity: .5; cursor: not-allowed; }
@@ -350,3 +377,405 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
         }
+
+        /* ---- Finestre lunghe (progetti con tante prove) ----
+           Sul PC una finestra senza altezza massima, centrata, usciva dallo schermo sopra e sotto:
+           titolo e X tagliati, il fondo irraggiungibile. Ora non supera lo schermo e scorre; le
+           altezze scritte nel markup restano. Fuori le schermate intere e le finestre già fogli
+           o già posizionate. Il titolo resta in cima mentre si scorre, con la X sempre a portata. */
+        @media (min-width: 761px) {
+            .modal:not(.passaggio):not(.palette):not(.tier-editor):not(#modalAnteprimaStampaReale) { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+        }
+        .modal:not(.passaggio):not(.palette):not(.tier-editor):not(#modalAnteprimaStampaReale) > .modal-title:first-child { position: sticky; top: -20px; z-index: 3; margin-top: -20px; padding-top: 20px; padding-bottom: 6px; background: var(--bg-card); }
+        /* Le scelte di prove (Consegna, Sezione, Confronto): pillole corte, in griglia, in un riquadro
+           che scorre da sé invece di allungare la finestra. */
+        .pillole.elenco-prove { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); max-height: 212px; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+        .pillole.elenco-prove .pillola { justify-content: center; padding: 0 var(--sp-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .scelta-prove { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-main); padding: 0 var(--sp-3); }
+        .scelta-prove > summary { min-height: var(--h-bottone); display: flex; align-items: center; gap: var(--sp-2); cursor: pointer; font-weight: 700; list-style: none; }
+        .scelta-prove > summary::-webkit-details-marker { display: none; }
+        .scelta-prove > summary strong { margin-left: auto; color: var(--accent-ink); }
+        .scelta-prove > summary::after { content: "▾"; color: var(--text-muted); transition: transform var(--mov-breve) var(--ease-entra); }
+        .scelta-prove[open] > summary::after { transform: rotate(180deg); }
+        .scelta-prove[open] { padding-bottom: var(--sp-3); }
+        #sceltaProveSezione { margin-bottom: var(--sp-2); }
+        .scelta-prove-comandi { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-1); }
+        /* Nel Confronto le pillole sono anche la legenda dei colori: restano tutte, ma in un riquadro che scorre. */
+        #confrontoProve { max-height: 136px; overflow-y: auto; overscroll-behavior: contain; }
+        /* Gli elenchi di avvisi e anomalie, aperti, non allungano la finestra all'infinito. */
+        #riepilogoPrimaExport details > div, #integritaPrimaExport details > div { max-height: 40vh; overflow-y: auto; overscroll-behavior: contain; }
+
+        /* VISTA 3D, la bussola (presa da HyperGram 6.0b): quadrante con l'anello graduato che gira col nord, indice
+           e arco ciano che misurano la rotazione, leva al centro; a destra le righe di zoom, inclinazione ed
+           esagerazione con il valore che si accende quando cambia. Sopra la figura, in alto a sinistra. */
+        .vista3d-scena { position: relative; }
+        #bussola3d { position: absolute; top: 10px; left: 10px; z-index: 2; }
+        .bussola {
+            --b-fondo: rgba(14, 16, 22, 0.9); --b-bordo: rgba(255, 255, 255, 0.16); --b-anello: rgba(255, 255, 255, 0.06); --b-anello-su: rgba(255, 255, 255, 0.13);
+            --b-tacca: rgba(255, 255, 255, 0.55); --b-tacca-m: rgba(255, 255, 255, 0.24); --b-testo: #e5e7eb; --b-tenue: rgba(229, 231, 235, 0.55);
+            --b-centro: #1c1f27; --b-centro-su: #272b36; --b-ciano: #22d3ee; --b-ciano-velo: rgba(34, 211, 238, 0.22); --b-nord: #ff453a;
+            --b-ombra: 0 3px 10px rgba(0, 0, 0, 0.45); --b-curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex; align-items: flex-start; gap: 9px; user-select: none; touch-action: none;
+        }
+        .b-dial { position: relative; width: 112px; height: 112px; flex: none; }
+        .b-svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.4)); }
+        .b-fondo { fill: var(--b-fondo); stroke: var(--b-bordo); stroke-width: 1; }
+        .b-anello { fill: none; stroke: var(--b-anello); stroke-width: 17; transition: stroke 0.15s; }
+        .b-dial:has(.b-presa-anello:hover) .b-anello, .bussola.gira .b-anello { stroke: var(--b-anello-su); }
+        .b-rosa line { stroke: var(--b-tacca); stroke-width: 1.1; stroke-linecap: round; }
+        .b-rosa line.m { stroke: var(--b-tacca-m); stroke-width: 0.8; }
+        .b-ntri { fill: var(--b-nord); }
+        .b-lettere text { fill: var(--b-tenue); font: 700 8px var(--font-sans); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+        .b-lettere text.b-n { fill: var(--b-nord); font-size: 10px; }
+        .b-arco { fill: none; stroke: var(--b-ciano); stroke-width: 2.4; stroke-linecap: round; }
+        .b-arco-punta { fill: var(--b-ciano); opacity: 0; transition: opacity 0.2s; }
+        .bussola.ruotata .b-arco-punta { opacity: 1; }
+        .b-indice { fill: var(--b-ciano); }
+        .b-presa-anello { fill: none; stroke: transparent; stroke-width: 18; pointer-events: stroke; cursor: grab; }
+        .b-presa-centro { fill: transparent; pointer-events: all; cursor: pointer; }
+        .bussola.gira, .bussola.gira * { cursor: grabbing !important; }
+        .b-dial:has(.b-presa-centro:hover) .b-pomello circle { fill: var(--b-centro-su); }
+        .b-rotta { fill: var(--b-testo); font: 700 8.5px var(--font-mono); text-anchor: middle; pointer-events: none; transition: fill 0.2s; }
+        .b-rotta.vivo { fill: var(--b-ciano); }
+        .b-guida { fill: none; stroke: var(--b-tacca-m); stroke-width: 0.8; stroke-dasharray: 2 2.6; pointer-events: none; transition: stroke 0.15s; }
+        .b-vettore { stroke: var(--b-ciano); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+        .b-vettore-punta { fill: var(--b-ciano); pointer-events: none; }
+        .b-pomello { pointer-events: none; transition: transform 0.24s var(--b-curva); }
+        .bussola.leva .b-pomello { transition: none; }
+        .b-pomello circle { fill: var(--b-centro); stroke: var(--b-bordo); stroke-width: 1; transition: fill 0.15s, stroke 0.15s; }
+        .bussola.leva .b-pomello circle { fill: #0e7490; stroke: var(--b-ciano); }
+        .bussola.leva .b-guida { stroke: var(--b-ciano); }
+        .bussola.leva .b-pomello .b-rotta { fill: #ffffff; }
+        .b-tasto { width: 24px; height: 24px; min-height: 0; padding: 0; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--b-testo);
+            font: 700 15px/1 var(--font-sans); cursor: pointer; transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
+        .b-tasto:hover:not(:disabled) { background: var(--b-anello-su); }
+        .b-tasto.premuto { background: var(--b-ciano-velo); color: var(--b-ciano); box-shadow: inset 0 0 0 1px var(--b-ciano); }
+        .b-tasto:disabled { opacity: 0.3; cursor: default; }
+        .b-tasto .ico { width: 14px; height: 14px; margin: 0; }
+        .b-ang { position: absolute; width: 22px; height: 22px; background: var(--b-fondo); box-shadow: 0 0 0 1px var(--b-bordo), 0 2px 6px rgba(0, 0, 0, 0.4); }
+        .b-ang .ico { width: 12px; height: 12px; }
+        .b-ang.tl { left: -5px; top: -5px; } .b-ang.tr { right: -5px; top: -5px; }
+        .b-ang.bl { left: -5px; bottom: -5px; } .b-ang.br { right: -5px; bottom: -5px; }
+        .b-righe { align-self: center; display: flex; align-items: stretch; gap: 2px; padding: 4px 2px 4px 6px; border-radius: 14px; background: var(--b-fondo);
+            box-shadow: 0 0 0 1px var(--b-bordo), var(--b-ombra); }
+        .b-righe-col { display: flex; flex-direction: column; gap: 3px; }
+        /* richiudibile: i comandi si stringono fino a sparire, restano indicatore e valore; la freccia gira */
+        .b-apri { align-self: stretch; height: auto; width: 18px; border-radius: 9px; color: var(--b-tenue); }
+        .b-apri .ico { width: 12px; height: 12px; transition: transform 0.3s var(--b-curva); }
+        .bussola.b-ridotta .b-apri .ico { transform: rotate(-90deg) !important; }
+        .b-ext { display: flex; align-items: center; gap: 2px; max-width: 200px; overflow: hidden; transition: max-width 0.32s var(--b-curva), opacity 0.22s ease; }
+        .bussola.b-ridotta .b-ext { max-width: 0; opacity: 0; pointer-events: none; }
+        .bussola.b-ridotta .b-val { min-width: 40px; }
+        .b-mini { width: 24px; height: 28px; flex: none; display: grid; place-items: center; cursor: pointer; border-radius: 7px; transition: background 0.12s; }
+        .b-mini:hover { background: var(--b-anello-su); }
+        .b-mini-svg { height: 26px; width: auto; overflow: visible; }
+        [data-riga="incl"] .b-mini-svg { height: 28px; }
+        .b-mz-fondo { fill: var(--b-anello-su); }
+        .b-mz-pieno { fill: var(--b-ciano); opacity: 0.6; }
+        .b-mz-cur { fill: #f4f4f5; stroke: var(--b-ciano); stroke-width: 1.4; }
+        .b-me-base { stroke: var(--b-tenue); stroke-width: 1.4; stroke-linecap: round; }
+        .b-me-rilievo { fill: rgba(217, 160, 102, 0.45); stroke: #d9a066; stroke-width: 1.4; stroke-linejoin: round; }
+        .b-incl-arco { fill: none; stroke: var(--b-anello-su); stroke-width: 3; stroke-linecap: round; }
+        .b-incl-oriz { stroke: var(--b-tenue); stroke-width: 1.4; }
+        .b-incl-spicchio { fill: var(--b-ciano-velo); }
+        .b-incl-ago { stroke: var(--b-ciano); stroke-width: 2.2; stroke-linecap: round; }
+        .b-incl-punta { fill: #f4f4f5; stroke: var(--b-ciano); stroke-width: 1.6; }
+        .b-incl-occhio { fill: var(--b-testo); }
+        .b-riga { display: flex; align-items: center; gap: 2px; height: 28px; }
+        .b-val { min-width: 46px; flex: none; padding-left: 4px; text-align: right; font: 600 10px var(--font-mono); color: var(--b-testo); white-space: nowrap; transition: color 0.25s; }
+        .b-riga.vivo .b-val { color: var(--b-ciano); }
+        .b-traccia { position: relative; width: 132px; height: 24px; flex: none; cursor: pointer; touch-action: none; }
+        .b-traccia::before { content: ''; position: absolute; left: 6px; right: 6px; top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--b-anello-su); }
+        .b-traccia i { position: absolute; display: block; pointer-events: none; }
+        .b-pieno { top: 50%; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--b-ciano); opacity: 0.6; transition: left 0.2s var(--b-curva), width 0.2s var(--b-curva); }
+        .b-cursore { top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #f4f4f5; box-shadow: 0 0 0 2px var(--b-ciano), 0 1px 4px rgba(0, 0, 0, 0.5);
+            transition: left 0.2s var(--b-curva), transform 0.15s var(--b-curva); }
+        .b-traccia i.b-cursore { pointer-events: auto; cursor: grab; }
+        .b-traccia.presa .b-cursore { transform: scale(1.25); cursor: grabbing; }
+        .bussola.trac :is(.b-cursore, .b-pieno) { transition: transform 0.15s var(--b-curva); }
+        .b-zero { top: 5px; bottom: 5px; width: 0; border-left: 1.5px solid var(--b-tenue); }
+        @media (max-width: 760px) {
+            #bussola3d { top: 6px; left: 6px; transform: scale(0.78); transform-origin: top left; }
+            .b-traccia { width: 96px; }
+        }
+
+        /* VISTA 3D, scheda Sezioni: la griglia, l'elenco delle tracce, la sezione lungo la traccia. */
+        .vista3d-griglia label { display: flex; align-items: center; gap: var(--sp-1); font-weight: 600; }
+        .vista3d-griglia input[type="number"], #numFasciaSezione3d { width: 76px; }
+        .vista3d-sezioni { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-2) 0; max-height: 220px; overflow-y: auto; }
+        .vista3d-sezione-riga { display: flex; align-items: center; gap: var(--sp-2); }
+        .vista3d-sezione-riga input[type="text"] { width: 120px; font-weight: 700; }
+        .vista3d-sezione-riga .t-didascalia { min-width: 60px; }
+        #vistaSezioneTracciata { overflow-x: auto; background: #fff; border-radius: var(--radius-md); }
+        #vistaSezioneTracciata:empty { display: none; }
+        #vistaSezioneTracciata svg { display: block; max-width: 100%; height: auto; }
+
+        /* MAPPA DEL PROGETTO: la mappa grande, la scheda della prova in basso a sinistra sopra la mappa. */
+        .mappa-progetto-scena { position: relative; margin: var(--sp-2) 0; }
+        #mappaProgettoEl { height: min(70vh, 640px); border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-sunken); }
+        .mappa-progetto-scheda { position: absolute; left: 10px; bottom: 10px; z-index: 500; width: min(340px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow-y: auto; padding: var(--sp-3); box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+        .mappa-progetto-scheda[hidden] { display: none; }
+        .mappa-progetto-testa { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+        .mappa-progetto-testa strong { font-size: 1.05rem; }
+        .mappa-progetto-corpo { display: flex; gap: var(--sp-3); margin: var(--sp-2) 0; }
+        .mappa-progetto-corpo svg { flex: none; }
+        .mappa-progetto-dati { font-size: var(--fs-didascalia); line-height: 1.55; min-width: 0; }
+        .mappa-misura-etichetta { display: inline-block; white-space: nowrap; padding: 2px 7px; border-radius: 6px; background: rgba(17, 24, 39, 0.88); color: #facc15; font: 700 12px var(--font-mono), monospace; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+        .sezione-prove { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 0; font-size: 0.8rem; }
+        .sezione-prove label { display: inline-flex; align-items: center; gap: 4px; }
+        .mappa-disegno-nome { display: inline-block; white-space: nowrap; color: #fff; font: 700 12px var(--font-ui, sans-serif); text-shadow: 0 0 3px #000, 0 0 2px #000; }
+        #mappaProgettoEl .leaflet-interactive:focus { outline: none; }
+        .mappa-disegno-nome.centrato { transform: translateX(-50%); }
+        .menu-contesto .menu-colore { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; border: 1px solid rgba(0, 0, 0, 0.4); }
+        .mappa-progetto-foto { flex: none; width: 76px; height: 76px; margin-left: auto; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+        .mappa-progetto-dati .spostata { color: var(--warning); font-weight: 700; }
+        .mappa-progetto-strati { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: var(--fs-didascalia); margin-top: 4px; }
+        .mappa-progetto-strati i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+        .mappa-progetto-azioni { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+        .mappa-progetto-sposta { margin-top: var(--sp-2); font-size: var(--fs-didascalia); font-weight: 700; color: var(--warning); }
+        .mappa-progetto-nome-traccia { color: #fff; font-weight: 800; font-size: 14px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; white-space: nowrap; }
+        @media (max-width: 760px) {
+            #mappaProgettoEl { height: 62vh; }
+            .mappa-progetto-scheda { left: 6px; bottom: 6px; width: calc(100% - 12px); max-height: 55%; }
+        }
+        #btnProgettoMappa { margin-right: auto; min-height: 0; padding: 6px 12px; }
+
+        /* VISTA 3D, il pannello Livelli (preso da HyperGram 6.0b, «come in QGIS»): sopra la figura, in alto
+           a destra; chiuso resta una pillola «Livelli» che si apre in altezza e larghezza insieme. */
+        .vista3d-livelli { position: absolute; right: 10px; top: 10px; z-index: 3; width: 250px; max-height: calc(100% - 20px);
+            display: grid; grid-template-rows: auto 1fr; overflow: hidden;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); font-size: 0.78rem; color: var(--text-main);
+            transition: grid-template-rows 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.32s ease; }
+        .vista3d-livelli.chiuso { grid-template-rows: auto 0fr; width: 116px; border-radius: 18px; }
+        .vista3d-livelli.chiuso .mappa-livelli-albero { opacity: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; }
+        .vista3d-livelli.chiuso .mappa-livelli-titolo .chevron { transform: rotate(180deg); }
+        .vista3d-livelli .mappa-livelli-testa { display: flex; align-items: center; gap: 0.2rem; padding: 0.25rem 0.3rem 0.25rem 0.2rem; border-bottom: 1px solid var(--border); transition: border-color 0.32s ease; min-width: 0; }
+        .vista3d-livelli.chiuso .mappa-livelli-testa { border-bottom-color: transparent; }
+        .vista3d-livelli .mappa-livelli-titolo { flex: 1; min-width: 0; min-height: 0; white-space: nowrap; display: flex; align-items: center; gap: 0.35rem; background: none; border: none; color: var(--text-main); font: inherit; font-weight: 600; cursor: pointer; padding: 0.2rem 0.3rem; text-align: left; }
+        .vista3d-livelli .mappa-livelli-titolo .ico { width: 15px; height: 15px; margin: 0; }
+        .vista3d-livelli .mappa-livelli-titolo .chevron { margin-left: auto; transform: rotate(0deg); transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .vista3d-livelli .mappa-livelli-albero { min-height: 0; overflow-y: auto; padding: 0.15rem 0 0.3rem; user-select: none; transition: opacity 0.22s ease, padding 0.32s ease; }
+        .vista3d-livelli .liv-gruppo { display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.5rem 0.2rem; color: var(--text-muted); font-size: 0.7rem; font-weight: 600; }
+        .vista3d-livelli .liv-gruppo [data-apri-gruppo] { background: none; border: none; color: inherit; padding: 0; min-height: 0; cursor: pointer; display: flex; }
+        .vista3d-livelli .liv-gruppo [data-apri-gruppo] .ico { width: 13px; height: 13px; margin: 0; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .vista3d-livelli .liv-gruppo.chiuso [data-apri-gruppo] .ico { transform: rotate(-90deg); }
+        .vista3d-livelli .liv-gruppo-corpo { display: grid; grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease; }
+        .vista3d-livelli .liv-gruppo-corpo.chiuso { grid-template-rows: 0fr; opacity: 0; }
+        .vista3d-livelli .liv-gruppo-dentro { min-height: 0; overflow: hidden; }
+        .vista3d-livelli .liv-gruppo-corpo.chiuso .liv-gruppo-dentro { visibility: hidden; transition: visibility 0s 0.3s; }
+        .vista3d-livelli .liv-riga { display: flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.5rem 0.22rem 1.1rem; cursor: default; }
+        .vista3d-livelli .liv-riga:hover { background: rgba(127, 127, 127, 0.1); }
+        .am-sfondo2d { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 10px; font-size: 0.8rem; color: var(--text-muted); }
+        .am-sfondo2d select { flex: 1; min-width: 0; }
+        .vista3d-livelli .liv-riga.sel { background: rgba(127, 127, 127, 0.16); box-shadow: inset 3px 0 0 var(--accent); }
+        /* il tasto «T» delle etichette del livello (HyperGram) */
+        .vista3d-livelli .liv-etichette { flex: none; display: flex; min-height: 0; padding: 0 3px; border: 1px solid transparent; border-radius: 4px; background: none; color: var(--text-muted); cursor: pointer; }
+        .vista3d-livelli .liv-etichette .ico { width: 13px; height: 13px; margin: 0; }
+        .vista3d-livelli .liv-etichette.attivo { color: var(--accent); border-color: var(--border); }
+        .vista3d-livelli .liv-gruppo .liv-etichette { margin-left: auto; }
+        .vista3d-livelli input[type="checkbox"] { margin: 0; flex: none; accent-color: var(--accent); cursor: pointer; }
+        .vista3d-livelli .liv-simbolo { flex: none; width: 18px; display: flex; align-items: center; justify-content: center; }
+        .vista3d-livelli .liv-simbolo .ico { width: 14px; height: 14px; margin: 0; }
+        .vista3d-livelli .liv-sw { display: inline-block; }
+        .vista3d-livelli .liv-sw.punti { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #111; }
+        .vista3d-livelli .liv-sw.linee { width: 16px; height: 3px; border-radius: 2px; }
+        .vista3d-livelli .liv-sw.aree { width: 13px; height: 11px; border-radius: 2px; border: 1.5px solid; }
+        .vista3d-livelli .liv-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vista3d-livelli .liv-riga.spento .liv-nome, .vista3d-livelli .liv-riga.spento .liv-simbolo { opacity: 0.45; }
+        .vista3d-livelli .liv-conta { flex: none; color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: 0.7rem; }
+        @media (prefers-reduced-motion: reduce) { .vista3d-livelli, .vista3d-livelli * { transition: none !important; } }
+        @media (max-width: 760px) { .vista3d-livelli { right: 6px; top: 6px; width: 210px; } }
+
+        /* ===== MAPPA DEL PROGETTO, l'area di lavoro (presa da HyperGram 6.0b) =====
+           Tutto lo schermo: testata coi modi, barra degli strumenti a sinistra, la scena con sopra i
+           pannelli (agganciati ai lati, mobili, nascosti al bordo o ridotti), la barra di stato sotto. */
+        #modalVista3d.area-mappa { top: 0; left: 0; transform: none; width: 100vw; height: 100dvh; max-width: none; max-height: none !important; margin: 0; padding: 0; border-radius: 0; border: 0; overflow: hidden !important;
+            display: grid; grid-template-rows: auto 1fr auto; }
+        #modalVista3d.area-mappa.open { transform: none; }
+        /* È una schermata a sé, mai una finestra fra le altre: inchiodata a tutto lo schermo (niente regole delle
+           finestre la può spostare o dimezzare) e sopra a tutto, barre dell'app comprese. */
+        #modalVista3d.area-mappa { position: fixed !important; inset: 0 !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+            width: auto !important; height: auto !important; max-width: none !important; transform: none !important; z-index: 300; }
+        #modalVista3dOverlay { display: none !important; }
+        .am-testa { display: flex; align-items: center; gap: var(--sp-2); padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--border); min-width: 0; }
+        .am-titolo { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .am-modi { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--bg-sunken); border: 1px solid var(--border); }
+        .am-modi button { display: inline-flex; align-items: center; gap: 6px; min-height: 0; padding: 5px 12px; border: 0; border-radius: 7px; background: none; color: var(--text-muted); font-weight: 700; cursor: pointer; }
+        .am-modi button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+        .am-modi .ico { width: 15px; height: 15px; margin: 0; }
+        .am-spazio { flex: 1; }
+        .am-testa .bt { min-height: 0; padding: 6px 10px; }
+        .area-mappa[data-modo="mappa"] .am-solo-3d, .area-mappa[data-modo="3d"] .am-solo-mappa { display: none !important; }
+        .am-corpo { display: flex; min-height: 0; }
+        /* la barra degli strumenti: icone con la scritta sotto, una colonna */
+        .mappa-rail { flex: none; width: 66px; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 6px 5px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg-card); }
+        .mappa-rt { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 0; padding: 7px 2px 5px; border: 0; border-radius: 9px; background: none; color: var(--text-muted); font: 600 0.62rem var(--font-sans); cursor: pointer; }
+        .mappa-rt .ico { width: 19px; height: 19px; margin: 0; }
+        .mappa-rt:hover { background: rgba(127, 127, 127, 0.12); color: var(--text-main); }
+        .mappa-rt.attivo { background: var(--accent-soft); color: var(--accent-ink, var(--accent)); box-shadow: inset 0 0 0 1px var(--accent); }
+        .mappa-rail-spazio { flex: 1; }
+        .mappa-rail-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+        /* la scena: la vista (2D o 3D) rientra dai pannelli agganciati e fissati (--vl, --vr) */
+        .am-scena { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+        .am-vista { position: absolute; top: 0; bottom: 0; left: var(--vl, 0px); right: var(--vr, 0px); transition: left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .area-mappa .vista3d-scena, .area-mappa .mappa2d-scena { position: absolute; inset: 0; margin: 0; }
+        .area-mappa[data-modo="mappa"] .vista3d-scena, .area-mappa[data-modo="3d"] .mappa2d-scena { display: none; }
+        .area-mappa #graficoVista3d { position: absolute; inset: 0; margin: 0; border-radius: 0; }
+        .area-mappa #mappaProgettoEl { position: absolute; inset: 0; height: auto; border: 0; border-radius: 0; }
+        .area-mappa[data-strumento="misura"] #graficoVista3d canvas, .area-mappa[data-strumento="profilo"] #graficoVista3d canvas,
+        .area-mappa[data-strumento="misura"] #mappaProgettoEl, .area-mappa[data-strumento="area"] #mappaProgettoEl, .area-mappa[data-strumento="profilo"] #mappaProgettoEl { cursor: crosshair; }
+        #bussola2d { position: absolute; top: 10px; left: 10px; z-index: 600; }
+        .area-mappa .mappa-progetto-scheda { z-index: 650; }
+        /* i pannelli */
+        .area-mappa .am-pnl { position: absolute; z-index: 700; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-card); border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-main);
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease, top 0.32s ease, left 0.32s ease, right 0.32s ease, height 0.3s ease,
+                width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), max-height 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.32s ease, box-shadow 0.32s ease; }
+        .area-mappa .vista3d-livelli.am-pnl { width: 250px; max-height: none; display: flex; border-radius: 0; box-shadow: none; }
+        .area-mappa .am-comandi { width: 340px; }
+        .area-mappa .am-pnl.dk { top: var(--pt, 0px); height: var(--ph, 100%); max-height: 100%; border-radius: 0; box-shadow: none; }
+        .am-pnl.dk.dl { left: 0; right: auto; border-width: 0 1px 0 0; }
+        .am-pnl.dk.dr { right: 0; left: auto; border-width: 0 0 0 1px; }
+        .am-pnl.fl { right: auto; bottom: auto; border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); max-height: calc(100% - 20px); }
+        .am-pnl-testa { flex: none; display: flex; align-items: center; gap: 2px; min-height: 40px; padding: 0 4px 0 10px; border-bottom: 1px solid var(--border); user-select: none; }
+        .vista3d-livelli .am-pnl-testa { padding-left: 2px; }
+        .am-pnl-tit { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+        .am-pnl-tit .ico { width: 15px; height: 15px; margin: 0; color: var(--accent); }
+        .am-pnl-ctrl { display: inline-flex; gap: 1px; flex: none; }
+        .am-pnl-bt { width: 28px; height: 28px; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 7px; background: none; color: var(--text-muted); cursor: pointer; }
+        .am-pnl-bt:hover { background: rgba(127, 127, 127, 0.14); color: var(--text-main); }
+        .am-pnl-bt .ico { width: 14px; height: 14px; margin: 0; }
+        .am-pnl-corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 12px; }
+        .area-mappa .vista3d-livelli .mappa-livelli-albero { flex: 1; }
+        /* ridotto: una pillola (come in HyperGram). Agganciato si chiude in altezza, scorrendo, fino alla
+           sola testata, e si stacca dal bordo; il contenuto sfuma. Libero (telefono) resta la testata. */
+        .area-mappa .am-pnl.dk.red { max-height: 40px; top: 10px; border-width: 1px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+        .area-mappa .am-pnl.dk.dl.red { left: 10px; }
+        .area-mappa .am-pnl.dk.dr.red { right: 10px; }
+        .am-pnl .am-pnl-corpo, .am-pnl .mappa-livelli-albero { transition: opacity 0.22s ease; }
+        .am-pnl.dk.red .am-pnl-corpo, .am-pnl.dk.red .mappa-livelli-albero { opacity: 0; pointer-events: none; }
+        .am-pnl.red .am-pnl-testa { border-bottom-color: transparent; padding-right: 12px; }
+        .am-pnl.red .am-pnl-ctrl { display: none; }
+        .am-pnl.dk.red .am-pnl-testa { cursor: grab; }
+        .am-pnl.dk.red.trascina { transition: none; cursor: grabbing; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
+        /* chiuso al suo posto: resta largo e agganciato, si restringe in altezza fino alla testata */
+        .area-mappa .am-pnl.dk.chiuso { max-height: 41px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); border-bottom-width: 1px; }
+        .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { opacity: 0; pointer-events: none; }
+        .am-pnl.chiuso .am-pnl-testa { border-bottom-color: transparent; }
+        .am-pnl-tit { cursor: pointer; }
+        .am-pnl-tit .chevron { width: 13px; height: 13px; margin-left: auto; color: var(--text-muted); }
+        .am-pnl .chevron { transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .am-pnl.red .chevron, .am-pnl.chiuso .chevron { transform: rotate(180deg); }
+        .am-pnl.fl.red { height: auto !important; bottom: auto; }
+        /* la pillola dei Livelli sta in alto a sinistra: la bussola le fa posto, scendendo */
+        #bussola3d, #bussola2d { transition: top 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .am-vista.liv-pillola #bussola3d, .am-vista.liv-pillola #bussola2d { top: 58px; }
+        .am-pnl.fl.red .am-pnl-corpo, .am-pnl.fl.red .mappa-livelli-albero { display: none; }
+        .area-mappa .am-comandi .vista3d-schede { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
+        .area-mappa .am-comandi .vista3d-cursori { grid-template-columns: 1fr; }
+        .area-mappa .am-comandi .vista3d-cursore { flex-wrap: wrap; }
+        .area-mappa .am-comandi .vista3d-cursore > span, .area-mappa .am-comandi .vista3d-taglio-nome { min-width: 0; }
+        .area-mappa .am-comandi #vistaSezioneTracciata svg { width: 100%; }
+        /* nel modo Mappa, del pannello Comandi restano lo sfondo e le sezioni */
+        .area-mappa[data-modo="mappa"] #schedeVista3d, .area-mappa[data-modo="mappa"] [data-pannello3d]:not([data-pannello3d="sezioni"]) { display: none !important; }
+        .area-mappa[data-modo="mappa"] [data-pannello3d="sezioni"] { display: block !important; }
+        /* le scorciatoie */
+        .am-pop { position: absolute; left: 8px; bottom: 8px; z-index: 720; width: 330px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); }
+        .am-pop[hidden] { display: none; }
+        .am-pop-tit { font-weight: 800; margin-bottom: 8px; }
+        .am-pop-tasti { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; font-size: 0.74rem; }
+        .am-pop-tasti div { display: flex; justify-content: space-between; gap: 6px; }
+        .am-pop-tasti kbd { font: 600 0.68rem var(--font-mono); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-sunken); white-space: nowrap; }
+        /* la barra di stato */
+        .am-stato { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--text-muted); min-width: 0; overflow: hidden; }
+        .am-chip { white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: var(--bg-sunken); }
+        .am-chip:empty { display: none; }
+        .am-chip[hidden] { display: none; }
+        #lblAreaMappaMisura { background: rgba(250, 204, 21, 0.18); color: var(--text-main); font-weight: 700; }
+        .am-mono { font-family: var(--font-mono); }
+        .am-tenue { background: none; overflow: hidden; text-overflow: ellipsis; }
+        /* telefono: la barra si stringe, i pannelli galleggiano sopra la scena */
+        @media (max-width: 760px) {
+            .mappa-rail { width: 54px; padding: 4px 3px; }
+            .mappa-rt span { display: none; }
+            .area-mappa .vista3d-livelli.am-pnl, .area-mappa .am-comandi { width: min(300px, calc(100% - 16px)); }
+            .am-testa .bt { display: none; }
+            .am-pop { width: calc(100% - 16px); }
+            .area-mappa .am-pnl.red { width: auto !important; }
+            #bussola2d { top: 6px; left: 6px; transform: scale(0.78); transform-origin: top left; }
+            #bussola2d .b-traccia { width: 96px; }
+        }
+        /* la bussola del 2D: al centro la direzione col punto cardinale (da HyperGram) */
+        .b-centro { fill: var(--b-centro); stroke: var(--b-bordo); stroke-width: 1; transition: fill 0.15s; }
+        .b-dial:has(.b-presa-centro:hover) .b-centro { fill: var(--b-centro-su); }
+        .b-rotta.b-rotta2d { font-size: 15px; }
+        .b-sotto { fill: var(--b-tenue); font: 700 8px var(--font-sans); text-anchor: middle; letter-spacing: 0.06em; pointer-events: none; }
+        #bussola2d .b-riga { height: 30px; }
+        /* ===== TUTTO ANIMATO nell'area di lavoro (mappa e 3D). Chi chiede al sistema di ridurre il movimento
+           vede gli stati finali e basta (regola generale in 01_app.css). ===== */
+        @keyframes amComparsa { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+        @keyframes amSale { from { opacity: 0; translate: 0 24px; scale: 0.97; } to { opacity: 1; translate: 0 0; scale: 1; } }
+        @keyframes amPop { 0% { opacity: 0; scale: 0.2; } 65% { opacity: 1; scale: 1.18; } 100% { scale: 1; } }
+        @keyframes amPulsa { 0% { scale: 1; } 35% { scale: 1.35; } 100% { scale: 1; } }
+        @keyframes amRimbalzo { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 1; } }
+        @keyframes amRigaEntra { from { opacity: 0; translate: -8px 0; } to { opacity: 1; translate: 0 0; } }
+        @keyframes amSfuma { from { opacity: 0; } to { opacity: 1; } }
+        /* la finestra entra ed esce sfumando, con un filo di ingrandimento (la posizione resta inchiodata) */
+        #modalVista3d.area-mappa { scale: 0.985; transition: opacity var(--mov-lungo) var(--ease-entra), scale var(--mov-lungo) var(--ease-entra); }
+        #modalVista3d.area-mappa.open { scale: 1; }
+        /* Mappa ⇄ 3D: dissolvenza incrociata (la scena nascosta resta della sua misura) */
+        .area-mappa .vista3d-scena, .area-mappa .mappa2d-scena { transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s; }
+        .area-mappa[data-modo="mappa"] .vista3d-scena, .area-mappa[data-modo="3d"] .mappa2d-scena { display: block; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s var(--mov-lungo); }
+        /* quel che compare (strumenti e comandi del modo, schede, riquadri) entra scivolando */
+        .area-mappa .am-solo-3d, .area-mappa .am-solo-mappa, .area-mappa [data-pannello3d]:not([hidden]),
+        .area-mappa #tastiMappa3d:not([hidden]), #lblAreaMappaMisura:not([hidden]) { animation: amComparsa var(--mov-medio) var(--ease-entra); }
+        .area-mappa #schedaProvaMappa:not([hidden]) { animation: amSale var(--mov-lungo) var(--ease-entra); }
+        .am-stato .am-ravviva { animation: amSfuma var(--mov-medio) var(--ease-entra); }
+        /* la barra degli strumenti: lo strumento si accende scorrendo, l'icona fa un piccolo salto */
+        .mappa-rt { transition: background var(--mov-breve) var(--ease-inloco), color var(--mov-breve) var(--ease-inloco), box-shadow var(--mov-breve) var(--ease-inloco); }
+        .mappa-rt.attivo .ico { animation: amRimbalzo var(--mov-medio) var(--ease-entra); }
+        .am-modi [data-modo-mappa] { transition: background var(--mov-medio) var(--ease-inloco), color var(--mov-medio) var(--ease-inloco); }
+        /* i Livelli: righe nuove entrano, quelle spostate scivolano (FLIP in 071h), spunte e «T» rimbalzano */
+        .vista3d-livelli .liv-riga.entra { animation: amRigaEntra var(--mov-medio) var(--ease-entra) both; }
+        .vista3d-livelli .liv-riga, .vista3d-livelli .liv-riga .liv-nome, .vista3d-livelli .liv-riga .liv-simbolo { transition: opacity var(--mov-breve) var(--ease-inloco), background var(--mov-breve) var(--ease-inloco), box-shadow var(--mov-breve) var(--ease-inloco); }
+        .vista3d-livelli .cambiata input, .vista3d-livelli .cambiata.liv-etichette, .vista3d-livelli .liv-riga.cambiata .liv-simbolo { animation: amRimbalzo var(--mov-medio) var(--ease-entra); }
+        .vista3d-livelli .liv-etichette { transition: color var(--mov-breve) var(--ease-inloco), border-color var(--mov-breve) var(--ease-inloco), background var(--mov-breve) var(--ease-inloco); }
+        /* la mappa 2D: segnaposto e disegni nuovi «pop», la prova scelta pulsa una volta, la misura finita appare */
+        .gps-altra-prova-pin.entra, .gps-mia-prova-pin.entra { animation: amPop 0.42s var(--ease-entra) both; }
+        .gps-mia-prova-pin.pulsa { animation: amPulsa 0.5s var(--ease-entra); }
+        .leaflet-interactive.am-entra { animation: amSfuma var(--mov-lungo) var(--ease-entra); }
+        .mappa-misura-etichetta.fatta, .mappa-disegno-nome, .mappa-progetto-nome-traccia { animation: amSfuma var(--mov-medio) var(--ease-entra); }
+        /* il 3D: dissolvenza tra un disegno e l'altro (livelli accesi o spenti, opacità, mesh…) */
+        .vista3d-dissolvenza { position: absolute; left: 0; top: 0; pointer-events: none; transition: opacity 0.26s var(--ease-inloco); }
+        /* il menu delle schede: la linguetta scelta scorre di colore */
+        .area-mappa .vista3d-schede [role="tab"] { transition: background var(--mov-medio) var(--ease-inloco), color var(--mov-medio) var(--ease-inloco); }
+        /* ===== «Stile…» di un livello (come in HyperGram): un pannellino accanto al clic ===== */
+        .stile-pop { position: fixed; z-index: 360; width: 300px; max-width: calc(100vw - 16px); padding: 10px 12px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45); color: var(--text-main); font-size: 0.8rem; opacity: 0; visibility: hidden; translate: 0 6px; scale: 0.98;
+            transition: opacity var(--mov-medio) var(--ease-entra), translate var(--mov-medio) var(--ease-entra), scale var(--mov-medio) var(--ease-entra), visibility 0s var(--mov-medio); }
+        .stile-pop.aperto { opacity: 1; visibility: visible; translate: 0 0; scale: 1; transition-delay: 0s; }
+        .stile-testa { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+        .stile-testa .ico { width: 15px; height: 15px; color: var(--accent); }
+        .stile-testa b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stile-righe { display: flex; flex-direction: column; gap: 8px; }
+        .stile-riga { display: grid; grid-template-columns: 82px 1fr; align-items: center; gap: 8px; }
+        .stile-nome { color: var(--text-muted); font-size: 0.74rem; }
+        .stile-riga select { min-height: 0; padding: 4px 8px; font-size: 0.8rem; }
+        .griglia-colori { display: flex; flex-wrap: wrap; gap: 4px; }
+        .griglia-colore-btn { width: 20px; height: 20px; min-height: 0; padding: 0; border-radius: 50%; border: 1px solid rgba(127, 127, 127, 0.5); background: var(--c, transparent); cursor: pointer;
+            display: grid; place-items: center; font: 700 10px var(--font-sans); color: var(--text-muted); transition: scale var(--mov-breve) var(--ease-entra), box-shadow var(--mov-breve) var(--ease-inloco); }
+        .griglia-colore-btn:hover { scale: 1.12; }
+        .griglia-colore-btn[aria-checked="true"] { box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px var(--accent); }
+        .griglia-colore-btn.altro { background: conic-gradient(#ef4444, #facc15, #22c55e, #3b82f6, #a855f7, #ef4444); position: relative; overflow: hidden; }
+        .griglia-colore-btn.altro input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .stile-seg { display: flex; flex-wrap: wrap; gap: 3px; }
+        .stile-seg button { min-height: 0; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); background: none; color: var(--text-muted); font-size: 0.72rem; cursor: pointer;
+            transition: background var(--mov-breve) var(--ease-inloco), color var(--mov-breve) var(--ease-inloco); }
+        .stile-seg button.attivo { background: var(--accent-soft); color: var(--accent-ink, var(--accent)); border-color: var(--accent); }
+        .stile-piede { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+        .stile-piede .ico { width: 13px; height: 13px; margin-right: 3px; vertical-align: -2px; }
+        .stile-nota { flex: 1; color: var(--text-muted); font-size: 0.7rem; text-align: center; }
+        /* le etichette sulla mappa: solo testo, con sfondo, con sfondo e bordo */
+        .mappa-disegno-nome.et-sfondo, .mappa-disegno-nome.et-bordo, .mappa-progetto-nome-traccia.et-sfondo, .mappa-progetto-nome-traccia.et-bordo {
+            padding: 1px 6px; border-radius: 4px; background: rgba(17, 24, 39, 0.82); text-shadow: none; color: #fff; }
+        .mappa-disegno-nome.et-bordo, .mappa-progetto-nome-traccia.et-bordo { border: 1px solid #fff; }
