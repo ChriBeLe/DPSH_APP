@@ -183,6 +183,13 @@
         .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
         .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
         .progetto-prove { padding: 0; overflow: hidden; }
+        .progetto-ordina { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); background: var(--accent-soft); }
+        .progetto-ordina[hidden] { display: none; }
+        .prova-riga.ordina { cursor: default; }
+        .prova-riga.ordina .giu .ico { transform: rotate(180deg); }
+        .prova-maniglia { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 44px; color: var(--text-muted); cursor: grab; touch-action: none; }
+        .prova-riga.trascinata { background: var(--accent-soft); box-shadow: var(--ombra-media, 0 4px 12px rgba(0,0,0,.15)); position: relative; z-index: 1; }
+        .prova-riga.trascinata .prova-maniglia { cursor: grabbing; }
         .progetto-prove > .bt-link { width: 100%; min-height: 56px; display: flex; align-items: center; justify-content: center; gap: var(--sp-1); }
         .prova-riga { width: 100%; display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: var(--sp-2) var(--sp-3); border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
         .prova-riga-n { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 1px solid var(--border); }

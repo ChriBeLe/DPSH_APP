@@ -52,8 +52,7 @@
              * per evitare che un click sul menu a tendina attivi/disattivi anche la spunta. */
             function popolaListaProveEsportazionePdf(proj) {
                 if (!esportaPdfListaProve) return;
-                const tutte = Object.values(proj.surveys || {})
-                    .sort((a, b) => (parseInt(a.header && a.header.provaNr) || 0) - (parseInt(b.header && b.header.provaNr) || 0));
+                const tutte = proveInOrdine(proj); // l'ordine in cui escono nel documento
                 // Le interpretazioni alternative partono spente, altrimenti la stessa verticale uscirebbe
                 // due volte nel documento: si accende la versione che si vuole consegnare.
                 esportaPdfSelectedIds = new Set(tutte.filter(s => !(s.header && s.header.interpretazioneDi)).map(s => s.id));

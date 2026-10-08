@@ -124,9 +124,7 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !proj.surveys) return [];
                 syncStateToProject(); // garantisce che la prova aperta sia salvata in proj prima di esportare
-                return Object.values(state.projects[state.currentProjectId].surveys)
-                    .slice()
-                    .sort((a,b)=> (parseInt(a.header?.provaNr)||0) - (parseInt(b.header?.provaNr)||0) || (a.updatedAt||0)-(b.updatedAt||0));
+                return proveInOrdine(state.projects[state.currentProjectId]);
             }
 
             /** Sezione completa di una prova per l'export "Parametri Avanzati": scheda di campo

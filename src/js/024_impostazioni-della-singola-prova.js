@@ -34,6 +34,23 @@
                 return (prove || []).filter(s => scelta.get(radiceProva(s)) === s);
             }
 
+            /** LE PROVE DEL PROGETTO NEL LORO ORDINE: quello scelto a mano nella schermata del progetto
+             * («Ordina», proj.ordineProve: gli id), poi le altre per numero (3 prima di 3B prima di 4) e
+             * a parità per data. È l'ordine del report, dell'indice, dell'elenco di esportazione, della
+             * schermata del progetto e della barra delle prove. Prima il report le prendeva
+             * nell'ordine in cui erano state create, e l'indice usciva in disordine. */
+            function proveInOrdine(proj) {
+                const tutte = Object.values((proj && proj.surveys) || {});
+                const perNumero = (a, b) => String((a.header || {}).provaNr || '').localeCompare(String((b.header || {}).provaNr || ''), 'it', { numeric: true })
+                    || (a.updatedAt || 0) - (b.updatedAt || 0);
+                const scelto = Array.isArray(proj && proj.ordineProve) ? proj.ordineProve : [];
+                const posto = new Map(scelto.map((id, i) => [id, i]));
+                return tutte.slice().sort((a, b) => {
+                    const pa = posto.has(a.id) ? posto.get(a.id) : Infinity, pb = posto.has(b.id) ? posto.get(b.id) : Infinity;
+                    return pa !== pb ? pa - pb : perNumero(a, b);
+                });
+            }
+
             /** Lettera della prossima interpretazione di una verticale: B, poi C, D… saltando quelle già
              * usate dalle interpretazioni esistenti della stessa radice. */
             function prossimaLetteraInterpretazione(proj, radiceId) {
@@ -178,12 +195,8 @@
                 surveySwitcherBar.innerHTML = '';
                 // Ordinate per numero prova crescente (non per ordine di creazione): assegnare o
                 // modificare il N° di una prova la sposta subito al suo posto nella barra.
-                const keys = Object.keys(surveys).sort((a, b) => {
-                    const na = parseInt(surveys[a].header?.provaNr) || 0;
-                    const nb = parseInt(surveys[b].header?.provaNr) || 0;
-                    if (na !== nb) return na - nb;
-                    return (surveys[a].updatedAt || 0) - (surveys[b].updatedAt || 0);
-                });
+                // (o nell'ordine scelto a mano nel progetto, vedi proveInOrdine).
+                const keys = proveInOrdine(state.projects[state.currentProjectId] || { surveys }).map(s => s.id).filter(id => surveys[id]);
 
                 // «Prove» e poi i cerchietti da 44 (Fase 3); il «+» tratteggiato per una prova nuova
                 // viene dopo l'ultima, come nel prototipo.
