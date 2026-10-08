@@ -370,7 +370,7 @@
                 // non sommarsi al gap distribuito (vedi margineRiga, passato anche a
                 // renderaGruppoRowSpanEditor per i gruppi rowSpan).
                 const distribuisciSpazio = !!page.distribuisciSpazioVerticale;
-                const margineRiga = distribuisciSpazio ? '0' : '10px';
+                const margineRiga = distribuisciSpazio ? '0' : '12px'; // come la stampa (buildPaginaRigheHtml)
                 let righeHtml = '';
                 if (page.continuaBloccoId) {
                     // Pagina di continuazione (vedi sincronizzaFlussiBlocchiLunghi): non ha righe

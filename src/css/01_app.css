@@ -1387,7 +1387,11 @@
         #appDialogOverlay { z-index: 400; }
         #appDialog { z-index: 401; }
 
-        .tpl-editor-block { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-sm); position: relative; }
+        /* IL RIQUADRO DEL BLOCCO NON RUBA SPAZIO: è un contorno (outline), non un bordo, e il corpo
+           non ha margine interno. Prima bordo e margine stringevano ogni blocco di 15 px rispetto al
+           foglio di stampa, e nell'editor le righe andavano a capo dove nel PDF non ci andavano:
+           l'anteprima dev'essere la fotografia del documento. */
+        .tpl-editor-block { background: var(--bg-card); border: none; outline: 1.5px solid var(--border); outline-offset: 0; border-radius: var(--radius-sm); position: relative; }
         /* IL DIVISORE STRETTO RESTA AFFERRABILE. Ora puo' scendere a pochi millimetri di
            larghezza (vedi flexEntryCss): a quel punto il riquadro sulla tela e' piu' sottile di
            un dito e non lo prenderesti mai. La presa non si allarga allargando il BLOCCO —
@@ -1424,7 +1428,7 @@
            questo riquadro anticipa una pagina STAMPATA, sempre su carta bianca, quindi il contenuto
            (tabelle/grafici pensati per un foglio bianco) deve vedersi identico in entrambi i temi —
            altrimenti in tema scuro certe scritte pensate per sfondo chiaro diventano illeggibili. */
-        .tpl-editor-block-body { padding: 6px; background: #fff; color: #1e293b; border-radius: var(--radius-sm); cursor: pointer; touch-action: pan-y; transition: transform var(--mov-istante) var(--ease-entra); }
+        .tpl-editor-block-body { padding: 0; background: #fff; color: #1e293b; border-radius: var(--radius-sm); cursor: pointer; touch-action: pan-y; transition: transform var(--mov-istante) var(--ease-entra); }
         /* Riscontro visivo al tocco (richiesto esplicitamente), stesso principio dei blocchi della
          * palette: un piccolo schiacciamento immediato, indipendente dall'esito del gesto. */
         .tpl-editor-block-body.tpl-editor-block-pressed { transform: scale(0.97); }
@@ -2419,7 +2423,7 @@
            nel PDF — la classe si applica su #templateEditorPageFrame (antenato comune di canvas e
            linea A4) così una sola regola CSS copre entrambi senza bisogno di JS aggiuntivo. */
         .tpl-editor-preview-mode .tpl-editor-block-select-overlay { display: none !important; }
-        .tpl-editor-preview-mode .tpl-editor-block { border-color: transparent; background: transparent; }
+        .tpl-editor-preview-mode .tpl-editor-block { border-color: transparent; outline-color: transparent; background: transparent; }
         .tpl-editor-preview-mode .tpl-editor-block-body { border-radius: var(--radius-sm); cursor: default; }
         .tpl-editor-preview-mode #templateEditorA4Line { opacity: 0.35; }
 

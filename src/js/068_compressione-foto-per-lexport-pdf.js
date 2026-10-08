@@ -72,6 +72,71 @@
              * Erano solo nel primo, e l'editor si arrangiava con lo stile in linea del blocco —
              * per questo una tabella nel testo si vedeva nelle note, ma sul foglio compariva
              * senza bordi. Due copie divergono; una sola no. */
+            /** LE REGOLE DEL CONTENUTO DEL FOGLIO (tabelle, celle, box dati, immagini), UNA SOLA
+             * VOLTA: le usano il foglio di stampa (PDF e Word, ambito vuoto) e l'anteprima
+             * dell'editor (ambito: la tela). Prima stavano solo nel foglio di stampa, e l'anteprima
+             * disegnava gli stessi blocchi col carattere, il corpo e l'interlinea dell'app: un'altra
+             * pagina, che poi nel PDF non tornava. Con «A» vuoto i selettori sono quelli di sempre. */
+            function cssRegoleFoglio(ambito) {
+                const A = ambito ? ambito + ' ' : '';
+                return `
+                    ${A}table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 6px;
+                        font-size: 10px;
+                        table-layout: fixed;
+                    }
+                    ${A}th, ${A}td {
+                        /* Quattro lati separati e pilotati da variabili (vedi bordoExp e
+                           stileGrigliaTabellaBlocco): permette di spegnere le linee verticali,
+                           tutte, o nessuna, per singolo blocco. I fallback sono il bordo storico,
+                           quindi senza scelte esplicite nulla cambia. */
+                        border-top: var(--tpl-bordo-h, 1px solid #cbd5e1);
+                        border-bottom: var(--tpl-bordo-h, 1px solid #cbd5e1);
+                        border-left: var(--tpl-bordo-v, 1px solid #cbd5e1);
+                        border-right: var(--tpl-bordo-v, 1px solid #cbd5e1);
+                        padding: 4px 5px;
+                        text-align: center;
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                        vertical-align: middle;
+                    }
+                    /* Sfondo/testo di RISERVA per un <th> che non porta un proprio background
+                       colorato in linea (bug segnalato esplicitamente: prima qui era
+                       "background:#0f172a; color:#fff" — dark navy con testo bianco — che
+                       VINCEVA su qualunque <th> senza un colore in linea proprio (es. le
+                       intestazioni Aste/Metri/COLPI/Nspt di buildColpiNsptTableHtml, che hanno il
+                       colore sul <tr> genitore, non sul <th>), rendendo il testo bianco invisibile
+                       sopra badge/celle pensate per restare chiare con testo scuro. I <th> che HANNO
+                       un colore proprio (vedi thExp/cellStyle) impostano ORA anche color:#1e293b in
+                       linea, quindi non dipendono più da questa regola generica — resta solo un
+                       fallback neutro coerente con lo schema pastello dell'app. */
+                    ${A}th { background: #e2e8f0; color: #1e293b; font-weight: 700; font-size: 9.5px; }
+                    ${A}tr:nth-child(even) { background: #f8fafc; }
+                    ${A}img { max-width: 100%; }
+
+                    /* Annulla le regole generiche sopra (bordo su ogni cella, testo centrato, righe
+                       pari grigie) SOLO per i box "PROVA N/DATI INDAGINE/STRUMENTO/STRATIGRAFICI"
+                       (vedi buildDatiBoxHtml/.databox-tabella): quelle regole sono pensate per le
+                       tabelle dati "normali" (Aste/Metri/Colpi, Riepilogo parametri...), ma qui
+                       vincevano visivamente sopra lo sfondo azzurro pieno e l'allineamento a
+                       sinistra propri del box, che nell'editor (canvas senza questo foglio di
+                       stile di stampa) restano invece intatti — causa esatta del bug segnalato con
+                       screenshot a confronto ("guarda come sono diversi gli export dal template"). */
+                    ${A}.databox-tabella th, ${A}.databox-tabella td { border: none; text-align: left; }
+                    ${A}.databox-tabella tr:nth-child(even) { background: transparent; }
+                `;
+            }
+            /** L'anteprima dell'editor con le regole del foglio di stampa: lo stesso carattere (quello
+             * del documento), la stessa interlinea e lo stesso colore del testo, e le stesse regole
+             * di tabelle e celle (cssRegoleFoglio). Dentro i blocchi, non sui comandi dell'editor. */
+            function cssAnteprimaComeStampa() {
+                const tela = ':where(#templateEditorCanvas)'; // :where non aggiunge peso: vincono le stesse regole che vincono in stampa
+                return `${tela} :is(.tpl-editor-block-inner, .tpl-editor-stack-item) { font-family: var(--tpl-font, Arial, sans-serif); color: #1e293b; line-height: 1.35; }
+                    ${cssRegoleFoglio(tela)}`;
+            }
+
             function cssContenutoTesto() {
                 return `
                     /* I TITOLI DENTRO IL BLOCCO DI TESTO. Prendono le misure dallo stile del
@@ -135,7 +200,7 @@
             // il foglio di stampa leggono le stesse identiche regole.
             {
                 const tagStile = document.getElementById('stileContenutoTesto');
-                if (tagStile) tagStile.textContent = cssContenutoTesto();
+                if (tagStile) tagStile.textContent = cssContenutoTesto() + '\n' + cssAnteprimaComeStampa();
             }
 
 
@@ -282,52 +347,7 @@
                         box-shadow: 0 4px 18px rgba(0,0,0,0.25);
                     }
 
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 6px;
-                        font-size: 10px;
-                        table-layout: fixed;
-                    }
-                    th, td {
-                        /* Quattro lati separati e pilotati da variabili (vedi bordoExp e
-                           stileGrigliaTabellaBlocco): permette di spegnere le linee verticali,
-                           tutte, o nessuna, per singolo blocco. I fallback sono il bordo storico,
-                           quindi senza scelte esplicite nulla cambia. */
-                        border-top: var(--tpl-bordo-h, 1px solid #cbd5e1);
-                        border-bottom: var(--tpl-bordo-h, 1px solid #cbd5e1);
-                        border-left: var(--tpl-bordo-v, 1px solid #cbd5e1);
-                        border-right: var(--tpl-bordo-v, 1px solid #cbd5e1);
-                        padding: 4px 5px;
-                        text-align: center;
-                        word-wrap: break-word;
-                        overflow-wrap: break-word;
-                        vertical-align: middle;
-                    }
-                    /* Sfondo/testo di RISERVA per un <th> che non porta un proprio background
-                       colorato in linea (bug segnalato esplicitamente: prima qui era
-                       "background:#0f172a; color:#fff" — dark navy con testo bianco — che
-                       VINCEVA su qualunque <th> senza un colore in linea proprio (es. le
-                       intestazioni Aste/Metri/COLPI/Nspt di buildColpiNsptTableHtml, che hanno il
-                       colore sul <tr> genitore, non sul <th>), rendendo il testo bianco invisibile
-                       sopra badge/celle pensate per restare chiare con testo scuro. I <th> che HANNO
-                       un colore proprio (vedi thExp/cellStyle) impostano ORA anche color:#1e293b in
-                       linea, quindi non dipendono più da questa regola generica — resta solo un
-                       fallback neutro coerente con lo schema pastello dell'app. */
-                    th { background: #e2e8f0; color: #1e293b; font-weight: 700; font-size: 9.5px; }
-                    tr:nth-child(even) { background: #f8fafc; }
-                    img { max-width: 100%; }
-
-                    /* Annulla le regole generiche sopra (bordo su ogni cella, testo centrato, righe
-                       pari grigie) SOLO per i box "PROVA N/DATI INDAGINE/STRUMENTO/STRATIGRAFICI"
-                       (vedi buildDatiBoxHtml/.databox-tabella): quelle regole sono pensate per le
-                       tabelle dati "normali" (Aste/Metri/Colpi, Riepilogo parametri...), ma qui
-                       vincevano visivamente sopra lo sfondo azzurro pieno e l'allineamento a
-                       sinistra propri del box, che nell'editor (canvas senza questo foglio di
-                       stile di stampa) restano invece intatti — causa esatta del bug segnalato con
-                       screenshot a confronto ("guarda come sono diversi gli export dal template"). */
-                    .databox-tabella th, .databox-tabella td { border: none; text-align: left; }
-                    .databox-tabella tr:nth-child(even) { background: transparent; }
+                    ${cssRegoleFoglio('')}
 
                     /* Le icone del report (<svg class="ico"><use href="#i-...">) puntano a
                        <symbol> definiti nello sprite dell'app principale: la finestra di stampa è
