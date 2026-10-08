@@ -76,7 +76,7 @@ console.log('--- E arrivano nel documento di stampa, che e il punto ---');
   // suo template (--idx-font, il carattere scelto in «Personalizza indice»). La regola resta:
   // nessun foglio con un carattere scritto a mano, ciascuno legge la variabile del suo stile.
   t('ma leggono la variabile dello stile del documento',
-     (codice.match(/style="font-family: var\(--tpl-font, Arial, sans-serif\);"><div class="dpsh-sheet-inner"/g) || []).length === 2
+     (codice.match(/style="font-family: var\(--tpl-font, Arial, sans-serif\);\$\{stileSopra\}">\$\{intestazione\}<div class="dpsh-sheet-inner"/g) || []).length === 2
      && (codice.match(/data-tpl-page-label="Indice" data-sommario="[^"]*" style="font-family: var\(--idx-font, Arial, sans-serif\);/g) || []).length === 1);
 }
 
