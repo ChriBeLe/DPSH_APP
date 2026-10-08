@@ -928,11 +928,61 @@
             // Una sola regola per export, miniature, editor e controlli di impaginazione.
             const INTESTAZIONE_RESPIRO_MM = 5; // 3 mm sopra, 2 mm sotto l'intestazione
 
+            const INTESTAZIONE_MAX_NATURALE_MM = 28; // come prima: un logo non supera i 28 mm se non lo si chiede
+
+            /** Larghezza e altezza (px) di un'immagine in data URL, lette dall'intestazione del file
+             * (PNG, JPEG, GIF), senza caricarla: servono subito, mentre si impagina. null se non si sa. */
+            const dimensioniImmaginiCache = new Map();
+            function dimensioniImmagineDataUrl(url) {
+                if (!url || typeof url !== 'string') return null;
+                const chiave = url.length + ':' + url.slice(0, 80) + url.slice(-40);
+                if (dimensioniImmaginiCache.has(chiave)) return dimensioniImmaginiCache.get(chiave);
+                let dim = null;
+                try {
+                    const dati = url.slice(url.indexOf(',') + 1);
+                    const byte = (n) => { const b = atob(dati.slice(0, Math.ceil(n / 3) * 4)); return Array.from(b, c => c.charCodeAt(0)); };
+                    if (/^data:image\/png/i.test(url)) {
+                        const b = byte(24);
+                        dim = { w: (b[16] << 24 | b[17] << 16 | b[18] << 8 | b[19]) >>> 0, h: (b[20] << 24 | b[21] << 16 | b[22] << 8 | b[23]) >>> 0 };
+                    } else if (/^data:image\/gif/i.test(url)) {
+                        const b = byte(10);
+                        dim = { w: b[6] | b[7] << 8, h: b[8] | b[9] << 8 };
+                    } else if (/^data:image\/jpe?g/i.test(url)) {
+                        const b = byte(Math.min(Math.floor(dati.length * 3 / 4), 262144));
+                        for (let i = 2; i + 9 < b.length;) {
+                            if (b[i] !== 0xFF) { i++; continue; }
+                            const m = b[i + 1], len = b[i + 2] << 8 | b[i + 3];
+                            if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) { dim = { w: b[i + 7] << 8 | b[i + 8], h: b[i + 5] << 8 | b[i + 6] }; break; }
+                            i += 2 + len;
+                        }
+                    }
+                } catch (e) { dim = null; }
+                if (dim && !(dim.w > 0 && dim.h > 0)) dim = null;
+                dimensioniImmaginiCache.set(chiave, dim);
+                return dim;
+            }
+
+            /** L'altezza (mm) del contenuto dell'intestazione: quella scelta con la maniglia; se non
+             * c'è, quella NATURALE dell'immagine a tutta larghezza (al massimo 28 mm), come fa Word
+             * con un logo nell'intestazione, più la riga di testo. */
+            function altezzaIntestazioneMm(header, margins) {
+                const hd = header || {};
+                if (hd.heightMm) return hd.heightMm;
+                const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
+                let h = 0;
+                if (hd.imageDataUrl) {
+                    const d = dimensioniImmagineDataUrl(hd.imageDataUrl);
+                    h = d ? Math.min(INTESTAZIONE_MAX_NATURALE_MM, (210 - mrg.left - mrg.right) * d.h / d.w) : 20;
+                }
+                if (hd.text) h += 5;
+                return h;
+            }
+
             /** I margini del foglio con la fascia dell'intestazione: sopra vale il più grande tra il
-             * margine e l'altezza scelta per l'intestazione (più il respiro). */
+             * margine e l'altezza dell'intestazione (più il respiro). */
             function margineConIntestazione(margins, header, headerEnabled) {
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
-                const hMm = headerEnabled && header && header.heightMm;
+                const hMm = headerEnabled ? altezzaIntestazioneMm(header, mrg) : 0;
                 if (hMm) mrg.top = Math.max(mrg.top, hMm + INTESTAZIONE_RESPIRO_MM);
                 return mrg;
             }
@@ -944,7 +994,7 @@
                 const hd = header || {};
                 if (!hd.imageDataUrl && !hd.text && !(extra && extra.anche_vuota)) return '';
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
-                const fascia = hd.heightMm ? hd.heightMm + INTESTAZIONE_RESPIRO_MM : Math.max(mrg.top, INTESTAZIONE_RESPIRO_MM + 2);
+                const fascia = Math.max(mrg.top, altezzaIntestazioneMm(hd, mrg) + INTESTAZIONE_RESPIRO_MM);
                 return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:3mm 0 2mm; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
                         ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; display:block;"/>` : ''}
                         ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}

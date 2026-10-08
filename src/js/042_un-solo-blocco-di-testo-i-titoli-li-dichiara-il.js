@@ -1170,7 +1170,7 @@
                             frame.style.padding = `${mrgLive.top}mm ${mrgLive.right}mm ${mrgLive.bottom}mm ${mrgLive.left}mm`;
                             canvas.style.minHeight = `${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm`;
                             const hz = document.getElementById('templateEditorHeaderZone');
-                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; if (!(pagLive && pagLive.header && pagLive.header.heightMm)) hz.style.height = Math.max(base.top, INTESTAZIONE_RESPIRO_MM + 2) + 'mm'; }
+                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + INTESTAZIONE_RESPIRO_MM) + 'mm'; }
                         }
                     }
                 });
