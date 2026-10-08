@@ -512,7 +512,7 @@
                 };
                 const poliW = (pw, extra) => {
                     const fill = ombra(extra.fill, pw);
-                    return poli(pw.map(p => P(...p)), { ...extra, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
+                    return poli(pw.map(p => P(...p)), { ...extra, base: extra.fill, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
                 };
                 const so = L.solido ? modelloSolido(d) : null;
                 const tg = vista3d.taglio;
@@ -814,7 +814,7 @@
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
                 const forma = f => {
-                    const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
+                    const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op !== undefined && f.op < 1 ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
                     if (f.t === 'poli') return `<polygon points="${f.p.map(p => n(p[0]) + ',' + n(p[1])).join(' ')}" fill="${f.fill}" fill-opacity="${f.fo ?? 1}" stroke="${f.stroke || 'none'}" stroke-width="${f.sw || 0}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</polygon>`;
                     if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</line>`;
                     if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"${f.sw ? ` stroke-width="${f.sw}"` : ''}` : ''}${cls}/>`;
@@ -824,6 +824,82 @@
                     return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
+            }
+
+            /** LA LEGENDA del disegno scaricato: solo quello che si vede in quel momento (un livello
+             * spento, una prova nascosta, uno strato tolto non ci sono), letto dai pezzi della scena.
+             * Gli strati in ordine di profondità, ciascuno col suo colore vero (non quello ombreggiato). */
+            function vociLegenda3d(sc, d) {
+                const visti = sc.tutte.filter(f => (f.op ?? 1) > 0.01), voci = [];
+                const di = cls => visti.filter(f => f.cls === cls);
+                const prove = di('vista3d-testa');
+                if (prove.length) voci.push({ tipo: 'cerchio', fill: prove[0].fill, stroke: prove[0].stroke, testo: prove.length === 1 ? 'Prova DPSH' : `Prove DPSH (${prove.length})` });
+                const facce = di('vista3d-faccia');
+                if (facce.length) voci.push({ tipo: 'riquadro', fill: facce[Math.floor(facce.length / 2)].fill, fo: facce[0].fo, testo: d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)' });
+                // Gli strati: dalle colonne, dal corpo solido, dai pannelli e dalle superfici di tetto.
+                const strati = new Map();
+                visti.forEach(f => {
+                    if (!f.strato || strati.has(f.strato)) return;
+                    if (f.cls === 'vista3d-colonna') strati.set(f.strato, { fill: f.stroke, fo: 1 });
+                    else if (['vista3d-solido', 'vista3d-pannello', 'vista3d-superficie'].includes(f.cls)) strati.set(f.strato, { fill: f.base || f.fill, fo: Math.max(0.35, f.fo ?? 1) });
+                });
+                if (strati.size) {
+                    const prof = new Map();
+                    d.prove.forEach(p => p.fasce.forEach(fa => { const v = prof.get(fa.nome) || [0, 0]; prof.set(fa.nome, [v[0] + fa.da, v[1] + 1]); }));
+                    const media = n => prof.has(n) ? prof.get(n)[0] / prof.get(n)[1] : Infinity;
+                    voci.push({ tipo: 'titolo', testo: 'Strati' });
+                    [...strati].sort((a, b) => media(a[0]) - media(b[0])).forEach(([nome, v]) => voci.push({ tipo: 'riquadro', fill: v.fill, fo: v.fo, testo: nome }));
+                }
+                const altri = [];
+                const faldaSegno = di('vista3d-falda-segno')[0], faldaSup = di('vista3d-falda')[0];
+                if (faldaSegno) altri.push({ tipo: 'linea', stroke: faldaSegno.stroke, sw: Math.max(2, faldaSegno.sw || 2), dash: faldaSegno.dash, testo: 'Falda' });
+                if (faldaSup) altri.push({ tipo: 'riquadro', fill: faldaSup.fill, fo: faldaSup.fo, stroke: faldaSup.stroke, testo: 'Superficie della falda' });
+                if (di('vista3d-giacitura-segno').length) altri.push({ tipo: 'giacitura', testo: 'Giacitura (immersione/inclinazione)' });
+                if (di('vista3d-taglio').length) altri.push({ tipo: 'linea', stroke: 'currentColor', sw: 1.2, testo: 'Bordo del taglio' });
+                if (di('vista3d-misure').length) altri.push({ tipo: 'asta', testo: 'Quote (m)' });
+                const tracce = new Map();
+                di('vista3d-traccia').forEach(f => { if (f.traccia && !tracce.has(f.traccia)) tracce.set(f.traccia, f); });
+                const nomiTracce = new Map(tracceDelProgetto().map(t => [t.id, t.nome]));
+                tracce.forEach((f, id) => altri.push({ tipo: 'linea', stroke: f.stroke, sw: Math.max(1.6, f.sw || 1.6), dash: f.dash, testo: 'Sezione ' + (nomiTracce.get(id) || '') }));
+                const disegni = new Map();
+                di('vista3d-disegno').forEach(f => { const v = disegni.get(f.disegno) || {}; if (f.t === 'cerchio') v.punto = f; else if (f.t === 'poli') v.area = f; else v.bordo = v.bordo || f; disegni.set(f.disegno, v); });
+                const nomiDisegni = new Map(disegniDelProgetto().map(x => [x.id, x.nome]));
+                disegni.forEach((v, id) => {
+                    const nome = nomiDisegni.get(id) || '';
+                    if (v.punto) altri.push({ tipo: 'cerchio', fill: v.punto.fill, stroke: v.punto.stroke, r: 5, testo: nome });
+                    else altri.push({ tipo: 'riquadro', fill: v.area ? v.area.fill : 'none', fo: v.area ? v.area.fo : 0, stroke: v.bordo && v.bordo.stroke, dash: v.bordo && v.bordo.dash, testo: nome });
+                });
+                if (altri.length) { voci.push({ tipo: 'titolo', testo: 'Altro' }); voci.push(...altri); }
+                return voci;
+            }
+            /** La scena con la legenda in una colonna a destra: fuori dalla figura, che non copre. */
+            function conLegenda3d(sc, d) {
+                const voci = vociLegenda3d(sc, d);
+                if (!voci.length) return sc;
+                const CAR = 7.5, MAX = 30;
+                const aCapo = s => {
+                    const righe = [];
+                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= MAX) righe[u] += ' ' + p; else righe.push(p); });
+                    return righe;
+                };
+                voci.forEach(v => { v.righe = v.tipo === 'titolo' ? [v.testo] : aCapo(v.testo); });
+                const lw = Math.round(Math.min(320, Math.max(190, 64 + CAR * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length))))))) ;
+                const x0 = sc.W + 18, forme = [], cls = 'vista3d-legenda';
+                forme.push({ t: 'linea', x1: sc.W, y1: 16, x2: sc.W, y2: sc.H - 16, stroke: 'currentColor', sw: 1, op: 0.25, cls });
+                forme.push({ t: 'testo', x: x0, y: 34, s: 'Legenda', size: 15, bold: true, cls });
+                let y = 52;
+                voci.forEach(v => {
+                    if (v.tipo === 'titolo') { y += 8; forme.push({ t: 'testo', x: x0, y: y + 10, s: v.testo.toUpperCase(), size: 10.5, bold: true, op: 0.65, cls }); y += 18; return; }
+                    const cy = y + 8, xs = x0, xt = x0 + 34;
+                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - 6], [xs + 24, cy - 6], [xs + 24, cy + 6], [xs, cy + 6]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1.4 : 0.6, dash: v.dash, cls });
+                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + 24, y2: cy, stroke: v.stroke, sw: v.sw, dash: v.dash, cls });
+                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + 12, y: cy, r: v.r || 4.5, fill: v.fill || 'currentColor', stroke: v.stroke, cls });
+                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + 2, y1: cy - 2, x2: xs + 22, y2: cy - 2, stroke: 'currentColor', sw: 2, cls }); forme.push({ t: 'linea', x1: xs + 12, y1: cy - 2, x2: xs + 12, y2: cy + 6, stroke: 'currentColor', sw: 2, cls }); }
+                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + 12, y1: cy - 8, x2: xs + 12, y2: cy + 8, stroke: 'currentColor', sw: 1.4, cls }); [-7, 0, 7].forEach(k => forme.push({ t: 'linea', x1: xs + 8, y1: cy + k, x2: xs + 16, y2: cy + k, stroke: 'currentColor', sw: 1, cls })); }
+                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + 4 + i * 15, s: r, size: 12, cls }));
+                    y += 22 + (v.righe.length - 1) * 15;
+                });
+                return { ...sc, W: sc.W + lw, H: Math.max(sc.H, y + 16), tutte: sc.tutte.concat(forme) };
             }
 
             /** La scena sul canvas: stessa figura, disegnata in pochi millisecondi anche mentre gira. */
@@ -1822,7 +1898,7 @@
             const SFONDI_SVG_3D = { chiaro: { fondo: '#ffffff', testo: '#1f2937' }, scuro: { fondo: '#0f172a', testo: '#e5e7eb' } };
             function svgVista3dDaScaricare(sfondo) {
                 const c = SFONDI_SVG_3D[sfondo] || SFONDI_SVG_3D.chiaro;
-                return svgDaScena(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H)).replace(/var\(--bg-card, #fff\)/g, c.fondo).replace(/currentColor/g, c.testo).replace(/var\(--font-mono\), monospace/g, 'monospace');
+                return svgDaScena(conLegenda3d(scena3d(datiVista3dCorrenti, ultimaScena3d.W, false, true, ultimaScena3d.H), datiVista3dCorrenti)).replace(/var\(--bg-card, #fff\)/g, c.fondo).replace(/currentColor/g, c.testo).replace(/var\(--font-mono\), monospace/g, 'monospace');
             }
             document.getElementById('btnScaricaVista3d').addEventListener('click', async () => {
                 if (!ultimaScena3d) return;

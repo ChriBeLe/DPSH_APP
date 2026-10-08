@@ -88,6 +88,15 @@ const $ = (app, id) => app.d.getElementById(id);
   t('nel file niente riga tecnica (DTM, esagerazione): è un disegno per la tavola', !/vista3d-didascalia|senza DTM|esagerazione verticale/.test(testo));
   t('la bussola nel file: quadrante, tacche, ago rosso verso Nord e la N', (testo.match(/<circle[^>]*vista3d-nord/g) || []).length >= 2 && (testo.match(/<line[^>]*vista3d-nord/g) || []).length === 8
     && (testo.match(/<polygon[^>]*vista3d-nord/g) || []).length === 4 && /fill="#dc2626"[^>]*vista3d-nord/.test(testo) && />N<\/text>/.test(testo));
+  const strati3d = app.E(`[...new Set(datiVista3dCorrenti.prove.flatMap(p => p.fasce.map(f => f.nome)))]`);
+  const legenda = app.E(`vociLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).map(v => v.testo)`);
+  t(`nel file la legenda di ciò che si vede: ${legenda.join(' · ')}`, /Legenda/.test(testo) && /class="vista3d-legenda"/.test(testo) && legenda.some(v => /^Prov/.test(v)) && strati3d.length > 0 && strati3d.every(n => legenda.includes(n)));
+  t('(in una colonna a destra, fuori dalla figura: il file è più largo della scena)', +/viewBox="0 0 ([\d.]+)/.exec(testo)[1] > app.E('ultimaScena3d.W'));
+  const conMisure = legenda.includes('Quote (m)');
+  app.E(`vista3d.livelli.misure = false; vista3d.stratiNascosti.add(${JSON.stringify(strati3d[0])}); renderVista3d()`);
+  const legenda2 = app.E(`vociLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).map(v => v.testo)`);
+  t('quello che si spegne (un livello, uno strato) esce anche dalla legenda', conMisure && !legenda2.includes('Quote (m)') && !legenda2.includes(strati3d[0]) && legenda2.length < legenda.length);
+  app.E(`vista3d.livelli.misure = true; vista3d.stratiNascosti.delete(${JSON.stringify(strati3d[0])}); renderVista3d()`);
   clic(app, $(app, 'btnScaricaVista3d'));
   await attesa(20);
   if (app.dialogo()) clic(app, app.dialogo().extra);
