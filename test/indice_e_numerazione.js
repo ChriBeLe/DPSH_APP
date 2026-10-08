@@ -177,7 +177,7 @@ t('i blocchi Titolo si marcano per l indice', /data-titolo-indice="\$\{livelloIn
 // Il rientro non è più fisso a 6 mm per livello: lo decide il template dell'indice, livello per
 // livello (livelli.h1/h2/h3: rientroMm e peso). La gerarchia disegnata resta la stessa cosa.
 t('e l indice disegna la gerarchia con rientro e peso',
-   /margin-left:\$\{st\.gutter \? '0' : cfgLiv\.rientroMm \+ 'mm'\}/.test(src)
+   /margin-left:\$\{cfgLiv\.rientroMm\}mm;/.test(src)   // anche col numero del capitolo acceso
    && /font-weight:var\(\$\{varLiv\}-peso\)/.test(src)
    && /const cfgLiv = st\.livelli\[LIVELLI_KEY\[liv - 1\]\];/.test(src));
 t('le figure si numerano prima di assemblare il documento',

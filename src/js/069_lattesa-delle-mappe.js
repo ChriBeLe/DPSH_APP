@@ -164,7 +164,7 @@
                 const st = Object.assign(stileIndiceDiDefault(), stileIndice || {});
                 const LIVELLI_KEY = ['h1', 'h2', 'h3'];
                 const numeriGerarchici = st.gutter ? numeriGerarchiciDiRighe(righeIndice) : null;
-                const righe = righeIndice.map((r, i) => {
+                const righeHtml = righeIndice.map((r, i) => {
                     const liv = Math.max(1, Math.min(3, parseInt(r.livello, 10) || 1));
                     const isH1 = liv === 1;
                     const cfgLiv = st.livelli[LIVELLI_KEY[liv - 1]];
@@ -205,13 +205,13 @@
                         ? `<span style="display:inline-block; min-width:30px; flex-shrink:0; font-variant-numeric:tabular-nums; font-size:var(--idx-numero-pt); font-weight:var(--idx-numero-peso); color:var(--idx-colore-testo);">${numeriGerarchici[i]}</span>`
                         : '';
                     return `
-                    <a href="#prova-report-${r.id}" data-voce-indice="${i}" data-livello="${liv}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${st.gutter ? '0' : cfgLiv.rientroMm + 'mm'}; text-decoration:none; color:inherit; font-family:var(--idx-font);">
+                    <a href="#prova-report-${r.id}" data-voce-indice="${i}" data-livello="${liv}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${cfgLiv.rientroMm}mm; text-decoration:none; color:inherit; font-family:var(--idx-font);">
                         ${gutterHtml}
                         <span data-testo-voce style="font-size:var(${varLiv}-pt); font-weight:var(${varLiv}-peso); ${cfgLiv.corsivo ? 'font-style:italic;' : ''} color:var(--idx-colore-testo); white-space:nowrap;">${parti.testo}</span>
                         ${divisoreHtml}
                         ${st.mostraPagina && r.pagina ? `<span data-pagina-voce style="font-size:var(--idx-pagina-pt); font-weight:var(--idx-pagina-peso); color:var(--idx-colore-testo); white-space:nowrap; font-variant-numeric:tabular-nums;${stilePagina}">${r.pagina}</span>` : ''}
                     </a>`;
-                }).join('');
+                });
                 // data-tpl-report-page: anche l'indice è una pagina fisica vera come le altre, deve
                 // entrare nel conteggio totale di eseguiNumerazionePagineFinale — senza, il totale
                 // "di Y" sarebbe sottostimato di 1 su tutto il documento. Nessun piè di pagina/numero
@@ -225,11 +225,32 @@
                 // esattamente la stessa struttura .dpsh-sheet/.dpsh-sheet-inner — se restasse un
                 // blocco a flusso libero sarebbe l'unico punto del documento ancora in grado di
                 // traboccare e far slittare tutte le pagine successive (indice lungo, molte prove).
-                return `
-                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}" style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}"><div class="dpsh-sheet-inner">
-                        <h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${(st.titoloTesto || 'Indice')}</h1>
-                        ${righe}
-                    </div></div>`;
+                // PIÙ FOGLI SE SERVE. Il foglio taglia quello che non ci sta: un indice lungo (tante
+                // prove, tanti titoli) perdeva le ultime voci. Le voci si dividono sui fogli con una
+                // stima prudente dell'altezza di ogni riga (padding, corpo più grande della riga,
+                // interlinea abbondante); i fogli dopo il primo sono «seguito» (il Word ne fa un solo
+                // Sommario, che va a capo da sé).
+                const pxPerMm = 96 / 25.4;
+                const budgetPx = parseFloat(maxHeightMmIndice) * pxPerMm * 0.94;
+                const titoloPx = st.titolo.pt * 1.3 + 16;
+                const altezzaRiga = (r) => {
+                    const liv = Math.max(1, Math.min(3, parseInt(r.livello, 10) || 1));
+                    const corpo = Math.max(st.livelli[LIVELLI_KEY[liv - 1]].pt, st.mostraPagina ? st.pagina.pt : 0, st.gutter ? st.numero.pt : 0);
+                    return (liv === 1 ? 16 : 10) + corpo * 1.35 + 1;
+                };
+                const fogli = [[]];
+                let usato = titoloPx;
+                righeHtml.forEach((h, i) => {
+                    const a = altezzaRiga(righeIndice[i]);
+                    if (usato + a > budgetPx && fogli[fogli.length - 1].length) { fogli.push([]); usato = 0; }
+                    fogli[fogli.length - 1].push(h);
+                    usato += a;
+                });
+                return fogli.map((voci, k) => `
+                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}"${k ? ' data-sommario-seguito="1"' : ''} style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}"><div class="dpsh-sheet-inner">
+                        ${k ? '' : `<h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${(st.titoloTesto || 'Indice')}</h1>`}
+                        ${voci.join('')}
+                    </div></div>`).join('');
             }
 
             /** Costruisce l'HTML di UNA O PIÙ prove nel formato "standard" (scheda di campo, senza

@@ -70,6 +70,18 @@ const $ = (app, id) => app.d.getElementById(id);
     // La pagina indice com'è nel documento di stampa, con due voci (un titolo e un sottotitolo).
     const proj = app.E(`state.projects[${JSON.stringify(pid)}]`);
     const indiceHtml = app.E('buildIndiceReportCompletoHtml')(proj, [{ etichetta: 'Introduzione', livello: 1, id: 'a', pagina: 2 }, { etichetta: 'Dati della prova', livello: 2, id: 'b', pagina: 3 }], null);
+    // Col numero del capitolo acceso il rientro di ogni livello resta (prima si azzerava).
+    const conNumeri = app.E('buildIndiceReportCompletoHtml')(proj, [{ etichetta: 'A', livello: 1, id: 'a', pagina: 1 }, { etichetta: 'B', livello: 2, id: 'b', pagina: 2 }, { etichetta: 'C', livello: 3, id: 'c', pagina: 3 }],
+      { gutter: true, livelli: { h1: { pt: 12, rientroMm: 0, peso: 700 }, h2: { pt: 11, rientroMm: 9, peso: 400 }, h3: { pt: 10, rientroMm: 18, peso: 400 } } });
+    t('numero del capitolo acceso: il rientro di ogni livello resta (0 / 9 / 18 mm)', /data-livello="1"[^>]*margin-left:0mm/.test(conNumeri) && /data-livello="2"[^>]*margin-left:9mm/.test(conNumeri) && /data-livello="3"[^>]*margin-left:18mm/.test(conNumeri)
+      && />2\.1</.test(conNumeri.replace(/\s+/g, '')) === false && /1\.1\.1/.test(conNumeri));
+    // Un indice lungo continua sui fogli dopo, senza perdere voci (il foglio taglia quello che non ci sta).
+    const tante = Array.from({ length: 70 }, (_, i) => ({ etichetta: 'Prova N° ' + (i + 1), livello: 1, id: 's' + i, pagina: i + 1 }));
+    const lungo = app.d.createElement('div'); lungo.innerHTML = app.E('buildIndiceReportCompletoHtml')(proj, tante, null);
+    const fogliIndice = lungo.querySelectorAll('.dpsh-sheet[data-sommario]');
+    t(`un indice di 70 voci va su ${fogliIndice.length} fogli, tutte le voci ci sono, il titolo solo sul primo`, fogliIndice.length >= 2 && lungo.querySelectorAll('a[data-voce-indice]').length === 70
+      && fogliIndice[0].querySelector('h1') && !fogliIndice[1].querySelector('h1') && fogliIndice[1].hasAttribute('data-sommario-seguito') && !fogliIndice[0].hasAttribute('data-sommario-seguito'));
+    t('(e nel Word resta un Sommario solo: i fogli «seguito» si saltano)', /hasAttribute\('data-sommario-seguito'\)\) continue;/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
     const corpoProva = '<div class="dpsh-sheet"><div class="dpsh-sheet-inner"><p>prova</p></div></div>';
     const box = app.d.createElement('div'); box.innerHTML = app.E('numeraPagineDocumento')(indiceHtml + corpoProva + corpoProva); app.d.body.appendChild(box);
     const foglio = box.querySelector('.dpsh-sheet');
