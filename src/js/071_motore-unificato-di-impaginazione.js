@@ -455,7 +455,8 @@
                 // opzionali, di default TUTTE le prove del progetto e indice sempre incluso, per non
                 // rompere chi la chiama senza opzioni.
                 const survIdsFiltro = opzioni && Array.isArray(opzioni.survIds) ? new Set(opzioni.survIds) : null;
-                let survList = Object.values(proj.surveys || {});
+                // Nell'ordine del progetto (per numero, o quello scelto a mano: proveInOrdine).
+                let survList = proveInOrdine(proj);
                 if (survIdsFiltro) survList = survList.filter(s => survIdsFiltro.has(s.id));
                 if (survList.length === 0) return null;
                 // Con il capitolo introduttivo anche una prova sola produce DUE sezioni: l'indice

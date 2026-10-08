@@ -247,8 +247,15 @@
                 <h2 class="registro-titolo">Prove</h2>
                 <button type="button" class="bt bt-tenue" id="btnProgettoMappa" title="Tutte le prove sulla mappa: aprile, cambiane i dati, spostale"><svg class="ico"><use href="#i-map"/></svg>Mappa</button>
                 <span class="t-didascalia" id="lblProgettoConteggio"></span>
+                <button type="button" class="bt bt-tenue" id="btnProgettoOrdina" aria-pressed="false" title="L'ordine delle prove nel report, nell'indice e nell'elenco">Ordina</button>
             </div>
             <div class="card progetto-prove">
+                <!-- «Ordina»: la maniglia trascina le prove, le frecce le spostano di un posto;
+                     «Ordine crescente» le rimette per numero. -->
+                <div class="progetto-ordina" id="barraOrdinaProve" hidden>
+                    <span class="t-didascalia">Trascina le prove dalla maniglia o spostale con le frecce: il report e l'indice le mettono in quest'ordine.</span>
+                    <button type="button" class="bt-link" id="btnOrdinePerNumero">Ordine crescente</button>
+                </div>
                 <div id="listaProveProgetto"></div>
                 <button type="button" class="bt-link accento" id="btnProgettoNuovaProva"><svg class="ico"><use href="#i-plus"/></svg>Nuova prova</button>
             </div>

@@ -352,6 +352,8 @@
                 else if (vista === 'project') switchView('home');
             });
 
+            // var e non let: la schermata si può disegnare all'avvio, prima che questo pezzo sia valutato.
+            var ordinandoProve = false;   // «Ordina» acceso: le righe hanno le frecce
             /** La schermata Progetto: prove con profondità, intervalli, spie e avvisi, e gli accessi a
              * dati, strati, note e consegna. Legge il progetto aperto. */
             function renderSchermataProgetto() {
@@ -361,11 +363,70 @@
                 $('lblProgettoSotto').textContent = [proj.comune, proj.committente ? 'Committente: ' + proj.committente : ''].filter(Boolean).join(' · ');
                 const stato = STATI_PROGETTO.find(s => s.id === proj.stato);
                 $('lblProgettoStato').textContent = [stato ? stato.etichetta : '', proj.modificatoIl ? 'Modificato il ' + formattaDataIT(new Date(proj.modificatoIl).toISOString()) : ''].filter(Boolean).join(' · ');
-                const prove = Object.values(proj.surveys || {}).sort((a, b) => String((a.header || {}).provaNr).localeCompare(String((b.header || {}).provaNr), 'it', { numeric: true }));
+                const prove = proveInOrdine(proj);
                 const attiva = proj.surveys[state.currentSurveyId];
                 $('btnProgettoRiprendi').textContent = attiva ? `Riprendi la Prova ${(attiva.header || {}).provaNr || ''}` : 'Apri la prova';
                 const avvisi = new Map(avvisiPrimaExport(proj).map(r => [r.id, r.avvisi.length]));
-                $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '');
+                const aMano = Array.isArray(proj.ordineProve) && proj.ordineProve.length > 0;
+                $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '') + (aMano ? ' · ordine scelto a mano' : '');
+                $('btnProgettoOrdina').textContent = ordinandoProve ? 'Fatto' : 'Ordina';
+                $('btnProgettoOrdina').setAttribute('aria-pressed', String(ordinandoProve));
+                $('btnProgettoOrdina').hidden = prove.length < 2;
+                $('barraOrdinaProve').hidden = !ordinandoProve;
+                $('btnOrdinePerNumero').disabled = !aMano;
+                const salvaOrdine = (ids, fuoco) => {
+                    proj.ordineProve = ids;
+                    saveState();
+                    renderSchermataProgetto();
+                    const el = fuoco && document.querySelector(fuoco);
+                    if (el && !el.disabled) el.focus();
+                };
+                if (ordinandoProve) {
+                    // Mentre si ordina le righe non aprono la prova: hanno le frecce.
+                    $('listaProveProgetto').innerHTML = prove.map((s, i) => {
+                        const nr = escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'));
+                        return `<div class="prova-riga ordina" data-surv="${s.id}">
+                            <span class="prova-maniglia" role="button" tabindex="-1" aria-label="Trascina la prova ${nr}" title="Trascina"><svg class="ico"><use href="#i-grip"/></svg></span>
+                            <span class="prova-riga-n">${nr}</span>
+                            <span class="prova-riga-testo"><strong>Prova ${nr}</strong></span>
+                            <button type="button" class="bt-icona" data-sposta="-1" ${i === 0 ? 'disabled' : ''} aria-label="Sposta su la prova ${nr}" title="Su"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
+                            <button type="button" class="bt-icona giu" data-sposta="1" ${i === prove.length - 1 ? 'disabled' : ''} aria-label="Sposta giù la prova ${nr}" title="Giù"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
+                        </div>`;
+                    }).join('');
+                    $('listaProveProgetto').querySelectorAll('[data-sposta]').forEach(b => b.addEventListener('click', () => {
+                        const ids = prove.map(s => s.id), i = ids.indexOf(b.closest('[data-surv]').dataset.surv), j = i + Number(b.dataset.sposta);
+                        if (i < 0 || j < 0 || j >= ids.length) return;
+                        [ids[i], ids[j]] = [ids[j], ids[i]];
+                        salvaOrdine(ids, `#listaProveProgetto [data-surv="${ids[j]}"] [data-sposta="${b.dataset.sposta}"]`);
+                    }));
+                    // LA MANIGLIA: col dito o col mouse la riga segue il puntatore e prende il posto
+                    // di quella che scavalca; lasciata, l'ordine è quello che si vede.
+                    $('listaProveProgetto').querySelectorAll('.prova-maniglia').forEach(m => m.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        const lista = $('listaProveProgetto'), riga = m.closest('[data-surv]');
+                        const prima = [...lista.children].map(r => r.dataset.surv);
+                        riga.classList.add('trascinata');
+                        if (m.setPointerCapture) try { m.setPointerCapture(e.pointerId); } catch (err) { /* jsdom */ }
+                        const muovi = (ev) => {
+                            const altre = [...lista.children].filter(r => r !== riga);
+                            const dopo = altre.find(r => { const b = r.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+                            if (dopo) { if (dopo !== riga.nextElementSibling) lista.insertBefore(riga, dopo); }
+                            else if (lista.lastElementChild !== riga) lista.appendChild(riga);
+                        };
+                        const lascia = () => {
+                            m.removeEventListener('pointermove', muovi);
+                            m.removeEventListener('pointerup', lascia);
+                            m.removeEventListener('pointercancel', lascia);
+                            riga.classList.remove('trascinata');
+                            const dopo = [...lista.children].map(r => r.dataset.surv);
+                            if (dopo.join() !== prima.join()) salvaOrdine(dopo); else renderSchermataProgetto();
+                        };
+                        m.addEventListener('pointermove', muovi);
+                        m.addEventListener('pointerup', lascia);
+                        m.addEventListener('pointercancel', lascia);
+                    }));
+                    return;
+                }
                 $('listaProveProgetto').innerHTML = prove.map(s => {
                     const h = s.header || {};
                     const logs = s.logs || [];
@@ -385,7 +446,16 @@
                     switchView('field');
                 }));
             }
-            document.getElementById('btnProgettoAiProgetti').addEventListener('click', () => switchView('home'));
+            // «Ordina»: l'ordine delle prove del progetto (proveInOrdine), scelto con le frecce.
+            document.getElementById('btnProgettoOrdina').addEventListener('click', () => { ordinandoProve = !ordinandoProve; renderSchermataProgetto(); });
+            document.getElementById('btnOrdinePerNumero').addEventListener('click', () => {
+                const proj = state.projects[state.currentProjectId];
+                delete proj.ordineProve;
+                saveState();
+                renderSchermataProgetto();
+                mostraToast('Prove in ordine crescente');
+            });
+            document.getElementById('btnProgettoAiProgetti').addEventListener('click', () => { ordinandoProve = false; switchView('home'); });
             document.getElementById('btnProgettoAltro').addEventListener('click', () => openProjectActionsModal(state.currentProjectId));
             document.getElementById('btnProgettoRiprendi').addEventListener('click', () => switchView('field'));
             document.getElementById('btnProgettoNuovaProva').addEventListener('click', () => openNewSurveyModal());
