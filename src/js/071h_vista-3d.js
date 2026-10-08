@@ -870,6 +870,7 @@
             let datiVista3dCorrenti = null, ultimaScena3d = null;
             function renderVista3d(leggera) {
                 const box = document.getElementById('graficoVista3d');
+                document.getElementById('lblCaricaDtm3d').textContent = (state.projects[state.currentProjectId] || {}).dtm ? 'Carica un altro DTM' : 'Carica un DTM';
                 renderLivelli3d();
                 document.querySelectorAll('#modalVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
                 sincronizzaCursori3d();
@@ -1769,6 +1770,11 @@
                 apriVista3d();
             });
             document.getElementById('btnChiudiVista3d').addEventListener('click', closeAnyOpenModal);
+            // Il DTM si carica anche da qui: poi la scena si rifà col terreno, nello stesso modo.
+            document.getElementById('btnCaricaDtm3d').addEventListener('click', () => chiediFileDtm(state.currentProjectId, errore => {
+                if (errore) { appAlert(errore); return; }
+                apriVista3d(areaMappa.modo);
+            }));
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             document.getElementById('btnScaricaVista3d').addEventListener('click', () => {
                 if (!ultimaScena3d) return;

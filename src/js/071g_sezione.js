@@ -295,6 +295,7 @@
             }
 
             document.getElementById('btnApriSezione').addEventListener('click', apriSezione);
+            document.getElementById('btnSezioneA3d').addEventListener('click', () => apriVista3d());
             document.getElementById('btnChiudiSezione').addEventListener('click', closeAnyOpenModal);
             document.getElementById('proveSezione').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-prova]');

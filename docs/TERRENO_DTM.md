@@ -28,6 +28,7 @@ Dal Progetto, «Terreno e sezioni» (anche con Ctrl K).
   - misure: quote e distanze.
   - Ogni livello si spegne. Solo le prove eseguite davvero.
   - Anche senza DTM: le prove col GPS partono tutte dal piano campagna (quota 0, un piano orizzontale), come nella sezione.
+  - Ci si arriva anche dalla sezione e dal confronto tra prove (bottone «Vista 3D»); il DTM si carica anche dalla vista 3D, che si ridisegna col terreno.
   - Si scarica in SVG e come **modello 3D OBJ + MTL** (metri veri, Y in alto, origine scritta nel file) per Blender, MeshLab, QGIS.
 
 ## Da fare
