@@ -293,7 +293,7 @@
             /** LA SEZIONE IN SVG: strati del modello (dove la traccia attraversa le prove), profilo del
              * terreno, prove vicine con il loro nome e la distanza dalla linea, assi in metri, A e A'. */
             function svgSezioneTracciata(ds, larghezza) {
-                const W = Math.max(480, Math.round(larghezza || 900)), sx0 = 58, dx0 = 22, top = 40;
+                const W = Math.max(480, Math.round(larghezza || 900)), sx0 = 58, dx0 = 22;
                 const pw = W - sx0 - dx0;
                 const fondoProve = Math.max(0, ...ds.prove.map(q => q.p.fondo));
                 const fondo = Math.max(ds.so && sezioniTracciateStato.riempimento === 'solido' ? ds.so.fondo : 0, fondoProve, 1);
@@ -301,6 +301,14 @@
                 if (!zs.length) zs.push(0);
                 const zTop = Math.max(...zs), zBot = Math.min(...zs) - fondo, zr = Math.max(1, zTop - zBot);
                 const sx = pw / Math.max(1, ds.L);
+                // I NOMI DELLE PROVE NON SI ACCAVALLANO: due prove vicine lungo la traccia mettono il nome
+                // su righe diverse (una sopra l'altra, col trattino fino alla colonna); la sezione si
+                // abbassa quanto serve. Lo stesso per le distanze dalla traccia, sotto le colonne.
+                const xProva = q => sx0 + Math.max(0, Math.min(ds.L, q.s)) * sx;
+                const righe = larghezze => { const fine = []; return ds.prove.map((q, i) => { const x = xProva(q), w = larghezze[i]; let r = 0; while (fine[r] !== undefined && x - w / 2 < fine[r] + 4) r++; fine[r] = x + w / 2; return r; }); };
+                const rigaNome = righe(ds.prove.map(q => nomeDpsh(q.p.s).length * 6.7 + 2));
+                const rigaLato = righe(ds.prove.map(q => q.lato >= 0.5 ? (`a ${numeroConVirgola(q.lato, 0)} m`).length * 5.2 : 0));
+                const top = 40 + Math.max(0, ...rigaNome) * 13;
                 const ex = Math.max(1, Math.min(50, Math.round(pw * 0.4 / (zr * sx))));
                 const ph = zr * sx * ex;
                 const X = s => sx0 + s * sx, Y = z => top + (zTop - z) * sx * ex;
@@ -360,11 +368,13 @@
                 const terreno = ds.campioni.filter(c => c.z !== null).map(c => `${n(X(c.s))},${n(Y(c.z))}`);
                 if (terreno.length > 1) corpo += `<polyline points="${terreno.join(' ')}" fill="none" stroke="#1f2937" stroke-width="1.6"/>`;
                 // Le prove vicine.
-                ds.prove.forEach(q => {
+                ds.prove.forEach((q, i) => {
                     const x = X(Math.max(0, Math.min(ds.L, q.s)));
                     q.p.fasce.forEach(f => { corpo += `<rect x="${n(x - 4)}" y="${n(Y(q.p.z - f.da))}" width="8" height="${n(Math.max(0.5, (f.a - f.da) * sx * ex))}" fill="${f.colore}" stroke="#111827" stroke-width="0.6"><title>${esc(nomeDpsh(q.p.s))}: ${esc(f.nome)}</title></rect>`; });
-                    corpo += `<text x="${n(x)}" y="${n(Y(q.p.z) - 6)}" font-size="11" font-weight="700" text-anchor="middle" fill="#111827" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(nomeDpsh(q.p.s))}</text>`;
-                    if (q.lato >= 0.5) corpo += `<text x="${n(x)}" y="${n(Y(q.p.z - q.p.fondo) + 12)}" font-size="9" text-anchor="middle" fill="#475569">a ${numeroConVirgola(q.lato, 0)} m</text>`;
+                    const yNome = Y(q.p.z) - 6 - rigaNome[i] * 13;
+                    if (rigaNome[i]) corpo += `<line x1="${n(x)}" y1="${n(yNome + 3)}" x2="${n(x)}" y2="${n(Y(q.p.z) - 1)}" stroke="#64748b" stroke-width="0.8"/>`;
+                    corpo += `<text x="${n(x)}" y="${n(yNome)}" font-size="11" font-weight="700" text-anchor="middle" fill="#111827" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(nomeDpsh(q.p.s))}</text>`;
+                    if (q.lato >= 0.5) corpo += `<text x="${n(x)}" y="${n(Y(q.p.z - q.p.fondo) + 12 + rigaLato[i] * 10)}" font-size="9" text-anchor="middle" fill="#475569" paint-order="stroke" stroke="#fff" stroke-width="2.5">a ${numeroConVirgola(q.lato, 0)} m</text>`;
                 });
                 // Assi: quote a sinistra, distanze sotto.
                 let assi = `<line x1="${sx0}" y1="${top}" x2="${sx0}" y2="${n(top + ph)}" stroke="#334155"/><line x1="${sx0}" y1="${n(top + ph)}" x2="${n(sx0 + pw)}" y2="${n(top + ph)}" stroke="#334155"/>`;

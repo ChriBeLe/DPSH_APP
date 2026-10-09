@@ -847,7 +847,14 @@
                     const b0 = P(ax, ay, zFondo), b1 = P(ax, ay, zTesta);
                     // I numeri dalla parte esterna: a destra se lo spigolo sta a destra del centro.
                     const aDestra = b1[0] >= P(mx, my, zRif)[0];
-                    sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
+                    // BIANCA, con un filo scuro attorno: si legge sulla mappa di base come sullo sfondo chiaro
+                    // (un colore scelto in «Stile…» resta quello, senza filo).
+                    const coloreAsta = stM.colore || '#ffffff', filo = stM.colore ? null : 'rgba(15,23,42,0.85)';
+                    const lineaAsta = (x1, y1, x2, y2, sw) => {
+                        if (filo) sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: filo, sw: sw + 2, cls: 'vista3d-misure' });
+                        sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: coloreAsta, sw, cls: 'vista3d-misure' });
+                    };
+                    lineaAsta(b0[0], b0[1], b1[0], b1[1], stM.spessore);
                     // Le tacche tonde, più una alle due estremità dell'asta quando non ci cade già una
                     // tonda (il fondo del modello a −4,6: la tacca c'è, col suo numero).
                     const tacche = [];
@@ -855,8 +862,8 @@
                     [zFondo, zTesta].forEach(z => { if (!tacche.some(([q]) => Math.abs(q - z) < passo * 0.3)) tacche.push([z, 1]); });
                     tacche.forEach(([z, dec]) => {
                         const t = P(ax, ay, z);
-                        sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
-                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, dec), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
+                        lineaAsta(t[0] - 5, t[1], t[0] + 5, t[1], Math.max(1, stM.spessore * 0.7));
+                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, dec), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure', bold: true, colore: coloreAsta, alone: true, coloreAlone: filo || undefined });
                     });
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
@@ -956,7 +963,7 @@
                     // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
                     const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
                     const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
-                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
+                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="${f.colore || 'currentColor'}"${f.alone ? ` paint-order="stroke" stroke="${f.coloreAlone || 'var(--bg-card, #fff)'}" stroke-width="3"` : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
             }
@@ -1108,8 +1115,8 @@
                             ctx.beginPath(); ctx.rect(x0 - 4, f.y - f.size, w + 8, f.size + 5); ctx.fill();
                             if (f.box === 'bordo') { ctx.globalAlpha = op; ctx.strokeStyle = testoColore; ctx.lineWidth = 1; ctx.stroke(); }
                             ctx.restore();
-                        } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = fondo; ctx.strokeText(f.s, f.x, f.y); }
-                        ctx.fillStyle = testoColore; ctx.fillText(f.s, f.x, f.y);
+                        } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = f.coloreAlone ? col(f.coloreAlone) : fondo; ctx.strokeText(f.s, f.x, f.y); }
+                        ctx.fillStyle = f.colore ? col(f.colore) : testoColore; ctx.fillText(f.s, f.x, f.y);
                     }
                 });
                 ctx.globalAlpha = 1; ctx.setLineDash([]);

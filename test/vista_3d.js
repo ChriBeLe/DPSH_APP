@@ -100,6 +100,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`la scala grafica in basso a sinistra: quattro tratti alternati, ${scala.filter(f => f.t === 'testo').map(f => f.s).join(' · ')}`, scala.filter(f => f.t === 'poli').length === 4 && scala.filter(f => f.t === 'testo').length === 3 && /m$/.test(scala.filter(f => f.t === 'testo')[2].s)
     && !app.E(`ultimaScena3d.tutte.some(f => f.cls === 'vista3d-scala')`));
   const astaN = app.E(`(() => { const sc = scena3d(datiVista3dCorrenti, 1000, false, true, 700), t = sc.tutte.filter(f => f.cls === 'vista3d-misure' && f.t === 'linea'); const ys = t.map(f => f.y1).sort((a, b) => a - b); const asta = t.reduce((m, f) => Math.abs(f.y2 - f.y1) > Math.abs(m.y2 - m.y1) ? f : m); return { basso: Math.max(asta.y1, asta.y2), tacca: ys[ys.length - 1] }; })()`);
+  const astaB = app.E(`(() => { const t = scena3d(datiVista3dCorrenti, 1000, false, true, 700).tutte.filter(f => f.cls === 'vista3d-misure'); return { linee: [...new Set(t.filter(f => f.t === 'linea').map(f => f.stroke))], testi: [...new Set(t.filter(f => f.t === 'testo').map(f => f.colore + '|' + f.coloreAlone))] }; })()`);
+  t(`l'asta delle quote è bianca con un filo scuro attorno (si legge sulla mappa): ${JSON.stringify(astaB)}`, astaB.linee.includes('#ffffff') && astaB.linee.some(c => /^rgba\(15,23,42/.test(c)) && astaB.testi.length === 1 && /^#ffffff\|rgba\(15,23,42/.test(astaB.testi[0]));
   t('l\'asta ha la tacca anche in fondo (col suo numero), non finisce nel vuoto', Math.abs(astaN.basso - astaN.tacca) < 0.5);
   const conMisure = legenda.includes('Quote (m)');
   app.E(`vista3d.livelli.misure = false; vista3d.stratiNascosti.add(${JSON.stringify(strati3d[0])}); renderVista3d()`);

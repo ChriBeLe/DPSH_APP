@@ -550,6 +550,17 @@
                 v.titolo = !vv ? (v.verso === 'E' ? 'Modello · vista isometrica verso Est' : 'Modello · vista isometrica verso Nord')
                     : vv.tipo === 'pianta' ? 'Modello · pianta' : `Modello · vista ${vv.tipo === 'trasv' ? 'trasversale' : 'isometrica'} verso ${VERSI_3D[vv.verso || 0]}`;
             }
+            /** Le prove di una sezione 2D (nella finestra delle tavole): quelle vicine alla traccia, con
+             * la spunta; tolta, la prova resta fuori (dalla tavola e dalla sezione della scheda Sezioni). */
+            function renderProveTavola3d(v) {
+                const box = T3('tavole3dProveBox'), t = v && v.tipo === 'sez2d' && tracceDelProgetto().find(x => x.id === v.traccia);
+                box.hidden = !t || !datiVista3dCorrenti;
+                if (box.hidden) return;
+                const ds = datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), esc = escapeHtmlDidascalia;
+                if (document.activeElement !== T3('tavole3dFascia')) T3('tavole3dFascia').value = sezioniTracciateStato.fascia;
+                T3('tavole3dProve').innerHTML = ds.vicine.length ? ds.vicine.map(q => `<label><input type="checkbox" data-prova-tavola="${q.p.s.id}"${(t.escluse || []).includes(q.p.s.id) ? '' : ' checked'}>${esc(nomeDpsh(q.p.s))}<span class="t-didascalia">a ${numeroConVirgola(q.lato, 0)} m</span></label>`).join('')
+                    : '<span class="t-didascalia">Nessuna prova entro questa distanza dalla traccia.</span>';
+            }
             /** I tasti delle viste: quale è accesa sulla pagina scelta, e verso dove. */
             function aggiornaTastiVista3d() {
                 const v = tavole3d.voci[tavole3d.scelta], r = v && tavole3d.regola[v.id], vv = r && r.vista;
@@ -660,6 +671,7 @@
                 document.querySelectorAll('#tavole3dPagine .tavole-pag').forEach(el => el.classList.toggle('scelta', Number(el.dataset.tavola) === tavole3d.scelta));
                 const tela = T3('tavole3dTela'), img = T3('tavole3dImg');
                 T3('tavole3dRegola').classList.toggle('spenta', v.tipo === 'sez2d');
+                renderProveTavola3d(v);
                 aggiornaTastiVista3d();
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
@@ -848,6 +860,24 @@
             });
             T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
+            const dopoProveTavola3d = () => {
+                saveState(); mostraTavola3d(); aggiornaMiniaturaScelta3d();
+                if (sezioniTracciateStato.vista) renderVistaSezioneTracciata();
+            };
+            T3('tavole3dProve').addEventListener('change', (e) => {
+                const chk = e.target.closest('[data-prova-tavola]'), v = tavole3d.voci[tavole3d.scelta];
+                const t = chk && v && tracceDelProgetto().find(x => x.id === v.traccia);
+                if (!t) return;
+                const id = chk.dataset.provaTavola;
+                t.escluse = (t.escluse || []).filter(x => x !== id).concat(chk.checked ? [] : [id]);
+                dopoProveTavola3d();
+            });
+            T3('tavole3dFascia').addEventListener('input', (e) => {
+                sezioniTracciateStato.fascia = Math.max(0, Number(e.target.value) || 0);
+                const f = document.getElementById('numFasciaSezione3d');
+                if (f) f.value = sezioniTracciateStato.fascia;
+                dopoProveTavola3d();
+            });
             // Il titolo della pagina scelta: si scrive (vuoto = automatico), si toglie, «così su tutte».
             const titoloScelta3d = () => { const v = tavole3d.voci[tavole3d.scelta]; return v && (tavole3d.titoli[v.id] || (tavole3d.titoli[v.id] = {})); };
             const dopoTitolo3d = () => {
