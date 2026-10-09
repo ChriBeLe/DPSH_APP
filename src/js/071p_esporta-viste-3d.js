@@ -126,6 +126,7 @@
                     if (opz && opz.basemap === true) { vista3d.livelli.immagine = true; vista3d.livelli.terreno = true; }
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
                     if (opz && opz.fantasma !== undefined) vista3d.livelli.fantasma = !!opz.fantasma;
+                    if (opz && opz.fotoSopra !== undefined) vista3d.livelli.fotoSopra = !!opz.fotoSopra;
                     if (base.tracce) vista3d.tracceNascoste = new Set(tracceDelProgetto().map(t => t.id).filter(id => id !== base.tracce));
                 }, () => {
                     const leggera = !!(opz && opz.leggera);
@@ -444,7 +445,7 @@
                 const { W, H } = misureTavola3d(v), basemap = T3('tavole3dBasemap').checked;
                 return Object.assign({
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
-                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, scritte: tavole3d.scritte,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, scritte: tavole3d.scritte,
                     elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
                     ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
@@ -512,9 +513,10 @@
                 sel.disabled = !T3('tavole3dBasemap').checked;
                 T3('tavole3dNordTerreno').checked = vista3d.livelli.nordTerreno !== false;
                 T3('tavole3dFantasma').checked = vista3d.livelli.fantasma !== false;
+                T3('tavole3dFotoSopra').checked = !!vista3d.livelli.fotoSopra;
                 tavole3d.posizioni = mem.posizioni || {};
                 const el = mem.elementi || {};
-                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
+                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
@@ -534,7 +536,7 @@
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
                 mem.posizioni = tavole3d.posizioni;
                 mem.ordine = tavole3d.voci.map(v => v.id);
-                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked };
+                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -852,7 +854,7 @@
                 if (id !== 'wms') { salvaSceltaSfondo3d({ id }); riempiSceltaSfondo3d(); }
                 aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
-            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta', 'tavole3dFotoSopra'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
             T3('tavole3dRiposiziona').addEventListener('click', () => {
                 tavole3d.posizioni = {};
                 Object.values(tavole3d.regola).forEach(r => { delete r.nordTerreno; });

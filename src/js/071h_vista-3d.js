@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -707,6 +707,28 @@
                             });
                         };
                         if (se > 0) faccia(hTaglio, true); else faccia(so.fondo, false);
+                        // LA FOTO SOPRA IL MODELLO: l'immagine del terreno stesa anche sopra il corpo (la
+                        // parte che resta, se è tagliato), al piano campagna, trasparente: si capisce che
+                        // il modello sta lì sotto. Solo guardando dall'alto; sopra alle facce del corpo.
+                        const sfFoto = L.terreno && L.immagine && L.fotoSopra && se > 0.02 ? sfondoPerScena(d) : null;
+                        if (sfFoto && sfFoto.uv) {
+                            const m = leggera ? 4 : 10, foto = [];
+                            const alSuolo = (x, y) => { const z = d.zSuolo(x, y); return [x, y, Number.isFinite(z) ? z : colonnaIn(x, y).z]; };
+                            const uvF = (x, y) => { const g = d.geo(x, y); return sfFoto.uv(g.lat, g.lng); };
+                            Q.forEach((a, i) => {
+                                const b = Q[(i + 1) % Q.length];
+                                const punto = (r, c2) => [cx + (a[0] - cx) * r / m + (b[0] - a[0]) * c2 / m, cy + (a[1] - cy) * r / m + (b[1] - a[1]) * c2 / m];
+                                for (let r = 0; r < m; r++) for (let c2 = 0; c2 <= r; c2++) {
+                                    const tri = [[punto(r, c2), punto(r + 1, c2), punto(r + 1, c2 + 1)]];
+                                    if (c2 < r) tri.push([punto(r, c2), punto(r + 1, c2 + 1), punto(r, c2 + 1)]);
+                                    tri.forEach(tt => {
+                                        const w = tt.map(([x, y]) => alSuolo(x, y)), sp = w.map(q => P(...q));
+                                        foto.push({ t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tt.map(([x, y]) => uvF(x, y)), sfondo: sfFoto.tela, fill: 'none', fo: 0.5, cls: 'vista3d-foto-sopra' });
+                                    });
+                                }
+                            });
+                            sopra.unshift(...foto);
+                        }
                         // Il contorno della faccia di taglio, per vederla bene.
                         if (distTaglio || hTaglio > 0) Q.forEach((a, i) => {
                             const b = Q[(i + 1) % Q.length];
@@ -951,12 +973,13 @@
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
                 'vista3d-giacitura': 'giaciture', 'vista3d-giacitura-segno': 'giaciture', 'vista3d-falda': 'falda', 'vista3d-falda-segno': 'falda', 'vista3d-falda-nome': 'falda',
-                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno' };
+                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno', 'vista3d-foto-sopra': 'fotoSopra' };
             /** La scena in SVG: per il file scaricato (e per i test). */
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
                 const forma = f => {
                     const cls = (f.cls ? ` class="${f.cls}"` : '') + (f.op !== undefined && f.op < 1 ? ` opacity="${f.op}"` : ''), tit = f.title ? `<title>${esc(f.title)}</title>` : '';
+                    if (f.cls === 'vista3d-foto-sopra') return ''; // l'SVG non porta le immagini: niente velo grigio
                     if (f.t === 'poli') return `<polygon points="${f.p.map(p => n(p[0]) + ',' + n(p[1])).join(' ')}" fill="${f.fill}" fill-opacity="${f.fo ?? 1}" stroke="${f.stroke || 'none'}" stroke-width="${f.sw || 0}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</polygon>`;
                     if (f.t === 'linea') return `<line x1="${n(f.x1)}" y1="${n(f.y1)}" x2="${n(f.x2)}" y2="${n(f.y2)}" stroke="${f.stroke}" stroke-width="${f.sw || 1}"${f.dash ? ` stroke-dasharray="${f.dash.join(' ')}"` : ''}${cls}>${tit}</line>`;
                     if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"${f.sw ? ` stroke-width="${f.sw}"` : ''}` : ''}${cls}/>`;
@@ -1370,6 +1393,7 @@
                     { id: 'sfondo', nome: 'Sfondo', righe: [
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
                         liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»'),
+                        liv('fotoSopra', ico('satellite'), 'Foto sopra il modello', 'L\'immagine anche sopra il corpo solido (e la parte che resta di una sezione), trasparente: sotto si vede il modello'),
                         liv('nordTerreno', ico('arrow-up'), 'Freccia del Nord sul terreno', 'Stesa sul terreno, nell\'angolo più vicino') ] }
                 ];
                 // Nel modo Mappa: le prove, le sezioni e la mappa di base (tasto destro per cambiarla).

@@ -96,6 +96,26 @@ const $ = (app, id) => app.d.getElementById(id);
     return { a: nome(a), b: nome(b), la: la.w, lb: lb.w, schermo: ultimaScena3d.tutte.find(f => f.cls === 'vista3d-nome').size }; })()`);
   t(`la grandezza delle scritte: nomi da ${scr.a} a ${scr.b} px, e la legenda con loro (${scr.la} → ${scr.lb} px)`, Math.abs(scr.b / scr.a - 1.6) < 0.01 && scr.lb > scr.la * 1.5 && scr.schermo === 13);
 
+  console.log('--- La foto sopra il modello ---');
+  const foto = app.E(`(() => {
+    salvaSceltaSfondo3d({ id: 'esri-satellite' }); datiVista3dCorrenti._sfondo = null;
+    const d = datiVista3dCorrenti, voci = vociEsportazione3d(d), conta = sc => sc.tutte.filter(f => f.cls === 'vista3d-foto-sopra');
+    const senza = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true })).length;
+    const iso = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true, fotoSopra: true }));
+    const v3 = voci.find(v => v.tipo === 'sez3d'), sc3 = scenaVoce3d(v3, d, 1400, 860, { basemap: true, fotoSopra: true }), sez = conta(sc3);
+    // la foto della sezione 3D copre solo la parte che resta: i suoi punti sullo schermo stanno dentro l'ingombro del corpo
+    const corpo = sc3.tutte.filter(f => f.cls === 'vista3d-solido').flatMap(f => f.p), xs = corpo.map(q => q[0]), x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const dentro = sez.every(f => f.p.every(q => q[0] >= x0 - 1 && q[0] <= x1 + 1));
+    vista3d.livelli.solido = true; vista3d.livelli.fotoSopra = true; renderVista3d();
+    const schermo = ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-foto-sopra').length, svg = svgDaScena(ultimaScena3d);
+    vista3d.livelli.fotoSopra = false; renderVista3d();
+    return { senza, iso: iso.length, trasparente: iso.every(f => f.fo === 0.5 && f.sfondo && f.uv), sez: sez.length, dentro, schermo, nelSvg: /vista3d-foto-sopra/.test(svg), riga: !!document.querySelector('#livelliVista3d [data-livello="fotoSopra"]') };
+  })()`);
+  t(`la foto satellitare stesa sopra il modello, trasparente (${foto.iso} pezzi d'immagine al 50%), solo se la si chiede`, foto.senza === 0 && foto.iso > 50 && foto.trasparente);
+  t('anche sulla sezione 3D, sopra la parte che resta', foto.sez > 50 && foto.dentro);
+  t('nel 3D la spunta «Foto sopra il modello» nei Livelli (Sfondo)', foto.riga && foto.schermo > 0);
+  t('(nell\'SVG, che le immagini non le porta, niente velo)', !foto.nelSvg);
+
   console.log('--- La finestra ---');
   clic(app, $(app, 'btnTavole3d'));
   await attesa(80);
@@ -169,7 +189,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
-    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true }));
+    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false }));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   const trascina = (x0, y0, dx, dy) => {
     const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };
