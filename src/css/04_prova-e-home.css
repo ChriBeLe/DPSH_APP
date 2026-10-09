@@ -854,3 +854,18 @@
             .tavole-pag { min-width: 140px; }
             .tavole-comandi { border-left: none; border-top: 1px solid var(--border); }
         }
+
+        /* Strati e parametri senza vicoli ciechi (071q): la prova su cui si calcola e il messaggio
+           di uno strato senza intervalli, con i tasti che portano dove si rimedia. */
+        .strati-prova-calcolo {
+            display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+            padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius-md);
+            background: var(--bg-card-hover); font-size: var(--fs-testo); color: var(--text-muted);
+        }
+        .strati-prova-calcolo select {
+            min-height: var(--h-bottone); flex: 1; min-width: 140px; padding: 0 var(--sp-2);
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-card); color: var(--text-main); font: inherit; font-weight: 700;
+        }
+        .strato-senza-dati { font-size: var(--fs-testo); color: var(--text-muted); line-height: 1.4; text-align: left; }
+        .strato-senza-dati-azioni { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }

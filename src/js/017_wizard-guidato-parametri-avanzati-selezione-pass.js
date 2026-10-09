@@ -71,9 +71,8 @@
                 if (modalWizard) modalWizard.classList.add('open');
             }
             /** Trova la prima categoria applicabile ancora senza una scelta esplicita, scandendo
-             * gli strati nell'ordine in cui compaiono nel wizard. Usata per rendere obbligatoria
-             * una scelta per ogni campo prima di poter chiudere il wizard: se manca qualcosa,
-             * invece di chiudere si salta dritti al passo interessato. */
+             * gli strati nell'ordine in cui compaiono nel wizard. Alla chiusura il messaggio dice
+             * quale manca, e «Completa» riporta a quel passo (chiudiWizardParametri). */
             function primoCampoWizardMancante(){
                 if (!state.strati || state.strati.length === 0) return null;
                 const risultatoPerId = calcolaRisultatiPerStratiCorrenti();
@@ -98,20 +97,21 @@
             }
 
             function chiudiWizardParametri(forza){
-                if (!forza) {
-                    const mancante = primoCampoWizardMancante();
-                    if (mancante) {
-                        wizStratoIdx = mancante.stratoIdx;
-                        wizStepIdx = mancante.stepIdx;
-                        wizModoRiepilogo = false;
-                        wizSpiegazioniAperte.clear();
-                        renderWizardModal();
-                        appAlert(`Manca ancora una scelta per "${mancante.catLabel}" nello strato "${mancante.stratoName}". Completa questo campo (o usa "Compila automaticamente" nella Gestione Strati per accettare i consigliati) prima di chiudere il wizard.`);
-                        return;
-                    }
-                }
+                // La X chiude SEMPRE. Prima, con una scelta mancante, la X riportava a quella scelta
+                // con un avviso da confermare: dalla procedura guidata non si usciva senza finirla.
+                // Le scelte fatte sono già salvate; quella che manca la dice il messaggio, e
+                // «Completa» riporta lì.
+                const mancante = forza ? null : primoCampoWizardMancante();
                 if (modalWizardOverlay) modalWizardOverlay.classList.remove('open');
                 if (modalWizard) modalWizard.classList.remove('open');
+                if (mancante) {
+                    mostraToast(`Manca ancora «${mancante.catLabel}» in «${mancante.stratoName}»`, { durata: 6000, azione: { etichetta: 'Completa', fn: () => {
+                        apriWizardParametri(state.strati[mancante.stratoIdx] && state.strati[mancante.stratoIdx].id);
+                        wizStepIdx = mancante.stepIdx;
+                        wizModoRiepilogo = false;
+                        renderWizardModal();
+                    } } });
+                }
             }
             if (btnCloseWizardX) btnCloseWizardX.addEventListener('click', () => chiudiWizardParametri(false));
             if (modalWizardOverlay) modalWizardOverlay.addEventListener('click', () => chiudiWizardParametri(false));
@@ -171,16 +171,16 @@
                     const appCatsS = t ? categorieApplicabili({isCoesivo: t.agg.isCoesivo, isIncoerente: t.agg.isIncoerente}) : [];
                     const totale = appCatsS.length;
                     const fatte = categorieConSceltaWizard(s, appCatsS);
-                    return `<button class="wiz-strato-tab ${i===wizStratoIdx?'wiz-attivo':''} ${totale>0 && fatte===totale?'wiz-completo':''}" data-strato-idx="${i}">
+                    return `<button class="wiz-strato-tab ${i===wizStratoIdx?'wiz-attivo':''} ${totale>0 && fatte===totale?'wiz-completo':''}" data-strato-idx="${i}" title="${testoSicuroStrati(s.name)}">
                         <span class="wiz-swatch" style="background:${s.color}"></span>
-                        ${s.name.length>18 ? s.name.slice(0,17)+'…' : s.name}
+                        <span class="wiz-strato-nome">${testoSicuroStrati(s.name)}</span>
                         ${totale>0 ? `<span class="wiz-badge-count">${fatte}/${totale}</span>` : ''}
                     </button>`;
                 }).join('');
 
                 let bodyHtml;
                 if (!trovato) {
-                    bodyHtml = `<div class="wiz-categoria-vuota">Nessun intervallo assegnato a "${strato.name}" in questa prova: assegna la litologia agli intervalli nella scheda "Prova" per poter calcolare Nspt, Rpd e usare il wizard su questo strato.</div>`;
+                    bodyHtml = `<div class="wiz-categoria-vuota">${htmlStratoSenzaDati(strato)}</div>`;
                 } else if (wizModoRiepilogo) {
                     bodyHtml = renderWizardRiepilogo(strato, trovato, appCats);
                 } else {
@@ -202,7 +202,7 @@
                 const mostraContinua = haSelezioneStepCorrente || stepCorrenteNonTipico;
 
                 body.innerHTML = `
-                    <div class="wiz-eyebrow">${trovato ? `${trovato.agg.profonditaDa.toFixed(2)}–${trovato.agg.profonditaA.toFixed(2)} m · ${trovato.agg.isCoesivo?'coesivo':'granulare'}` : 'Nessun dato in questa prova'}</div>
+                    <div class="wiz-eyebrow">${nomeProvaAperta()} · ${trovato ? `${trovato.agg.profonditaDa.toFixed(2)}–${trovato.agg.profonditaA.toFixed(2)} m · ${trovato.agg.isCoesivo?'coesivo':'granulare'}` : 'strato non presente'}</div>
                     <div class="wiz-strati-tabs">${tabsHtml}</div>
                     ${trovato && !wizModoRiepilogo ? (() => {
                         const usaManuale = Array.isArray(strato.categorieManuali);

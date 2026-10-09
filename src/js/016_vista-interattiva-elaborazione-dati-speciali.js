@@ -44,7 +44,7 @@
                         </button>
                     </div>` : '';
                 if (!trovato) {
-                    return `<div style="padding:12px; font-size:11.5px; color:var(--text-muted);">Nessun intervallo assegnato a questo strato in questa prova: assegna la litologia agli intervalli nella scheda "Prova" per calcolare Nspt, Rpd e i parametri avanzati.</div>${azioniHtml}`;
+                    return `<div style="padding:12px;">${htmlStratoSenzaDati(strato)}</div>${azioniHtml}`;
                 }
                 const { agg, ris } = trovato;
                 const pre = ris.preElaborazione;
@@ -146,7 +146,7 @@
                     </div>`;
 
                 if (!trovato) {
-                    return `<div style="padding:12px; font-size:11.5px; color:var(--text-muted);">Nessun intervallo assegnato a questo strato in questa prova: assegna la litologia agli intervalli nella scheda "Prova" per calcolare Nspt, Rpd e i parametri avanzati.</div>${btnApriHtml}`;
+                    return `<div style="padding:12px;">${htmlStratoSenzaDati(strato)}</div>`;
                 }
 
                 const { agg, ris } = trovato;
