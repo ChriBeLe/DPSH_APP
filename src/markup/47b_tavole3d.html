@@ -62,8 +62,8 @@
                         <button type="button" data-pianta="no" aria-pressed="false">Nessuna</button>
                     </div>
                     <span class="t-didascalia">Si regola sull'anteprima, per ogni sezione: <b>trascina</b> la foto per spostarla, <b>rotella</b> per lo zoom, trascina la <b>maniglia</b> sull'angolo per cambiarne larghezza e altezza (o il bordo esterno, solo l'altezza); doppio clic: com'era. Serve la mappa di base. <button type="button" class="btn-link" id="tavole3dPiantaZoomReset">Com'era all'inizio</button></span></div>
-                <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione</span>
-                    <label class="tavole-riga tavole-fascia">entro <input type="number" id="tavole3dFascia" class="form-control" min="0" step="5"> m dalla traccia</label>
+                <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione (distanza dalla traccia)</span>
+                    <label class="tavole-campo tavole-riga tavole-opacita-foto" title="Le prove entro questa distanza dalla traccia si proiettano sulla sezione">Entro <span><input type="range" id="tavole3dFascia" min="0" max="200" step="1" value="25" aria-label="Distanza massima delle prove dalla traccia, in metri"> <b id="tavole3dFasciaVal" style="white-space: nowrap">25 m</b></span></label>
                     <div id="tavole3dProve" class="tavole-prove"></div>
                     <span class="t-didascalia">Togli la spunta per lasciarla fuori (vale anche nella scheda Sezioni).</span></div>
                 <div class="tavole-campo"><span>Foglio</span>

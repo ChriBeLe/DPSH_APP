@@ -644,7 +644,10 @@
                 T3('tavole3dPiantaBox').hidden = box.hidden;
                 if (box.hidden) return;
                 const ds = datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), esc = escapeHtmlDidascalia;
+                // il cursore arriva fin dove arriva la scena (almeno 100 m)
+                T3('tavole3dFascia').max = Math.max(100, Math.ceil(datiVista3dCorrenti.lato / 2 / 10) * 10, Math.ceil(sezioniTracciateStato.fascia));
                 if (document.activeElement !== T3('tavole3dFascia')) T3('tavole3dFascia').value = sezioniTracciateStato.fascia;
+                T3('tavole3dFasciaVal').textContent = numeroConVirgola(sezioniTracciateStato.fascia, 0) + ' m';
                 T3('tavole3dProve').innerHTML = ds.vicine.length ? ds.vicine.map(q => `<label><input type="checkbox" data-prova-tavola="${q.p.s.id}"${(t.escluse || []).includes(q.p.s.id) ? '' : ' checked'}>${esc(nomeDpsh(q.p.s))}<span class="t-didascalia">a ${numeroConVirgola(q.lato, 0)} m</span></label>`).join('')
                     : '<span class="t-didascalia">Nessuna prova entro questa distanza dalla traccia.</span>';
             }
@@ -1069,6 +1072,7 @@
             });
             T3('tavole3dFascia').addEventListener('input', (e) => {
                 sezioniTracciateStato.fascia = Math.max(0, Number(e.target.value) || 0);
+                T3('tavole3dFasciaVal').textContent = numeroConVirgola(sezioniTracciateStato.fascia, 0) + ' m';
                 const f = document.getElementById('numFasciaSezione3d');
                 if (f) f.value = sezioniTracciateStato.fascia;
                 dopoProveTavola3d();

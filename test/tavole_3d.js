@@ -347,7 +347,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('rimessa: torna', svgSez().includes('>' + nomeTolta + '<'));
   const prima2 = caselle().length;
   $(app, 'tavole3dFascia').value = '0'; $(app, 'tavole3dFascia').dispatchEvent(new app.w.Event('input', { bubbles: true }));
-  t(`la distanza dalla traccia decide quali prove si possono mettere (${prima2} → ${caselle().length} a 0 m)`, caselle().length < prima2 && $(app, 'numFasciaSezione3d').value === '0');
+  t(`la distanza dalla traccia (un cursore, col valore scritto) decide quali prove si possono mettere (${prima2} → ${caselle().length} a 0 m)`, caselle().length < prima2 && $(app, 'numFasciaSezione3d').value === '0' && $(app, 'tavole3dFascia').type === 'range' && $(app, 'tavole3dFasciaVal').textContent === '0 m');
   $(app, 'tavole3dFascia').value = '25'; $(app, 'tavole3dFascia').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   clic(app, pagine()[0]);
   t('(sulle pagine 3D la scelta delle prove non c\'è)', $(app, 'tavole3dProveBox').hidden);
