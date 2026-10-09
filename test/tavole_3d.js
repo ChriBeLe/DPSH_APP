@@ -135,6 +135,12 @@ const $ = (app, id) => app.d.getElementById(id);
     const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d'), conta = tm => { const tt = scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm }).tutte; return { facce: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'poli').length, linee: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'linea').length }; };
     return { senza: conta(false), con: conta(true) };
   })()`);
+  const mesh = app.E(`(() => {
+    const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], prima = vista3d.livelli.mesh; vista3d.livelli.mesh = true;
+    const righe = o => scenaVoce3d(v, d, 1400, 860, o).tutte.filter(f => f.cls === 'vista3d-solido' && f.stroke !== f.fill).length;
+    const out = { senza: righe({}), con: righe({ mesh: true }), dopo: vista3d.livelli.mesh, spunta: !!document.getElementById('tavole3dMesh') };
+    vista3d.livelli.mesh = prima; return out; })()`);
+  t(`nelle tavole la mesh del modello non c'è (anche se nel 3D è accesa); si accende con «Mesh del modello» (${mesh.con} righe)`, mesh.senza === 0 && mesh.con > 50 && mesh.dopo === true && mesh.spunta);
   t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
   const piantaGirata = app.E(`(() => {
     const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], sez = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 1400);
@@ -228,7 +234,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
-    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true }));
+    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false }));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   const trascina = (x0, y0, dx, dy) => {
     const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };
