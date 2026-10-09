@@ -31,13 +31,13 @@
              * rimette tutto com'era: la vista a schermo non se ne accorge. */
             function conVista3dTemporanea(modifica, fn) {
                 const prima = { az: vista3d.az, el: vista3d.el, ex: vista3d.ex, zoom: vista3d.zoom, centro: vista3d.centro.slice(), prospettiva: vista3d.prospettiva,
-                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti, elementi: vista3d.elementi, posizioni: vista3d.posizioni, nordTerrenoPos: vista3d.nordTerrenoPos };
+                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti, opacitaFoto: vista3d.opacitaFoto, elementi: vista3d.elementi, posizioni: vista3d.posizioni, nordTerrenoPos: vista3d.nordTerrenoPos };
                 try {
                     vista3d.disegno = null;
                     modifica();
                     return fn();
                 } finally {
-                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti, elementi: prima.elementi, posizioni: prima.posizioni, nordTerrenoPos: prima.nordTerrenoPos });
+                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti, opacitaFoto: prima.opacitaFoto, elementi: prima.elementi, posizioni: prima.posizioni, nordTerrenoPos: prima.nordTerrenoPos });
                 }
             }
 
@@ -127,6 +127,7 @@
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
                     if (opz && opz.fantasma !== undefined) vista3d.livelli.fantasma = !!opz.fantasma;
                     if (opz && opz.fotoSopra !== undefined) vista3d.livelli.fotoSopra = !!opz.fotoSopra;
+                    if (opz && opz.opacitaFoto) vista3d.opacitaFoto = opz.opacitaFoto;
                     if (base.tracce) vista3d.tracceNascoste = new Set(tracceDelProgetto().map(t => t.id).filter(id => id !== base.tracce));
                 }, () => {
                     const leggera = !!(opz && opz.leggera);
@@ -445,7 +446,7 @@
                 const { W, H } = misureTavola3d(v), basemap = T3('tavole3dBasemap').checked;
                 return Object.assign({
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
-                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, scritte: tavole3d.scritte,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, opacitaFoto: Number(T3('tavole3dOpacitaFoto').value) / 100, scritte: tavole3d.scritte,
                     elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
                     ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
@@ -514,6 +515,8 @@
                 T3('tavole3dNordTerreno').checked = vista3d.livelli.nordTerreno !== false;
                 T3('tavole3dFantasma').checked = vista3d.livelli.fantasma !== false;
                 T3('tavole3dFotoSopra').checked = !!vista3d.livelli.fotoSopra;
+                T3('tavole3dOpacitaFoto').value = Math.round((mem.opacitaFoto || vista3d.opacitaFoto || 0.5) * 100);
+                T3('tavole3dOpacitaFotoVal').textContent = T3('tavole3dOpacitaFoto').value + '%';
                 tavole3d.posizioni = mem.posizioni || {};
                 const el = mem.elementi || {};
                 [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
@@ -536,6 +539,7 @@
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
                 mem.posizioni = tavole3d.posizioni;
                 mem.ordine = tavole3d.voci.map(v => v.id);
+                mem.opacitaFoto = Number(T3('tavole3dOpacitaFoto').value) / 100;
                 mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
@@ -855,6 +859,8 @@
                 aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
             ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta', 'tavole3dFotoSopra'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            T3('tavole3dOpacitaFoto').addEventListener('input', (e) => { T3('tavole3dOpacitaFotoVal').textContent = e.target.value + '%'; salvaMemoriaTavole3d(); ridisegnaTavola3d(); });
+            T3('tavole3dOpacitaFoto').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dRiposiziona').addEventListener('click', () => {
                 tavole3d.posizioni = {};
                 Object.values(tavole3d.regola).forEach(r => { delete r.nordTerreno; });

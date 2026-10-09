@@ -129,6 +129,10 @@
                             <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
                             <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
                         </div>
+                        <div class="vista3d-taglio-riga">
+                            <label class="vista3d-opacita"><input type="checkbox" id="chkFotoSopra3d"> Foto sopra il modello</label>
+                            <label class="vista3d-opacita" title="Quanto si vede la foto sopra il modello: poca, e il modello sotto si vede di più">Opacità <input type="range" id="rngOpacitaFoto3d" min="10" max="100" step="5" value="50"> <b id="lblOpacitaFoto3d">50%</b></label>
+                        </div>
                         <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
                             <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
                             <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">

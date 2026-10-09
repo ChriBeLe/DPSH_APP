@@ -14,7 +14,7 @@
             // Senza DTM, come nella sezione: le prove partono tutte dal piano campagna (quota 0, un
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
-            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
+            const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0, opacitaFoto: 0.5,
                 livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
@@ -494,24 +494,28 @@
                 const luceF = [-0.5, 0.5, 0.7].map(v => v / Math.hypot(-0.5, 0.5, 0.7)), versoOcchio = [-sa * ce, -ca * ce, se];
                 // Gli stili dei livelli (menu «Stile…»).
                 const stP = stileLivello('pannelli'), stS = stileLivello('superfici'), stF = stileLivello('falda'), stG = stileLivello('giaciture'), stM = stileLivello('misure'), stV = stileLivello('prove');
-                const ombra = (colore, pw) => {
+                // luce: 'taglio' = faccia del taglio, esposta (colore pieno, un filo più chiaro); 'ombra' =
+                // il resto del corpo quando è tagliato (più scuro): si vede subito dov'è la sezione.
+                const ombra = (colore, pw, luce) => {
                     const k = vista3d.ombre, m = /^#([0-9a-f]{6})$/i.exec(colore);
-                    if (!k || !m) return colore;
+                    if (!m) return colore;
+                    const v = parseInt(m[1], 16), tinta = f => `rgb(${[16, 8, 0].map(s => Math.min(255, Math.round(((v >> s) & 255) * f))).join(',')})`;
+                    if (luce === 'taglio') return tinta(1.06);
+                    if (!k) return luce === 'ombra' ? tinta(0.6) : colore;
                     const n = [0, 0, 0];
                     pw.forEach((a, i) => {
                         const b = pw[(i + 1) % pw.length], az = a[2] * ex, bz = b[2] * ex;
                         n[0] += (a[1] - b[1]) * (az + bz); n[1] += (az - bz) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
                     });
                     const l = Math.hypot(...n);
-                    if (!l) return colore;
+                    if (!l) return luce === 'ombra' ? tinta(0.6) : colore;
                     const verso = Math.sign(n[0] * versoOcchio[0] + n[1] * versoOcchio[1] + n[2] * versoOcchio[2]) || 1;
                     const lamb = Math.max(0, verso * (n[0] * luceF[0] + n[1] * luceF[1] + n[2] * luceF[2]) / l);
-                    const f = 1 - k + k * (0.42 + 0.7 * lamb);
-                    const v = parseInt(m[1], 16);
-                    return `rgb(${[16, 8, 0].map(s => Math.min(255, Math.round(((v >> s) & 255) * f))).join(',')})`;
+                    const f = (1 - k + k * (0.42 + 0.7 * lamb)) * (luce === 'ombra' ? 0.6 : 1);
+                    return tinta(f);
                 };
                 const poliW = (pw, extra) => {
-                    const fill = ombra(extra.fill, pw);
+                    const fill = ombra(extra.fill, pw, extra.luce);
                     return poli(pw.map(p => P(...p)), { ...extra, base: extra.fill, fill, stroke: extra.stroke === extra.fill ? fill : extra.stroke });
                 };
                 const so = L.solido ? modelloSolido(d) : null;
@@ -548,11 +552,20 @@
                     // Col modello solido il terreno è il contesto: si disegna per primo, sotto a tutto,
                     // così il corpo (che starebbe sottoterra, coperto) resta in vista.
                     const sottoTutto = so ? 1e9 : 0;
+                    // «scavo»: il terreno sopra la parte del corpo tolta dal taglio (la foto sopra il modello
+                    // non lo stende davanti alla sezione, che resta scoperta)
+                    const pieno = so && distTaglio ? involucroModello(so) : null;
+                    const nelloScavo = pp => {
+                        if (!pieno) return false;
+                        const x = pp.reduce((a, q) => a + q[0], 0) / pp.length, y = pp.reduce((a, q) => a + q[1], 0) / pp.length;
+                        return distTaglio(x, y) < 0 && pieno.every((A, i) => { const B = pieno[(i + 1) % pieno.length]; return (B[0] - A[0]) * (y - A[1]) - (B[1] - A[1]) * (x - A[0]) >= -1e-6; });
+                    };
                     const terreno = (pp, fill) => {
-                        if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); return; }
+                        const scavo = nelloScavo(pp);
+                        if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia', scavo }); return; }
                         for (let n = 1; n + 1 < pp.length; n++) {
                             const tri = [pp[0], pp[n], pp[n + 1]], sp = tri.map(q => P(...q));
-                            pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia' });
+                            pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia', scavo });
                         }
                     };
                     // Il buco del corpo nel terreno (col taglio verticale solo la parte che resta: dove il
@@ -661,9 +674,12 @@
                         const vx = sa * ce, vy = ca * ce;
                         const colonnaIn = (x, y) => colonnaSolido(d, so, x, y);
                         const passo = d.lato / (leggera ? 18 : 40);
+                        const tagliato = !!(distTaglio || hTaglio > 0);
                         Q.forEach((a, i) => {
                             const b = Q[(i + 1) % Q.length], dx = b[0] - a[0], dy = b[1] - a[1], lung = Math.hypot(dx, dy);
                             if (lung < 1e-6 || dy * vx - dx * vy >= 0) return; // parete di spalle
+                            // col corpo tagliato: la parete sul taglio in luce, le altre in ombra
+                            const luce = !tagliato ? undefined : distTaglio && Math.abs(distTaglio(a[0], a[1])) < 1e-6 && Math.abs(distTaglio(b[0], b[1])) < 1e-6 ? 'taglio' : 'ombra';
                             const passi = Math.max(1, Math.min(leggera ? 8 : 24, Math.round(lung / passo)));
                             const campioni = [];
                             for (let n = 0; n <= passi; n++) { const x = a[0] + dx * n / passi, y = a[1] + dy * n / passi; campioni.push({ x, y, ...colonnaIn(x, y) }); }
@@ -674,7 +690,7 @@
                                     const tb = Math.max(hTaglio, k ? B.basi[k - 1] : 0), bb = Math.max(tb, B.basi[k]);
                                     if (ba - ta < 1e-4 && bb - tb < 1e-4) continue;
                                     poliW([[A.x, A.y, A.z - ta], [B.x, B.y, B.z - tb], [B.x, B.y, B.z - bb], [A.x, A.y, A.z - ba]],
-                                        { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.6, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
+                                        { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.6, cls: 'vista3d-solido', title: st.nome, strato: st.nome, luce });
                                 }
                             });
                         });
@@ -695,7 +711,8 @@
                                         // profondità del taglio: il triangolino si taglia lì, niente scalini.
                                         const h = diSopra ? prof : prof - 1e-3;
                                         const ks = new Set(tt.map(([x, y]) => stratoAProfondita(colonnaIn(x, y), h)));
-                                        const disegna = (pp, st) => poliW(pp.map(([x, y]) => [x, y, colonnaIn(x, y).z - prof]), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome, strato: st.nome });
+                                        const luce = !tagliato ? undefined : diSopra && hTaglio > 0 ? 'taglio' : 'ombra';
+                                        const disegna = (pp, st) => poliW(pp.map(([x, y]) => [x, y, colonnaIn(x, y).z - prof]), { fill: st.colore, fo: st.ignoto ? 0.55 : 1, stroke: st.colore, sw: 0.5, cls: 'vista3d-solido', title: st.nome, strato: st.nome, luce });
                                         if (ks.size === 1) { disegna(tt, so.strati[[...ks][0]]); return; }
                                         for (let kk = Math.min(...ks); kk <= Math.max(...ks); kk++) {
                                             let pezzo = kk ? ritagliaPoligono(tt, ([x, y]) => h - colonnaIn(x, y).basi[kk - 1]) : tt;
@@ -712,10 +729,34 @@
                         // il modello sta lì sotto. Solo guardando dall'alto; sopra alle facce del corpo.
                         const sfFoto = L.terreno && L.immagine && L.fotoSopra && se > 0.02 ? sfondoPerScena(d) : null;
                         if (sfFoto && sfFoto.uv) {
-                            const m = leggera ? 4 : 10, foto = [];
+                            const m = leggera ? 4 : 10, foto = [], opF = Math.max(0.05, Math.min(1, vista3d.opacitaFoto ?? 0.5));
+                            // E il terreno davanti ai lati del corpo, steso anch'esso sopra (il corpo è sepolto):
+                            // i pezzi d'immagine del terreno che sullo schermo cadono sul corpo, tranne lo scavo.
+                            const corpo = pezzi.filter(f => f.cls === 'vista3d-solido').flatMap(f => f.p);
+                            // la faccia del taglio sullo schermo (il suo contorno convesso): lì niente terreno sopra,
+                            // la sezione resta scoperta per intero
+                            const contornoConvesso = pts => {
+                                const o = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), gr = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]), g = [], u = [];
+                                o.forEach(q => { while (g.length >= 2 && gr(g[g.length - 2], g[g.length - 1], q) <= 0) g.pop(); g.push(q); });
+                                o.slice().reverse().forEach(q => { while (u.length >= 2 && gr(u[u.length - 2], u[u.length - 1], q) <= 0) u.pop(); u.push(q); });
+                                const h = g.slice(0, -1).concat(u.slice(0, -1));
+                                return h.length >= 3 ? (x, y) => h.every((a, i) => gr(a, h[(i + 1) % h.length], [x, y]) >= -1e-6) : () => false;
+                            };
+                            const sulTaglio = contornoConvesso(pezzi.filter(f => f.cls === 'vista3d-solido' && f.luce === 'taglio').flatMap(f => f.p));
+                            if (corpo.length) {
+                                const bx0 = Math.min(...corpo.map(q => q[0])), bx1 = Math.max(...corpo.map(q => q[0])), by0 = Math.min(...corpo.map(q => q[1])), by1 = Math.max(...corpo.map(q => q[1]));
+                                pezzi.forEach(f => {
+                                    if (f.cls !== 'vista3d-faccia' || !f.sfondo || f.scavo) return;
+                                    if (f.p.every(q => q[0] < bx0) || f.p.every(q => q[0] > bx1) || f.p.every(q => q[1] < by0) || f.p.every(q => q[1] > by1)) return;
+                                    const gx = f.p.reduce((a, q) => a + q[0], 0) / f.p.length, gy = f.p.reduce((a, q) => a + q[1], 0) / f.p.length;
+                                    if (sulTaglio(gx, gy) || f.p.some(q => sulTaglio(q[0], q[1]))) return;
+                                    foto.push({ t: 'poli', p: f.p, uv: f.uv, sfondo: f.sfondo, fill: 'none', fo: opF, cls: 'vista3d-foto-sopra' });
+                                });
+                            }
                             const alSuolo = (x, y) => { const z = d.zSuolo(x, y); return [x, y, Number.isFinite(z) ? z : colonnaIn(x, y).z]; };
                             const uvF = (x, y) => { const g = d.geo(x, y); return sfFoto.uv(g.lat, g.lng); };
-                            Q.forEach((a, i) => {
+                            // sopra il corpo (non col taglio in profondità: lì la fetta di sopra è tolta e il taglio si vede)
+                            if (hTaglio <= 0) Q.forEach((a, i) => {
                                 const b = Q[(i + 1) % Q.length];
                                 const punto = (r, c2) => [cx + (a[0] - cx) * r / m + (b[0] - a[0]) * c2 / m, cy + (a[1] - cy) * r / m + (b[1] - a[1]) * c2 / m];
                                 for (let r = 0; r < m; r++) for (let c2 = 0; c2 <= r; c2++) {
@@ -723,7 +764,7 @@
                                     if (c2 < r) tri.push([punto(r, c2), punto(r + 1, c2 + 1), punto(r, c2 + 1)]);
                                     tri.forEach(tt => {
                                         const w = tt.map(([x, y]) => alSuolo(x, y)), sp = w.map(q => P(...q));
-                                        foto.push({ t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tt.map(([x, y]) => uvF(x, y)), sfondo: sfFoto.tela, fill: 'none', fo: 0.5, cls: 'vista3d-foto-sopra' });
+                                        foto.push({ t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tt.map(([x, y]) => uvF(x, y)), sfondo: sfFoto.tela, fill: 'none', fo: opF, cls: 'vista3d-foto-sopra' });
                                     });
                                 }
                             });
@@ -1163,6 +1204,8 @@
                 document.getElementById('lblCaricaDtm3d').textContent = (state.projects[state.currentProjectId] || {}).dtm ? 'Carica un altro DTM' : 'Carica un DTM';
                 renderLivelli3d();
                 document.querySelectorAll('#modalVista3d [data-livello]').forEach(b => b.setAttribute('aria-pressed', String(vista3d.livelli[b.dataset.livello])));
+                const chkFoto = document.getElementById('chkFotoSopra3d');
+                if (chkFoto) chkFoto.checked = !!vista3d.livelli.fotoSopra;
                 sincronizzaCursori3d();
                 // Nel modo Mappa la figura 3D non si vede: si aggiorna la mappa 2D.
                 if (areaMappa.modo === 'mappa') { disegnaProveMappa(); return; }
@@ -2039,6 +2082,27 @@
                 ridisegna3d();
             });
             document.getElementById('rngOpacita3d').addEventListener('change', () => saveState());
+            // La foto sopra il modello: la spunta (lo stesso livello dei Livelli) e quanto è opaca, ricordata.
+            vista3d.opacitaFoto = (state.settings && state.settings.opacitaFoto3d) || 0.5;
+            const sincronizzaFoto3d = () => {
+                document.getElementById('chkFotoSopra3d').checked = !!vista3d.livelli.fotoSopra;
+                document.getElementById('rngOpacitaFoto3d').value = Math.round(vista3d.opacitaFoto * 100);
+                document.getElementById('lblOpacitaFoto3d').textContent = Math.round(vista3d.opacitaFoto * 100) + '%';
+            };
+            sincronizzaFoto3d();
+            document.getElementById('chkFotoSopra3d').addEventListener('change', (e) => {
+                vista3d.livelli.fotoSopra = e.target.checked;
+                if (e.target.checked && !vista3d.livelli.solido) accendiSolido3d();
+                renderVista3d();
+            });
+            document.getElementById('rngOpacitaFoto3d').addEventListener('input', (e) => {
+                vista3d.opacitaFoto = Number(e.target.value) / 100;
+                if (!state.settings) state.settings = {};
+                state.settings.opacitaFoto3d = vista3d.opacitaFoto;
+                document.getElementById('lblOpacitaFoto3d').textContent = e.target.value + '%';
+                ridisegna3d();
+            });
+            document.getElementById('rngOpacitaFoto3d').addEventListener('change', () => saveState());
             // I tagli: toccarli accende il modello solido, che è quello che si taglia.
             const conSolido = () => { if (!vista3d.livelli.solido) accendiSolido3d(); };
             document.getElementById('direzioneTaglio3d').addEventListener('click', (e) => {

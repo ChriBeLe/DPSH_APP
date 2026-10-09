@@ -103,16 +103,22 @@ const $ = (app, id) => app.d.getElementById(id);
     const senza = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true })).length;
     const iso = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true, fotoSopra: true }));
     const v3 = voci.find(v => v.tipo === 'sez3d'), sc3 = scenaVoce3d(v3, d, 1400, 860, { basemap: true, fotoSopra: true }), sez = conta(sc3);
-    // la foto della sezione 3D copre solo la parte che resta: i suoi punti sullo schermo stanno dentro l'ingombro del corpo
-    const corpo = sc3.tutte.filter(f => f.cls === 'vista3d-solido').flatMap(f => f.p), xs = corpo.map(q => q[0]), x0 = Math.min(...xs), x1 = Math.max(...xs);
-    const dentro = sez.every(f => f.p.every(q => q[0] >= x0 - 1 && q[0] <= x1 + 1));
+    // la foto della sezione 3D: sopra la parte che resta e sul terreno davanti ai lati, mai sullo scavo davanti alla sezione
+    const scavo = new Set(sc3.tutte.filter(f => f.cls === 'vista3d-faccia' && f.scavo).map(f => f.p));
+    const terraSopra = new Set(sc3.tutte.filter(f => f.cls === 'vista3d-faccia' && !f.scavo).map(f => f.p));
+    const dentro = scavo.size > 0 && sez.every(f => !scavo.has(f.p)) && sez.some(f => terraSopra.has(f.p));
+    const luci = sc3.tutte.filter(f => f.cls === 'vista3d-solido').map(f => f.luce), luciIso = scenaVoce3d(voci[0], d, 1400, 860, {}).tutte.filter(f => f.cls === 'vista3d-solido').map(f => f.luce);
+    const opaca = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true, fotoSopra: true, opacitaFoto: 0.3 })).every(f => f.fo === 0.3);
     vista3d.livelli.solido = true; vista3d.livelli.fotoSopra = true; renderVista3d();
     const schermo = ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-foto-sopra').length, svg = svgDaScena(ultimaScena3d);
     vista3d.livelli.fotoSopra = false; renderVista3d();
-    return { senza, iso: iso.length, trasparente: iso.every(f => f.fo === 0.5 && f.sfondo && f.uv), sez: sez.length, dentro, schermo, nelSvg: /vista3d-foto-sopra/.test(svg), riga: !!document.querySelector('#livelliVista3d [data-livello="fotoSopra"]') };
+    return { senza, iso: iso.length, trasparente: iso.every(f => f.fo === 0.5 && f.sfondo && f.uv), sez: sez.length, dentro, schermo, opaca,
+      taglioInLuce: luci.includes('taglio') && luci.includes('ombra') && luci.every(l => l === 'taglio' || l === 'ombra'), isoSenzaLuci: luciIso.every(l => l === undefined), nelSvg: /vista3d-foto-sopra/.test(svg), riga: !!document.querySelector('#livelliVista3d [data-livello="fotoSopra"]') };
   })()`);
   t(`la foto satellitare stesa sopra il modello, trasparente (${foto.iso} pezzi d'immagine al 50%), solo se la si chiede`, foto.senza === 0 && foto.iso > 50 && foto.trasparente);
-  t('anche sulla sezione 3D, sopra la parte che resta', foto.sez > 50 && foto.dentro);
+  t('anche sulla sezione 3D: sopra la parte che resta e sul terreno davanti ai lati (sepolti), mai davanti alla sezione', foto.sez > 50 && foto.dentro);
+  t('l\'opacità della foto si sceglie (qui 30%)', foto.opaca);
+  t('col taglio la faccia della sezione è in luce, il resto del corpo in ombra (senza taglio niente)', foto.taglioInLuce && foto.isoSenzaLuci);
   t('nel 3D la spunta «Foto sopra il modello» nei Livelli (Sfondo)', foto.riga && foto.schermo > 0);
   t('(nell\'SVG, che le immagini non le porta, niente velo)', !foto.nelSvg);
 
