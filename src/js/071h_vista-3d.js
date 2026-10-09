@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, distanze: true, sezioni: true, immagine: true, solido: false, mesh: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, distanze: true, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -517,13 +517,20 @@
                 const so = L.solido ? modelloSolido(d) : null;
                 const tg = vista3d.taglio;
                 // Il lato tolto dal taglio verticale: quello che non soddisfa (coordinata − c)·lato ≥ 0.
-                let tieni = () => true;
-                if (so && tg.dir) {
+                // distTaglio: di quanto un punto sta dalla parte che resta (negativo = tolto). Il piano è
+                // Nord–Sud o Est–Ovest (dir, pos), oppure una retta qualunque (retta: due punti in metri,
+                // per le sezioni 3D esportate lungo una traccia obliqua; lato 1 = a sinistra di a→b).
+                let tieni = () => true, distTaglio = null;
+                if (so && tg.retta) {
+                    const [a, b] = tg.retta, lr = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+                    distTaglio = (x, y) => ((b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0])) / lr * tg.lato;
+                } else if (so && tg.dir) {
                     const ax = tg.dir === 'ns' ? 0 : 1, valori = involucroModello(so).map(p => p[ax]);
                     const c = Math.min(...valori) + (Math.max(...valori) - Math.min(...valori)) * tg.pos;
-                    tieni = (x, y) => (([x, y][ax] - c) * tg.lato >= -1e-9);
+                    distTaglio = (x, y) => ([x, y][ax] - c) * tg.lato;
                     tg.c = c; tg.ax = ax;
                 }
+                if (distTaglio) tieni = (x, y) => distTaglio(x, y) >= -1e-9;
                 const hTaglio = so ? Math.max(0, Math.min(tg.prof, so.fondo - 0.01)) : 0;
                 if (L.terreno) {
                     const luce = [-0.5, 0.5, 0.7].map(v => v / Math.hypot(-0.5, 0.5, 0.7));
@@ -548,6 +555,9 @@
                             pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia' });
                         }
                     };
+                    // Il buco del corpo nel terreno (col taglio verticale solo la parte che resta: dove il
+                    // corpo è stato tolto torna il terreno).
+                    const contornoTerreno = so ? (distTaglio ? ritagliaPoligono(involucroModello(so), q => distTaglio(q[0], q[1])) : involucroModello(so)) : null;
                     for (let j = 0; j + 1 < nodi.length; j++) for (let i = 0; i + 1 < Math.min(nodi[j].length, nodi[j + 1].length); i++) {
                         const a = nodi[j][i], b = nodi[j][i + 1], c = nodi[j + 1][i + 1], e = nodi[j + 1][i];
                         if (![a, b, c, e].every(n => isFinite(n[2]))) continue;
@@ -560,7 +570,7 @@
                         // Col modello solido il terreno si ferma sul bordo del corpo: del riquadro resta
                         // solo la parte fuori (riquadro meno poligono convesso, un lato alla volta).
                         let resto = [a, b, c, e].map(n => [n[0], n[1]]);
-                        const contorno = involucroModello(so);
+                        const contorno = contornoTerreno;
                         contorno.forEach((A, i) => {
                             if (resto.length < 3) return;
                             const B = contorno[(i + 1) % contorno.length];
@@ -574,11 +584,49 @@
                         });
                     }
                 }
+                // LA FRECCIA DEL NORD STESA SUL TERRENO (oltre alla bussola): nell'angolo del terreno più
+                // vicino a chi guarda, appoggiata alla superficie e scorciata con lei, con la sua N.
+                if (L.terreno && L.nordTerreno && d.nodi && d.nodi.length) {
+                    const tutti = d.nodi.flat().filter(n => isFinite(n[0]) && isFinite(n[1]));
+                    const x0 = Math.min(...tutti.map(n => n[0])), x1 = Math.max(...tutti.map(n => n[0])), y0 = Math.min(...tutti.map(n => n[1])), y1 = Math.max(...tutti.map(n => n[1]));
+                    const lato = Math.min(x1 - x0, y1 - y0), Lf = lato * 0.075, dentro = lato * 0.13;
+                    const zIn = (x, y) => { const z = d.zSuolo(x, y); return (Number.isFinite(z) ? z : zRif) + (d.zMax - d.zMin) * 0.004; };
+                    const angoli = [[x0 + dentro, y0 + dentro], [x1 - dentro, y0 + dentro], [x1 - dentro, y1 - dentro], [x0 + dentro, y1 - dentro]];
+                    // L'angolo più vicino a chi guarda in cui freccia e N non finiscono dietro al modello
+                    // (fuori dal riquadro che il modello occupa sullo schermo).
+                    // L'ingombro del modello sullo schermo (la parte che resta, se tagliato): il suo
+                    // contorno convesso; freccia e N devono starne fuori (con 12 px d'aria) e nel quadro.
+                    const ingombro = [], piedi = so ? (distTaglio ? ritagliaPoligono(involucroModello(so), q => distTaglio(q[0], q[1])) : involucroModello(so)) : [];
+                    (piedi.length >= 3 ? piedi.map(q => [q[0], q[1], d.zSuolo(q[0], q[1]) ?? zRif]) : d.prove.filter(q => tieni(q.x, q.y)).map(q => [q.x, q.y, q.z])).forEach(([x, y, z]) => { ingombro.push(P(x, y, z), P(x, y, z - (so ? so.fondo : profMax))); });
+                    const ordinatiI = ingombro.map(q => [q[0], q[1]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]), giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+                    const giu = [], su = [];
+                    ordinatiI.forEach(q => { while (giu.length >= 2 && giro(giu[giu.length - 2], giu[giu.length - 1], q) <= 0) giu.pop(); giu.push(q); });
+                    ordinatiI.slice().reverse().forEach(q => { while (su.length >= 2 && giro(su[su.length - 2], su[su.length - 1], q) <= 0) su.pop(); su.push(q); });
+                    const sagoma = giu.slice(0, -1).concat(su.slice(0, -1));
+                    const dentroSagoma = (x, y) => sagoma.length >= 3 && sagoma.every((a, i) => giro(a, sagoma[(i + 1) % sagoma.length], [x, y]) >= 0);
+                    const libero = ([x, y]) => [[0, 1.45], [0, 1], [-0.5, -0.75], [0.5, -0.75], [0, -0.35]].every(([e, n]) => { const q = P(x + e * Lf, y + n * Lf, zIn(x + e * Lf, y + n * Lf));
+                        return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
+                    const vicinanza = ([x, y]) => P(x, y, zIn(x, y))[2];
+                    const ordinati = angoli.slice().sort((a, b) => vicinanza(a) - vicinanza(b));
+                    // Se nessun angolo è libero (vista avvicinata: gli angoli escono dal quadro), il punto
+                    // libero del terreno più vicino all'angolo in basso a sinistra dello schermo.
+                    const griglia = [];
+                    for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) griglia.push([x0 + dentro + (x1 - x0 - 2 * dentro) * i / 8, y0 + dentro + (y1 - y0 - 2 * dentro) * j / 8]);
+                    const versoAngolo = q => { const s = P(q[0], q[1], zIn(q[0], q[1])); return Math.hypot(s[0] - W * 0.12, s[1] - H * 0.86); };
+                    const [fx, fy] = ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
+                    const pt = (e, n) => { const x = fx + e * Lf, y = fy + n * Lf; return P(x, y, zIn(x, y)); };
+                    const punta = pt(0, 1), sx = pt(-0.5, -0.75), tacca = pt(0, -0.35), dx = pt(0.5, -0.75);
+                    const prof = so ? 5e8 : Math.min(punta[2], sx[2], dx[2]) - lato * 0.05, xy = q => [q[0], q[1]];
+                    pezzi.push({ prof, t: 'poli', p: [punta, sx, tacca].map(xy), fill: '#111827', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
+                    pezzi.push({ prof: prof - 1e-4, t: 'poli', p: [punta, tacca, dx].map(xy), fill: '#ffffff', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
+                    const n = pt(0, 1.45);
+                    pezzi.push({ prof: prof - 2e-4, t: 'testo', x: n[0], y: n[1] + 6, s: 'N', size: 18, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord-terreno' });
+                }
                 const { pannelli, superfici } = modelloCorrelazione(d);
                 if (so) {
                     // Il poligono del corpo, tagliato dal piano verticale.
                     let Q = involucroModello(so);
-                    if (tg.dir) Q = ritagliaPoligono(Q, p => (p[tg.ax] - tg.c) * tg.lato);
+                    if (distTaglio) Q = ritagliaPoligono(Q, p => distTaglio(p[0], p[1]));
                     if (Q.length >= 3) {
                         // Chi guarda verso v = (sa·ce, ca·ce, −se): una faccia si vede se la sua normale
                         // esterna punta verso chi guarda. Il corpo è convesso: bastano le facce davanti.
@@ -632,11 +680,34 @@
                         };
                         if (se > 0) faccia(hTaglio, true); else faccia(so.fondo, false);
                         // Il contorno della faccia di taglio, per vederla bene.
-                        if (tg.dir || hTaglio > 0) Q.forEach((a, i) => {
+                        if (distTaglio || hTaglio > 0) Q.forEach((a, i) => {
                             const b = Q[(i + 1) % Q.length];
                             const pa = P(a[0], a[1], colonnaIn(a[0], a[1]).z - hTaglio), pb = P(b[0], b[1], colonnaIn(b[0], b[1]).z - hTaglio);
                             sopra.push({ t: 'linea', x1: pa[0], y1: pa[1], x2: pb[0], y2: pb[1], stroke: 'currentColor', sw: 1.2, cls: 'vista3d-taglio' });
                         });
+                        // IL PEZZO TOLTO, A TRATTEGGIO: gli spigoli del corpo intero dalla parte tagliata via
+                        // (e, col taglio in profondità, della fetta di sopra), sottilissimi, perché si veda
+                        // che è un ritaglio e non tutto il modello. Ordinati con gli altri pezzi: il corpo
+                        // che resta li copre dove sta davanti.
+                        if (L.fantasma && (distTaglio || hTaglio > 0)) {
+                            const tratto = (a, b) => {
+                                const A = P(...a), B = P(...b);
+                                pezzi.push({ prof: (A[2] + B[2]) / 2 - 0.002, t: 'linea', x1: A[0], y1: A[1], x2: B[0], y2: B[1], stroke: 'currentColor', sw: 0.7, dash: [4, 3], op: 0.6, cls: 'vista3d-fantasma' });
+                            };
+                            const suolo = (x, y, h) => [x, y, colonnaIn(x, y).z - h];
+                            // un lato del contorno a una profondità (h), seguendo il terreno
+                            const lato = (a, b, h) => { for (let n = 0; n < 12; n++) tratto(suolo(a[0] + (b[0] - a[0]) * n / 12, a[1] + (b[1] - a[1]) * n / 12, h), suolo(a[0] + (b[0] - a[0]) * (n + 1) / 12, a[1] + (b[1] - a[1]) * (n + 1) / 12, h)); };
+                            if (distTaglio) {
+                                const tolto = ritagliaPoligono(involucroModello(so), p => -distTaglio(p[0], p[1]));
+                                const sulTaglio = p => Math.abs(distTaglio(p[0], p[1])) < 1e-6;
+                                if (tolto.length >= 3) tolto.forEach((a, i) => {
+                                    const b = tolto[(i + 1) % tolto.length];
+                                    if (!(sulTaglio(a) && sulTaglio(b))) { lato(a, b, 0); lato(a, b, so.fondo); }
+                                    if (!sulTaglio(a)) tratto(suolo(a[0], a[1], 0), suolo(a[0], a[1], so.fondo));
+                                });
+                            }
+                            if (hTaglio > 0) Q.forEach((a, i) => { lato(a, Q[(i + 1) % Q.length], 0); tratto(suolo(a[0], a[1], 0), suolo(a[0], a[1], hTaglio)); });
+                        }
                     }
                 }
                 if (L.pannelli && !so) pannelli.forEach(pa => {
@@ -718,18 +789,29 @@
                     // al piano campagna di quel punto e i numeri verso l'esterno. Prima stava all'angolo
                     // del rettangolo nord-est delle prove: con le prove su una griglia ruotata
                     // quell'angolo cadeva nel vuoto, lontano dal modello.
-                    const pt = d.prove.map(p => [p.x, p.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-                    const giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
-                    const giu = [], su = [];
-                    pt.forEach(q => { while (giu.length >= 2 && giro(giu[giu.length - 2], giu[giu.length - 1], q) <= 0) giu.pop(); giu.push(q); });
-                    pt.slice().reverse().forEach(q => { while (su.length >= 2 && giro(su[su.length - 2], su[su.length - 1], q) <= 0) su.pop(); su.push(q); });
-                    const contorno = pt.length < 3 ? pt : giu.slice(0, -1).concat(su.slice(0, -1));
-                    const mx = d.prove.reduce((a, q) => a + q.x, 0) / d.prove.length, my = d.prove.reduce((a, q) => a + q.y, 0) / d.prove.length;
+                    // (col corpo solido: lo spigolo del corpo; tagliato, quello della parte che resta,
+                    // non nel vuoto di quella tolta)
+                    const restano = d.prove.filter(p => tieni(p.x, p.y)), perAsta = restano.length ? restano : d.prove;
+                    const soA = L.solido && modelloSolido(d);
+                    let contorno, pt;
+                    if (soA) {
+                        contorno = distTaglio ? ritagliaPoligono(involucroModello(soA), q => distTaglio(q[0], q[1])) : involucroModello(soA);
+                        if (contorno.length < 3) contorno = involucroModello(soA);
+                        pt = contorno;
+                    } else {
+                        pt = perAsta.map(p => [p.x, p.y]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                        const giro = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+                        const giu = [], su = [];
+                        pt.forEach(q => { while (giu.length >= 2 && giro(giu[giu.length - 2], giu[giu.length - 1], q) <= 0) giu.pop(); giu.push(q); });
+                        pt.slice().reverse().forEach(q => { while (su.length >= 2 && giro(su[su.length - 2], su[su.length - 1], q) <= 0) su.pop(); su.push(q); });
+                        contorno = pt.length < 3 ? pt : giu.slice(0, -1).concat(su.slice(0, -1));
+                    }
+                    const mx = contorno.reduce((a, q) => a + q[0], 0) / contorno.length, my = contorno.reduce((a, q) => a + q[1], 0) / contorno.length;
                     const v = contorno.reduce((m, q) => P(q[0], q[1], zRif)[0] > P(m[0], m[1], zRif)[0] ? q : m);
                     const estensione = Math.max(...pt.map(q => Math.hypot(q[0] - mx, q[1] - my)), 5);
                     const lv = Math.hypot(v[0] - mx, v[1] - my) || 1, fuori = Math.max(1.5, estensione * 0.04);
                     const ax = v[0] + (v[0] - mx) / lv * fuori, ay = v[1] + (v[1] - my) / lv * fuori;
-                    const vicina = d.prove.reduce((m, q) => Math.hypot(q.x - v[0], q.y - v[1]) < Math.hypot(m.x - v[0], m.y - v[1]) ? q : m);
+                    const vicina = perAsta.reduce((m, q) => Math.hypot(q.x - v[0], q.y - v[1]) < Math.hypot(m.x - v[0], m.y - v[1]) ? q : m);
                     const zTesta = (d.zSuolo && d.zSuolo(ax, ay)) ?? vicina.z;
                     const so = L.solido && modelloSolido(d);
                     const zFondo = so ? zTesta - so.fondo : Math.min(d.zMin - profMax, zTesta - profMax);
@@ -746,6 +828,7 @@
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
                 if (L.distanze) d.lati.forEach(([i, j]) => {
+                    if (!tieni(d.prove[i].x, d.prove[i].y) || !tieni(d.prove[j].x, d.prove[j].y)) return; // dalla parte tolta dal taglio
                     const A = d.prove[i], B = d.prove[j], m = P((A.x + B.x) / 2, (A.y + B.y) / 2, Math.max(A.z, B.z) + (d.zMax - d.zMin) * 0.05);
                     const s = numeroConVirgola(Math.hypot(B.x - A.x, B.y - A.y), 0) + ' m', w = s.length * 6.7;
                     if (scrittaLibera(m[0] - w / 2, m[1], w)) testo(m[0], m[1], s, { anchor: 'middle', alone: true, cls: 'vista3d-distanza' });
@@ -809,7 +892,7 @@
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
                 'vista3d-giacitura': 'giaciture', 'vista3d-giacitura-segno': 'giaciture', 'vista3d-falda': 'falda', 'vista3d-falda-segno': 'falda', 'vista3d-falda-nome': 'falda',
-                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze' };
+                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno' };
             /** La scena in SVG: per il file scaricato (e per i test). */
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
@@ -885,6 +968,9 @@
                 voci.forEach(v => { v.righe = v.tipo === 'titolo' ? [v.testo] : aCapo(v.testo); });
                 const lw = Math.round(Math.min(320, Math.max(190, 64 + CAR * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length))))))) ;
                 const x0 = sc.W + 18, forme = [], cls = 'vista3d-legenda';
+                // il fondo della colonna: quello che della figura sborda a destra (il terreno) non ci passa sotto
+                const Hl = Math.max(sc.H, 52 + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? 26 : 22 + (v.righe.length - 1) * 15), 0) + 16);
+                forme.push({ t: 'poli', p: [[sc.W, 0], [sc.W + lw, 0], [sc.W + lw, Hl], [sc.W, Hl]], fill: 'var(--bg-card, #fff)', fo: 1, stroke: 'none', sw: 0, cls });
                 forme.push({ t: 'linea', x1: sc.W, y1: 16, x2: sc.W, y2: sc.H - 16, stroke: 'currentColor', sw: 1, op: 0.25, cls });
                 forme.push({ t: 'testo', x: x0, y: 34, s: 'Legenda', size: 15, bold: true, cls });
                 let y = 52;
@@ -903,17 +989,18 @@
             }
 
             /** La scena sul canvas: stessa figura, disegnata in pochi millisecondi anche mentre gira. */
-            function disegnaScena(canvas, sc) {
+            function disegnaScena(canvas, sc, colori) {
                 const ctx = canvas.getContext && canvas.getContext('2d');
                 if (!ctx) return; // browser senza canvas: resta la figura in SVG del file
-                const dpr = window.devicePixelRatio || 1, stile = getComputedStyle(canvas.parentElement);
+                // colori: { fondo, testo, scala } per le immagini esportate (sfondo scelto, più pixel).
+                const dpr = (colori && colori.scala) || window.devicePixelRatio || 1, stile = getComputedStyle(canvas.parentElement || document.body);
                 if (canvas.width !== Math.round(sc.W * dpr) || canvas.height !== Math.round(sc.H * dpr)) {
                     canvas.width = Math.round(sc.W * dpr); canvas.height = Math.round(sc.H * dpr);
                     canvas.style.width = sc.W + 'px'; canvas.style.height = sc.H + 'px';
                 }
-                const testoColore = stile.color, fondo = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#fff';
+                const testoColore = (colori && colori.testo) || stile.color, fondo = (colori && colori.fondo) || getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#fff';
                 const mono = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'monospace';
-                const col = c => c === 'currentColor' ? testoColore : c;
+                const col = c => c === 'currentColor' ? testoColore : (typeof c === 'string' && c.startsWith('var(--bg-card')) ? fondo : c;
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 ctx.fillStyle = fondo; ctx.fillRect(0, 0, sc.W, sc.H);
                 ctx.lineJoin = 'round';
@@ -944,7 +1031,7 @@
                         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                     } else if (f.t === 'poli') {
                         ctx.beginPath(); f.p.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
-                        ctx.globalAlpha = (f.fo ?? 1) * op; ctx.fillStyle = col(f.fill); ctx.fill();
+                        if (f.fill && f.fill !== 'none') { ctx.globalAlpha = (f.fo ?? 1) * op; ctx.fillStyle = col(f.fill); ctx.fill(); }
                         if (f.stroke && f.sw) { ctx.globalAlpha = Math.min(1, (f.fo ?? 1) + 0.25) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw; ctx.stroke(); }
                     } else if (f.t === 'linea') {
                         ctx.globalAlpha = op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw || 1;
@@ -1189,7 +1276,8 @@
                         liv('solido', ico('stack'), 'Corpo solido', 'Il modello chiuso tra le prove (i tagli nella scheda «Modello e tagli»)'),
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
-                        liv('falda', sw('linee', 'background:#0284c7'), 'Falda', '«T»: la profondità della falda su ogni colonna', E.falda) ] },
+                        liv('falda', sw('linee', 'background:#0284c7'), 'Falda', '«T»: la profondità della falda su ogni colonna', E.falda),
+                        liv('fantasma', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Spigoli del pezzo tagliato', 'Col corpo tagliato: il contorno di quello che è stato tolto, tratteggiato sottile') ] },
                     // Gli strati del corpo solido (solo del modello: colonne e pannelli restano).
                     { id: 'solido', nome: 'Corpo solido', righe: (d && L.solido && modelloSolido(d) ? modelloSolido(d).strati : []).map(st => ({ chiave: 'ss:' + st.nome, solidoStrato: st.nome,
                         attr: `data-solido3d="${String(st.nome).replace(/"/g, '&quot;')}"`, acceso: !vista3d.stratiSolidoNascosti.has(st.nome),
@@ -1206,7 +1294,8 @@
                         conta: x.tipo === 'poligono' ? numeroConVirgola(areaMetriQuadri(x.punti), 0) + ' m²' : '' })) },
                     { id: 'sfondo', nome: 'Sfondo', righe: [
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
-                        liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»') ] }
+                        liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»'),
+                        liv('nordTerreno', ico('arrow-up'), 'Freccia del Nord sul terreno', 'Stesa sul terreno, nell\'angolo più vicino') ] }
                 ];
                 // Nel modo Mappa: le prove, le sezioni e la mappa di base (tasto destro per cambiarla).
                 if (areaMappa.modo === 'mappa') {

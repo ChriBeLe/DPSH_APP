@@ -369,10 +369,10 @@
                     renderElencoSezioni3d();
                 }
             });
+            // Le tavole delle sezioni (3D e 2D, col modello in isometria prima): la finestra del 071p.
             document.getElementById('btnPdfSezioni3d').addEventListener('click', () => {
-                const tracce = tracceDelProgetto();
-                if (!tracce.length) { appAlert('Prima traccia almeno una sezione.'); return; }
-                esportaPdfSezioni(tracce);
+                if (!tracceDelProgetto().length) { appAlert('Prima traccia almeno una sezione (o crea la griglia).'); return; }
+                apriTavole3d(true);
             });
 
             // ---- PDF: una pagina A4 orizzontale per sezione. Sopra la sezione, sotto la vista dal
