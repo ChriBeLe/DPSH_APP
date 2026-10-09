@@ -1217,6 +1217,12 @@
                 c[2] += v * ce / vista3d.ex;
             }
             box3d.addEventListener('pointerdown', (e) => {
+                // Una sezione sotto il mouse (Seleziona): si trascina lei, la vista resta ferma.
+                if (e.button === 0 && !e.shiftKey && dita3d.size === 0 && iniziaSpostaTraccia3d(...puntoCanvas(e))) {
+                    vista3d.mosso = 0;
+                    if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
+                    return;
+                }
                 dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY, sposta: e.button === 1 || e.button === 2 || e.shiftKey } : null;
                 vista3d.pizzico = dita3d.size === 2 ? pizzicoDita() : null;
@@ -1224,6 +1230,7 @@
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
             });
             box3d.addEventListener('pointermove', (e) => {
+                if (vista3d.spostaTraccia) { vista3d.mosso += 10; seguiSpostaTraccia3d(...puntoCanvas(e)); return; }
                 if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (vista3d.pizzico && dita3d.size === 2) {
                     const p = pizzicoDita(), prima = vista3d.pizzico;
@@ -1242,6 +1249,7 @@
                 ridisegna3d();
             });
             ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, (e) => {
+                if (vista3d.spostaTraccia) { const st = vista3d.spostaTraccia; vista3d.spostaTraccia = null; if (st.mossa) fineSpostaTraccia(); return; }
                 const eraMosso = vista3d.trascina || vista3d.pizzico;
                 dita3d.delete(e.pointerId);
                 vista3d.trascina = null; vista3d.pizzico = null;
@@ -1261,7 +1269,8 @@
                 if (vista3d.trascina || !ultimaScena3d) return;
                 if (vista3d.disegno) { seguiTracciaSezione3d(e); return; }
                 const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e);
-                if (c) c.style.cursor = provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
+                const tr = areaMappa.strumento === 'sel' && tracciaSottoIlMouse3d(mx, my);
+                if (c) c.style.cursor = tr ? (tr.parte === 'tutta' ? 'move' : 'crosshair') : provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
             });
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }

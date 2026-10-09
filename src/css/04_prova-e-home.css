@@ -868,3 +868,5 @@
             .tavole-pag { min-width: 140px; }
             .tavole-comandi { border-left: none; border-top: 1px solid var(--border); }
         }
+        /* le maniglie degli estremi di una sezione sulla mappa 2D: si trascinano */
+        .mappa-traccia-maniglia { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: #fff; border: 3px solid #dc2626; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: move; }

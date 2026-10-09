@@ -148,6 +148,7 @@
                 if (sezioniTracciateStato.vista && !tracceDelProgetto().some(t => t.id === sezioniTracciateStato.vista && !t.griglia)) sezioniTracciateStato.vista = null;
                 proj.sezioniTracciate = tracceDelProgetto().filter(t => !t.griglia).concat(nuove);
                 saveState();
+                infoAreaMappa();
                 renderVista3d();
                 renderElencoSezioni3d();
             }
@@ -166,6 +167,74 @@
             function agganciaTaglioAllaGriglia3d(pos, dir) {
                 const vicina = tracceDelProgetto().filter(t => t.griglia && t.asse === dir).find(t => Math.abs(t.pos - pos) < 0.025);
                 return vicina ? vicina.pos : pos;
+            }
+
+            /** SPOSTARE UNA SEZIONE IN TEMPO REALE (nel 3D e sulla mappa 2D): un estremo (A o A') o tutta
+             * la linea. Nuovi estremi in gradi. Una linea della griglia spostata di lato resta della griglia
+             * (pos nuova) e, se il corpo era tagliato lì, il taglio la segue; girata (un estremo), diventa una
+             * traccia qualsiasi e il taglio, se era su di lei, la segue di sbieco. Non salva: lo fa chi
+             * smette di trascinare (fineSpostaTraccia). */
+            function spostaTraccia(t, ga, gb, tutta) {
+                const d = datiVista3dCorrenti, tg = vista3d.taglio;
+                const tagliataQui = (t.asse && tg.dir === t.asse && t.pos !== undefined && Math.abs(tg.pos - t.pos) < 1e-6) || (tg.retta && tg.traccia === t.id);
+                t.a = ga; t.b = gb;
+                if (!d) return;
+                const a = d.daGeo(ga.lat, ga.lng), b = d.daGeo(gb.lat, gb.lng);
+                if (t.asse && tutta) {
+                    const ax = t.asse === 'ns' ? 0 : 1, valori = contornoPerGriglia3d(d).map(p => p[ax]), lo = Math.min(...valori), hi = Math.max(...valori);
+                    t.pos = Math.max(0, Math.min(1, ((a[ax] + b[ax]) / 2 - lo) / ((hi - lo) || 1)));
+                    if (tagliataQui) { tg.pos = t.pos; const rng = document.getElementById('rngTaglioV3d'); if (rng) rng.value = Math.round(t.pos * 100); }
+                } else {
+                    if (t.asse) { delete t.asse; delete t.pos; delete t.griglia; }
+                    if (tagliataQui) vista3d.taglio = { dir: null, pos: tg.pos, lato: tg.lato, prof: tg.prof, retta: [a, b], traccia: t.id };
+                }
+            }
+            function fineSpostaTraccia() {
+                saveState();
+                infoAreaMappa();
+                renderVista3d();
+                renderElencoSezioni3d();
+                if (sezioniTracciateStato.vista) renderVistaSezioneTracciata();
+            }
+            /** Nel 3D: la traccia (o un suo estremo) sotto il mouse, dai segmenti disegnati nella scena. */
+            function tracciaSottoIlMouse3d(sx, sy) {
+                const sc = ultimaScena3d;
+                if (!sc) return null;
+                const per = new Map();
+                sc.tutte.forEach(f => { if (f.cls === 'vista3d-traccia' && f.traccia) { if (!per.has(f.traccia)) per.set(f.traccia, []); per.get(f.traccia).push(f); } });
+                let meglio = null;
+                per.forEach((segs, id) => {
+                    const A = [segs[0].x1, segs[0].y1], B = [segs[segs.length - 1].x2, segs[segs.length - 1].y2];
+                    [['a', A], ['b', B]].forEach(([parte, q]) => { const dd = Math.hypot(sx - q[0], sy - q[1]); if (dd < 13 && (!meglio || dd < meglio.d)) meglio = { id, parte, d: dd }; });
+                    if (meglio && meglio.parte !== 'tutta') return;
+                    segs.forEach(f => {
+                        const vx = f.x2 - f.x1, vy = f.y2 - f.y1, l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - f.x1) * vx + (sy - f.y1) * vy) / l2));
+                        const dd = Math.hypot(sx - f.x1 - u * vx, sy - f.y1 - u * vy);
+                        if (dd < 7 && (!meglio || (meglio.parte === 'tutta' && dd < meglio.d))) meglio = { id, parte: 'tutta', d: dd };
+                    });
+                });
+                return meglio;
+            }
+            /** Nel 3D: il trascinamento comincia (se sotto il mouse c'è una traccia) e prosegue. */
+            function iniziaSpostaTraccia3d(sx, sy) {
+                if (vista3d.disegno || areaMappa.strumento !== 'sel') return false;
+                const hit = tracciaSottoIlMouse3d(sx, sy), d = datiVista3dCorrenti, p0 = puntoAlSuolo3d(sx, sy);
+                if (!hit || !d || !p0) return false;
+                const t = tracceDelProgetto().find(x => x.id === hit.id);
+                if (!t) return false;
+                vista3d.spostaTraccia = { t, parte: hit.parte, p0, a0: d.daGeo(t.a.lat, t.a.lng), b0: d.daGeo(t.b.lat, t.b.lng) };
+                return true;
+            }
+            function seguiSpostaTraccia3d(sx, sy) {
+                const st = vista3d.spostaTraccia, d = datiVista3dCorrenti, p = puntoAlSuolo3d(sx, sy);
+                if (!st || !d || !p) return;
+                const dx = p[0] - st.p0[0], dy = p[1] - st.p0[1];
+                const a = st.parte === 'b' ? st.a0 : [st.a0[0] + dx, st.a0[1] + dy], b = st.parte === 'a' ? st.b0 : [st.b0[0] + dx, st.b0[1] + dy];
+                if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1) return;
+                spostaTraccia(st.t, d.geo(...a), d.geo(...b), st.parte === 'tutta');
+                st.mossa = true;
+                ridisegna3d();
+                if (sezioniTracciateStato.vista === st.t.id) requestAnimationFrame(renderVistaSezioneTracciata);
             }
 
             /** IL TAGLIO VERTICALE DEL CORPO SOLIDO COME TRACCIA: la retta del taglio, da un lato all'altro
