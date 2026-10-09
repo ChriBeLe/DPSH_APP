@@ -31,13 +31,13 @@
              * rimette tutto com'era: la vista a schermo non se ne accorge. */
             function conVista3dTemporanea(modifica, fn) {
                 const prima = { az: vista3d.az, el: vista3d.el, ex: vista3d.ex, zoom: vista3d.zoom, centro: vista3d.centro.slice(), prospettiva: vista3d.prospettiva,
-                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno };
+                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda };
                 try {
                     vista3d.disegno = null;
                     modifica();
                     return fn();
                 } finally {
-                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno });
+                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda });
                 }
             }
 
@@ -59,7 +59,7 @@
 
             /** Il riquadro che occupano sullo schermo le cose che contano (non il terreno, non la bussola). */
             function ingombroScena3d(sc) {
-                const fuori = new Set(['vista3d-faccia', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma']);
+                const fuori = new Set(['vista3d-faccia', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-legenda']);
                 let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
                 const pt = (x, y) => { if (!isFinite(x) || !isFinite(y)) return; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); };
                 sc.tutte.forEach(f => {
@@ -109,10 +109,18 @@
                     const leggera = !!(opz && opz.leggera);
                     const prima = scena3d(d, W, leggera, true, H), bb = ingombroScena3d(prima);
                     if (bb) {
-                        // margini: la bussola in basso a destra, un po' d'aria attorno
-                        const mx = W * 0.06, my = H * 0.07, libW = W - 2 * mx - 40, libH = H - 2 * my - 30;
+                        // margini: la bussola in basso a destra, la legenda in alto a destra (dentro la
+                        // figura: il modello le lascia posto, il foglio resta intero), un po' d'aria attorno
+                        let riserva = 0;
+                        if (!opz || opz.legenda !== false) {
+                            const vl = vociLegenda3d(prima, d);
+                            if (vl.length) { const m = impaginaLegenda3d(vl); riserva = m.w + 20; vista3d.postoLegenda = { x: W - m.w - 12, y: 12, w: m.w, h: m.h }; }
+                        }
+                        const mx = W * 0.05, my = H * 0.07, libW = W - 2 * mx - 30 - riserva, libH = H - 2 * my - 30;
                         const s = Math.max(0.05, Math.min(libW / Math.max(1, bb.x1 - bb.x0), libH / Math.max(1, bb.y1 - bb.y0)));
-                        spostaCentroDiPixel3d((bb.x0 + bb.x1) / 2 - (W / 2 - 20), (bb.y0 + bb.y1) / 2 - (H / 2 - 10), prima.k);
+                        // (lo zoom si fa attorno al centro dello schermo: lo scarto dal centro, dopo, è s volte quello di prima)
+                        const cxT = (W - riserva) / 2 - 15, cyT = H / 2 - 10;
+                        spostaCentroDiPixel3d((bb.x0 + bb.x1) / 2 - (W / 2 + (cxT - W / 2) / s), (bb.y0 + bb.y1) / 2 - (H / 2 + (cyT - H / 2) / s), prima.k);
                         vista3d.zoom = s;
                     }
                     vista3d.zoom *= reg.zoom || 1;
@@ -302,7 +310,7 @@
                 oggetto(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
                 oggetto(5, `<< /Title ${stringa(opz.titolo || 'Viste 3D')} /Producer (DPSH Field Collector) >>`);
                 pagine.forEach((p, i) => {
-                    const id = idPag(i), alto = 52, basso = 26;
+                    const id = idPag(i), alto = p.titolo ? 52 : 18, basso = 26;
                     const bw = PW - 2 * M, bh = PH - alto - basso - 10, k = Math.min(bw / p.w, bh / p.h), iw = p.w * k, ih = p.h * k;
                     const ix = (PW - iw) / 2, iy = basso + 4 + (bh - ih) / 2;
                     const testo = (s, x, y, dim, grassetto, colore, ancora) => {
@@ -311,7 +319,7 @@
                     };
                     const op = [
                         `${rgb(col.fondo)} rg 0 0 ${PW} ${PH} re f`,
-                        testo(p.titolo, M, PH - 34, 15, true, col.testo),
+                        p.titolo ? testo(p.titolo, M, PH - 34, 15, true, col.testo) : '',
                         p.sotto ? testo(p.sotto, M, PH - 48, 9, false, col.tenue) : '',
                         `q ${n(iw)} 0 0 ${n(ih)} ${n(ix)} ${n(iy)} cm /Im0 Do Q`,
                         `${rgb(col.tenue)} RG 0.5 w ${M} ${basso + 2} m ${PW - M} ${basso + 2} l S`,
@@ -333,7 +341,7 @@
             // ---- LA FINESTRA DELLE TAVOLE ----
             // Lo stato: le tavole, quali si esportano, quale si vede, le regolazioni di ciascuna (ricordate
             // nel progetto, così esportando di nuovo l'inquadratura resta quella scelta) e le opzioni.
-            const tavole3d = { voci: [], scelta: 0, regola: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', trascina: null, attesa: null, lavoro: false };
+            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', trascina: null, attesa: null, lavoro: false };
             const T3 = id => document.getElementById(id);
             const LARGHEZZA_TAVOLA_3D = 1400, ALTEZZA_TAVOLA_3D = 860;
 
@@ -365,6 +373,7 @@
                 const mem = memoriaTavole3d();
                 tavole3d.voci = vociEsportazione3d(d);
                 tavole3d.regola = mem.regola || {};
+                tavole3d.titoli = mem.titoli || {};
                 tavole3d.escluse = new Set((mem.escluse || []).filter(id => tavole3d.voci.some(v => v.id === id)));
                 tavole3d.scelta = soloSezioni ? Math.max(0, tavole3d.voci.findIndex(v => v.tipo !== 'iso')) : 0;
                 T3('tavole3dEsag').value = vista3d.ex;
@@ -392,6 +401,13 @@
                 const mem = memoriaTavole3d();
                 mem.regola = tavole3d.regola;
                 mem.escluse = [...tavole3d.escluse];
+                mem.titoli = tavole3d.titoli;
+            }
+            /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
+            function titoloTavola3d(v) {
+                const t = tavole3d.titoli[v.id];
+                if (t && t.senza) return null;
+                return (t && t.testo && t.testo.trim()) || v.titolo;
             }
 
             /** L'elenco delle pagine: spunta, miniatura, nome e tipo. */
@@ -399,7 +415,7 @@
                 const box = T3('tavole3dPagine'), esc = escapeHtmlDidascalia;
                 box.innerHTML = tavole3d.voci.map((v, i) => `<div class="tavole-pag${i === tavole3d.scelta ? ' scelta' : ''}${tavole3d.escluse.has(v.id) ? ' esclusa' : ''}" data-tavola="${i}" role="button" tabindex="0">
                         <input type="checkbox" data-includi="${i}" ${tavole3d.escluse.has(v.id) ? '' : 'checked'} aria-label="Esporta ${esc(v.titolo)}">
-                        <span class="tavole-pag-nome">${i + 1}. ${esc(v.titolo)}</span><span class="tavole-pag-tipo">${tipoTavola3d(v)}</span>
+                        <span class="tavole-pag-nome">${i + 1}. ${esc(titoloTavola3d(v) || v.titolo)}</span><span class="tavole-pag-tipo">${tipoTavola3d(v)}</span>
                         ${v.tipo === 'sez2d' ? '<img alt="">' : '<canvas></canvas>'}</div>`).join('');
                 aggiornaContoTavole3d();
                 // le miniature una alla volta, senza bloccare la finestra
@@ -455,8 +471,14 @@
                 T3('tavole3dPrima').disabled = tavole3d.scelta === 0;
                 T3('tavole3dDopo').disabled = tavole3d.scelta === tavole3d.voci.length - 1;
                 T3('tavole3dFoglio').classList.toggle('scuro', scuro);
-                T3('tavole3dFoglioTit').textContent = v.titolo;
+                const titolo = titoloTavola3d(v);
+                T3('tavole3dFoglio').querySelector('.tavole-foglio-tit').hidden = titolo === null;
+                T3('tavole3dFoglioTit').textContent = titolo || '';
                 T3('tavole3dFoglioSotto').textContent = sottotitoloTavola3d(v);
+                T3('tavole3dConTitolo').checked = titolo !== null;
+                T3('tavole3dTitolo').disabled = titolo === null;
+                T3('tavole3dTitolo').placeholder = v.titolo;
+                if (document.activeElement !== T3('tavole3dTitolo')) T3('tavole3dTitolo').value = titolo === null ? '' : titolo;
                 const proj = state.projects[state.currentProjectId] || {};
                 T3('tavole3dPiede').textContent = proj.name || '';
                 const esportate = tavole3d.voci.filter(x => !tavole3d.escluse.has(x.id)), pos = esportate.indexOf(v);
@@ -469,7 +491,11 @@
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
                     let svg = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 1400).svg;
                     if (scuro) svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
+                    // grande quanto lo spazio della figura nel foglio, con la sua proporzione
+                    const box = img.parentElement, misura = () => { const k = Math.min((box.clientWidth || 800) / (img.naturalWidth || 1), (box.clientHeight || 500) / (img.naturalHeight || 1)); img.style.width = Math.round(img.naturalWidth * k) + 'px'; img.style.height = Math.round(img.naturalHeight * k) + 'px'; };
+                    img.onload = misura;
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+                    if (img.complete && img.naturalWidth) misura();
                     return;
                 }
                 tela.hidden = false; img.hidden = true;
@@ -525,10 +551,11 @@
                         if (!tela) continue;
                         if (formato === 'pdf') {
                             const jpeg = await byteDaTela3d(tela, 'image/jpeg', 0.9);
-                            pagine.push({ titolo: v.titolo, sotto: sottotitoloTavola3d(v), jpeg, w: tela.width, h: tela.height, pxW: tela.width, pxH: tela.height });
+                            const titolo = titoloTavola3d(v);
+                            pagine.push({ titolo, sotto: titolo === null ? null : sottotitoloTavola3d(v), jpeg, w: tela.width, h: tela.height, pxW: tela.width, pxH: tela.height });
                         } else {
                             const byte = await byteDaTela3d(tela, formato === 'png' ? 'image/png' : 'image/jpeg', 0.92);
-                            file.push({ name: `${String(file.length + 1).padStart(2, '0')}_${v.titolo.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_')}.${formato}`, bytes: byte });
+                            file.push({ name: `${String(file.length + 1).padStart(2, '0')}_${(titoloTavola3d(v) || v.titolo).replace(/[^\w\-]+/g, '_').replace(/_+/g, '_')}.${formato}`, bytes: byte });
                         }
                     }
                     if (formato === 'pdf') {
@@ -601,6 +628,24 @@
             ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda'].forEach(id => T3(id).addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); }));
             T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
+            // Il titolo della pagina scelta: si scrive (vuoto = automatico), si toglie, «così su tutte».
+            const titoloScelta3d = () => { const v = tavole3d.voci[tavole3d.scelta]; return v && (tavole3d.titoli[v.id] || (tavole3d.titoli[v.id] = {})); };
+            const dopoTitolo3d = () => {
+                const v = tavole3d.voci[tavole3d.scelta], t = v && tavole3d.titoli[v.id];
+                if (t && !t.senza && !(t.testo && t.testo.trim() && t.testo.trim() !== v.titolo)) delete tavole3d.titoli[v.id];
+                salvaMemoriaTavole3d(); mostraTavola3d();
+                const nome = document.querySelector(`#tavole3dPagine [data-tavola="${tavole3d.scelta}"] .tavole-pag-nome`);
+                if (nome && v) nome.textContent = `${tavole3d.scelta + 1}. ${titoloTavola3d(v) || v.titolo}`;
+            };
+            T3('tavole3dTitolo').addEventListener('input', () => { const t = titoloScelta3d(); if (!t) return; t.testo = T3('tavole3dTitolo').value; dopoTitolo3d(); });
+            T3('tavole3dConTitolo').addEventListener('change', () => { const t = titoloScelta3d(); if (!t) return; t.senza = !T3('tavole3dConTitolo').checked; dopoTitolo3d(); });
+            T3('tavole3dTitoloAuto').addEventListener('click', () => { const v = tavole3d.voci[tavole3d.scelta]; if (!v) return; delete tavole3d.titoli[v.id]; T3('tavole3dTitolo').value = v.titolo; dopoTitolo3d(); });
+            T3('tavole3dTitoliTutte').addEventListener('click', () => {
+                const senza = !T3('tavole3dConTitolo').checked;
+                tavole3d.voci.forEach(v => { const t = tavole3d.titoli[v.id] || (tavole3d.titoli[v.id] = {}); t.senza = senza; if (!senza && !(t.testo && t.testo.trim())) delete tavole3d.titoli[v.id]; });
+                salvaMemoriaTavole3d(); renderElencoTavole3d(); mostraTavola3d();
+                mostraToast(senza ? 'Tutte le pagine senza titolo' : 'Tutte le pagine col titolo');
+            });
             T3('tavole3dRegola').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-regola]');
                 if (!b) return;

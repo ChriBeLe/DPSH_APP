@@ -91,7 +91,14 @@ const $ = (app, id) => app.d.getElementById(id);
   const strati3d = app.E(`[...new Set(datiVista3dCorrenti.prove.flatMap(p => p.fasce.map(f => f.nome)))]`);
   const legenda = app.E(`vociLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).map(v => v.testo)`);
   t(`nel file la legenda di ciò che si vede: ${legenda.join(' · ')}`, /Legenda/.test(testo) && /class="vista3d-legenda"/.test(testo) && legenda.some(v => /^Prov/.test(v)) && strati3d.length > 0 && strati3d.every(n => legenda.includes(n)));
-  t('(in una colonna a destra, fuori dalla figura: il file è più largo della scena)', +/viewBox="0 0 ([\d.]+)/.exec(testo)[1] > app.E('ultimaScena3d.W'));
+  const leg = app.E(`conLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).legenda`);
+  t(`piccola, in alto a destra DENTRO la figura (${leg.w}×${leg.h} px): il file è largo quanto la scena`, +/viewBox="0 0 ([\d.]+)/.exec(testo)[1] === app.E('ultimaScena3d.W') && leg.x + leg.w <= 1000 - 10 && leg.y <= 14 && leg.w <= 230
+    && /<text[^>]*font-size="10"[^>]*class="vista3d-legenda"/.test(testo));
+  const scala = app.E(`scena3d(datiVista3dCorrenti, 1000, false, true, 700).tutte.filter(f => f.cls === 'vista3d-scala')`);
+  t(`la scala grafica in basso a sinistra: quattro tratti alternati, ${scala.filter(f => f.t === 'testo').map(f => f.s).join(' · ')}`, scala.filter(f => f.t === 'poli').length === 4 && scala.filter(f => f.t === 'testo').length === 3 && /m$/.test(scala.filter(f => f.t === 'testo')[2].s)
+    && !app.E(`ultimaScena3d.tutte.some(f => f.cls === 'vista3d-scala')`));
+  const astaN = app.E(`(() => { const sc = scena3d(datiVista3dCorrenti, 1000, false, true, 700), t = sc.tutte.filter(f => f.cls === 'vista3d-misure' && f.t === 'linea'); const ys = t.map(f => f.y1).sort((a, b) => a - b); const asta = t.reduce((m, f) => Math.abs(f.y2 - f.y1) > Math.abs(m.y2 - m.y1) ? f : m); return { basso: Math.max(asta.y1, asta.y2), tacca: ys[ys.length - 1] }; })()`);
+  t('l\'asta ha la tacca anche in fondo (col suo numero), non finisce nel vuoto', Math.abs(astaN.basso - astaN.tacca) < 0.5);
   const conMisure = legenda.includes('Quote (m)');
   app.E(`vista3d.livelli.misure = false; vista3d.stratiNascosti.add(${JSON.stringify(strati3d[0])}); renderVista3d()`);
   const legenda2 = app.E(`vociLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).map(v => v.testo)`);

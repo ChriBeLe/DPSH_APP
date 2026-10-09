@@ -111,6 +111,25 @@ const $ = (app, id) => app.d.getElementById(id);
   t('sfondo chiaro o scuro: il foglio dell\'anteprima cambia', $(app, 'tavole3dFoglio').classList.contains('scuro'));
   app.E(`document.getElementById('tavole3dBasemap').checked = true; document.getElementById('tavole3dFornitore').value = 'google-satellite'; document.getElementById('tavole3dFornitore').dispatchEvent(new Event('change'))`);
   t('con Google come mappa di base avvisa che nel file va Esri (Google non lo permette)', !$(app, 'tavole3dAvviso').hidden && /Esri/.test($(app, 'tavole3dAvviso').textContent) && app.E(`SOSTITUTI_ESPORTA_3D['google-satellite']`) === 'esri-satellite');
+  // Il titolo: automatico, si riscrive, si toglie; «così su tutte».
+  clic(app, pagine()[0]);
+  t('il titolo della pagina: quello automatico, scritto nel campo', $(app, 'tavole3dTitolo').value === voci[0] && $(app, 'tavole3dConTitolo').checked);
+  $(app, 'tavole3dTitolo').value = 'Il modello del sottosuolo';
+  $(app, 'tavole3dTitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  t('si riscrive: cambia sul foglio e nell\'elenco, e il progetto se lo ricorda', $(app, 'tavole3dFoglioTit').textContent === 'Il modello del sottosuolo' && /Il modello del sottosuolo/.test(pagine()[0].textContent)
+    && app.E(`${P}.tavole3d.titoli[tavole3d.voci[0].id].testo`) === 'Il modello del sottosuolo');
+  $(app, 'tavole3dConTitolo').checked = false;
+  $(app, 'tavole3dConTitolo').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('senza titolo: il foglio non ha la riga del titolo', app.d.querySelector('#tavole3dFoglio .tavole-foglio-tit').hidden && $(app, 'tavole3dTitolo').disabled && app.E('titoloTavola3d(tavole3d.voci[0])') === null);
+  clic(app, $(app, 'tavole3dTitoliTutte'));
+  t('«Così su tutte»: tutte senza titolo', app.E('tavole3d.voci.every(v => titoloTavola3d(v) === null)'));
+  $(app, 'tavole3dConTitolo').checked = true;
+  $(app, 'tavole3dConTitolo').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  clic(app, $(app, 'tavole3dTitoliTutte'));
+  clic(app, $(app, 'tavole3dTitoloAuto'));
+  t('…e di nuovo tutte col titolo; «Automatico» rimette quello automatico', app.E('tavole3d.voci.every(v => titoloTavola3d(v) === v.titolo)') && $(app, 'tavole3dTitolo').value === voci[0]);
+  clic(app, pagine()[3]);
+  t('la sezione 2D nel foglio: solo lei (la tela del 3D è nascosta)', $(app, 'tavole3dTela').hidden && !$(app, 'tavole3dImg').hidden);
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude le tavole, non la mappa del progetto sotto', $(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   clic(app, $(app, 'btnPdfSezioni3d'));
@@ -122,14 +141,14 @@ const $ = (app, id) => app.d.getElementById(id);
   // Una «JPEG» finta: il PDF la porta così com'è (DCTDecode), basta che la struttura sia giusta.
   app.E(`window.__pdfProva = (async () => {
     const j = new Uint8Array([0xFF, 0xD8, 0xFF, 0xD9, 1, 2, 3]);
-    const blob = pdfDaTavole3d([{ titolo: 'Modello · vista isometrica verso Nord', sotto: 'Nardò', jpeg: j, w: 2800, h: 1720, pxW: 2800, pxH: 1720 }, { titolo: "Sezione 3D A-A'", jpeg: j, w: 2800, h: 1720, pxW: 2800, pxH: 1720 }], { sfondo: 'chiaro', titolo: 'Tavole', piede: 'Nardò' });
+    const blob = pdfDaTavole3d([{ titolo: 'Modello · vista isometrica verso Nord', sotto: 'Nardò', jpeg: j, w: 2800, h: 1720, pxW: 2800, pxH: 1720 }, { titolo: "Sezione 3D A-A'", jpeg: j, w: 2800, h: 1720, pxW: 2800, pxH: 1720 }, { titolo: null, sotto: null, jpeg: j, w: 2800, h: 1720, pxW: 2800, pxH: 1720 }], { sfondo: 'chiaro', titolo: 'Tavole', piede: 'Nardò' });
     const b = new Uint8Array(await blob.arrayBuffer());
     return { testo: Array.from(b, c => String.fromCharCode(c)).join(''), tipo: blob.type };
   })()`);
   const pdf = await app.w.__pdfProva;
   const s = pdf.testo;
-  t('un PDF vero: intestazione, due pagine A4 orizzontali, catalogo, xref e fine', s.startsWith('%PDF-1.4') && /\/Count 2/.test(s) && (s.match(/\/MediaBox \[0 0 841\.89 595\.28\]/g) || []).length === 2 && /%%EOF\n$/.test(s) && pdf.tipo === 'application/pdf');
-  t('ogni pagina: la figura JPEG (DCTDecode) e il titolo in testo vero', (s.match(/\/Filter \/DCTDecode/g) || []).length === 2 && /\(Modello \xB7 vista isometrica verso Nord\) Tj/.test(s) && /\(Sezione 3D A-A'\) Tj/.test(s));
+  t('un PDF vero: intestazione, tre pagine A4 orizzontali, catalogo, xref e fine', s.startsWith('%PDF-1.4') && /\/Count 3/.test(s) && (s.match(/\/MediaBox \[0 0 841\.89 595\.28\]/g) || []).length === 3 && /%%EOF\n$/.test(s) && pdf.tipo === 'application/pdf');
+  t('ogni pagina: la figura JPEG (DCTDecode) e il titolo in testo vero (la terza senza: figura più grande)', (s.match(/\/Filter \/DCTDecode/g) || []).length === 3 && (s.match(/\/F2 15 Tf/g) || []).length === 2 && /\(Modello \xB7 vista isometrica verso Nord\) Tj/.test(s) && /\(Sezione 3D A-A'\) Tj/.test(s));
   // l'indice xref punta davvero agli oggetti
   const xref = Number(/startxref\n(\d+)/.exec(s)[1]);
   const voceXref = s.slice(xref).split('\n').slice(3, 4)[0];

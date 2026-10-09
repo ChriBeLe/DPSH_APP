@@ -605,7 +605,9 @@
                     const sagoma = giu.slice(0, -1).concat(su.slice(0, -1));
                     const dentroSagoma = (x, y) => sagoma.length >= 3 && sagoma.every((a, i) => giro(a, sagoma[(i + 1) % sagoma.length], [x, y]) >= 0);
                     const libero = ([x, y]) => [[0, 1.45], [0, 1], [-0.5, -0.75], [0.5, -0.75], [0, -0.35]].every(([e, n]) => { const q = P(x + e * Lf, y + n * Lf, zIn(x + e * Lf, y + n * Lf));
-                        return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
+                        // (e fuori dal posto della legenda, quando le tavole gliel'hanno riservato)
+                        const rl = vista3d.postoLegenda, sottoLegenda = rl && q[0] > rl.x - 14 && q[0] < rl.x + rl.w + 14 && q[1] > rl.y - 14 && q[1] < rl.y + rl.h + 14;
+                        return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && !sottoLegenda && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
                     const vicinanza = ([x, y]) => P(x, y, zIn(x, y))[2];
                     const ordinati = angoli.slice().sort((a, b) => vicinanza(a) - vicinanza(b));
                     // Se nessun angolo è libero (vista avvicinata: gli angoli escono dal quadro), il punto
@@ -820,11 +822,16 @@
                     // I numeri dalla parte esterna: a destra se lo spigolo sta a destra del centro.
                     const aDestra = b1[0] >= P(mx, my, zRif)[0];
                     sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
-                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) {
+                    // Le tacche tonde, più una alle due estremità dell'asta quando non ci cade già una
+                    // tonda (il fondo del modello a −4,6: la tacca c'è, col suo numero).
+                    const tacche = [];
+                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) tacche.push([z, passo < 1 ? 1 : 0]);
+                    [zFondo, zTesta].forEach(z => { if (!tacche.some(([q]) => Math.abs(q - z) < passo * 0.3)) tacche.push([z, 1]); });
+                    tacche.forEach(([z, dec]) => {
                         const t = P(ax, ay, z);
                         sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
-                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
-                    }
+                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, dec), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
+                    });
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
                 if (L.distanze) d.lati.forEach(([i, j]) => {
@@ -869,6 +876,14 @@
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: 2.5, fill: 'currentColor', cls: 'vista3d-nord' });
                     const [tx, ty] = pt(R + 15, 0);
                     testo(tx, ty + 7, 'N', { size: 20, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord' });
+                    // LA SCALA GRAFICA, in basso a sinistra: senza prospettiva le distanze in orizzontale
+                    // sullo schermo sono in scala vera (k pixel per metro). Quattro tratti alternati,
+                    // 0, metà e tutta la lunghezza, tonda, sui 150 pixel.
+                    if (!vista3d.prospettiva && k > 0) {
+                        const metri = massimoTondo(150 / k), lp = metri * k, sx0 = 24, sy0 = H - 44, hb = 6;
+                        for (let n = 0; n < 4; n++) sopra.push({ t: 'poli', p: [[sx0 + lp * n / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0 + hb], [sx0 + lp * n / 4, sy0 + hb]], fill: n % 2 ? fondo : 'currentColor', fo: 1, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-scala' });
+                        [[0, '0'], [lp / 2, numeroConVirgola(metri / 2, metri / 2 < 10 && metri % 2 ? 1 : 0)], [lp, numeroConVirgola(metri, 0) + ' m']].forEach(([x, s2], n) => testo(sx0 + x, sy0 - 5, s2, { size: 11, anchor: n === 2 ? 'start' : 'middle', alone: true, cls: 'vista3d-scala' }));
+                    }
                 }
                 // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
                 // scaricato, che va in una tavola.
@@ -955,37 +970,42 @@
                 if (altri.length) { voci.push({ tipo: 'titolo', testo: 'Altro' }); voci.push(...altri); }
                 return voci;
             }
-            /** La scena con la legenda in una colonna a destra: fuori dalla figura, che non copre. */
-            function conLegenda3d(sc, d) {
-                const voci = vociLegenda3d(sc, d);
-                if (!voci.length) return sc;
-                const CAR = 7.5, MAX = 30;
+            /** La legenda, piccola e sobria come in HyperGram: un riquadro in alto a destra, DENTRO la
+             * figura (che così resta grande quanto il foglio), col fondo appena velato. Righe di 10 px,
+             * campioni piccoli, i nomi lunghi vanno a capo. Le misure servono anche a chi inquadra. */
+            const LEGENDA_3D = { car: 6.1, max: 30, riga: 14, a_capo: 12, testa: 22, sez: 17, pad: 9 };
+            function impaginaLegenda3d(voci) {
+                const L = LEGENDA_3D;
                 const aCapo = s => {
                     const righe = [];
-                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= MAX) righe[u] += ' ' + p; else righe.push(p); });
+                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= L.max) righe[u] += ' ' + p; else righe.push(p); });
                     return righe;
                 };
                 voci.forEach(v => { v.righe = v.tipo === 'titolo' ? [v.testo] : aCapo(v.testo); });
-                const lw = Math.round(Math.min(320, Math.max(190, 64 + CAR * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length))))))) ;
-                const x0 = sc.W + 18, forme = [], cls = 'vista3d-legenda';
-                // il fondo della colonna: quello che della figura sborda a destra (il terreno) non ci passa sotto
-                const Hl = Math.max(sc.H, 52 + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? 26 : 22 + (v.righe.length - 1) * 15), 0) + 16);
-                forme.push({ t: 'poli', p: [[sc.W, 0], [sc.W + lw, 0], [sc.W + lw, Hl], [sc.W, Hl]], fill: 'var(--bg-card, #fff)', fo: 1, stroke: 'none', sw: 0, cls });
-                forme.push({ t: 'linea', x1: sc.W, y1: 16, x2: sc.W, y2: sc.H - 16, stroke: 'currentColor', sw: 1, op: 0.25, cls });
-                forme.push({ t: 'testo', x: x0, y: 34, s: 'Legenda', size: 15, bold: true, cls });
-                let y = 52;
+                const w = Math.round(Math.min(230, Math.max(120, 2 * L.pad + 24 + L.car * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length)))))));
+                const h = Math.round(L.pad + L.testa + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? L.sez : L.riga + (v.righe.length - 1) * L.a_capo), 0) + L.pad - 4);
+                return { w, h };
+            }
+            function conLegenda3d(sc, d) {
+                const voci = vociLegenda3d(sc, d);
+                if (!voci.length) return sc;
+                const L = LEGENDA_3D, { w, h } = impaginaLegenda3d(voci), cls = 'vista3d-legenda';
+                const bx = sc.W - w - 12, by = 12, x0 = bx + L.pad, forme = [];
+                forme.push({ t: 'poli', p: [[bx, by], [bx + w, by], [bx + w, by + h], [bx, by + h]], fill: 'var(--bg-card, #fff)', fo: 0.86, stroke: 'currentColor', sw: 0.6, cls });
+                forme.push({ t: 'testo', x: x0, y: by + L.pad + 9, s: 'Legenda', size: 11, bold: true, cls });
+                let y = by + L.pad + L.testa - 4;
                 voci.forEach(v => {
-                    if (v.tipo === 'titolo') { y += 8; forme.push({ t: 'testo', x: x0, y: y + 10, s: v.testo.toUpperCase(), size: 10.5, bold: true, op: 0.65, cls }); y += 18; return; }
-                    const cy = y + 8, xs = x0, xt = x0 + 34;
-                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - 6], [xs + 24, cy - 6], [xs + 24, cy + 6], [xs, cy + 6]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1.4 : 0.6, dash: v.dash, cls });
-                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + 24, y2: cy, stroke: v.stroke, sw: v.sw, dash: v.dash, cls });
-                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + 12, y: cy, r: v.r || 4.5, fill: v.fill || 'currentColor', stroke: v.stroke, cls });
-                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + 2, y1: cy - 2, x2: xs + 22, y2: cy - 2, stroke: 'currentColor', sw: 2, cls }); forme.push({ t: 'linea', x1: xs + 12, y1: cy - 2, x2: xs + 12, y2: cy + 6, stroke: 'currentColor', sw: 2, cls }); }
-                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + 12, y1: cy - 8, x2: xs + 12, y2: cy + 8, stroke: 'currentColor', sw: 1.4, cls }); [-7, 0, 7].forEach(k => forme.push({ t: 'linea', x1: xs + 8, y1: cy + k, x2: xs + 16, y2: cy + k, stroke: 'currentColor', sw: 1, cls })); }
-                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + 4 + i * 15, s: r, size: 12, cls }));
-                    y += 22 + (v.righe.length - 1) * 15;
+                    if (v.tipo === 'titolo') { forme.push({ t: 'testo', x: x0, y: y + 11, s: v.testo.toUpperCase(), size: 8, bold: true, op: 0.6, cls }); y += L.sez; return; }
+                    const cy = y + 6, xs = x0, xt = x0 + 22;
+                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - 4.5], [xs + 15, cy - 4.5], [xs + 15, cy + 4.5], [xs, cy + 4.5]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1 : 0.4, dash: v.dash, cls });
+                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + 15, y2: cy, stroke: v.stroke, sw: Math.min(2.2, v.sw || 1.5), dash: v.dash, cls });
+                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + 7.5, y: cy, r: Math.min(3.5, v.r || 3.5), fill: v.fill || 'currentColor', stroke: v.stroke, cls });
+                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + 1, y1: cy - 1.5, x2: xs + 14, y2: cy - 1.5, stroke: 'currentColor', sw: 1.5, cls }); forme.push({ t: 'linea', x1: xs + 7.5, y1: cy - 1.5, x2: xs + 7.5, y2: cy + 4, stroke: 'currentColor', sw: 1.5, cls }); }
+                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + 7.5, y1: cy - 5.5, x2: xs + 7.5, y2: cy + 5.5, stroke: 'currentColor', sw: 1, cls }); [-5, 0, 5].forEach(k => forme.push({ t: 'linea', x1: xs + 4.5, y1: cy + k, x2: xs + 10.5, y2: cy + k, stroke: 'currentColor', sw: 0.8, cls })); }
+                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + 3.5 + i * L.a_capo, s: r, size: 10, cls }));
+                    y += L.riga + (v.righe.length - 1) * L.a_capo;
                 });
-                return { ...sc, W: sc.W + lw, H: Math.max(sc.H, y + 16), tutte: sc.tutte.concat(forme) };
+                return { ...sc, legenda: { x: bx, y: by, w, h }, tutte: sc.tutte.concat(forme) };
             }
 
             /** La scena sul canvas: stessa figura, disegnata in pochi millisecondi anche mentre gira. */
