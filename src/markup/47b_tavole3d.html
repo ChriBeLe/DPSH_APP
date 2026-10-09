@@ -22,7 +22,7 @@
                 </div>
                 <div class="tavole-foglio-box"><div id="tavole3dFoglio" class="tavole-foglio">
                     <div class="tavole-foglio-tit"><b id="tavole3dFoglioTit"></b><span id="tavole3dFoglioSotto"></span></div>
-                    <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden><canvas id="tavole3dPianta" class="tavole-pianta" aria-label="Ubicazione della sezione sulla mappa" hidden></canvas></div>
+                    <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden><canvas id="tavole3dPianta" class="tavole-pianta" aria-label="Ubicazione della sezione sulla mappa" hidden></canvas><span id="tavole3dPiantaManiglia" class="tavole-pianta-maniglia" title="Trascina per cambiare larghezza e altezza della pianta" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13 13 3M8 13l5-5M12 13l1-1"/></svg></span></div>
                     <div class="tavole-foglio-piede"><span id="tavole3dPiede"></span><span id="tavole3dNumero"></span></div>
                 </div></div>
                 <div class="tavole-regola" id="tavole3dRegola">
@@ -61,7 +61,7 @@
                         <button type="button" data-pianta="sopra" aria-pressed="false">Sopra</button>
                         <button type="button" data-pianta="no" aria-pressed="false">Nessuna</button>
                     </div>
-                    <span class="t-didascalia">Si regola sull'anteprima, per ogni sezione: <b>trascina</b> la foto per spostarla, <b>rotella</b> per lo zoom, trascina il <b>bordo esterno</b> della casella per cambiarne l'altezza; doppio clic: com'era. Serve la mappa di base. <button type="button" class="btn-link" id="tavole3dPiantaZoomReset">Com'era all'inizio</button></span></div>
+                    <span class="t-didascalia">Si regola sull'anteprima, per ogni sezione: <b>trascina</b> la foto per spostarla, <b>rotella</b> per lo zoom, trascina la <b>maniglia</b> sull'angolo per cambiarne larghezza e altezza (o il bordo esterno, solo l'altezza); doppio clic: com'era. Serve la mappa di base. <button type="button" class="btn-link" id="tavole3dPiantaZoomReset">Com'era all'inizio</button></span></div>
                 <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione</span>
                     <label class="tavole-riga tavole-fascia">entro <input type="number" id="tavole3dFascia" class="form-control" min="0" step="5"> m dalla traccia</label>
                     <div id="tavole3dProve" class="tavole-prove"></div>

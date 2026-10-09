@@ -881,3 +881,11 @@
         .tavole-foglio-fig.con-pianta { flex-direction: column; gap: 0; }
         .tavole-foglio-fig.con-pianta.pianta-sopra { flex-direction: column-reverse; }
         .tavole-foglio-fig .tavole-pianta { display: block; cursor: grab; touch-action: none; }
+        .tavole-foglio-fig.con-pianta { position: relative; }
+        /* la maniglia della pianta: grande e ben visibile, solo nell'anteprima (non va nel file) */
+        .tavole-pianta-maniglia { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 6px; background: var(--accent, #14b8a6); border: 2px solid #fff;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.45); cursor: nwse-resize; touch-action: none; z-index: 3; display: flex; align-items: center; justify-content: center; }
+        .tavole-pianta-maniglia.sopra { cursor: nesw-resize; }
+        .tavole-pianta-maniglia.sopra svg { transform: scaleY(-1); }
+        .tavole-pianta-maniglia svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+        .tavole-pianta-maniglia:hover { transform: scale(1.12); }

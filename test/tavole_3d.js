@@ -242,7 +242,7 @@ const $ = (app, id) => app.d.getElementById(id);
   // La pianta della sezione 2D si regola col mouse sull'anteprima (per ogni sezione): trascinare sposta la
   // foto, la rotella avvicina, il bordo esterno cambia l'altezza, doppio clic la rimette com'era.
   const tr0 = app.E('tracceDelProgetto()[0].id'), cp = $(app, 'tavole3dPianta');
-  app.E(`tavole3d.piantaViva = { traccia: ${JSON.stringify(tr0)}, kSchermo: 2, scala: 1, W0: 1000, hP: 200, sotto: true }; tavole3d.ridisegnaPianta = () => {}`);
+  app.E(`tavole3d.piantaViva = { traccia: ${JSON.stringify(tr0)}, kSchermo: 2, scala: 1, W0: 1000, wP: 1000, hP: 200, sotto: true }; tavole3d.ridisegnaPianta = () => {}`);
   const pe = (tipo, x, y, extra) => cp.dispatchEvent(new app.w.MouseEvent(tipo, Object.assign({ bubbles: true, clientX: x, clientY: y, button: 0 }, extra || {})));
   cp.getBoundingClientRect = () => ({ left: 0, top: 0, right: 1000, bottom: 200, width: 1000, height: 200 });
   pe('pointerdown', 500, 100); pe('pointermove', 540, 80); pe('pointerup', 540, 80);
@@ -254,6 +254,12 @@ const $ = (app, id) => app.d.getElementById(id);
   pe('pointerdown', 500, 196); pe('pointermove', 500, 296); pe('pointerup', 500, 296);
   t('dal bordo di sotto si cambia l\'altezza della casella (200 → 300 su 1000 di larghezza)', Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].alta`) - 0.3) < 1e-9
     && app.E(`altezzaPiantaSezione(datiVista3dCorrenti, tracceDelProgetto()[0], null, 1400, tavole3d.piante[${JSON.stringify(tr0)}].alta)`) === 420);
+  const mg = $(app, 'tavole3dPiantaManiglia'), me = (tipo, x, y) => mg.dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, clientX: x, clientY: y, button: 0 }));
+  app.E(`tavole3d.piantaViva.hP = 300`);
+  me('pointerdown', 1000, 300); me('pointermove', 900, 340); me('pointerup', 900, 340);
+  const conManiglia = JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`)));
+  t('la maniglia sull\'angolo: larghezza (centrata: 100 px a sinistra = 200 in meno) e altezza insieme', Math.abs(conManiglia.larga - 0.8) < 1e-9 && Math.abs(conManiglia.alta - 0.34) < 1e-9
+    && app.E(`largaPianta(tavole3d.piante[${JSON.stringify(tr0)}])`) === 0.8 && /larghezza e altezza/.test(mg.title));
   pe('dblclick', 500, 100);
   t('doppio clic: com\'era all\'inizio (e niente cursori: si fa col mouse)', !app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`) && !$(app, 'tavole3dPiantaZoom') && !$(app, 'tavole3dPiantaAltezza'));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
