@@ -96,6 +96,79 @@ const $ = (app, id) => app.d.getElementById(id);
     return { a: nome(a), b: nome(b), la: la.w, lb: lb.w, schermo: ultimaScena3d.tutte.find(f => f.cls === 'vista3d-nome').size }; })()`);
   t(`la grandezza delle scritte: nomi da ${scr.a} a ${scr.b} px, e la legenda con loro (${scr.la} → ${scr.lb} px)`, Math.abs(scr.b / scr.a - 1.6) < 0.01 && scr.lb > scr.la * 1.5 && scr.schermo === 13);
 
+  console.log('--- La foto sopra il modello ---');
+  const foto = app.E(`(() => {
+    salvaSceltaSfondo3d({ id: 'esri-satellite' }); datiVista3dCorrenti._sfondo = null;
+    const d = datiVista3dCorrenti, voci = vociEsportazione3d(d), conta = sc => sc.tutte.filter(f => f.cls === 'vista3d-foto-sopra');
+    const senza = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true })).length;
+    const iso = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true, fotoSopra: true }));
+    const v3 = voci.find(v => v.tipo === 'sez3d'), sc3 = scenaVoce3d(v3, d, 1400, 860, { basemap: true, fotoSopra: true }), sez = conta(sc3);
+    // la foto della sezione 3D: sopra la parte che resta e sul terreno davanti ai lati, mai sullo scavo davanti alla sezione
+    const scavo = new Set(sc3.tutte.filter(f => f.cls === 'vista3d-faccia' && f.scavo).map(f => f.p));
+    const terraSopra = new Set(sc3.tutte.filter(f => f.cls === 'vista3d-faccia' && !f.scavo).map(f => f.p));
+    const dentro = scavo.size > 0 && sez.every(f => !scavo.has(f.p)) && sez.some(f => terraSopra.has(f.p));
+    const luci = sc3.tutte.filter(f => f.cls === 'vista3d-solido').map(f => f.luce), luciIso = scenaVoce3d(voci[0], d, 1400, 860, {}).tutte.filter(f => f.cls === 'vista3d-solido').map(f => f.luce);
+    const opaca = conta(scenaVoce3d(voci[0], d, 1400, 860, { basemap: true, fotoSopra: true, opacitaFoto: 0.3 })).every(f => f.fo === 0.3);
+    vista3d.livelli.solido = true; vista3d.livelli.fotoSopra = true; renderVista3d();
+    const schermo = ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-foto-sopra').length, svg = svgDaScena(ultimaScena3d);
+    vista3d.livelli.fotoSopra = false; renderVista3d();
+    return { senza, iso: iso.length, trasparente: iso.every(f => f.fo === 0.5 && f.sfondo && f.uv), sez: sez.length, dentro, schermo, opaca,
+      taglioInLuce: luci.includes('taglio') && luci.includes('ombra') && luci.every(l => l === 'taglio' || l === 'ombra'), isoSenzaLuci: luciIso.every(l => l === undefined), nelSvg: /vista3d-foto-sopra/.test(svg), riga: !!document.querySelector('#livelliVista3d [data-livello="fotoSopra"]') };
+  })()`);
+  t(`la foto satellitare stesa sopra il modello, trasparente (${foto.iso} pezzi d'immagine al 50%), solo se la si chiede`, foto.senza === 0 && foto.iso > 50 && foto.trasparente);
+  t('anche sulla sezione 3D: sopra la parte che resta e sul terreno davanti ai lati (sepolti), mai davanti alla sezione', foto.sez > 50 && foto.dentro);
+  t('l\'opacità della foto si sceglie (qui 30%)', foto.opaca);
+  t('col taglio la faccia della sezione è in luce, il resto del corpo in ombra (senza taglio niente)', foto.taglioInLuce && foto.isoSenzaLuci);
+  t('nel 3D la spunta «Foto sopra il modello» nei Livelli (Sfondo)', foto.riga && foto.schermo > 0);
+  t('(nell\'SVG, che le immagini non le porta, niente velo)', !foto.nelSvg);
+
+  console.log('--- Ritagliare la mappa, la freccia che segue la vista ---');
+  const rit = app.E(`(() => {
+    const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d');
+    const facce = tm => scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm }).tutte.filter(f => f.cls === 'vista3d-faccia');
+    const a = facce(false), b = facce(true), fo = [...new Set(b.map(f => +f.fo.toFixed(4)))].sort();
+    return { senza: a.length, con: b.length, tolti: b.filter(f => f.scavo).length, fo, foSenza: [...new Set(a.map(f => +f.fo.toFixed(4)))] };
+  })()`);
+  t(`«Ritaglia anche la mappa»: la parte tolta resta ma molto più trasparente (opacità ${rit.fo.join(' e ')}, prima ${rit.foSenza.join()})`, rit.fo.length === 2 && Math.abs(rit.fo[0] / rit.fo[1] - 0.25) < 1e-6 && rit.tolti > 0 && rit.con >= rit.senza);
+  t('(nel 3D è un tasto della scheda «Modello e tagli»)', !!app.d.querySelector('#tagliVista3d [data-livello="tagliaMappa"]'));
+  const blocco = app.E(`(() => {
+    const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d'), conta = tm => { const tt = scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm }).tutte; return { facce: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'poli').length, linee: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'linea').length }; };
+    return { senza: conta(false), con: conta(true) };
+  })()`);
+  const mesh = app.E(`(() => {
+    const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], prima = vista3d.livelli.mesh; vista3d.livelli.mesh = true;
+    const righe = o => scenaVoce3d(v, d, 1400, 860, o).tutte.filter(f => f.cls === 'vista3d-solido' && f.stroke !== f.fill).length;
+    const out = { senza: righe({}), con: righe({ mesh: true }), dopo: vista3d.livelli.mesh, spunta: !!document.getElementById('tavole3dMesh') };
+    vista3d.livelli.mesh = prima; return out; })()`);
+  t(`nelle tavole la mesh del modello non c'è (anche se nel 3D è accesa); si accende con «Mesh del modello» (${mesh.con} righe)`, mesh.senza === 0 && mesh.con > 50 && mesh.dopo === true && mesh.spunta);
+  const regole = app.E(`(() => {
+    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], z = document.getElementById('tavole3dPiantaZoom'), h = document.getElementById('tavole3dPiantaAltezza');
+    const auto = altezzaPiantaSezione(d, t, null, 1400, 0), mano = altezzaPiantaSezione(d, t, null, 1400, 0.25);
+    return { auto, mano, ci: !!(z && h && document.getElementById('tavole3dPiantaZoomReset')) };
+  })()`);
+  t(`la pianta della sezione 2D: zoom della foto e altezza della casella si regolano (a mano 25% = ${regole.mano} px, automatica ${regole.auto})`, regole.ci && regole.mano === 350 && regole.auto > 0);
+  t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
+  const piantaGirata = app.E(`(() => {
+    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], W = 1400, h = altezzaPiantaSezione(d, t, null, W), ig = ingombroPiantaSezione(d, t);
+    const k = Math.min(W / (ig.s1 - ig.s0), h / (ig.n1 - ig.n0)), sc = (ig.s0 + ig.s1) / 2, nc = (ig.n0 + ig.n1) / 2;
+    const dentro = d.prove.filter(p => { const [s, n] = ig.sn(p.x, p.y), X = W / 2 + (s - sc) * k, Y = h / 2 - (n - nc) * k; return X > 0 && X < W && Y > 0 && Y < h; }).length;
+    const [sb, nb] = ig.sn(...tracciaInScena(d, t).b);
+    return { h, dentro, tutte: d.prove.length, orizzontale: Math.abs(nb) < 1e-6 && sb > 0 };
+  })()`);
+  t(`la pianta della sezione 2D: foto girata con la traccia in orizzontale (A a sinistra) e riadattata: si vedono tutte le prove (${piantaGirata.dentro}/${piantaGirata.tutte}), alta ${piantaGirata.h} su 1400`, piantaGirata.orizzontale && piantaGirata.dentro === piantaGirata.tutte && piantaGirata.h >= 1400 * 0.14 && piantaGirata.h <= 1400 * 0.34);
+  const segue = app.E(`(() => {
+    const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
+    [1, 2.5, 6].forEach(z => { const sc = scenaVoce3d(v, d, 1400, 860, { reg: { zoom: z }, legenda: false }), e = sc.elementi.nordTerreno; out.push(e ? { w: e.x1 - e.x0, h: e.y1 - e.y0, dentro: e.x0 >= 0 && e.x1 <= 1400 && e.y0 >= 0 && e.y1 <= 860 } : null); });
+    return out;
+  })()`);
+  t(`la freccia del Nord sul terreno segue la vista: avvicinando resta nel quadro e grande uguale (${segue.map(e => e && Math.round(e.w) + '×' + Math.round(e.h)).join(', ')})`, segue.every(e => e && e.dentro) && Math.max(...segue.map(e => e.w)) / Math.min(...segue.map(e => e.w)) < 1.6);
+
+  const spig = app.E(`(() => { const d = datiVista3dCorrenti, v = vociEsportazione3d(d), c = sc => sc.tutte.filter(f => f.cls === 'vista3d-spigolo').length;
+    const iso = scenaVoce3d(v[0], d, 1400, 860, {}), sez = scenaVoce3d(v[2], d, 1400, 860, {}), senza = scenaVoce3d(v[0], d, 1400, 860, { spigoli: false });
+    const ultimoSpigolo = iso.sopra.map(f => f.cls).lastIndexOf('vista3d-spigolo'), primaTraccia = iso.sopra.findIndex(f => f.cls === 'vista3d-traccia');
+    return { iso: c(iso), sez: c(sez), senza: c(senza), sotto: primaTraccia > ultimoSpigolo }; })()`);
+  t(`gli spigoli del modello marcati da una linea (${spig.iso}; nella sezione 3D quelli della parte che resta: ${spig.sez}), le sezioni disegnate sopra`, spig.iso > 20 && spig.sez > 20 && spig.senza === 0 && spig.sotto);
+
   console.log('--- La finestra ---');
   clic(app, $(app, 'btnTavole3d'));
   await attesa(80);
@@ -169,7 +242,12 @@ const $ = (app, id) => app.d.getElementById(id);
   t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
-    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true }));
+    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false }));
+  $(app, 'tavole3dPiantaZoom').value = '200'; $(app, 'tavole3dPiantaZoom').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  $(app, 'tavole3dPiantaAltezza').value = '30'; $(app, 'tavole3dPiantaAltezza').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  t('zoom della foto e altezza della casella dai cursori, ricordati nel progetto', app.E('tavole3d.piantaZoom') === 2 && app.E('tavole3d.piantaAltezza') === 0.3 && app.E(`${P}.tavole3d.piantaZoom`) === 2 && app.E(`${P}.tavole3d.piantaAltezza`) === 0.3 && $(app, 'tavole3dPiantaZoomVal').textContent === '200%');
+  clic(app, $(app, 'tavole3dPiantaZoomReset'));
+  t('«Come all\'inizio»: zoom 100%, altezza automatica', app.E('tavole3d.piantaZoom') === 1 && app.E('tavole3d.piantaAltezza') === 0 && $(app, 'tavole3dPiantaAltezzaVal').textContent === 'automatica');
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   const trascina = (x0, y0, dx, dy) => {
     const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };

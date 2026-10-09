@@ -50,7 +50,10 @@
             /** Nel 3D: appoggiati sul terreno (i lati dei poligoni ne seguono il profilo). */
             function disegniNellaScena3d(d, P, sopra, testo) {
                 const zMedia = (d.zMin + d.zMax) / 2, alSuolo = (x, y) => { const z = d.zSuolo(x, y); return P(x, y, Number.isFinite(z) ? z : zMedia); };
-                disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
+                // Il poligono che fa da perimetro del modello, col corpo acceso, nel 3D non c'è: né riempimento, né
+                // contorno, né nome (né in legenda). Il contorno lo fanno gli spigoli del corpo.
+                const perimetro = vista3d.livelli.solido ? (state.projects[state.currentProjectId] || {}).perimetroModello : null;
+                disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id) && x.id !== perimetro).forEach(x => {
                     const xy = x.punti.map(p => d.daGeo(p.lat, p.lng)), st = stileLivello('d:' + x.id);
                     let qui;
                     if (x.tipo === 'punto') {
@@ -84,11 +87,15 @@
                         const nome = await appPrompt('Nome', x.nome, { title: x.tipo === 'punto' ? 'Rinomina il punto' : 'Rinomina il poligono', okLabel: 'Rinomina' });
                         if (nome && nome.trim()) { x.nome = nome.trim(); ridisegna(); }
                     }],
+                    ...(x.tipo === 'poligono' ? [(state.projects[state.currentProjectId] || {}).perimetroModello === x.id
+                        ? ['Non usarlo più come perimetro del modello 3D', 'i-x', '', () => usaPerimetroModello(null)]
+                        : ['Usa come perimetro del modello 3D', 'i-layers', '', () => usaPerimetroModello(x.id)]] : []),
                     '-',
                     ['Elimina', 'i-trash', '', async () => {
                         if (!await appConfirmDelete(`Eliminare ${x.nome}?`)) return;
                         const proj = state.projects[state.currentProjectId];
                         proj.disegni = disegniDelProgetto().filter(y => y !== x);
+                        if (proj.perimetroModello === x.id) { delete proj.perimetroModello; renderPerimetroModello3d(); }
                         ridisegna();
                     }, true]
                 ];

@@ -875,3 +875,9 @@
         .tavole-prove label .t-didascalia { margin-left: auto; }
         .tavole-fascia { font-size: 12px; font-weight: 600; color: var(--text-main); justify-content: flex-start !important; gap: 6px; }
         .tavole-fascia input { width: 64px !important; }
+        .tavole-opacita-foto { font-size: 12px; font-weight: 600; color: var(--text-main); }
+        .tavole-opacita-foto span { display: inline-flex; align-items: center; gap: 6px; }
+        .tavole-opacita-foto input[type=range] { width: 110px !important; accent-color: var(--accent); }
+        .tavole-foglio-fig.con-pianta { flex-direction: column; gap: 0; }
+        .tavole-foglio-fig.con-pianta.pianta-sopra { flex-direction: column-reverse; }
+        .tavole-foglio-fig .tavole-pianta { display: block; }

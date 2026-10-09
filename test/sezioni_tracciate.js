@@ -100,8 +100,23 @@ const $ = (app, id) => app.d.getElementById(id);
   const pann = app.E(`(() => { const ds = datiSezioneTracciata(datiVista3dCorrenti, ${P}.sezioniTracciate.find(x => x.id === 'sez_prova'), 25);
     let attese = 0; for (let i = 0; i + 1 < ds.prove.length; i++) { const A = ds.prove[i].p, B = ds.prove[i + 1].p; if (Math.max(0, Math.min(ds.L, ds.prove[i + 1].s)) - Math.max(0, Math.min(ds.L, ds.prove[i].s)) < 0.5) continue; A.occ.forEach((f, k) => { if (B.occ.get(k)) attese++; }); }
     return { attese, poligoni: document.querySelectorAll('#vistaSezioneTracciata svg polygon').length, contatti: document.querySelectorAll('#vistaSezioneTracciata svg polyline[stroke="#334155"]').length }; })()`);
-  t(`di base i pannelli di correlazione: uno per strato comune a due prove vicine (${pann.poligoni}), con le linee di contatto (${pann.contatti})`, $(app, 'selRiempimentoSezioni3d').value === 'pannelli' && pann.attese > 0 && pann.poligoni === pann.attese && pann.contatti >= pann.attese
+  t(`di base i pannelli di correlazione: uno per strato comune a due prove vicine (${pann.poligoni}), con le linee di contatto (${pann.contatti})`, $(app, 'selRiempimentoSezioni3d').value === 'pannelli' && pann.attese > 0 && pann.poligoni >= pann.attese && pann.contatti >= pann.attese
     && /pannelli di correlazione tra le prove vicine/.test(vista.textContent));
+  // Uno strato che c'è in una prova e non nella vicina: un cuneo col suo colore che si chiude a zero
+  // sull'altra prova (dove questa passa dallo strato sopra a quello sotto), non un triangolo bianco.
+  const cuneo = app.E(`(() => { const t = ${P}.sezioniTracciate.find(x => x.id === 'sez_prova'), ds = datiSezioneTracciata(datiVista3dCorrenti, t, 25);
+    const A = ds.prove[0], f = [{ nome: 'Limo', colore: '#fde047', da: 0, a: 1 }, { nome: 'Sabbia', colore: '#f97316', da: 1, a: 2 }, { nome: 'Ghiaia', colore: '#22c55e', da: 2, a: 4 }];
+    const senza = f.filter(x => x.nome !== 'Sabbia').map(x => Object.assign({}, x)); senza[1].da = 1.5;
+    const pA = Object.assign({}, A.p, { fasce: f, occ: occorrenzeFasce(f), fondo: 4 }), pB = Object.assign({}, A.p, { fasce: senza, occ: occorrenzeFasce(senza), fondo: 4 });
+    ds.prove = [Object.assign({}, A, { p: pA, s: 0 }), Object.assign({}, A, { p: pB, s: ds.L })];
+    const div = document.createElement('div'); div.innerHTML = svgSezioneTracciata(ds, 900).svg;
+    const pol = [...div.querySelectorAll('polygon')].find(p => p.getAttribute('fill') === '#f97316');
+    if (!pol) return null;
+    const pts = pol.getAttribute('points').split(' ').map(q => q.split(',').map(Number)), xMax = Math.max(...pts.map(q => q[0]));
+    const aDestra = pts.filter(q => Math.abs(q[0] - xMax) < 0.5).map(q => q[1]);
+    return { n: div.querySelectorAll('polygon').length, chiuso: Math.max(...aDestra) - Math.min(...aDestra) < 0.5 };
+  })()`);
+  t('uno strato che manca nella prova vicina: un cuneo col suo colore che si chiude a spessore zero, niente triangolo bianco', cuneo && cuneo.chiuso && cuneo.n === 3);
   $(app, 'selRiempimentoSezioni3d').value = 'solido'; $(app, 'selRiempimentoSezioni3d').dispatchEvent(new app.w.Event('change'));
   t('a scelta il modello solido (e l\'app se lo ricorda)', /strati interpolati tra le prove/.test(vista.textContent) && app.E('state.settings.riempimentoSezioni2d') === 'solido');
   $(app, 'selRiempimentoSezioni3d').value = 'pannelli'; $(app, 'selRiempimentoSezioni3d').dispatchEvent(new app.w.Event('change'));

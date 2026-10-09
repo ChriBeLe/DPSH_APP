@@ -111,12 +111,24 @@
                                 </div>
                                 <input type="range" id="rngTaglioV3d" min="0" max="100" step="1" value="50" aria-label="Posizione del taglio laterale">
                                 <button type="button" class="bt-link" id="btnTaglioLato3d">Tieni l'altra metà</button>
+                                <button type="button" class="pillola" data-livello="tagliaMappa" title="Col taglio, anche il terreno e la sua immagine dalla parte tolta spariscono">Ritaglia anche la mappa</button>
                                 <button type="button" class="bt-link" id="btnTaglioTraccia3d" title="Una sezione esattamente lungo il taglio, nell'elenco delle tracce (PDF e GeoPackage)">Salva come traccia</button>
                             </div>
                             <label class="vista3d-taglio-riga"><span class="vista3d-taglio-nome">Taglio in profondità</span>
                                 <input type="range" id="rngTaglioH3d" min="0" max="100" step="0.5" value="0" aria-label="Profondità del taglio"> <strong id="lblTaglioH3d">0,0 m</strong></label>
                             <label class="vista3d-taglio-riga" title="Gli strati tra una prova e l'altra: spigolosi (interpolazione lineare) o addolciti (spline). Alle prove restano esatti; vale anche per sezioni, PDF e file."><span class="vista3d-taglio-nome">Linee addolcite</span>
                                 <input type="range" id="rngLiscio3d" min="0" max="100" step="5" value="0" aria-label="Linee addolcite degli strati"> <strong id="lblLiscio3d">no</strong></label>
+                            <!-- IL PERIMETRO DEL MODELLO: di base il poligono delle prove; si può allargare a un poligono
+                                 disegnato (tasto destro → «Usa come perimetro del modello 3D») o importato da un file
+                                 vettoriale. Lo riempie il 071q. -->
+                            <div class="vista3d-taglio-riga" title="Fin dove arriva il corpo solido: fuori dalle prove gli strati proseguono paralleli">
+                                <span class="vista3d-taglio-nome">Perimetro</span>
+                                <span id="lblPerimetro3d">il poligono delle prove</span>
+                                <button type="button" class="bt-link" id="btnImportaPerimetro3d" title="Shapefile (.shp con .dbf e .prj, o .zip), GeoPackage, GeoJSON, KML o KMZ. Un poligono disegnato sulla mappa: tasto destro → «Usa come perimetro del modello 3D»">Importa da file…</button>
+                                <button type="button" class="bt-link" id="btnTogliPerimetro3d" hidden>Torna alle prove</button>
+                                <input type="file" id="filePerimetro3d" multiple accept=".shp,.dbf,.prj,.zip,.gpkg,.geojson,.json,.kml,.kmz" hidden>
+                            </div>
+                            <p class="t-didascalia" id="notaPerimetro3d" hidden>Fuori dal poligono delle prove gli strati sono estrapolati (proseguono paralleli): è un dato inventato, non misurato.</p>
                         </div>
                         <p class="t-didascalia" id="notaTagli3d" hidden>Il modello solido serve almeno tre prove col GPS, non in fila.</p>
                     </div>
@@ -128,6 +140,10 @@
                             <span class="vista3d-taglio-nome">Immagine sul terreno</span>
                             <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
                             <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
+                        </div>
+                        <div class="vista3d-taglio-riga">
+                            <label class="vista3d-opacita"><input type="checkbox" id="chkFotoSopra3d"> Foto sopra il modello</label>
+                            <label class="vista3d-opacita" title="Quanto si vede la foto sopra il modello: poca, e il modello sotto si vede di più">Opacità <input type="range" id="rngOpacitaFoto3d" min="10" max="100" step="5" value="50"> <b id="lblOpacitaFoto3d">50%</b></label>
                         </div>
                         <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
                             <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">

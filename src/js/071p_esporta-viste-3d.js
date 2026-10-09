@@ -31,13 +31,13 @@
              * rimette tutto com'era: la vista a schermo non se ne accorge. */
             function conVista3dTemporanea(modifica, fn) {
                 const prima = { az: vista3d.az, el: vista3d.el, ex: vista3d.ex, zoom: vista3d.zoom, centro: vista3d.centro.slice(), prospettiva: vista3d.prospettiva,
-                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti, elementi: vista3d.elementi, posizioni: vista3d.posizioni, nordTerrenoPos: vista3d.nordTerrenoPos };
+                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti, opacitaFoto: vista3d.opacitaFoto, elementi: vista3d.elementi, posizioni: vista3d.posizioni, nordTerrenoPos: vista3d.nordTerrenoPos };
                 try {
                     vista3d.disegno = null;
                     modifica();
                     return fn();
                 } finally {
-                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti, elementi: prima.elementi, posizioni: prima.posizioni, nordTerrenoPos: prima.nordTerrenoPos });
+                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti, opacitaFoto: prima.opacitaFoto, elementi: prima.elementi, posizioni: prima.posizioni, nordTerrenoPos: prima.nordTerrenoPos });
                 }
             }
 
@@ -126,6 +126,12 @@
                     if (opz && opz.basemap === true) { vista3d.livelli.immagine = true; vista3d.livelli.terreno = true; }
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
                     if (opz && opz.fantasma !== undefined) vista3d.livelli.fantasma = !!opz.fantasma;
+                    if (opz && opz.fotoSopra !== undefined) vista3d.livelli.fotoSopra = !!opz.fotoSopra;
+                    if (opz && opz.spigoli !== undefined) vista3d.livelli.spigoli = !!opz.spigoli;
+                    // la mesh (le righe dei triangoli del corpo): nelle tavole solo se la si chiede
+                    vista3d.livelli.mesh = !!(opz && opz.mesh);
+                    if (opz && opz.tagliaMappa !== undefined) vista3d.livelli.tagliaMappa = !!opz.tagliaMappa;
+                    if (opz && opz.opacitaFoto) vista3d.opacitaFoto = opz.opacitaFoto;
                     if (base.tracce) vista3d.tracceNascoste = new Set(tracceDelProgetto().map(t => t.id).filter(id => id !== base.tracce));
                 }, () => {
                     const leggera = !!(opz && opz.leggera);
@@ -273,19 +279,25 @@
                 const ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia);
                 const W = opz.W || 1400;
                 // le scritte più grandi: la sezione si disegna più stretta e si ingrandisce
-                let svg = svgSezioneTracciata(ds, Math.round(W / (opz.scritte || 1))).svg;
+                const sez = svgSezioneTracciata(ds, Math.round(W / (opz.scritte || 1)));
+                let svg = sez.svg;
                 if (opz.sfondo === 'scuro') svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
                 const img = await immagineDaSvg3d(svg);
-                const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
-                const hPianta = sf ? Math.round(W * 0.26) : 0, gap = sf ? 18 : 0;
-                const H = Math.round(img.height * W / img.width) + gap + hPianta;
+                // l'ubicazione della sezione (pianta dal satellite): sotto, sopra o niente («Ubicazione»)
+                const pos = opz.pianta || 'sotto';
+                const sf = opz.basemap !== false && pos !== 'no' ? await sfondoEsportabile3d(d) : null;
+                const sfE = sf ? await sfondoEstesoEsportabile3d(d) : null;
+                // la pianta girata: la traccia in orizzontale, A sotto A e A' sotto A' della sezione, alla stessa scala
+                const asse = { xa: sez.x0 * W / sez.W, xb: sez.x1 * W / sez.W };
+                const hPianta = sf ? altezzaPiantaSezione(d, t, asse, W, opz.piantaAltezza) : 0, gap = sf ? 12 : 0, hSez = Math.round(img.height * W / img.width);
+                const H = hSez + gap + hPianta;
                 const tela = document.createElement('canvas');
                 tela.width = Math.round(W * scala); tela.height = Math.round(H * scala);
                 const g = tela.getContext('2d');
                 g.scale(scala, scala);
                 g.fillStyle = col.fondo; g.fillRect(0, 0, W, H);
-                g.drawImage(img, 0, 0, W, img.height * W / img.width);
-                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, sf, 0, H - hPianta, W, hPianta, opz.nordPianta !== false);
+                g.drawImage(img, 0, pos === 'sopra' && sf ? hPianta + gap : 0, W, hSez);
+                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, [sfE, sf], 0, pos === 'sopra' ? 0 : H - hPianta, W, hPianta, opz.nordPianta !== false, asse, opz.piantaZoom);
                 return tela;
             }
             function immagineDaSvg3d(svg) {
@@ -296,41 +308,94 @@
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                 });
             }
-            /** La pianta della traccia sulla mappa di base: la traccia in rosso coi nomi agli estremi, le
-             * prove col numero (gialle quelle nella sezione), la freccia del Nord. */
-            function disegnaPiantaTraccia3d(g, d, t, ds, sf, x, y, w, h, conNord) {
-                const ga = t.a, gb = t.b, [ua, va] = sf.uv(ga.lat, ga.lng), [ub, vb] = sf.uv(gb.lat, gb.lng);
-                const cu = (ua + ub) / 2, cv = (va + vb) / 2, Lp = Math.hypot(ub - ua, vb - va) || 1;
-                const k = Math.min(w * 0.8 / Math.max(Lp, 1), h * 0.8 / Math.max(Math.abs(vb - va), 1), w / 60 * 4);
-                const S = (u, v) => [x + w / 2 + (u - cu) * k, y + h / 2 + (v - cv) * k];
+            /** La pianta girata come la sezione (traccia in orizzontale, A a sinistra) e riadattata perché si
+             * vedano la traccia e le prove: i loro estremi lungo la traccia (s) e di lato (n), in metri. */
+            function ingombroPiantaSezione(d, t) {
+                const { a, b, L } = tracciaInScena(d, t), ux = (b[0] - a[0]) / (L || 1), uy = (b[1] - a[1]) / (L || 1);
+                const sn = (X, Y) => [(X - a[0]) * ux + (Y - a[1]) * uy, -(X - a[0]) * uy + (Y - a[1]) * ux];
+                const pp = d.prove.map(p => sn(p.x, p.y)).concat([[0, 0], [L, 0]]);
+                const s0 = Math.min(...pp.map(q => q[0])), s1 = Math.max(...pp.map(q => q[0])), n0 = Math.min(...pp.map(q => q[1])), n1 = Math.max(...pp.map(q => q[1]));
+                const mS = Math.max(4, (s1 - s0) * 0.06), mN = Math.max(4, (n1 - n0) * 0.1);
+                return { a, ux, uy, L, sn, s0: s0 - mS, s1: s1 + mS, n0: n0 - mN, n1: n1 + mN };
+            }
+            /** Quanto è alta la pianta sotto (o sopra) una sezione 2D: quanto serve perché, su tutta la larghezza,
+             * ci stiano le prove (tra un settimo e un terzo della larghezza). */
+            function altezzaPiantaSezione(d, t, asse, W, alta) {
+                // scelta a mano («Altezza della casella»): una frazione della larghezza
+                if (alta > 0) return Math.round(W * alta);
+                const ig = ingombroPiantaSezione(d, t);
+                return Math.round(Math.max(W * 0.14, Math.min(W * 0.34, W * (ig.n1 - ig.n0) / Math.max(1, ig.s1 - ig.s0))));
+            }
+            /** LA PIANTA DELLA TRACCIA, GIRATA: la foto satellitare ruotata perché la traccia stia in orizzontale
+             * (A a sinistra, A' a destra, come nella sezione) e riadattata perché si vedano le prove, su tutta la
+             * larghezza. La fascia delle prove proiettate tratteggiata, le prove col numero (gialle quelle nella
+             * sezione), la freccia del Nord girata. */
+            function disegnaPiantaTraccia3d(g, d, t, ds, sfondi, x, y, w, h, conNord, asse, zoom) {
+                sfondi = (Array.isArray(sfondi) ? sfondi : [sfondi]).filter(s => s && s.uv && s.tela);
+                void asse;
+                const ig = ingombroPiantaSezione(d, t), { a, L } = ig;
+                // «Zoom della foto»: 1 = tutte le prove; avvicinando, il centro va verso il mezzo della traccia
+                const z = Math.max(0.3, Math.min(8, zoom || 1)), verso = 1 - 1 / Math.max(1, z);
+                const k = z * Math.min(w / Math.max(1, ig.s1 - ig.s0), h / Math.max(1, ig.n1 - ig.n0));
+                const sc = (ig.s0 + ig.s1) / 2 + (L / 2 - (ig.s0 + ig.s1) / 2) * verso, nc = (ig.n0 + ig.n1) / 2 * (1 - verso);
+                // dalla scena (metri, x a Est, y a Nord) al foglio: lungo la traccia a destra, a sinistra della traccia in su
+                const S = (X, Y) => { const [s, n] = ig.sn(X, Y); return [x + w / 2 + (s - sc) * k, y + h / 2 - (n - nc) * k]; };
+                const [xa, yc] = S(a[0], a[1]), xb = xa + L * k;
                 g.save();
                 g.beginPath(); g.rect(x, y, w, h); g.clip();
-                g.fillStyle = '#e5e7eb'; g.fillRect(x, y, w, h);
-                const [ox, oy] = S(0, 0);
-                g.drawImage(sf.tela, ox, oy, sf.tela.width * k, sf.tela.height * k);
-                const [pa, pb] = [S(ua, va), S(ub, vb)];
+                g.fillStyle = '#d1d5db'; g.fillRect(x, y, w, h);
+                // ogni mappa (prima quella larga, poi quella fine): la trasformazione dai suoi pixel al foglio da tre punti
+                const lato = Math.max(50, L);
+                sfondi.forEach(sf => {
+                    const pp = [[a[0], a[1]], [a[0] + lato, a[1]], [a[0], a[1] + lato]];
+                    const uv = pp.map(([X, Y]) => { const gg = d.geo(X, Y); return sf.uv(gg.lat, gg.lng); }), sc = pp.map(([X, Y]) => S(X, Y));
+                    const du1 = uv[1][0] - uv[0][0], dv1 = uv[1][1] - uv[0][1], du2 = uv[2][0] - uv[0][0], dv2 = uv[2][1] - uv[0][1], det = du1 * dv2 - du2 * dv1;
+                    if (Math.abs(det) < 1e-12) return;
+                    const dx1 = sc[1][0] - sc[0][0], dy1 = sc[1][1] - sc[0][1], dx2 = sc[2][0] - sc[0][0], dy2 = sc[2][1] - sc[0][1];
+                    const m11 = (dx1 * dv2 - dx2 * dv1) / det, m12 = (dx2 * du1 - dx1 * du2) / det, m21 = (dy1 * dv2 - dy2 * dv1) / det, m22 = (dy2 * du1 - dy1 * du2) / det;
+                    const tx = sc[0][0] - m11 * uv[0][0] - m12 * uv[0][1], ty = sc[0][1] - m21 * uv[0][0] - m22 * uv[0][1];
+                    g.save(); g.transform(m11, m21, m12, m22, tx, ty); g.drawImage(sf.tela, 0, 0); g.restore();
+                });
+                // la fascia delle prove che si proiettano sulla sezione
+                const fascia = sezioniTracciateStato.fascia || 0;
+                if (fascia > 0 && fascia * k < h / 2 - 3) {
+                    g.save(); g.setLineDash([7, 5]); g.lineWidth = 1.3; g.strokeStyle = 'rgba(255,255,255,0.85)';
+                    [-1, 1].forEach(sg => { g.beginPath(); g.moveTo(xa, yc + sg * fascia * k); g.lineTo(xb, yc + sg * fascia * k); g.stroke(); });
+                    g.restore();
+                }
                 g.lineCap = 'round';
-                g.strokeStyle = '#000'; g.lineWidth = 6; g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); g.stroke();
-                g.strokeStyle = '#dc2626'; g.lineWidth = 3.5; g.beginPath(); g.moveTo(...pa); g.lineTo(...pb); g.stroke();
-                const scritta = (s, px, py, size, colore) => { g.font = `800 ${size}px Arial, sans-serif`; g.textAlign = 'center'; g.lineWidth = 3; g.strokeStyle = '#000'; g.strokeText(s, px, py); g.fillStyle = colore; g.fillText(s, px, py); };
+                g.strokeStyle = '#000'; g.lineWidth = 6; g.beginPath(); g.moveTo(xa, yc); g.lineTo(xb, yc); g.stroke();
+                g.strokeStyle = '#dc2626'; g.lineWidth = 3.5; g.beginPath(); g.moveTo(xa, yc); g.lineTo(xb, yc); g.stroke();
+                const scritta = (s, px, py, size, colore, al) => { g.font = `800 ${size}px Arial, sans-serif`; g.textAlign = al || 'center'; g.lineWidth = 3; g.strokeStyle = '#000'; g.strokeText(s, px, py); g.fillStyle = colore; g.fillText(s, px, py); };
                 const nella = new Set(ds.prove.map(q => q.p.s.id));
                 d.prove.forEach(p => {
-                    const gg = d.geo(p.x, p.y), [u, v] = sf.uv(gg.lat, gg.lng), [px, py] = S(u, v), dentro = nella.has(p.s.id);
-                    if (px < x || py < y || px > x + w || py > y + h) return;
-                    g.beginPath(); g.arc(px, py, dentro ? 5 : 4, 0, Math.PI * 2); g.fillStyle = dentro ? '#facc15' : '#ffffff'; g.fill(); g.lineWidth = 1.4; g.strokeStyle = '#000'; g.stroke();
-                    g.textAlign = 'left'; g.font = '700 11px Arial, sans-serif'; g.lineWidth = 2.5; g.strokeStyle = '#000'; g.strokeText(p.s.header.provaNr || '?', px + 6, py - 6); g.fillStyle = dentro ? '#facc15' : '#fff'; g.fillText(p.s.header.provaNr || '?', px + 6, py - 6);
+                    let [px, py] = S(p.x, p.y);
+                    const dentro = nella.has(p.s.id), nr = p.s.header.provaNr || '?';
+                    if (px < x || px > x + w) return;
+                    // una prova della sezione più lontana di quanto è alta la pianta: sul bordo, con la freccia verso dov'è
+                    const fuori = py < y + 8 ? -1 : py > y + h - 8 ? 1 : 0;
+                    if (fuori && !dentro) return;
+                    if (fuori) {
+                        py = fuori < 0 ? y + 9 : y + h - 9;
+                        g.beginPath(); g.moveTo(px, py + fuori * 7); g.lineTo(px - 6, py - fuori * 3); g.lineTo(px + 6, py - fuori * 3); g.closePath(); g.fillStyle = '#facc15'; g.fill(); g.lineWidth = 1.2; g.strokeStyle = '#000'; g.stroke();
+                    } else { g.beginPath(); g.arc(px, py, dentro ? 5 : 4, 0, Math.PI * 2); g.fillStyle = dentro ? '#facc15' : '#ffffff'; g.fill(); g.lineWidth = 1.4; g.strokeStyle = '#000'; g.stroke(); }
+                    const ty = fuori > 0 ? py - 4 : fuori < 0 ? py + 12 : py - 6;
+                    g.textAlign = 'left'; g.font = '700 11px Arial, sans-serif'; g.lineWidth = 2.5; g.strokeStyle = '#000'; g.strokeText(nr, px + 8, ty); g.fillStyle = dentro ? '#facc15' : '#fff'; g.fillText(nr, px + 8, ty);
                 });
-                const ux = (pb[0] - pa[0]) / (Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1), uy = (pb[1] - pa[1]) / (Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1);
                 const [e1, e2] = estremiTraccia(t.nome);
-                scritta(e1, pa[0] - ux * 20, pa[1] - uy * 20 + 8, 22, '#fff'); scritta(e2, pb[0] + ux * 20, pb[1] + uy * 20 + 8, 22, '#fff');
-                // la freccia del Nord, in alto a destra (si spegne: «Nord sulla pianta»)
-                const nx = x + w - 34, ny = y + 46;
+                g.beginPath(); g.arc(xa, yc, 4, 0, Math.PI * 2); g.arc(xb, yc, 4, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+                scritta(e1, xa, yc - 12, 18, '#fff'); scritta(e2, xb, yc - 12, 18, '#fff');
+                // la freccia del Nord, girata come la mappa, in alto a destra (si spegne: «Nord sulla pianta»)
                 if (conNord !== false) {
-                g.beginPath(); g.moveTo(nx, ny - 26); g.lineTo(nx - 10, ny + 6); g.lineTo(nx, ny); g.closePath(); g.fillStyle = '#111827'; g.fill();
-                g.beginPath(); g.moveTo(nx, ny - 26); g.lineTo(nx + 10, ny + 6); g.lineTo(nx, ny); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 1; g.strokeStyle = '#111827'; g.stroke();
-                scritta('N', nx, ny - 32, 15, '#fff');
+                    const [n0x, n0y] = S(a[0], a[1]), [n1x, n1y] = S(a[0], a[1] + 1), ang = Math.atan2(n1x - n0x, -(n1y - n0y));
+                    const nx = x + w - 48, ny = y + Math.min(h / 2, 44);
+                    g.save(); g.translate(nx, ny); g.rotate(ang);
+                    g.beginPath(); g.moveTo(0, -18); g.lineTo(-8, 10); g.lineTo(0, 5); g.closePath(); g.fillStyle = '#111827'; g.fill();
+                    g.beginPath(); g.moveTo(0, -18); g.lineTo(8, 10); g.lineTo(0, 5); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 1; g.strokeStyle = '#111827'; g.stroke();
+                    g.restore();
+                    scritta('N', nx + Math.sin(ang) * 29, ny - Math.cos(ang) * 29 + 5, 14, '#fff');
                 }
-                if (sf.attribuzione) { g.font = '10px Arial, sans-serif'; g.textAlign = 'right'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(sf.attribuzione, x + w - 6, y + h - 6); g.fillStyle = '#fff'; g.fillText(sf.attribuzione, x + w - 6, y + h - 6); }
+                if (sfondi.length) { const at = sfondi[sfondi.length - 1].attribuzione; if (at) { g.font = '10px Arial, sans-serif'; g.textAlign = 'right'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(at, x + w - 6, y + h - 6); g.fillStyle = '#fff'; g.fillText(at, x + w - 6, y + h - 6); } }
                 g.restore();
                 g.strokeStyle = 'rgba(100,116,139,0.6)'; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
             }
@@ -418,7 +483,7 @@
             // ---- LA FINESTRA DELLE TAVOLE ----
             // Lo stato: le tavole, quali si esportano, quale si vede, le regolazioni di ciascuna (ricordate
             // nel progetto, così esportando di nuovo l'inquadratura resta quella scelta) e le opzioni.
-            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, posizioni: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
+            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, posizioni: {}, pianta: 'sotto', piantaZoom: 1, piantaAltezza: 0, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
             const T3 = id => document.getElementById(id);
             // Il foglio (A4 o A3, orizzontale o verticale) in punti PDF, e la figura in pixel della scena:
             // sempre 1,78 pixel per punto, così una scritta è grande uguale su ogni foglio (su un A3 la
@@ -444,7 +509,7 @@
                 const { W, H } = misureTavola3d(v), basemap = T3('tavole3dBasemap').checked;
                 return Object.assign({
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
-                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, scritte: tavole3d.scritte,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, pianta: tavole3d.pianta, piantaZoom: tavole3d.piantaZoom || 1, piantaAltezza: tavole3d.piantaAltezza || 0, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, opacitaFoto: Number(T3('tavole3dOpacitaFoto').value) / 100, scritte: tavole3d.scritte,
                     elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
                     ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
@@ -512,9 +577,19 @@
                 sel.disabled = !T3('tavole3dBasemap').checked;
                 T3('tavole3dNordTerreno').checked = vista3d.livelli.nordTerreno !== false;
                 T3('tavole3dFantasma').checked = vista3d.livelli.fantasma !== false;
+                T3('tavole3dFotoSopra').checked = !!vista3d.livelli.fotoSopra;
+                T3('tavole3dSpigoli').checked = vista3d.livelli.spigoli !== false;
+                T3('tavole3dMesh').checked = false;
+                T3('tavole3dTagliaMappa').checked = !!vista3d.livelli.tagliaMappa;
+                T3('tavole3dOpacitaFoto').value = Math.round((mem.opacitaFoto || vista3d.opacitaFoto || 0.5) * 100);
+                T3('tavole3dOpacitaFotoVal').textContent = T3('tavole3dOpacitaFoto').value + '%';
                 tavole3d.posizioni = mem.posizioni || {};
+                tavole3d.pianta = mem.pianta || 'sotto';
+                tavole3d.piantaZoom = mem.piantaZoom || 1; tavole3d.piantaAltezza = mem.piantaAltezza || 0;
+                scriviRegolePianta3d();
+                T3('tavole3dPiantaPos').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pianta === tavole3d.pianta)));
                 const el = mem.elementi || {};
-                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
+                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa'], ['tavole3dSpigoli', 'spigoli'], ['tavole3dMesh', 'mesh']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
@@ -534,7 +609,10 @@
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
                 mem.posizioni = tavole3d.posizioni;
                 mem.ordine = tavole3d.voci.map(v => v.id);
-                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked };
+                mem.pianta = tavole3d.pianta;
+                mem.piantaZoom = tavole3d.piantaZoom || 1; mem.piantaAltezza = tavole3d.piantaAltezza || 0;
+                mem.opacitaFoto = Number(T3('tavole3dOpacitaFoto').value) / 100;
+                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -555,6 +633,7 @@
             function renderProveTavola3d(v) {
                 const box = T3('tavole3dProveBox'), t = v && v.tipo === 'sez2d' && tracceDelProgetto().find(x => x.id === v.traccia);
                 box.hidden = !t || !datiVista3dCorrenti;
+                T3('tavole3dPiantaBox').hidden = box.hidden;
                 if (box.hidden) return;
                 const ds = datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), esc = escapeHtmlDidascalia;
                 if (document.activeElement !== T3('tavole3dFascia')) T3('tavole3dFascia').value = sezioniTracciateStato.fascia;
@@ -676,16 +755,41 @@
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
-                    let svg = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), Math.round(misureTavola3d(v).W / tavole3d.scritte)).svg;
+                    const sez = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), Math.round(misureTavola3d(v).W / tavole3d.scritte));
+                    let svg = sez.svg;
                     if (scuro) svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
-                    // grande quanto lo spazio della figura nel foglio, con la sua proporzione
-                    const box = img.parentElement, misura = () => { const k = Math.min((box.clientWidth || 800) / (img.naturalWidth || 1), (box.clientHeight || 500) / (img.naturalHeight || 1)); img.style.width = Math.round(img.naturalWidth * k) + 'px'; img.style.height = Math.round(img.naturalHeight * k) + 'px'; };
+                    // la pianta dal satellite (come nel PDF: sotto, sopra o niente), con l'immagine a schermo
+                    const pos = tavole3d.pianta, pianta = T3('tavole3dPianta');
+                    const sfP = T3('tavole3dBasemap').checked && pos !== 'no' ? sfondoPerScena(d) : null, sfPE = sfP ? sfondoEstesoAnteprima3d() : null;
+                    const box = img.parentElement, ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia);
+                    pianta.hidden = !(sfP && sfP.uv);
+                    box.classList.toggle('con-pianta', !pianta.hidden);
+                    box.classList.toggle('pianta-sopra', pos === 'sopra');
+                    // grande quanto lo spazio della figura nel foglio, con la sua proporzione (sezione + pianta)
+                    const misura = () => {
+                        const W0 = img.naturalWidth || 1, Hs = img.naturalHeight || 1, asse = { xa: sez.x0 * W0 / sez.W, xb: sez.x1 * W0 / sez.W }, hP = pianta.hidden ? 0 : altezzaPiantaSezione(d, t, asse, W0, tavole3d.piantaAltezza), gap = pianta.hidden ? 0 : 12;
+                        const k = Math.min((box.clientWidth || 800) / W0, (box.clientHeight || 500) / (Hs + gap + hP));
+                        img.style.width = Math.round(W0 * k) + 'px'; img.style.height = Math.round(Hs * k) + 'px';
+                        if (pianta.hidden) return;
+                        const dpr = window.devicePixelRatio || 1;
+                        pianta.width = Math.round(W0 * k * dpr); pianta.height = Math.round(hP * k * dpr);
+                        pianta.style.width = Math.round(W0 * k) + 'px'; pianta.style.height = Math.round(hP * k) + 'px';
+                        pianta.style.margin = pos === 'sopra' ? `0 0 ${Math.round(gap * k)}px` : `${Math.round(gap * k)}px 0 0`;
+                        const g = pianta.getContext && pianta.getContext('2d');
+                        if (!g) return;
+                        g.setTransform(k * dpr, 0, 0, k * dpr, 0, 0);
+                        g.fillStyle = scuro ? '#0f172a' : '#ffffff'; g.fillRect(0, 0, W0, hP);
+                        disegnaPiantaTraccia3d(g, d, t, ds, [sfPE, sfP], 0, 0, W0, hP, T3('tavole3dNordPianta').checked, asse, tavole3d.piantaZoom);
+                    };
                     img.onload = misura;
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                     if (img.complete && img.naturalWidth) misura();
+                    // le tessere arrivano a pezzi: si ridisegna finché non ci sono tutte
+                    clearTimeout(tavole3d.attesa);
+                    if ([sfP, sfPE].some(x => x && x.caricate + x.errori < x.totali)) tavole3d.attesa = setTimeout(() => mostraTavola3d(), 600);
                     return;
                 }
-                tela.hidden = false; img.hidden = true;
+                tela.hidden = false; img.hidden = true; T3('tavole3dPianta').hidden = true; img.parentElement.classList.remove('con-pianta', 'pianta-sopra');
                 const opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
                 let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
@@ -852,7 +956,9 @@
                 if (id !== 'wms') { salvaSceltaSfondo3d({ id }); riempiSceltaSfondo3d(); }
                 aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
-            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta', 'tavole3dFotoSopra', 'tavole3dTagliaMappa', 'tavole3dSpigoli', 'tavole3dMesh'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            T3('tavole3dOpacitaFoto').addEventListener('input', (e) => { T3('tavole3dOpacitaFotoVal').textContent = e.target.value + '%'; salvaMemoriaTavole3d(); ridisegnaTavola3d(); });
+            T3('tavole3dOpacitaFoto').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dRiposiziona').addEventListener('click', () => {
                 tavole3d.posizioni = {};
                 Object.values(tavole3d.regola).forEach(r => { delete r.nordTerreno; });
@@ -860,6 +966,30 @@
             });
             T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
+            // LA PIANTA DELLA SEZIONE 2D: lo zoom della foto dentro la casella e l'altezza della casella
+            // (0 = automatica, quanto serve per le prove); anche con la rotella sulla pianta dell'anteprima.
+            function scriviRegolePianta3d() {
+                T3('tavole3dPiantaZoom').value = Math.round((tavole3d.piantaZoom || 1) * 100);
+                T3('tavole3dPiantaZoomVal').textContent = Math.round((tavole3d.piantaZoom || 1) * 100) + '%';
+                T3('tavole3dPiantaAltezza').value = Math.round((tavole3d.piantaAltezza || 0) * 100);
+                T3('tavole3dPiantaAltezzaVal').textContent = tavole3d.piantaAltezza ? Math.round(tavole3d.piantaAltezza * 100) + '%' : 'automatica';
+            }
+            const cambiaPianta3d = () => { scriviRegolePianta3d(); salvaMemoriaTavole3d(); mostraTavola3d(); };
+            T3('tavole3dPiantaZoom').addEventListener('input', (e) => { tavole3d.piantaZoom = Number(e.target.value) / 100; cambiaPianta3d(); });
+            T3('tavole3dPiantaAltezza').addEventListener('input', (e) => { const v = Number(e.target.value); tavole3d.piantaAltezza = v < 10 ? 0 : v / 100; cambiaPianta3d(); });
+            T3('tavole3dPiantaZoomReset').addEventListener('click', () => { tavole3d.piantaZoom = 1; tavole3d.piantaAltezza = 0; cambiaPianta3d(); renderElencoTavole3d(); });
+            T3('tavole3dPianta').addEventListener('wheel', (e) => {
+                e.preventDefault();
+                tavole3d.piantaZoom = Math.max(0.5, Math.min(6, (tavole3d.piantaZoom || 1) * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+                cambiaPianta3d();
+            }, { passive: false });
+            T3('tavole3dPiantaPos').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-pianta]');
+                if (!b) return;
+                T3('tavole3dPiantaPos').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+                tavole3d.pianta = b.dataset.pianta;
+                salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d();
+            });
             const dopoProveTavola3d = () => {
                 saveState(); mostraTavola3d(); aggiornaMiniaturaScelta3d();
                 if (sezioniTracciateStato.vista) renderVistaSezioneTracciata();

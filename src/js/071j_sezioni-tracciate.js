@@ -271,10 +271,12 @@
                 // Dentro l'involucro delle prove (antiorario): tutti i lati lasciano il punto a sinistra,
                 // con un centimetro di tolleranza (una traccia da prova a prova corre sul bordo).
                 const contorno = so && involucroModello(so);
-                const dentro = (x, y) => so && contorno.every((p, i) => {
-                    const q = contorno[(i + 1) % contorno.length];
-                    return ((q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0])) / (Math.hypot(q[0] - p[0], q[1] - p[1]) || 1) >= -0.01;
+                // (anche un perimetro non convesso: dentro, o sul bordo entro un centimetro)
+                const sulBordo = (x, y) => contorno.some((p, i) => {
+                    const q = contorno[(i + 1) % contorno.length], dx = q[0] - p[0], dy = q[1] - p[1], t = Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / (dx * dx + dy * dy || 1)));
+                    return Math.hypot(x - p[0] - dx * t, y - p[1] - dy * t) < 0.01;
                 });
+                const dentro = (x, y) => so && (dentroPoligono(contorno, x, y) || sulBordo(x, y));
                 const N = 160, campioni = [];
                 for (let i = 0; i <= N; i++) {
                     const s = L * i / N, x = a[0] + ux * s, y = a[1] + uy * s;
@@ -347,9 +349,28 @@
                         const A = ds.prove[i], B = ds.prove[i + 1], sA = sx(A), sB = sx(B);
                         if (sB - sA < 0.5) continue;
                         const passi = Math.max(1, Math.min(24, Math.round((sB - sA) / 4)));
-                        A.p.occ.forEach((fa, k) => {
-                            const fb = B.p.occ.get(k);
-                            if (!fb) return;
+                        // Le coppie da collegare: lo stesso strato nelle due prove; uno strato che c'è da una
+                        // parte sola si chiude a spessore zero sull'altra (un cuneo col suo colore, niente
+                        // triangolo bianco), alla profondità dove l'altra prova passa dallo strato sopra a
+                        // quello sotto.
+                        const kA = [...A.p.occ.keys()], kB = [...B.p.occ.keys()], coppie = [];
+                        const chiusura = (chiavi, i, occAltra) => {
+                            for (let j = i + 1; j < chiavi.length; j++) { const f = occAltra.get(chiavi[j]); if (f) return f.da; }
+                            for (let j = i - 1; j >= 0; j--) { const f = occAltra.get(chiavi[j]); if (f) return f.a; }
+                            return null;
+                        };
+                        kA.forEach((k, i) => {
+                            const fa = A.p.occ.get(k), fb = B.p.occ.get(k);
+                            if (fb) { coppie.push([fa, fb, fa]); return; }
+                            const z = chiusura(kA, i, B.p.occ);
+                            if (z !== null) coppie.push([fa, { da: z, a: z }, fa]);
+                        });
+                        kB.forEach((k, i) => {
+                            if (A.p.occ.has(k)) return;
+                            const fb = B.p.occ.get(k), z = chiusura(kB, i, A.p.occ);
+                            if (z !== null) coppie.push([{ da: z, a: z }, fb, fb]);
+                        });
+                        coppie.forEach(([fa, fb, f]) => {
                             const su = [], giu = [];
                             for (let m = 0; m <= passi; m++) {
                                 const t = m / passi, s2 = sA + (sB - sA) * t;
@@ -357,7 +378,7 @@
                                 su.push([X(s2), Y(z - (fa.da + (fb.da - fa.da) * t))]);
                                 giu.push([X(s2), Y(z - (fa.a + (fb.a - fa.a) * t))]);
                             }
-                            corpo += `<polygon points="${su.concat(giu.slice().reverse()).map(q => n(q[0]) + ',' + n(q[1])).join(' ')}" fill="${fa.colore}" fill-opacity="0.75" stroke="none"><title>${esc(fa.nome)}</title></polygon>`;
+                            corpo += `<polygon points="${su.concat(giu.slice().reverse()).map(q => n(q[0]) + ',' + n(q[1])).join(' ')}" fill="${f.colore}" fill-opacity="0.75" stroke="none"><title>${esc(f.nome)}</title></polygon>`;
                             if (fa.da > 0 || fb.da > 0) linee.push(su);
                             linee.push(giu);
                         });
@@ -402,7 +423,7 @@
                     + (solido ? ' · strati interpolati tra le prove, solo dentro il loro perimetro' : ds.prove.length > 1 ? ' · pannelli di correlazione tra le prove vicine' : ' · per i pannelli servono almeno due prove vicine alla traccia');
                 legenda += `<text x="${sx0}" y="${n(y)}" font-size="10" fill="#475569">${esc(nota)}</text>`;
                 const H = Math.round(y + 12);
-                return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, sans-serif" class="sezione-tracciata">${corpo}${assi}${estremi}${legenda}</svg>`, ex, W, H };
+                return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, sans-serif" class="sezione-tracciata">${corpo}${assi}${estremi}${legenda}</svg>`, ex, W, H, x0: sx0, x1: sx0 + pw };
             }
 
             // ---- La scheda «Sezioni» ----
