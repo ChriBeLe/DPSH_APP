@@ -561,22 +561,25 @@
                         return distTaglio(x, y) < 0 && pieno.every((A, i) => { const B = pieno[(i + 1) % pieno.length]; return (B[0] - A[0]) * (y - A[1]) - (B[1] - A[1]) * (x - A[0]) >= -1e-6; });
                     };
                     // «Ritaglia anche la mappa»: col taglio verticale il terreno (e la sua immagine) dalla parte
-                    // tolta non c'è più, la mappa si ferma sul piano del taglio come il modello.
-                    const tagliaMappa = L.tagliaMappa && distTaglio;
-                    const mappaTagliata = (pp, zDi) => {
-                        if (!tagliaMappa) return pp;
-                        if (pp.every(q => distTaglio(q[0], q[1]) >= -1e-9)) return pp;
-                        return ritagliaPoligono(pp.map(q => [q[0], q[1]]), q => distTaglio(q[0], q[1])).map(([x, y]) => [x, y, zDi(x, y)]);
+                    // tolta resta, ma quasi trasparente (un quarto): la mappa «finisce» sul piano del taglio
+                    // come il modello, e si vede ancora che cosa è stato tolto.
+                    const tagliaMappa = L.tagliaMappa && distTaglio, TOLTO_MAPPA = 0.25;
+                    const partiMappa = (pp, zDi) => {
+                        if (!tagliaMappa || pp.every(q => distTaglio(q[0], q[1]) >= -1e-9)) return [{ pp, tolto: false }];
+                        if (pp.every(q => distTaglio(q[0], q[1]) <= 1e-9)) return [{ pp, tolto: true }];
+                        const piano = pp.map(q => [q[0], q[1]]), a3 = pts => pts.map(([x, y]) => [x, y, zDi(x, y)]);
+                        return [{ pp: a3(ritagliaPoligono(piano, q => distTaglio(q[0], q[1]))), tolto: false }, { pp: a3(ritagliaPoligono(piano, q => -distTaglio(q[0], q[1]))), tolto: true }].filter(x => x.pp.length >= 3);
                     };
                     const terreno = (pp0, fill) => {
                         const zMedia = pp0.reduce((a, q) => a + q[2], 0) / pp0.length;
-                        const pp = mappaTagliata(pp0, (x, y) => { const z = d.zSuolo(x, y); return Number.isFinite(z) ? z : zMedia; });
-                        if (pp.length < 3) return;
+                        partiMappa(pp0, (x, y) => { const z = d.zSuolo(x, y); return Number.isFinite(z) ? z : zMedia; }).forEach(({ pp, tolto }) => terrenoPezzo(pp, fill, tolto ? opacita * TOLTO_MAPPA : opacita, tolto));
+                    };
+                    const terrenoPezzo = (pp, fill, opacita, tolto) => {
                         const scavo = nelloScavo(pp);
-                        if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia', scavo }); return; }
+                        if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia', scavo: scavo || tolto }); return; }
                         for (let n = 1; n + 1 < pp.length; n++) {
                             const tri = [pp[0], pp[n], pp[n + 1]], sp = tri.map(q => P(...q));
-                            pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia', scavo });
+                            pezzi.push({ prof: sottoTutto + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(q => [q[0], q[1]]), uv: tri.map(q => uvDi(q[0], q[1])), sfondo: sf.tela, fill, fo: opacita, cls: 'vista3d-faccia', scavo: scavo || tolto });
                         }
                     };
                     // Il buco del corpo nel terreno (col taglio verticale solo la parte che resta: dove il
@@ -622,13 +625,14 @@
                         const uvE = (x, y) => { const gg = d.geo(x, y); return sfE.uv(gg.lat, gg.lng); };
                         for (let i = -ax; i < m + ax; i++) for (let j = -ay; j < m + ay; j++) {
                             if (i >= 0 && i < m && j >= 0 && j < m) continue;
-                            const q = mappaTagliata([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => { const x = x0 + u * gx, y = y0 + v * gy; return [x, y, zBordo(x, y)]; }), zBordo);
-                            if (q.length < 3) continue;
-                            if (sfE) q.slice(1, -1).map((w, n) => [q[0], w, q[n + 2]]).forEach(tri => {
-                                const sp = tri.map(w => P(...w));
-                                pezzi.push({ prof: sottoTutto + 5e6 + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(w => [w[0], w[1]]), uv: tri.map(w => uvE(w[0], w[1])), sfondo: sfE.tela, fill: colore((q[0][2] + q[2][2]) / 2, 0.9), fo: opacita, cls: 'vista3d-faccia' });
+                            partiMappa([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => { const x = x0 + u * gx, y = y0 + v * gy; return [x, y, zBordo(x, y)]; }), zBordo).forEach(({ pp: q, tolto }) => {
+                                const fo = tolto ? opacita * TOLTO_MAPPA : opacita, fill = colore((q[0][2] + q[q.length - 1][2]) / 2, 0.9);
+                                if (sfE) q.slice(1, -1).map((w, n) => [q[0], w, q[n + 2]]).forEach(tri => {
+                                    const sp = tri.map(w => P(...w));
+                                    pezzi.push({ prof: sottoTutto + 5e6 + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(w => [w[0], w[1]]), uv: tri.map(w => uvE(w[0], w[1])), sfondo: sfE.tela, fill, fo, cls: 'vista3d-faccia', scavo: tolto });
+                                });
+                                else { const sp = q.map(w => P(...w)); pezzi.push({ prof: sottoTutto + 5e6 + sp.reduce((a, w) => a + w[2], 0) / sp.length, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo, stroke: fill, sw: 0.4, cls: 'vista3d-faccia', scavo: tolto }); }
                             });
-                            else { const sp = q.map(w => P(...w)), fill = colore((q[0][2] + q[2][2]) / 2, 0.9); pezzi.push({ prof: sottoTutto + 5e6 + sp.reduce((a, w) => a + w[2], 0) / sp.length, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); }
                         }
                     }
                 }

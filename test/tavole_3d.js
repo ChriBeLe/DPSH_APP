@@ -125,12 +125,11 @@ const $ = (app, id) => app.d.getElementById(id);
   console.log('--- Ritagliare la mappa, la freccia che segue la vista ---');
   const rit = app.E(`(() => {
     const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d');
-    const sc = (tm) => scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm });
-    const tolti = sc0 => { const tg = sc0.vista; return sc0.tutte.filter(f => f.cls === 'vista3d-faccia').length; };
-    const a = sc(false), b = sc(true);
-    return { senza: tolti(a), con: tolti(b) };
+    const facce = tm => scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm }).tutte.filter(f => f.cls === 'vista3d-faccia');
+    const a = facce(false), b = facce(true), fo = [...new Set(b.map(f => +f.fo.toFixed(4)))].sort();
+    return { senza: a.length, con: b.length, tolti: b.filter(f => f.scavo).length, fo, foSenza: [...new Set(a.map(f => +f.fo.toFixed(4)))] };
   })()`);
-  t(`«Ritaglia anche la mappa»: dalla parte tolta il terreno non c'è più (${rit.senza} → ${rit.con} pezzi di terreno)`, rit.con < rit.senza * 0.8 && rit.con > 0);
+  t(`«Ritaglia anche la mappa»: la parte tolta resta ma molto più trasparente (opacità ${rit.fo.join(' e ')}, prima ${rit.foSenza.join()})`, rit.fo.length === 2 && Math.abs(rit.fo[0] / rit.fo[1] - 0.25) < 1e-6 && rit.tolti > 0 && rit.con >= rit.senza);
   t('(nel 3D è un tasto della scheda «Modello e tagli»)', !!app.d.querySelector('#tagliVista3d [data-livello="tagliaMappa"]'));
   const segue = app.E(`(() => {
     const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
