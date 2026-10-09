@@ -131,6 +131,17 @@ const $ = (app, id) => app.d.getElementById(id);
   })()`);
   t(`«Ritaglia anche la mappa»: la parte tolta resta ma molto più trasparente (opacità ${rit.fo.join(' e ')}, prima ${rit.foSenza.join()})`, rit.fo.length === 2 && Math.abs(rit.fo[0] / rit.fo[1] - 0.25) < 1e-6 && rit.tolti > 0 && rit.con >= rit.senza);
   t('(nel 3D è un tasto della scheda «Modello e tagli»)', !!app.d.querySelector('#tagliVista3d [data-livello="tagliaMappa"]'));
+  const blocco = app.E(`(() => {
+    const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d'), conta = tm => { const tt = scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm }).tutte; return { facce: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'poli').length, linee: tt.filter(f => f.cls === 'vista3d-blocco' && f.t === 'linea').length }; };
+    return { senza: conta(false), con: conta(true) };
+  })()`);
+  t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
+  const piantaGirata = app.E(`(() => {
+    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], sez = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 1400);
+    const asse = { xa: sez.x0, xb: sez.x1 }, h = altezzaPiantaSezione(d, t, asse, 1400);
+    return { x0: sez.x0, x1: sez.x1, W: sez.W, h };
+  })()`);
+  t(`la pianta della sezione 2D: girata con la traccia in orizzontale, A e A' sotto quelli della sezione (x ${piantaGirata.x0}–${piantaGirata.x1.toFixed(0)}), compatta (alta ${piantaGirata.h} su 1400)`, piantaGirata.x0 > 0 && piantaGirata.x1 < piantaGirata.W && piantaGirata.h >= 1400 * 0.125 && piantaGirata.h <= 1400 * 0.2);
   const segue = app.E(`(() => {
     const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
     [1, 2.5, 6].forEach(z => { const sc = scenaVoce3d(v, d, 1400, 860, { reg: { zoom: z }, legenda: false }), e = sc.elementi.nordTerreno; out.push(e ? { w: e.x1 - e.x0, h: e.y1 - e.y0, dentro: e.x0 >= 0 && e.x1 <= 1400 && e.y0 >= 0 && e.y1 <= 860 } : null); });

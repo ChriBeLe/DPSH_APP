@@ -423,7 +423,7 @@
                     + (solido ? ' · strati interpolati tra le prove, solo dentro il loro perimetro' : ds.prove.length > 1 ? ' · pannelli di correlazione tra le prove vicine' : ' · per i pannelli servono almeno due prove vicine alla traccia');
                 legenda += `<text x="${sx0}" y="${n(y)}" font-size="10" fill="#475569">${esc(nota)}</text>`;
                 const H = Math.round(y + 12);
-                return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, sans-serif" class="sezione-tracciata">${corpo}${assi}${estremi}${legenda}</svg>`, ex, W, H };
+                return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, sans-serif" class="sezione-tracciata">${corpo}${assi}${estremi}${legenda}</svg>`, ex, W, H, x0: sx0, x1: sx0 + pw };
             }
 
             // ---- La scheda «Sezioni» ----
