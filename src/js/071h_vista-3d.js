@@ -735,18 +735,19 @@
                         }
                     }
                     // LA MAPPA TAGLIATA COME UN BLOCCO: con «Ritaglia anche la mappa» il terreno ha uno spessore,
-                    // fino a un piano sotto (la quota più bassa meno il fondo del modello); sul piano del taglio
-                    // se ne vede la faccia, in luce come la sezione, tranne dove c'è la sezione del modello; le
-                    // pareti esterne del blocco (solo senza il terreno esteso), in ombra. Sotto al modello.
+                    // fino alla stessa base del modello (in ogni punto il terreno meno il fondo del modello);
+                    // sul piano del taglio se ne vede la faccia, piena e un po' spenta (è sottoterra), tranne
+                    // dove c'è la sezione del modello; le pareti esterne del blocco (solo senza il terreno
+                    // esteso), in ombra. Sotto al modello.
                     if (tagliaMappa && nodi.length) {
                         const tutti = nodi.flat().filter(n => isFinite(n[0]) && isFinite(n[1]));
                         let X0 = Math.min(...tutti.map(n => n[0])), X1 = Math.max(...tutti.map(n => n[0])), Y0 = Math.min(...tutti.map(n => n[1])), Y1 = Math.max(...tutti.map(n => n[1]));
                         const esteso = est && est.mezzo > 0;
                         if (esteso) { X0 = Math.min(X0, -est.mezzo); X1 = Math.max(X1, est.mezzo); Y0 = Math.min(Y0, -est.mezzo); Y1 = Math.max(Y1, est.mezzo); }
-                        const zB = d.zMin - (so ? so.fondo : Math.max(1, profMax)) * 1.05;
+                        const fondoB = so ? so.fondo : Math.max(1, profMax);
                         const zS = (x, y) => { const v = d.zSuolo(Math.min(X1, Math.max(X0, x)), Math.min(Y1, Math.max(Y0, y))); return Number.isFinite(v) ? v : zRif; };
                         const resto = ritagliaPoligono([[X0, Y0], [X1, Y0], [X1, Y1], [X0, Y1]], q => distTaglio(q[0], q[1]));
-                        const piede = so ? involucroModello(so) : null, vxB = sa * ce, vyB = ca * ce, COL_BLOCCO = '#cdbf9f';
+                        const piede = so ? involucroModello(so) : null, vxB = sa * ce, vyB = ca * ce, COL_BLOCCO = '#b3a68a';
                         const baseProf = so ? 5e8 : 0, linee = [];
                         resto.forEach((a, i) => {
                             const b = resto[(i + 1) % resto.length], dx = b[0] - a[0], dy = b[1] - a[1], lung = Math.hypot(dx, dy);
@@ -760,14 +761,14 @@
                                 if (prima) {
                                     const mx = (prima.x + x) / 2, my = (prima.y + y) / 2;
                                     if (!(sulTaglio && piede && dentroPoligono(piede, mx, my))) {
-                                        const pw = [[prima.x, prima.y, prima.z], [x, y, q.z], [x, y, zB], [prima.x, prima.y, zB]], sp = pw.map(w => P(...w)), fill = ombra(COL_BLOCCO, pw, sulTaglio ? 'taglio' : 'ombra');
-                                        pezzi.push({ prof: baseProf + sp.reduce((s2, w) => s2 + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: 0.92, stroke: fill, sw: 0.5, cls: 'vista3d-blocco' });
-                                        linee.push([[prima.x, prima.y, zB], [x, y, zB]]);
+                                        const pw = [[prima.x, prima.y, prima.z], [x, y, q.z], [x, y, q.z - fondoB], [prima.x, prima.y, prima.z - fondoB]], sp = pw.map(w => P(...w)), fill = ombra(COL_BLOCCO, pw, sulTaglio ? undefined : 'ombra');
+                                        pezzi.push({ prof: baseProf + sp.reduce((s2, w) => s2 + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: 1, stroke: fill, sw: 0.5, cls: 'vista3d-blocco' });
+                                        linee.push([[prima.x, prima.y, prima.z - fondoB], [x, y, q.z - fondoB]]);
                                     }
                                 }
                                 prima = q;
                             }
-                            [a, b].forEach(e => linee.push([[e[0], e[1], zS(e[0], e[1])], [e[0], e[1], zB]]));
+                            [a, b].forEach(e => linee.push([[e[0], e[1], zS(e[0], e[1])], [e[0], e[1], zS(e[0], e[1]) - fondoB]]));
                         });
                         linee.forEach(([u, w]) => { const p1 = P(...u), p2 = P(...w); pezzi.push({ prof: baseProf - 1 + Math.min(p1[2], p2[2]), t: 'linea', x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: '#57534e', sw: 1, cls: 'vista3d-blocco' }); });
                     }
