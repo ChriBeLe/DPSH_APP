@@ -654,8 +654,7 @@
                 T3('tavole3dTitolo').disabled = titolo === null;
                 T3('tavole3dTitolo').placeholder = v.titolo;
                 if (document.activeElement !== T3('tavole3dTitolo')) T3('tavole3dTitolo').value = titolo === null ? '' : titolo;
-                const proj = state.projects[state.currentProjectId] || {};
-                T3('tavole3dPiede').textContent = proj.name || '';
+                T3('tavole3dPiede').textContent = ''; // nel piede solo il numero di pagina, niente nome del progetto
                 const esportate = tavole3d.voci.filter(x => !tavole3d.escluse.has(x.id)), pos = esportate.indexOf(v);
                 T3('tavole3dNumero').textContent = pos >= 0 ? `${pos + 1} / ${esportate.length}` : 'non esportata';
                 document.querySelectorAll('#tavole3dPagine .tavole-pag').forEach(el => el.classList.toggle('scelta', Number(el.dataset.tavola) === tavole3d.scelta));
@@ -736,7 +735,7 @@
                         }
                     }
                     if (formato === 'pdf') {
-                        const blob = pdfDaTavole3d(pagine, Object.assign(foglioTavole3d(), { sfondo: tavole3d.sfondo, titolo: `Tavole 3D — ${proj.name || ''}`, piede: [proj.name, proj.comune && proj.comune !== proj.name ? proj.comune : ''].filter(Boolean).join(' · ') }));
+                        const blob = pdfDaTavole3d(pagine, Object.assign(foglioTavole3d(), { sfondo: tavole3d.sfondo, titolo: `Tavole 3D — ${proj.name || ''}` }));
                         scaricaBlobFile(blob, `Tavole3D_${nomeFile}.pdf`);
                     } else if (file.length === 1) {
                         scaricaBlobFile(new Blob([file[0].bytes], { type: formato === 'png' ? 'image/png' : 'image/jpeg' }), `${nomeFile}_${file[0].name}`);

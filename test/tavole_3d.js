@@ -129,6 +129,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t('sfondo chiaro o scuro: il foglio dell\'anteprima cambia', $(app, 'tavole3dFoglio').classList.contains('scuro'));
   app.E(`document.getElementById('tavole3dBasemap').checked = true; document.getElementById('tavole3dFornitore').value = 'google-satellite'; document.getElementById('tavole3dFornitore').dispatchEvent(new Event('change'))`);
   t('con Google come mappa di base avvisa che nel file va Esri (Google non lo permette)', !$(app, 'tavole3dAvviso').hidden && /Esri/.test($(app, 'tavole3dAvviso').textContent) && app.E(`SOSTITUTI_ESPORTA_3D['google-satellite']`) === 'esri-satellite');
+  t('nel piede della pagina solo il numero, niente nome del progetto', $(app, 'tavole3dPiede').textContent === '' && /^\d+ \/ \d+$/.test($(app, 'tavole3dNumero').textContent)
+    && !/piede:/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071p_esporta-viste-3d.js'), 'utf8')));
   // Il titolo: automatico, si riscrive, si toglie; «così su tutte».
   clic(app, pagine()[0]);
   t('il titolo della pagina: quello automatico, scritto nel campo', $(app, 'tavole3dTitolo').value === voci[0] && $(app, 'tavole3dConTitolo').checked);
