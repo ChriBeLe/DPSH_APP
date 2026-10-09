@@ -904,7 +904,7 @@
                 if (!b) return;
                 const a = b.dataset.regola, grado = Math.PI / 180;
                 regolaTavola3d(r => {
-                    if (a === 'az-') r.dAz -= 15 * grado; else if (a === 'az+') r.dAz += 15 * grado;
+                    if (a === 'az-') r.dAz += 15 * grado; else if (a === 'az+') r.dAz -= 15 * grado; // come la bussola del 3D: antiorario, orario
                     else if (a === 'el+' || a === 'el-') {
                         const v = tavole3d.voci[tavole3d.scelta], el0 = r.vista ? vistaPronta3dTavola(r.vista).el : vistaBaseVoce3d(v, datiVista3dCorrenti).el;
                         r.dEl = Math.max(-el0, Math.min(EL_MAX_3D - el0, r.dEl + (a === 'el+' ? 5 : -5) * grado));
@@ -976,7 +976,7 @@
                     else {
                         // gira e inclina, ma mai sotto l'orizzonte né oltre il dritto in giù
                         const v = tavole3d.voci[tavole3d.scelta], el0 = r.vista ? vistaPronta3dTavola(r.vista).el : vistaBaseVoce3d(v, datiVista3dCorrenti).el;
-                        r.dAz -= dx * 0.008; r.dEl = Math.max(-el0, Math.min(EL_MAX_3D - el0, r.dEl + dy * 0.006));
+                        r.dAz += dx * 0.008; r.dEl = Math.max(-el0, Math.min(EL_MAX_3D - el0, r.dEl + dy * 0.006)); // come nel 3D: stessi versi
                     }
                 });
                 ridisegnaTavola3d(true);
