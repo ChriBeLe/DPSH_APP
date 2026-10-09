@@ -56,6 +56,39 @@ const scrivi = (app, el, v) => { el.value = v; el.dispatchEvent(new app.w.Event(
   scrivi(app, $(app, 'lblMargineTop'), '4');
   t('alzando il margine oltre l\'intestazione la nota sparisce', $(app, 'notaMargineIntestazione').hidden);
 
+
+  // «Distanza dal bordo» dell'intestazione, come «Intestazione: da bordo» di Word.
+  t('la distanza dal bordo di base è quella di prima: 0,30 cm', $(app, 'inputDistanzaIntestazione').value === '0,30');
+  scrivi(app, $(app, 'lblMargineTop'), '1,4');
+  clic(app, $(app, 'btnDistanzaIntestazioneWord'));
+  t('«Come in Word»: 1,25 cm', app.E('templateEditorState.margins.header') === 12.5 && $(app, 'inputDistanzaIntestazione').value === '1,25');
+  t('l\'intestazione comincia lì', /padding:12\.5mm 0 2mm/.test(app.E(`htmlIntestazioneNelMargine({ text: 'Studio' }, templateEditorState.margins)`)));
+  t('e la fascia ne tiene conto: 3 cm d\'intestazione + 1,25 + 0,2 = 4,45 cm', app.E(`margineConIntestazione(templateEditorState.margins, { heightMm: 30 }, true).top`) === 44.5
+    && /4,45 cm/.test($(app, 'notaMargineIntestazione').textContent));
+  scrivi(app, $(app, 'inputDistanzaIntestazione'), '0,8');
+  t('si scrive anche a mano', app.E('templateEditorState.margins.header') === 8);
+  clic(app, app.d.querySelector('[data-margini-preset="stretto"]'));
+  t('una preimpostazione dei margini non la cambia', app.E('templateEditorState.margins.header') === 8 && app.E('templateEditorState.margins.top') === 12.7);
+  t('un template senza la distanza resta com\'era (3 mm)', /padding:3mm 0 2mm/.test(app.E(`htmlIntestazioneNelMargine({ text: 'Studio' }, { top: 14, bottom: 14, left: 12, right: 12 })`)));
+  // Il foglio del report porta i margini del template, tutti e quattro: prima solo quello superiore,
+  // e nel report di progetto gli altri erano quelli predefiniti (1,4 / 1,2 cm) qualunque fosse il
+  // template — impaginato su una larghezza, stampato su un'altra.
+  {
+    const foglio = app.E(`buildPaginaRigheHtml(templateEditorState.pages[0], templateEditorState.ctx || computeEditorPreviewCtx(), 1, 1, true,
+      { top: 25, bottom: 20, left: 20, right: 20 }, '1', false, false, false)`);
+    t('il foglio del report ha i margini del template (2,5 · 2 · 2 · 2)', /class="dpsh-sheet"[^>]*padding:25mm 20mm 20mm 20mm/.test(foglio));
+    const unificato = await app.E(`costruisciPagineTemplateUnificato(templateEditorState.pages[0], templateEditorState.ctx || computeEditorPreviewCtx(),
+      { top: 25, bottom: 20, left: 20, right: 20 }, '1', true, false, false)`);
+    t('anche nel motore dell\'export', unificato.pagine.length > 0 && unificato.pagine.every(f => /padding:25mm 20mm 20mm 20mm; --margine-sotto:20mm/.test(f)));
+  }
+  app.E('salvaTemplateEditor()');
+  await attesa(30);
+  t('si salva col template', app.E('state.reportTemplates.tplMargini.margins.header') === 8 && app.E('state.reportTemplates.tplMargini.margins.top') === 12.7);
+  if (app.dialogo()) clic(app, app.dialogo().ok);
+  app.E(`apriTemplateEditor('tplMargini')`);
+  await attesa(30);
+  t('e riaprendo torna: 0,80 cm, Stretto acceso', $(app, 'inputDistanzaIntestazione').value === '0,80' && app.d.querySelector('[data-margini-preset="stretto"]').classList.contains('attivo'));
+
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log(app.errori.join('\n'));
   console.log(`\n${ok} ok, ${ko} KO`);

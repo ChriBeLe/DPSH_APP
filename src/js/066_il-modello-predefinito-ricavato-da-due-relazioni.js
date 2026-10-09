@@ -926,7 +926,17 @@
             // header.heightMm) più grande del margine, la fascia si allarga e il contenuto parte più
             // in basso — e l'impaginazione lo sa (margineConIntestazione), quindi niente tagli.
             // Una sola regola per export, miniature, editor e controlli di impaginazione.
-            const INTESTAZIONE_RESPIRO_MM = 5; // 3 mm sopra, 2 mm sotto l'intestazione
+            /** «INTESTAZIONE: DA BORDO», come in Word (Layout › Imposta pagina): la distanza tra il
+             * bordo superiore del foglio e l'intestazione. Sta nei margini del template
+             * (margins.header); senza, 3 mm, cioè com'era prima che si potesse scegliere — così i
+             * template già fatti non cambiano. Word di solito usa 1,25 cm. */
+            function distanzaIntestazioneMm(margins) {
+                const v = margins && Number(margins.header);
+                return isFinite(v) && v >= 0 ? v : 3;
+            }
+            /** Lo spazio della fascia oltre al contenuto dell'intestazione: la distanza dal bordo sopra,
+             * 2 mm sotto. */
+            function respiroIntestazioneMm(margins) { return distanzaIntestazioneMm(margins) + 2; }
 
             const INTESTAZIONE_MAX_NATURALE_MM = 28; // come prima: un logo non supera i 28 mm se non lo si chiede
 
@@ -983,7 +993,7 @@
             function margineConIntestazione(margins, header, headerEnabled) {
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                 const hMm = headerEnabled ? altezzaIntestazioneMm(header, mrg) : 0;
-                if (hMm) mrg.top = Math.max(mrg.top, hMm + INTESTAZIONE_RESPIRO_MM);
+                if (hMm) mrg.top = Math.max(mrg.top, hMm + respiroIntestazioneMm(mrg));
                 return mrg;
             }
 
@@ -994,8 +1004,8 @@
                 const hd = header || {};
                 if (!hd.imageDataUrl && !hd.text && !(extra && extra.anche_vuota)) return '';
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
-                const fascia = Math.max(mrg.top, altezzaIntestazioneMm(hd, mrg) + INTESTAZIONE_RESPIRO_MM);
-                return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:3mm 0 2mm; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+                const fascia = Math.max(mrg.top, altezzaIntestazioneMm(hd, mrg) + respiroIntestazioneMm(mrg));
+                return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:${distanzaIntestazioneMm(mrg)}mm 0 2mm; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
                         ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; display:block;"/>` : ''}
                         ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
                     </div>`;
@@ -1235,7 +1245,11 @@
                 // coerenza garantita tra miniatura editor ed export vero.
                 const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled);
                 const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '';
-                const stileSopra = mrgFoglio.top !== mrg.top ? ` padding-top:${mrgFoglio.top}mm;` : '';
+                // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
+                // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
+                // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un
+                // template con margini suoi era impaginato su una larghezza e stampato su un'altra.
+                const stileSopra = ` padding:${mrgFoglio.top}mm ${mrgFoglio.right}mm ${mrgFoglio.bottom}mm ${mrgFoglio.left}mm; --margine-sotto:${mrgFoglio.bottom}mm;`;
                 const { riservaFooterMm: paddingBottomMm, areaStampabileMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled);
                 const maxHeightMm = areaStampabileMm.toFixed(2);
                 const pageLabel = `Prova ${provaNr || '?'} — pagina ${pageIndex}/${totalPages}`;

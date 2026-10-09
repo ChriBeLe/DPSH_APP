@@ -1493,6 +1493,8 @@
                     if (range && document.activeElement !== range) range.value = String(mrg[side]);
                     if (lbl && document.activeElement !== lbl) lbl.value = cmMargine(mrg[side]);
                 });
+                const campoDistanza = document.getElementById('inputDistanzaIntestazione');
+                if (campoDistanza && document.activeElement !== campoDistanza) campoDistanza.value = cmMargine(distanzaIntestazioneMm(mrg));
                 const nota = document.getElementById('notaMargineIntestazione');
                 if (nota) {
                     const pagina = (templateEditorState.pages || [])[templateEditorState.activePageIdx || 0];

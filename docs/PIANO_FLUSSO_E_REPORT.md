@@ -327,9 +327,10 @@ valori di Word italiano. Per le decisioni L–Q valgono le proposte, da conferma
 | 09/10/2026 | B (in parte) | F2, F3, F4 e la X della procedura guidata che non chiudeva; dopo «Riconosci strati» il tasto «Dai un nome» (avvio di C) | `strati_vicoli_ciechi.js` |
 | 09/10/2026 | E (primo pezzo) | W1: intestazione nell'intestazione vera di Word (parte header, logo nelle sue relazioni, pagine senza intestazione con quella vuota); margine superiore vero. W2: compatibilità 15. W5: `docProps/core.xml` (titolo, lingua, date). Testo centrato in un riquadro stretto non più spostato a destra | `export_word.js` |
 | 09/10/2026 | D (primo pezzo) | W7: margini in cm con la virgola, nomi e preimpostazioni di Word (Normale, Stretto, Moderato, Largo), cursore fino a 6 cm. W8: la nota dice quanto margine usa davvero l'intestazione | `margini_come_word.js` |
+| 09/10/2026 | D (secondo pezzo) | «Distanza dal bordo» dell'intestazione (Word: «Intestazione: da bordo»), con «Come in Word (1,25 cm)»; senza, 3 mm come prima. Sta nei margini del template (`margins.header`), si salva con lui; nel Word diventa la distanza dell'intestazione | `margini_come_word.js` |
+| 09/10/2026 | **bug dei margini** | Nel report di progetto i fogli avevano i margini PREDEFINITI (1,4 / 1,2 cm) qualunque fosse il template: solo quello superiore veniva dal template. Il contenuto però era impaginato con i margini del template: larghezze diverse tra impaginazione e stampa. Ora ogni foglio porta i quattro margini del suo template, nel PDF e quindi nel Word | `margini_come_word.js` |
 
-**Da fare dopo, nell'ordine:** distanza dell'intestazione dal bordo (oggi 3 mm, in Word 1,25 cm)
-insieme all'intestazione unica per documento con testo formattato (D); una sezione di Word per
+**Da fare dopo, nell'ordine:** intestazione unica per documento con testo formattato (D); una sezione di Word per
 orientamento invece che per pagina, stili Titolo 1–3 e autore del documento (E); capitolo Tavole
 (F); parametri per progetto (G); percorso nel Progetto e scaletta (H).
 

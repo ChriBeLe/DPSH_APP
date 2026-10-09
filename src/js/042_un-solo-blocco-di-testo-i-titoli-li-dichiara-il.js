@@ -1113,7 +1113,7 @@
                     let valoreIniziale;
                     if (side === 'header') {
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.max(8, Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) - INTESTAZIONE_RESPIRO_MM) : 20);
+                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.max(8, Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) - respiroIntestazioneMm(templateEditorState.margins)) : 20);
                     } else {
                         const mrg = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                         valoreIniziale = mrg[side];
@@ -1123,7 +1123,7 @@
                     // motore la rifiuta il trascinamento deve continuare a funzionare invece di
                     // morire qui portandosi dietro tutto il resto del gesto.
                     try { handleEl.setPointerCapture(e.pointerId); } catch (err) { /* si tira avanti senza */ }
-                    mostraEtichettaManigliaBlocco(handleEl, `${Math.round(valoreIniziale)}mm`);
+                    mostraEtichettaManigliaBlocco(handleEl, `${cmMargine(valoreIniziale)} cm`);
                 });
                 handleEl.addEventListener('pointermove', (e) => {
                     const st = paginaMarginDragStato;
@@ -1136,16 +1136,16 @@
                     else if (side === 'left') nuovo = st.valoreIniziale + dxLocal;
                     else if (side === 'right') nuovo = st.valoreIniziale - dxLocal;
                     else nuovo = st.valoreIniziale + dyLocal; // header: solo verticale
-                    const max = side === 'header' ? 100 : 40;
+                    const max = side === 'header' ? 100 : 60;
                     const min = side === 'header' ? 8 : 0;
-                    nuovo = Math.round(Math.max(min, Math.min(max, nuovo)));
+                    nuovo = Math.round(Math.max(min, Math.min(max, nuovo)) * 2) / 2;
                     st.valoreCorrente = nuovo;
-                    mostraEtichettaManigliaBlocco(handleEl, `${nuovo}mm`);
+                    mostraEtichettaManigliaBlocco(handleEl, `${cmMargine(nuovo)} cm`);
                     if (side === 'header') {
                         // L'intestazione sta nel margine superiore: crescendo oltre il margine allarga
                         // la fascia e il contenuto scende (margineConIntestazione), come nell'export.
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        if (hz) hz.style.height = (nuovo + INTESTAZIONE_RESPIRO_MM) + 'mm';
+                        if (hz) hz.style.height = (nuovo + respiroIntestazioneMm(templateEditorState.margins)) + 'mm';
                         const frameH = document.getElementById('templateEditorPageFrame');
                         const pagH = templateEditorState.pages[templateEditorState.activePageIdx];
                         if (frameH && pagH) frameH.style.paddingTop = margineConIntestazione(templateEditorState.margins, Object.assign({}, pagH.header, { heightMm: nuovo }), true).top + 'mm';
@@ -1172,7 +1172,7 @@
                             frame.style.padding = `${mrgLive.top}mm ${mrgLive.right}mm ${mrgLive.bottom}mm ${mrgLive.left}mm`;
                             canvas.style.minHeight = `${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm`;
                             const hz = document.getElementById('templateEditorHeaderZone');
-                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + INTESTAZIONE_RESPIRO_MM) + 'mm'; }
+                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + respiroIntestazioneMm(base)) + 'mm'; }
                         }
                     }
                 });
@@ -1249,12 +1249,33 @@
             });
             document.querySelectorAll('[data-margini-preset]').forEach(b => b.addEventListener('click', () => {
                 salvaUndoSnapshotEditor();
-                templateEditorState.margins = Object.assign({}, MARGINI_WORD[b.dataset.marginiPreset]);
+                const distanza = (templateEditorState.margins || {}).header;
+                templateEditorState.margins = Object.assign({}, MARGINI_WORD[b.dataset.marginiPreset], distanza != null ? { header: distanza } : {});
                 sincronizzaControlliMarginiSidebar();
                 renderTemplateEditorCanvas();
                 renderManigliePaginaEditor();
                 triggerVibrate(12);
             }));
+            // «Distanza dal bordo» dell'intestazione (Word: «Intestazione: da bordo»), nei margini.
+            const impostaDistanzaIntestazione = (mm) => {
+                const attuale = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                if (Math.abs(mm - distanzaIntestazioneMm(attuale)) < 0.05) { sincronizzaControlliMarginiSidebar(); return; }
+                templateEditorState.margins = Object.assign(attuale, { header: mm });
+                sincronizzaControlliMarginiSidebar();
+                renderTemplateEditorCanvas();
+                renderManigliePaginaEditor();
+            };
+            const campoDistanza = document.getElementById('inputDistanzaIntestazione');
+            if (campoDistanza) {
+                campoDistanza.addEventListener('change', () => {
+                    const mm = mmDaCm(campoDistanza.value);
+                    if (mm === null) { sincronizzaControlliMarginiSidebar(); return; }
+                    impostaDistanzaIntestazione(mm);
+                });
+                campoDistanza.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); campoDistanza.blur(); } });
+            }
+            const btnDistanzaWord = document.getElementById('btnDistanzaIntestazioneWord');
+            if (btnDistanzaWord) btnDistanzaWord.addEventListener('click', () => impostaDistanzaIntestazione(12.5));
             const btnResetMarginiTemplate = document.getElementById('btnResetMarginiTemplate');
             if (btnResetMarginiTemplate) {
                 btnResetMarginiTemplate.addEventListener('click', () => {
