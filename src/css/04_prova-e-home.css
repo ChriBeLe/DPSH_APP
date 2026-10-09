@@ -880,4 +880,4 @@
         .tavole-opacita-foto input[type=range] { width: 110px !important; accent-color: var(--accent); }
         .tavole-foglio-fig.con-pianta { flex-direction: column; gap: 0; }
         .tavole-foglio-fig.con-pianta.pianta-sopra { flex-direction: column-reverse; }
-        .tavole-foglio-fig .tavole-pianta { display: block; }
+        .tavole-foglio-fig .tavole-pianta { display: block; cursor: grab; touch-action: none; }
