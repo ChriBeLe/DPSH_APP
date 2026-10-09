@@ -62,7 +62,9 @@
                             const b = xy[(i + 1) % xy.length];
                             for (let k = 0; k < 12; k++) bordo.push(alSuolo(a[0] + (b[0] - a[0]) * k / 12, a[1] + (b[1] - a[1]) * k / 12));
                         });
-                        if (st.opacita > 0) sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: st.riempimento || st.colore, fo: st.opacita, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
+                        // il perimetro del modello 3D, col corpo acceso: solo il contorno (il riempimento coprirebbe gli strati)
+                        const perimetro = vista3d.livelli.solido && (state.projects[state.currentProjectId] || {}).perimetroModello === x.id;
+                        if (st.opacita > 0 && !perimetro) sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: st.riempimento || st.colore, fo: st.opacita, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
                         const dash = trattoDash(st.tratto, 0.6);
                         bordo.forEach((q, i) => { const r = bordo[(i + 1) % bordo.length]; sopra.push({ t: 'linea', x1: q[0], y1: q[1], x2: r[0], y2: r[1], stroke: st.colore, sw: st.spessore, dash, cls: 'vista3d-disegno', disegno: x.id }); });
                         const c = d.daGeo(centroDisegno(x).lat, centroDisegno(x).lng);
@@ -84,11 +86,15 @@
                         const nome = await appPrompt('Nome', x.nome, { title: x.tipo === 'punto' ? 'Rinomina il punto' : 'Rinomina il poligono', okLabel: 'Rinomina' });
                         if (nome && nome.trim()) { x.nome = nome.trim(); ridisegna(); }
                     }],
+                    ...(x.tipo === 'poligono' ? [(state.projects[state.currentProjectId] || {}).perimetroModello === x.id
+                        ? ['Non usarlo più come perimetro del modello 3D', 'i-x', '', () => usaPerimetroModello(null)]
+                        : ['Usa come perimetro del modello 3D', 'i-layers', '', () => usaPerimetroModello(x.id)]] : []),
                     '-',
                     ['Elimina', 'i-trash', '', async () => {
                         if (!await appConfirmDelete(`Eliminare ${x.nome}?`)) return;
                         const proj = state.projects[state.currentProjectId];
                         proj.disegni = disegniDelProgetto().filter(y => y !== x);
+                        if (proj.perimetroModello === x.id) { delete proj.perimetroModello; renderPerimetroModello3d(); }
                         ridisegna();
                     }, true]
                 ];

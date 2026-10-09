@@ -271,10 +271,12 @@
                 // Dentro l'involucro delle prove (antiorario): tutti i lati lasciano il punto a sinistra,
                 // con un centimetro di tolleranza (una traccia da prova a prova corre sul bordo).
                 const contorno = so && involucroModello(so);
-                const dentro = (x, y) => so && contorno.every((p, i) => {
-                    const q = contorno[(i + 1) % contorno.length];
-                    return ((q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0])) / (Math.hypot(q[0] - p[0], q[1] - p[1]) || 1) >= -0.01;
+                // (anche un perimetro non convesso: dentro, o sul bordo entro un centimetro)
+                const sulBordo = (x, y) => contorno.some((p, i) => {
+                    const q = contorno[(i + 1) % contorno.length], dx = q[0] - p[0], dy = q[1] - p[1], t = Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / (dx * dx + dy * dy || 1)));
+                    return Math.hypot(x - p[0] - dx * t, y - p[1] - dy * t) < 0.01;
                 });
+                const dentro = (x, y) => so && (dentroPoligono(contorno, x, y) || sulBordo(x, y));
                 const N = 160, campioni = [];
                 for (let i = 0; i <= N; i++) {
                     const s = L * i / N, x = a[0] + ux * s, y = a[1] + uy * s;
