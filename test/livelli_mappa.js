@@ -45,6 +45,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t('«T» delle Prove: via i nomi di tutte, le colonne restano', nomi() === '' && svg().querySelectorAll('.vista3d-colonna').length > 0 && !riga('[data-etichette-gruppo="prove"]').classList.contains('attivo'));
   clic(app, riga('[data-etichette-gruppo="prove"]'));
   t('(ritoccato tornano)', nomi() === 'DPSH 1,DPSH 2,DPSH 3');
+  t('le distanze tra le prove di partenza sono spente; la spunta le accende', conta('.vista3d-distanza') === 0 && !riga('[data-livello="distanze"] input').checked);
+  clic(app, riga('[data-livello="distanze"] input'));
   const d0 = conta('.vista3d-distanza');
   clic(app, riga('[data-livello="misure"] .liv-etichette'));
   t(`«T» dell'asta delle quote: via i suoi numeri, l'asta resta (e le ${d0} distanze anche)`, d0 === 3 && conta('.vista3d-distanza') === 3 && conta('text.vista3d-misure') === 0 && conta('line.vista3d-misure') > 0);

@@ -24,6 +24,8 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'btnProgettoTerreno'));
   t('senza DTM il bottone «Vista 3D» è acceso, e dice che le prove partono dal piano campagna', !$(app, 'btnApriVista3d').disabled && /piano campagna/.test($(app, 'btnApriVista3d').title));
   clic(app, $(app, 'btnApriVista3d'));
+  t('di partenza giaciture e distanze tra le prove sono spente', !app.E('vista3d.livelli.giaciture') && !app.E('vista3d.livelli.distanze') && app.E('ultimaScena3d.tutte.filter(f => f.cls === "vista3d-distanza").length') === 0);
+  app.E('vista3d.livelli.distanze = true; vista3d.livelli.giaciture = true; renderVista3d()');
   {
     const div = app.d.createElement('div'); div.innerHTML = app.E('svgDaScena(ultimaScena3d)');
     const sv = div.firstElementChild, quante = sel => sv.querySelectorAll(sel).length;

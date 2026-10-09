@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, distanze: true, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },

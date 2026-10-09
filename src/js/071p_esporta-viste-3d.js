@@ -51,11 +51,25 @@
                 const t = tracceDelProgetto().find(x => x.id === voce.traccia);
                 if (!t) return null;
                 const { a, b, L } = tracciaInScena(d, t), ux = (b[0] - a[0]) / (L || 1), uy = (b[1] - a[1]) / (L || 1);
-                // Lo schermo da sinistra a destra va da A ad A' (az0); si guarda la parte che resta (a
-                // sinistra di A→A'), di sbieco quanto basta perché si veda anche il sopra.
-                const az0 = Math.atan2(-uy, ux);
-                return { az: az0 + ISO_TORSIONE_3D * 0.8, el: 0.5, taglio: { dir: null, pos: 0.5, lato: 1, prof: 0, retta: [a, b] }, solido: true, tracce: t.id };
+                // Si guarda di traverso alla traccia, dalla parte di Nord o di Est (come il modello): una
+                // traccia Est–Ovest verso Nord, una Nord–Sud verso Est; di sbieco quanto basta perché si
+                // veda anche il sopra. Resta la parte verso cui si guarda (il lato lo decide la vista).
+                const n1 = [-uy, ux], n2 = [uy, -ux], n = n1[0] + n1[1] >= n2[0] + n2[1] - 1e-9 ? n1 : n2;
+                const az0 = Math.atan2(n[0], n[1]);
+                return { az: az0 + ISO_TORSIONE_3D * 0.8, el: 0.5, taglio: { dir: null, pos: 0.5, lato: 1, prof: 0, retta: [a, b] }, solido: true, tracce: t.id, sinistra: n1 };
             }
+
+            // LE VISTE PRONTE DELLA TAVOLA (tasti sotto l'anteprima): isometrica e trasversale verso Nord,
+            // Est, Sud, Ovest (verso 0–3: dove si guarda), pianta col Nord in alto. Mai dal basso.
+            const VERSI_3D = ['Nord', 'Est', 'Sud', 'Ovest'];
+            function vistaPronta3dTavola(v) {
+                if (v.tipo === 'pianta') return { az: 0, el: Math.PI / 2 };
+                const az = (v.verso || 0) * Math.PI / 2;
+                return v.tipo === 'trasv' ? { az, el: 0 } : { az: az + Math.PI / 4, el: ISO_EL_3D };
+            }
+            /** Verso cui guarda una vista (0 = Nord … 3 = Ovest), dall'azimut. */
+            const versoDaAz3d = az => ((Math.round(az / (Math.PI / 2)) % 4) + 4) % 4;
+            const EL_MAX_3D = Math.PI / 2 - 1e-4;
 
             /** Il riquadro che occupano sullo schermo le cose che contano (non il terreno, non la bussola). */
             function ingombroScena3d(sc) {
@@ -93,11 +107,15 @@
                 const base = vistaBaseVoce3d(voce, d);
                 if (!base) return null;
                 const reg = (opz && opz.reg) || {};
+                const pronta = reg.vista ? vistaPronta3dTavola(reg.vista) : base;
                 return conVista3dTemporanea(() => {
-                    vista3d.az = base.az + (reg.dAz || 0);
-                    vista3d.el = Math.max(-1.5, Math.min(1.5, base.el + (reg.dEl || 0)));
+                    vista3d.az = pronta.az + (reg.dAz || 0);
+                    // mai dal basso: dall'orizzonte (trasversale) a dritto in giù (pianta)
+                    vista3d.el = Math.max(0, Math.min(EL_MAX_3D, pronta.el + (reg.dEl || 0)));
                     vista3d.zoom = 1; vista3d.centro = [0, 0, 0]; vista3d.prospettiva = false;
-                    vista3d.taglio = base.taglio;
+                    vista3d.taglio = Object.assign({}, base.taglio);
+                    // la sezione 3D: resta la parte verso cui si guarda, comunque giri la vista
+                    if (base.sinistra) vista3d.taglio.lato = Math.sin(vista3d.az) * base.sinistra[0] + Math.cos(vista3d.az) * base.sinistra[1] >= 0 ? 1 : -1;
                     if (base.solido) vista3d.livelli.solido = true;
                     if (opz && opz.ex) vista3d.ex = opz.ex;
                     if (opz && opz.scritte) vista3d.scalaTesti = opz.scritte;
@@ -433,7 +451,37 @@
             }
             /** Per l'anteprima: la mappa larga attorno, senza permesso di rilettura (basta vederla). */
             const sfondoEstesoAnteprima3d = () => T3('tavole3dBasemap').checked && datiVista3dCorrenti ? mosaicoSfondo3d(datiVista3dCorrenti, MEZZO_ESTESO_3D(datiVista3dCorrenti), 3072, false) : null;
-            const tipoTavola3d = v => v.tipo === 'iso' ? 'Modello 3D' : v.tipo === 'sez3d' ? 'Sezione 3D (isometria)' : 'Sezione 2D';
+            const tipoTavola3d = v => {
+                const vs = v.tipo === 'sez2d' ? null : versoTavola3d(v), dir = vs === null ? (v.tipo !== 'sez2d' && (tavole3d.regola[v.id] || {}).vista ? ' · pianta' : '') : ' · verso ' + VERSI_3D[vs];
+                return (v.tipo === 'iso' ? 'Modello 3D' : v.tipo === 'sez3d' ? 'Sezione 3D' : 'Sezione 2D') + dir;
+            };
+            /** Verso dove guarda una pagina 3D (0 Nord … 3 Ovest; null: pianta o sezione 2D). */
+            function versoTavola3d(v) {
+                const d = datiVista3dCorrenti, r = tavole3d.regola[v.id];
+                if (v.tipo === 'sez2d' || !d) return null;
+                if (r && r.vista) return r.vista.tipo === 'pianta' ? null : r.vista.verso || 0;
+                const base = vistaBaseVoce3d(v, d);
+                return base ? versoDaAz3d(base.az + ((r && r.dAz) || 0) - (v.tipo === 'iso' ? ISO_TORSIONE_3D : ISO_TORSIONE_3D * 0.8)) : null;
+            }
+            /** L'ORDINE DELLE PAGINE: spostate a mano (frecce o trascinandole), «per direzione» (il modello
+             * e le sezioni 3D verso Nord, poi verso Est, Sud, Ovest, poi le sezioni 2D) o di partenza. */
+            function spostaPagina3d(da, a) {
+                if (a < 0 || a >= tavole3d.voci.length || da === a) return;
+                const scelta = tavole3d.voci[tavole3d.scelta], [v] = tavole3d.voci.splice(da, 1);
+                tavole3d.voci.splice(a, 0, v);
+                tavole3d.scelta = Math.max(0, tavole3d.voci.indexOf(scelta));
+                salvaMemoriaTavole3d(); renderElencoTavole3d(); mostraTavola3d();
+            }
+            function ordinaPagine3d(come) {
+                const d = datiVista3dCorrenti, scelta = tavole3d.voci[tavole3d.scelta], partenza = vociEsportazione3d(d).map(v => v.id);
+                const pos = v => partenza.indexOf(v.id);
+                if (come === 'direzione') {
+                    const gruppo = v => { if (v.tipo === 'sez2d') return 10; const vs = versoTavola3d(v); return vs === null ? 5 : vs; };
+                    tavole3d.voci.sort((a, b) => gruppo(a) - gruppo(b) || (a.tipo === 'iso' ? 0 : 1) - (b.tipo === 'iso' ? 0 : 1) || pos(a) - pos(b));
+                } else tavole3d.voci.sort((a, b) => pos(a) - pos(b));
+                tavole3d.scelta = Math.max(0, tavole3d.voci.indexOf(scelta));
+                salvaMemoriaTavole3d(); renderElencoTavole3d(); mostraTavola3d();
+            }
             /** Il sottotitolo: solo quello scritto dall'utente (di base niente). */
             const sottotitoloTavola3d = (v) => {
                 const t = tavole3d.titoli[v.id];
@@ -445,8 +493,11 @@
                 if (!d) { appAlert('Per le tavole serve la vista 3D: almeno una prova col GPS e con le letture.'); return; }
                 const mem = memoriaTavole3d();
                 tavole3d.voci = vociEsportazione3d(d);
+                // l'ordine scelto l'ultima volta (le pagine nuove in fondo, nel loro ordine)
+                if (Array.isArray(mem.ordine)) { const o = mem.ordine, p = v => { const k = o.indexOf(v.id); return k < 0 ? o.length : k; }; tavole3d.voci = tavole3d.voci.map((v, i) => [v, i]).sort((a, b) => p(a[0]) - p(b[0]) || a[1] - b[1]).map(x => x[0]); }
                 tavole3d.regola = mem.regola || {};
                 tavole3d.titoli = mem.titoli || {};
+                tavole3d.voci.forEach(v => aggiornaTitoloVista3d(v));
                 Object.assign(tavole3d, { carta: 'A4', verso: 'o', scritte: 1.3 }, mem.foglio || {});
                 [['tavole3dCarta', 'carta'], ['tavole3dVerso', 'verso'], ['tavole3dScritte', 'scritte']].forEach(([id, k]) => T3(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(String(b.dataset[k]) === String(tavole3d[k])))));
                 tavole3d.escluse = new Set((mem.escluse || []).filter(id => tavole3d.voci.some(v => v.id === id)));
@@ -482,6 +533,7 @@
                 mem.titoli = tavole3d.titoli;
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
                 mem.posizioni = tavole3d.posizioni;
+                mem.ordine = tavole3d.voci.map(v => v.id);
                 mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
@@ -491,12 +543,46 @@
                 return (t && t.testo && t.testo.trim()) || v.titolo;
             }
 
+            /** Il titolo automatico delle pagine del modello segue la vista scelta coi tasti. */
+            function aggiornaTitoloVista3d(v) {
+                const r = tavole3d.regola[v.id], vv = r && r.vista;
+                if (v.tipo !== 'iso') return;
+                v.titolo = !vv ? (v.verso === 'E' ? 'Modello · vista isometrica verso Est' : 'Modello · vista isometrica verso Nord')
+                    : vv.tipo === 'pianta' ? 'Modello · pianta' : `Modello · vista ${vv.tipo === 'trasv' ? 'trasversale' : 'isometrica'} verso ${VERSI_3D[vv.verso || 0]}`;
+            }
+            /** I tasti delle viste: quale è accesa sulla pagina scelta, e verso dove. */
+            function aggiornaTastiVista3d() {
+                const v = tavole3d.voci[tavole3d.scelta], r = v && tavole3d.regola[v.id], vv = r && r.vista;
+                document.querySelectorAll('#tavole3dRegola [data-vista]').forEach(b => b.setAttribute('aria-pressed', String(!!vv && vv.tipo === b.dataset.vista)));
+                document.querySelectorAll('#tavole3dRegola [data-verso-vista]').forEach(b => { b.textContent = vv && vv.tipo === b.dataset.versoVista ? VERSI_3D[vv.verso || 0] : ''; });
+            }
+            /** Un tasto di vista: la prima volta la accende (verso dove guarda già la pagina), poi gira
+             * Nord → Est → Sud → Ovest. Toglie le regolazioni a mano: la vista è esatta. */
+            function scegliVistaTavola3d(tipo) {
+                const v = tavole3d.voci[tavole3d.scelta], d = datiVista3dCorrenti;
+                if (!v || v.tipo === 'sez2d' || !d) return;
+                const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
+                const prima = r.vista, base = vistaBaseVoce3d(v, d);
+                const verso = tipo === 'pianta' ? 0 : prima && prima.tipo === tipo ? ((prima.verso || 0) + 1) % 4
+                    : prima && prima.tipo !== 'pianta' ? prima.verso || 0 : versoDaAz3d(base.az + (r.dAz || 0) - (v.tipo === 'iso' ? Math.PI / 4 : 0));
+                Object.assign(r, { vista: { tipo, verso }, dAz: 0, dEl: 0, dx: 0, dy: 0 });
+                aggiornaTitoloVista3d(v);
+                salvaMemoriaTavole3d();
+                mostraTavola3d(); aggiornaMiniaturaScelta3d();
+                const nome = document.querySelector(`#tavole3dPagine [data-tavola="${tavole3d.scelta}"] .tavole-pag-nome`);
+                if (nome) nome.textContent = `${tavole3d.scelta + 1}. ${titoloTavola3d(v) || v.titolo}`;
+                const elTipo = document.querySelector(`#tavole3dPagine [data-tavola="${tavole3d.scelta}"] .tavole-pag-tipo`);
+                if (elTipo) elTipo.textContent = tipoTavola3d(v);
+            }
+
             /** L'elenco delle pagine: spunta, miniatura, nome e tipo. */
             function renderElencoTavole3d() {
                 const box = T3('tavole3dPagine'), esc = escapeHtmlDidascalia;
-                box.innerHTML = tavole3d.voci.map((v, i) => `<div class="tavole-pag${i === tavole3d.scelta ? ' scelta' : ''}${tavole3d.escluse.has(v.id) ? ' esclusa' : ''}" data-tavola="${i}" role="button" tabindex="0">
+                box.innerHTML = tavole3d.voci.map((v, i) => `<div class="tavole-pag${i === tavole3d.scelta ? ' scelta' : ''}${tavole3d.escluse.has(v.id) ? ' esclusa' : ''}" data-tavola="${i}" role="button" tabindex="0" draggable="true" title="Trascina per spostare la pagina">
                         <input type="checkbox" data-includi="${i}" ${tavole3d.escluse.has(v.id) ? '' : 'checked'} aria-label="Esporta ${esc(v.titolo)}">
-                        <span class="tavole-pag-nome">${i + 1}. ${esc(titoloTavola3d(v) || v.titolo)}</span><span class="tavole-pag-tipo">${tipoTavola3d(v)}</span>
+                        <span class="tavole-pag-nome">${i + 1}. ${esc(titoloTavola3d(v) || v.titolo)}</span>
+                        <span class="tavole-pag-sposta"><button type="button" data-sposta-pag="-1" title="Più su" aria-label="Sposta su" ${i === 0 ? 'disabled' : ''}>▲</button><button type="button" data-sposta-pag="1" title="Più giù" aria-label="Sposta giù" ${i === tavole3d.voci.length - 1 ? 'disabled' : ''}>▼</button></span>
+                        <span class="tavole-pag-tipo">${tipoTavola3d(v)}</span>
                         ${v.tipo === 'sez2d' ? '<img alt="">' : '<canvas></canvas>'}</div>`).join('');
                 aggiornaContoTavole3d();
                 // le miniature una alla volta, senza bloccare la finestra
@@ -575,6 +661,7 @@
                 document.querySelectorAll('#tavole3dPagine .tavole-pag').forEach(el => el.classList.toggle('scelta', Number(el.dataset.tavola) === tavole3d.scelta));
                 const tela = T3('tavole3dTela'), img = T3('tavole3dImg');
                 T3('tavole3dRegola').classList.toggle('spenta', v.tipo === 'sez2d');
+                aggiornaTastiVista3d();
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
@@ -682,6 +769,8 @@
             T3('tavole3dPrima').addEventListener('click', () => { if (tavole3d.scelta > 0) { tavole3d.scelta--; mostraTavola3d(); } });
             T3('tavole3dDopo').addEventListener('click', () => { if (tavole3d.scelta < tavole3d.voci.length - 1) { tavole3d.scelta++; mostraTavola3d(); } });
             T3('tavole3dPagine').addEventListener('click', (e) => {
+                const sp = e.target.closest('[data-sposta-pag]');
+                if (sp) { const i = Number(sp.closest('[data-tavola]').dataset.tavola); spostaPagina3d(i, i + Number(sp.dataset.spostaPag)); return; }
                 const chk = e.target.closest('[data-includi]');
                 if (chk) {
                     const v = tavole3d.voci[Number(chk.dataset.includi)];
@@ -693,6 +782,35 @@
                 const el = e.target.closest('[data-tavola]');
                 if (el) { tavole3d.scelta = Number(el.dataset.tavola); mostraTavola3d(); }
             });
+            // trascinare una pagina nell'elenco: va dove la si lascia (sopra o sotto la riga)
+            let pagTrascinata3d = null;
+            const pagElenco = e => e.target.closest && e.target.closest('#tavole3dPagine [data-tavola]');
+            T3('tavole3dPagine').addEventListener('dragstart', (e) => {
+                const el = pagElenco(e);
+                if (!el) return;
+                pagTrascinata3d = Number(el.dataset.tavola);
+                el.classList.add('trascinata');
+                try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(pagTrascinata3d)); } catch (_) { /* jsdom */ }
+            });
+            const sottoMeta3d = (e, el) => { const r = el.getBoundingClientRect(); return e.clientY > r.top + r.height / 2; };
+            T3('tavole3dPagine').addEventListener('dragover', (e) => {
+                const el = pagElenco(e);
+                if (!el || pagTrascinata3d === null) return;
+                e.preventDefault();
+                T3('tavole3dPagine').querySelectorAll('.qui-sopra, .qui-sotto').forEach(x => x.classList.remove('qui-sopra', 'qui-sotto'));
+                el.classList.add(sottoMeta3d(e, el) ? 'qui-sotto' : 'qui-sopra');
+            });
+            T3('tavole3dPagine').addEventListener('drop', (e) => {
+                const el = pagElenco(e);
+                if (!el || pagTrascinata3d === null) return;
+                e.preventDefault();
+                const j = Number(el.dataset.tavola) + (sottoMeta3d(e, el) ? 1 : 0), da = pagTrascinata3d;
+                pagTrascinata3d = null;
+                spostaPagina3d(da, j > da ? j - 1 : j);
+            });
+            T3('tavole3dPagine').addEventListener('dragend', () => { pagTrascinata3d = null; T3('tavole3dPagine').querySelectorAll('.trascinata, .qui-sopra, .qui-sotto').forEach(x => x.classList.remove('trascinata', 'qui-sopra', 'qui-sotto')); });
+            T3('tavole3dOrdinaDirezione').addEventListener('click', () => ordinaPagine3d('direzione'));
+            T3('tavole3dOrdinaPartenza').addEventListener('click', () => ordinaPagine3d('partenza'));
             T3('tavole3dTutte').addEventListener('click', () => { tavole3d.escluse.clear(); salvaMemoriaTavole3d(); renderElencoTavole3d(); mostraTavola3d(); });
             T3('tavole3dNessuna').addEventListener('click', () => { tavole3d.voci.forEach(v => tavole3d.escluse.add(v.id)); salvaMemoriaTavole3d(); renderElencoTavole3d(); mostraTavola3d(); });
             const sceltaTasti3d = (id, chiave) => T3(id).addEventListener('click', (e) => {
@@ -751,15 +869,21 @@
                 mostraToast(senza ? 'Tutte le pagine senza titolo' : 'Tutte le pagine col titolo');
             });
             T3('tavole3dRegola').addEventListener('click', (e) => {
+                const bv = e.target.closest('[data-vista]');
+                if (bv) { scegliVistaTavola3d(bv.dataset.vista); return; }
                 const b = e.target.closest('[data-regola]');
                 if (!b) return;
                 const a = b.dataset.regola, grado = Math.PI / 180;
                 regolaTavola3d(r => {
                     if (a === 'az-') r.dAz -= 15 * grado; else if (a === 'az+') r.dAz += 15 * grado;
-                    else if (a === 'el+') r.dEl += 5 * grado; else if (a === 'el-') r.dEl -= 5 * grado;
+                    else if (a === 'el+' || a === 'el-') {
+                        const v = tavole3d.voci[tavole3d.scelta], el0 = r.vista ? vistaPronta3dTavola(r.vista).el : vistaBaseVoce3d(v, datiVista3dCorrenti).el;
+                        r.dEl = Math.max(-el0, Math.min(EL_MAX_3D - el0, r.dEl + (a === 'el+' ? 5 : -5) * grado));
+                    }
                     else if (a === 'zoom+') r.zoom *= 1.15; else if (a === 'zoom-') r.zoom /= 1.15;
-                    else Object.assign(r, { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
+                    else { Object.assign(r, { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 }); delete r.vista; }
                 });
+                if (a === 'reset') { const v = tavole3d.voci[tavole3d.scelta]; if (v) aggiornaTitoloVista3d(v); }
                 mostraTavola3d(); aggiornaMiniaturaScelta3d();
             });
             // Il mouse sulla figura: trascina = gira e inclina; tasto destro, centrale o Maiusc = sposta;
@@ -820,7 +944,11 @@
                 t.x = e.clientX; t.y = e.clientY;
                 regolaTavola3d(r => {
                     if (t.sposta) { r.dx += dx / k; r.dy += dy / k; }
-                    else { r.dAz -= dx * 0.008; r.dEl = Math.max(-1.4, Math.min(1.4, r.dEl + dy * 0.006)); }
+                    else {
+                        // gira e inclina, ma mai sotto l'orizzonte né oltre il dritto in giù
+                        const v = tavole3d.voci[tavole3d.scelta], el0 = r.vista ? vistaPronta3dTavola(r.vista).el : vistaBaseVoce3d(v, datiVista3dCorrenti).el;
+                        r.dAz -= dx * 0.008; r.dEl = Math.max(-el0, Math.min(EL_MAX_3D - el0, r.dEl + dy * 0.006));
+                    }
                 });
                 ridisegnaTavola3d(true);
             });

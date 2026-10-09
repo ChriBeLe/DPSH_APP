@@ -43,18 +43,18 @@ const $ = (app, id) => app.d.getElementById(id);
   const sez = app.E(`(() => {
     const d = datiVista3dCorrenti, v = vociEsportazione3d(d).find(v => v.titolo === "Sezione 3D A-A'"), t = tracceDelProgetto().find(x => x.id === v.traccia);
     const sc = scenaVoce3d(v, d, 1400, 860, {}), { a, b } = tracciaInScena(d, t);
-    const ux = b[0] - a[0], uy = b[1] - a[1];
-    const sinistra = p => ux * (p.y - a[1]) - uy * (p.x - a[0]) >= -1e-6;
+    // la parte «davanti» a chi guarda: dal lato della traccia verso cui punta lo sguardo
+    const ux = b[0] - a[0], uy = b[1] - a[1], lx = Math.sin(sc.vista.az), ly = Math.cos(sc.vista.az), versoSx = lx * -uy + ly * ux >= 0;
+    const avanti = p => { const sx = ux * (p.y - a[1]) - uy * (p.x - a[0]); return versoSx ? sx >= -1e-6 : sx <= 1e-6; };
     const teste = new Set(sc.tutte.filter(f => f.cls === 'vista3d-testa').map(f => f.prova));
-    const nomi = sc.tutte.filter(f => f.cls === 'vista3d-traccia-nome').map(f => [f.s, f.x]);
     const bb = ingombroScena3d(sc);
-    return { restano: d.prove.filter(p => teste.has(p.s.id)).every(sinistra), tolte: d.prove.filter(p => !teste.has(p.s.id)).every(p => !sinistra(p)), n: teste.size,
-      nomi, fantasma: sc.tutte.filter(f => f.cls === 'vista3d-fantasma').length, tracce: [...new Set(sc.tutte.filter(f => f.cls === 'vista3d-traccia').map(f => f.traccia))].length,
+    const v1 = vociEsportazione3d(d).find(v => v.titolo === "Sezione 3D 1-1'");
+    return { restano: d.prove.filter(p => teste.has(p.s.id)).every(avanti), tolte: d.prove.filter(p => !teste.has(p.s.id)).every(p => !avanti(p)), n: teste.size,
+      versoA: versoTavola3d(v), verso1: versoTavola3d(v1), fantasma: sc.tutte.filter(f => f.cls === 'vista3d-fantasma').length, tracce: [...new Set(sc.tutte.filter(f => f.cls === 'vista3d-traccia').map(f => f.traccia))].length,
       bb, taglioDopo: JSON.stringify(vista3d.taglio), solido: sc.tutte.some(f => f.cls === 'vista3d-solido') };
   })()`);
-  t(`il corpo è tagliato lungo la traccia: restano le ${sez.n} prove alla sua sinistra`, sez.restano && sez.tolte && sez.n > 0 && sez.n < 20 && sez.solido);
-  const A = sez.nomi.find(n => n[0] === 'A'), A1 = sez.nomi.find(n => n[0] === "A'");
-  t('si guarda la faccia del taglio: A a sinistra, A\' a destra', A && A1 && A[1] < A1[1]);
+  t(`il corpo è tagliato lungo la traccia: restano le ${sez.n} prove dalla parte verso cui si guarda (si vede la faccia del taglio)`, sez.restano && sez.tolte && sez.n > 0 && sez.n < 20 && sez.solido);
+  t('come il modello: la sezione Nord–Sud (A-A\') si guarda verso Est, quella Est–Ovest (1-1\') verso Nord', sez.versoA === 1 && sez.verso1 === 0);
   t('nella sezione 3D solo la sua traccia', sez.tracce === 1);
   t(`gli spigoli del pezzo tolto, a tratteggio (${sez.fantasma} tratti)`, sez.fantasma > 10);
   t('inquadrata: il modello sta nel foglio, grande', sez.bb.x0 >= 0 && sez.bb.x1 <= 1400 && sez.bb.y0 >= 0 && sez.bb.y1 <= 860 && (sez.bb.x1 - sez.bb.x0) > 1400 * 0.6);
@@ -194,6 +194,43 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'tavole3dRiposiziona'));
   const leg2 = app.E('tavole3d.ultima.sc.legenda');
   t('«Rimettili al loro posto»', Math.abs(leg2.x - leg0.x) < 2 && Math.abs(leg2.y - leg0.y) < 2 && JSON.stringify(app.E(`${P}.tavole3d.posizioni`)) === '{}' && !app.E(`${P}.tavole3d.regola[tavole3d.voci[0].id].nordTerreno`));
+  // I tasti di vista: isometrica (che gira Nord → Est → Sud → Ovest), trasversale, pianta; mai dal basso.
+  clic(app, pagine()[0]);
+  const tasto = tipo => $(app, 'tavole3dRegola').querySelector(`[data-vista="${tipo}"]`);
+  const vista = () => app.E(`(() => { const v = tavole3d.voci[tavole3d.scelta], r = tavole3d.regola[v.id]; return { vista: r && r.vista, az: tavole3d.ultima.sc.vista.az, el: tavole3d.ultima.sc.vista.el, titolo: v.titolo }; })()`);
+  clic(app, tasto('iso'));
+  let vi = vista();
+  t(`«Isometrica»: la pagina del modello verso Nord (${vi.titolo})`, vi.vista.tipo === 'iso' && vi.vista.verso === 0 && Math.abs(vi.az - Math.PI / 4) < 1e-9 && Math.abs(vi.el - Math.atan(1 / Math.SQRT2)) < 1e-9 && tasto('iso').getAttribute('aria-pressed') === 'true' && /Nord/.test(tasto('iso').textContent));
+  const giro = [];
+  for (let n = 0; n < 4; n++) { clic(app, tasto('iso')); giro.push(vista().vista.verso); }
+  t(`premuta ancora gira: ${giro.map(v => ['Nord', 'Est', 'Sud', 'Ovest'][v]).join(' → ')}`, JSON.stringify(giro) === '[1,2,3,0]' && /verso Nord/.test(vista().titolo));
+  clic(app, tasto('trasv'));
+  vi = vista();
+  t('«Trasversale»: di lato, in orizzontale (verso dove guardava)', vi.vista.tipo === 'trasv' && vi.el === 0 && /trasversale verso Nord/.test(vi.titolo));
+  clic(app, tasto('trasv'));
+  t('(anche lei gira: verso Est)', vista().vista.verso === 1 && Math.abs(vista().az - Math.PI / 2) < 1e-9);
+  clic(app, tasto('pianta'));
+  vi = vista();
+  t('«Pianta»: dall\'alto, Nord in alto', vi.vista.tipo === 'pianta' && Math.abs(vi.el - Math.PI / 2) < 1e-3 && vi.az === 0 && vi.titolo === 'Modello · pianta');
+  clic(app, tasto('trasv'));
+  for (let n = 0; n < 8; n++) clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="el-"]'));
+  t('mai dal basso: dall\'orizzonte in giù i tasti non scendono più', vista().el >= 0 && vista().el < 1e-9);
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="reset"]'));
+  t('«Inquadra» torna alla vista di partenza della pagina', !vista().vista && vista().titolo === voci[0]);
+  // L'ordine delle pagine.
+  const ordine = () => app.E('tavole3d.voci.map(v => v.titolo)');
+  clic(app, pagine()[1].querySelector('[data-sposta-pag="-1"]'));
+  t('la freccia ▲ sposta su la pagina', ordine()[0] === voci[1] && ordine()[1] === voci[0] && app.E(`${P}.tavole3d.ordine[0]`) === app.E('tavole3d.voci[0].id'));
+  clic(app, $(app, 'tavole3dOrdinaDirezione'));
+  const perDir = ordine();
+  t(`«Per direzione»: ${perDir.join(' · ')}`, JSON.stringify(perDir) === JSON.stringify(['Modello · vista isometrica verso Nord', "Sezione 3D 1-1'", "Sezione 3D 2-2'", 'Modello · vista isometrica verso Est', "Sezione 3D A-A'", "Sezione 3D B-B'", "Sezione A-A'", "Sezione B-B'", "Sezione 1-1'", "Sezione 2-2'"]));
+  t('(nell\'elenco ogni pagina 3D dice dove guarda)', /verso Nord/.test(pagine()[1].textContent) && /verso Est/.test(pagine()[4].textContent));
+  clic(app, $(app, 'tavole3dChiudi'));
+  clic(app, $(app, 'btnTavole3d'));
+  await attesa(30);
+  t('riaprendo, l\'ordine è quello scelto', JSON.stringify(ordine()) === JSON.stringify(perDir));
+  clic(app, $(app, 'tavole3dOrdinaPartenza'));
+  t('«Di partenza» lo rimette com\'era', JSON.stringify(ordine()) === JSON.stringify(voci));
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude le tavole, non la mappa del progetto sotto', $(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   clic(app, $(app, 'btnPdfSezioni3d'));

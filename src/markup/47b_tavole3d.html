@@ -9,6 +9,9 @@
                 <div class="tavole-elenco-testa"><span>Pagine <b id="tavole3dConta"></b></span>
                     <button type="button" id="tavole3dTutte" class="btn-link" title="Esporta tutte le pagine">Tutte</button>
                     <button type="button" id="tavole3dNessuna" class="btn-link" title="Togli tutte le pagine">Nessuna</button></div>
+                <div class="tavole-elenco-ordine"><span>Ordine</span>
+                    <button type="button" id="tavole3dOrdinaDirezione" class="btn-link" title="Prima il modello e le sezioni 3D verso Nord, poi verso Est (Sud, Ovest), poi le sezioni 2D">Per direzione</button>
+                    <button type="button" id="tavole3dOrdinaPartenza" class="btn-link" title="Il modello, poi per ogni sezione la 3D e la 2D">Di partenza</button></div>
                 <div id="tavole3dPagine" class="tavole-pagine"></div>
             </nav>
             <div class="tavole-pagina">
@@ -23,6 +26,11 @@
                     <div class="tavole-foglio-piede"><span id="tavole3dPiede"></span><span id="tavole3dNumero"></span></div>
                 </div></div>
                 <div class="tavole-regola" id="tavole3dRegola">
+                    <span class="tavole-viste" role="group" aria-label="Vista della tavola">
+                        <button type="button" class="tavole-rbt tavole-rbt-testo" data-vista="iso" title="Isometrica; premendo ancora: verso Nord, Est, Sud, Ovest">Isometrica<b data-verso-vista="iso"></b></button>
+                        <button type="button" class="tavole-rbt tavole-rbt-testo" data-vista="trasv" title="Di lato, in orizzontale; premendo ancora: verso Nord, Est, Sud, Ovest">Trasversale<b data-verso-vista="trasv"></b></button>
+                        <button type="button" class="tavole-rbt tavole-rbt-testo" data-vista="pianta" title="Dall'alto, Nord in alto">Pianta</button>
+                    </span>
                     <button type="button" class="tavole-rbt" data-regola="az-" title="Gira a sinistra (15°)"><svg class="ico"><use href="#i-undo"/></svg></button>
                     <button type="button" class="tavole-rbt" data-regola="az+" title="Gira a destra (15°)"><svg class="ico"><use href="#i-redo"/></svg></button>
                     <button type="button" class="tavole-rbt" data-regola="el+" title="Più dall'alto (5°)"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
