@@ -78,6 +78,24 @@ const $ = (app, id) => app.d.getElementById(id);
     return { a: a.x1 - a.x0, b: b.x1 - b.x0, sposta: (c.x0 + c.x1) / 2 - (a.x0 + a.x1) / 2 }; })()`);
   t(`le regolazioni: zoom a metà → metà larghezza (${Math.round(reg.a)} → ${Math.round(reg.b)} px), spostata di 100 px → ${Math.round(reg.sposta)} px`, Math.abs(reg.b / reg.a - 0.5) < 0.08 && Math.abs(reg.sposta - 100) < 3);
 
+  console.log('--- Terreno esteso, foglio, scritte ---');
+  const est = app.E(`(() => { const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0];
+    const conta = sc => sc.tutte.filter(f => f.cls === 'vista3d-faccia').length;
+    const dentro = (sc, x, y) => sc.tutte.some(f => f.cls === 'vista3d-faccia' && f.t === 'poli' && (() => { let c = false; const p = f.p; for (let i = 0, j = p.length - 1; i < p.length; j = i++) if ((p[i][1] > y) !== (p[j][1] > y) && x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0]) c = !c; return c; })());
+    const con = scenaVoce3d(v, d, 1400, 860, {}), senza = scenaVoce3d(v, d, 1400, 860, { terrenoEsteso: false });
+    return { con: conta(con), senza: conta(senza), angoli: [[5, 5], [1395, 5], [5, 855], [1395, 855]].map(([x, y]) => dentro(con, x, y)), angoliSenza: [[5, 5], [1395, 5], [5, 855], [1395, 855]].filter(([x, y]) => dentro(senza, x, y)).length,
+      esteso: vista3d.terrenoEsteso === undefined || vista3d.terrenoEsteso === null }; })()`);
+  t(`il terreno continua oltre il riquadro del DTM fin dove serve: gli angoli del foglio sono coperti (${est.senza} → ${est.con} facce)`, est.con > est.senza && est.angoli.every(Boolean) && est.angoliSenza < 4);
+  t('(solo nelle tavole: la vista a schermo resta col suo terreno)', est.esteso);
+  const fogli = app.E(`(() => { const r = {}; [['A4', 'o'], ['A4', 'v'], ['A3', 'o'], ['A3', 'v']].forEach(([c, v]) => { tavole3d.carta = c; tavole3d.verso = v; r[c + v] = Object.assign(foglioTavole3d(), misureTavola3d()); }); tavole3d.carta = 'A4'; tavole3d.verso = 'o'; return r; })()`);
+  t(`il foglio: A4 o A3, orizzontale o verticale (A4o ${fogli.A4o.W}×${fogli.A4o.H}, A3v ${fogli.A3v.W}×${fogli.A3v.H} px)`, fogli.A4o.PW === 841.89 && fogli.A4v.PH === 841.89 && fogli.A3o.PW === 1190.55 && fogli.A3v.PH === 1190.55
+    && fogli.A4v.H > fogli.A4v.W && fogli.A3o.W > fogli.A4o.W * 1.4 && Math.abs(fogli.A4o.W - 1400) <= 1);
+  const scr = app.E(`(() => { const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0]; const nome = sc => sc.tutte.find(f => f.cls === 'vista3d-nome').size;
+    const a = scenaVoce3d(v, d, 1400, 860, { scritte: 1 }), b = scenaVoce3d(v, d, 1400, 860, { scritte: 1.6 });
+    const la = conLegenda3d(a, d, 1).legenda, lb = conLegenda3d(b, d, 1.6).legenda;
+    return { a: nome(a), b: nome(b), la: la.w, lb: lb.w, schermo: ultimaScena3d.tutte.find(f => f.cls === 'vista3d-nome').size }; })()`);
+  t(`la grandezza delle scritte: nomi da ${scr.a} a ${scr.b} px, e la legenda con loro (${scr.la} → ${scr.lb} px)`, Math.abs(scr.b / scr.a - 1.6) < 0.01 && scr.lb > scr.la * 1.5 && scr.schermo === 13);
+
   console.log('--- La finestra ---');
   clic(app, $(app, 'btnTavole3d'));
   await attesa(80);
@@ -130,6 +148,13 @@ const $ = (app, id) => app.d.getElementById(id);
   t('…e di nuovo tutte col titolo; «Automatico» rimette quello automatico', app.E('tavole3d.voci.every(v => titoloTavola3d(v) === v.titolo)') && $(app, 'tavole3dTitolo').value === voci[0]);
   clic(app, pagine()[3]);
   t('la sezione 2D nel foglio: solo lei (la tela del 3D è nascosta)', $(app, 'tavole3dTela').hidden && !$(app, 'tavole3dImg').hidden);
+  clic(app, $(app, 'tavole3dCarta').querySelector('[data-carta="A3"]'));
+  clic(app, $(app, 'tavole3dVerso').querySelector('[data-verso="v"]'));
+  clic(app, $(app, 'tavole3dScritte').querySelector('[data-scritte="2"]'));
+  t('dalla finestra: A3 verticale, scritte molto grandi; il riepilogo lo dice e il progetto lo ricorda', /pagine A3 verticali/.test($(app, 'tavole3dRiepilogo').textContent)
+    && JSON.stringify(app.E(`${P}.tavole3d.foglio`)) === JSON.stringify({ carta: 'A3', verso: 'v', scritte: 2 }));
+  clic(app, $(app, 'tavole3dCarta').querySelector('[data-carta="A4"]'));
+  clic(app, $(app, 'tavole3dVerso').querySelector('[data-verso="o"]'));
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude le tavole, non la mappa del progetto sotto', $(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   clic(app, $(app, 'btnPdfSezioni3d'));

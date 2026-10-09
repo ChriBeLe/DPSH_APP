@@ -31,13 +31,13 @@
              * rimette tutto com'era: la vista a schermo non se ne accorge. */
             function conVista3dTemporanea(modifica, fn) {
                 const prima = { az: vista3d.az, el: vista3d.el, ex: vista3d.ex, zoom: vista3d.zoom, centro: vista3d.centro.slice(), prospettiva: vista3d.prospettiva,
-                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda };
+                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti };
                 try {
                     vista3d.disegno = null;
                     modifica();
                     return fn();
                 } finally {
-                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda });
+                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti });
                 }
             }
 
@@ -100,6 +100,7 @@
                     vista3d.taglio = base.taglio;
                     if (base.solido) vista3d.livelli.solido = true;
                     if (opz && opz.ex) vista3d.ex = opz.ex;
+                    if (opz && opz.scritte) vista3d.scalaTesti = opz.scritte;
                     if (opz && opz.basemap === false) vista3d.livelli.immagine = false;
                     if (opz && opz.basemap === true) { vista3d.livelli.immagine = true; vista3d.livelli.terreno = true; }
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
@@ -114,7 +115,7 @@
                         let riserva = 0;
                         if (!opz || opz.legenda !== false) {
                             const vl = vociLegenda3d(prima, d);
-                            if (vl.length) { const m = impaginaLegenda3d(vl); riserva = m.w + 20; vista3d.postoLegenda = { x: W - m.w - 12, y: 12, w: m.w, h: m.h }; }
+                            if (vl.length) { const m = impaginaLegenda3d(vl, (opz && opz.scritte) || 1); riserva = m.w + 20; vista3d.postoLegenda = { x: W - m.w - 12, y: 12, w: m.w, h: m.h }; }
                         }
                         const mx = W * 0.05, my = H * 0.07, libW = W - 2 * mx - 30 - riserva, libH = H - 2 * my - 30;
                         const s = Math.max(0.05, Math.min(libW / Math.max(1, bb.x1 - bb.x0), libH / Math.max(1, bb.y1 - bb.y0)));
@@ -125,6 +126,11 @@
                     }
                     vista3d.zoom *= reg.zoom || 1;
                     if (reg.dx || reg.dy) spostaCentroDiPixel3d(-(reg.dx || 0), -(reg.dy || 0), prima.k * vista3d.zoom);
+                    // il terreno esteso: fin dove il foglio lo mostra (al massimo quanto il mosaico largo)
+                    if (!opz || opz.terrenoEsteso !== false) {
+                        const sfE = opz && opz.sfondoEsteso, tetto = sfE ? MEZZO_ESTESO_3D(d) : d.lato * 3;
+                        vista3d.terrenoEsteso = { mezzo: Math.min(tetto, mezzoVisibile3d(W, H, prima.k * vista3d.zoom)), sf: sfE || null };
+                    }
                     return scena3d(d, W, leggera, true, H);
                 });
             }
@@ -134,19 +140,24 @@
             // si mostra ma non si salva. Per esportare si ricarica «con permesso» da chi lo concede (Esri,
             // OpenStreetMap, OpenTopoMap); Google non lo concede: al suo posto l'equivalente di Esri. ----
             const SOSTITUTI_ESPORTA_3D = { 'google-satellite': 'esri-satellite', 'google-ibrida': 'esri-satellite', 'google-strade': 'esri-strade', 'google-rilievo': 'esri-topo' };
-            let sfondoEsportabileCache3d = null;
-            function sfondoEsportabile3d(d) {
+            /** Un mosaico della mappa di base attorno al centro della scena: «mezzo» metri per lato dal
+             * centro, al massimo latoPx pixel, con o senza il permesso di rilettura (per salvarlo serve).
+             * Ritorna subito l'oggetto (le tessere arrivano dopo; sf.pronto è la promessa). */
+            const mosaiciSfondo3d = new Map();
+            function mosaicoSfondo3d(d, mezzo, latoPx, conPermesso) {
                 const sc = sceltaSfondo3d();
-                if (!sc.id) return Promise.resolve(null);
-                const id = SOSTITUTI_ESPORTA_3D[sc.id] || sc.id, chiave = [sc.id, sc.wmsUrl, sc.wmsLayer].join('|');
-                if (sfondoEsportabileCache3d && sfondoEsportabileCache3d.d === d && sfondoEsportabileCache3d.chiave === chiave) return sfondoEsportabileCache3d.promessa;
-                const mezzo = d.lato / 2, angoli = [[-mezzo, -mezzo], [mezzo, -mezzo], [mezzo, mezzo], [-mezzo, mezzo]].map(([x, y]) => d.geo(x, y));
+                if (!sc.id) return null;
+                const id = conPermesso ? (SOSTITUTI_ESPORTA_3D[sc.id] || sc.id) : sc.id;
+                const chiave = [sc.id, sc.wmsUrl, sc.wmsLayer].join('|'), memo = [chiave, Math.round(mezzo), latoPx, conPermesso ? 1 : 0].join('|');
+                const gia = mosaiciSfondo3d.get(memo);
+                if (gia && gia.d === d) return gia.sf;
+                const angoli = [[-mezzo, -mezzo], [mezzo, -mezzo], [mezzo, mezzo], [-mezzo, mezzo]].map(([x, y]) => d.geo(x, y));
                 const ovest = Math.min(...angoli.map(g => g.lng)), est = Math.max(...angoli.map(g => g.lng));
                 const sud = Math.min(...angoli.map(g => g.lat)), nord = Math.max(...angoli.map(g => g.lat));
                 const tela = document.createElement('canvas'), sf = { chiave, tela, caricate: 0, totali: 0, errori: 0, sostituito: id !== sc.id ? id : null };
                 const carica = (url, posa) => new Promise(ok => {
                     const img = new Image();
-                    img.crossOrigin = 'anonymous';
+                    if (conPermesso) img.crossOrigin = 'anonymous';
                     img.onload = () => { try { posa(img); sf.caricate++; } catch (_) { sf.errori++; } ok(); };
                     img.onerror = () => { sf.errori++; ok(); };
                     img.src = url;
@@ -156,7 +167,7 @@
                     const base = sc.wmsUrl.trim();
                     sf.attribuzione = sc.attribuzione || 'WMS';
                     if (base) {
-                        tela.width = 2048; tela.height = Math.max(256, Math.min(2048, Math.round(2048 * (nord - sud) / ((est - ovest) * Math.cos((nord + sud) / 2 * Math.PI / 180)))));
+                        tela.width = latoPx; tela.height = Math.max(256, Math.min(latoPx, Math.round(latoPx * (nord - sud) / ((est - ovest) * Math.cos((nord + sud) / 2 * Math.PI / 180)))));
                         sf.uv = (lat, lng) => [(lng - ovest) / (est - ovest) * tela.width, (nord - lat) / (nord - sud) * tela.height];
                         const sep = base.indexOf('?') === -1 ? '?' : '&';
                         sf.totali = 1;
@@ -168,7 +179,7 @@
                     if (fornitore) {
                         sf.attribuzione = fornitore.attribuzione;
                         const larghezza0 = tessereXDaLng(est, 0) - tessereXDaLng(ovest, 0);
-                        const z = Math.max(1, Math.min(fornitore.zoomMax || 19, Math.floor(Math.log2(2048 / 256 / larghezza0))));
+                        const z = Math.max(1, Math.min(fornitore.zoomMax || 19, Math.floor(Math.log2(latoPx / 256 / larghezza0))));
                         const x0 = Math.floor(tessereXDaLng(ovest, z)), x1 = Math.floor(tessereXDaLng(est, z));
                         const y0 = Math.floor(tessereYDaLat(nord, z)), y1 = Math.floor(tessereYDaLat(sud, z));
                         tela.width = (x1 - x0 + 1) * 256; tela.height = (y1 - y0 + 1) * 256;
@@ -178,9 +189,33 @@
                     }
                 }
                 // Al massimo 20 secondi: una tavola può uscire senza qualche tessera, non bloccarsi.
-                const promessa = Promise.race([Promise.all(lavori), new Promise(ok => setTimeout(ok, 20000))]).then(() => (sf.uv ? sf : null));
-                sfondoEsportabileCache3d = { d, chiave, promessa };
-                return promessa;
+                sf.pronto = Promise.race([Promise.all(lavori), new Promise(ok => setTimeout(ok, 20000))]).then(() => (sf.uv ? sf : null));
+                mosaiciSfondo3d.set(memo, { d, sf });
+                return sf;
+            }
+            /** La mappa di base sotto il terreno vero, salvabile. */
+            function sfondoEsportabile3d(d) {
+                const sf = mosaicoSfondo3d(d, d.lato / 2, 2048, true);
+                return sf ? sf.pronto : Promise.resolve(null);
+            }
+            /** Quella larga, per il terreno esteso attorno (quattro volte il lato, a grana più grossa). */
+            const MEZZO_ESTESO_3D = d => d.lato * 2;
+            function sfondoEstesoEsportabile3d(d) {
+                const sf = mosaicoSfondo3d(d, MEZZO_ESTESO_3D(d), 3072, true);
+                return sf ? sf.pronto : Promise.resolve(null);
+            }
+            /** Fin dove si vede il piano delle prove nel riquadro (vista senza prospettiva): i quattro angoli
+             * del foglio riportati sul piano, la distanza più grande dal centro della scena. */
+            function mezzoVisibile3d(W, H, k) {
+                const ca = Math.cos(vista3d.az), sa = Math.sin(vista3d.az), ce = Math.cos(vista3d.el), se = Math.sin(vista3d.el);
+                if (Math.abs(se) < 0.12) return Infinity;
+                const [cx, cy, cz] = vista3d.centro, Z = -cz * vista3d.ex;
+                let m = 0;
+                [[0, 0], [W, 0], [W, H], [0, H]].forEach(([sx, sy]) => {
+                    const X = (sx - W / 2) / k, V = (sy - H / 2) / k, Yd = (-V - Z * ce) / se;
+                    m = Math.max(m, Math.abs(cx + X * ca + Yd * sa), Math.abs(cy - X * sa + Yd * ca));
+                });
+                return m * 1.08;
             }
             /** Con la mappa di base esportabile al posto di quella a schermo, per il tempo di fn. */
             function conSfondoEsportabile3d(d, sf, fn) {
@@ -199,7 +234,8 @@
                 const col = COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro, scala = opz.scala || 2;
                 const ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia);
                 const W = opz.W || 1400;
-                let svg = svgSezioneTracciata(ds, W).svg;
+                // le scritte più grandi: la sezione si disegna più stretta e si ingrandisce
+                let svg = svgSezioneTracciata(ds, Math.round(W / (opz.scritte || 1))).svg;
                 if (opz.sfondo === 'scuro') svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
                 const img = await immagineDaSvg3d(svg);
                 const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
@@ -264,10 +300,11 @@
                 if (voce.tipo === 'sez2d') return telaSezione2d(voce, d, opz);
                 const W = opz.W || 1400, H = opz.H || 860;
                 const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
+                const sfE = opz.basemap !== false ? await sfondoEstesoEsportabile3d(d) : null;
                 return conSfondoEsportabile3d(d, sf, () => {
-                    let sc = scenaVoce3d(voce, d, W, H, opz);
+                    let sc = scenaVoce3d(voce, d, W, H, Object.assign({}, opz, { sfondoEsteso: sfE }));
                     if (!sc) return null;
-                    if (opz.legenda !== false) sc = conLegenda3d(sc, d);
+                    if (opz.legenda !== false) sc = conLegenda3d(sc, d, opz.scritte);
                     const tela = document.createElement('canvas');
                     disegnaScena(tela, sc, { fondo: (COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro).fondo, testo: (COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro).testo, scala: opz.scala || 2 });
                     return tela;
@@ -288,7 +325,7 @@
              * in fondo il progetto e il numero di pagina. pagine: [{ titolo, sotto, jpeg, w, h }]. */
             function pdfDaTavole3d(pagine, opz) {
                 const col = COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro;
-                const PW = 841.89, PH = 595.28, M = 28;
+                const PW = opz.PW || 841.89, PH = opz.PH || 595.28, M = MARGINE_PDF_3D;
                 const n = v => String(Math.round(v * 1000) / 1000);
                 const rgb = h => [1, 3, 5].map(i => n(parseInt(h.slice(i, i + 2), 16) / 255)).join(' ');
                 const stringa = t => '(' + testoWinAnsi(t).replace(/[\\()]/g, ch => '\\' + ch) + ')';
@@ -310,7 +347,7 @@
                 oggetto(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
                 oggetto(5, `<< /Title ${stringa(opz.titolo || 'Viste 3D')} /Producer (DPSH Field Collector) >>`);
                 pagine.forEach((p, i) => {
-                    const id = idPag(i), alto = p.titolo ? 52 : 18, basso = 26;
+                    const id = idPag(i), alto = altoTitoloPdf3d(!!p.titolo), basso = BASSO_PDF_3D;
                     const bw = PW - 2 * M, bh = PH - alto - basso - 10, k = Math.min(bw / p.w, bh / p.h), iw = p.w * k, ih = p.h * k;
                     const ix = (PW - iw) / 2, iy = basso + 4 + (bh - ih) / 2;
                     const testo = (s, x, y, dim, grassetto, colore, ancora) => {
@@ -341,9 +378,21 @@
             // ---- LA FINESTRA DELLE TAVOLE ----
             // Lo stato: le tavole, quali si esportano, quale si vede, le regolazioni di ciascuna (ricordate
             // nel progetto, così esportando di nuovo l'inquadratura resta quella scelta) e le opzioni.
-            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', trascina: null, attesa: null, lavoro: false };
+            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
             const T3 = id => document.getElementById(id);
-            const LARGHEZZA_TAVOLA_3D = 1400, ALTEZZA_TAVOLA_3D = 860;
+            // Il foglio (A4 o A3, orizzontale o verticale) in punti PDF, e la figura in pixel della scena:
+            // sempre 1,78 pixel per punto, così una scritta è grande uguale su ogni foglio (su un A3 la
+            // figura ha più spazio, non scritte più piccole).
+            const PX_PER_PT_3D = 1400 / 785.89, MARGINE_PDF_3D = 28;
+            function foglioTavole3d() {
+                const [a, b] = tavole3d.carta === 'A3' ? [1190.55, 841.89] : [841.89, 595.28];
+                return tavole3d.verso === 'v' ? { PW: b, PH: a } : { PW: a, PH: b };
+            }
+            const altoTitoloPdf3d = conTitolo => conTitolo ? 52 : 18, BASSO_PDF_3D = 26;
+            function misureTavola3d(v) {
+                const { PW, PH } = foglioTavole3d(), conTitolo = !v || titoloTavola3d(v) !== null;
+                return { W: Math.round((PW - 2 * MARGINE_PDF_3D) * PX_PER_PT_3D), H: Math.round((PH - altoTitoloPdf3d(conTitolo) - BASSO_PDF_3D - 10) * PX_PER_PT_3D) };
+            }
 
             function memoriaTavole3d() {
                 const proj = state.projects[state.currentProjectId];
@@ -351,13 +400,16 @@
                 if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
                 return proj.tavole3d;
             }
-            function opzioniTavole3d(extra) {
+            function opzioniTavole3d(extra, v) {
+                const { W, H } = misureTavola3d(v), basemap = T3('tavole3dBasemap').checked;
                 return Object.assign({
-                    sfondo: tavole3d.sfondo, basemap: T3('tavole3dBasemap').checked, legenda: T3('tavole3dLegenda').checked,
-                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked,
-                    ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W: LARGHEZZA_TAVOLA_3D, H: ALTEZZA_TAVOLA_3D
+                    sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, scritte: tavole3d.scritte,
+                    ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
             }
+            /** Per l'anteprima: la mappa larga attorno, senza permesso di rilettura (basta vederla). */
+            const sfondoEstesoAnteprima3d = () => T3('tavole3dBasemap').checked && datiVista3dCorrenti ? mosaicoSfondo3d(datiVista3dCorrenti, MEZZO_ESTESO_3D(datiVista3dCorrenti), 3072, false) : null;
             const tipoTavola3d = v => v.tipo === 'iso' ? 'Modello 3D' : v.tipo === 'sez3d' ? 'Sezione 3D (isometria)' : 'Sezione 2D';
             const sottotitoloTavola3d = (v) => {
                 const proj = state.projects[state.currentProjectId] || {};
@@ -374,6 +426,8 @@
                 tavole3d.voci = vociEsportazione3d(d);
                 tavole3d.regola = mem.regola || {};
                 tavole3d.titoli = mem.titoli || {};
+                Object.assign(tavole3d, { carta: 'A4', verso: 'o', scritte: 1.3 }, mem.foglio || {});
+                [['tavole3dCarta', 'carta'], ['tavole3dVerso', 'verso'], ['tavole3dScritte', 'scritte']].forEach(([id, k]) => T3(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(String(b.dataset[k]) === String(tavole3d[k])))));
                 tavole3d.escluse = new Set((mem.escluse || []).filter(id => tavole3d.voci.some(v => v.id === id)));
                 tavole3d.scelta = soloSezioni ? Math.max(0, tavole3d.voci.findIndex(v => v.tipo !== 'iso')) : 0;
                 T3('tavole3dEsag').value = vista3d.ex;
@@ -402,6 +456,7 @@
                 mem.regola = tavole3d.regola;
                 mem.escluse = [...tavole3d.escluse];
                 mem.titoli = tavole3d.titoli;
+                mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -439,11 +494,13 @@
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 900).svg);
                     return;
                 }
-                const tela = el.querySelector('canvas');
-                const sc = scenaVoce3d(v, d, LARGHEZZA_TAVOLA_3D, ALTEZZA_TAVOLA_3D, opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera: true }));
+                const tela = el.querySelector('canvas'), opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera: true, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
+                let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
+                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo];
-                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: 200 / LARGHEZZA_TAVOLA_3D });
+                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: 200 / opz.W });
+                tela.style.aspectRatio = `${opz.W} / ${opz.H}`;
                 tela.style.width = ''; tela.style.height = '';
             }
             function aggiornaContoTavole3d() {
@@ -451,8 +508,8 @@
                 T3('tavole3dConta').textContent = `${n} di ${tavole3d.voci.length}`;
                 const f = tavole3d.formato;
                 T3('tavole3dRiepilogo').textContent = !n ? 'Nessuna pagina scelta.'
-                    : f === 'pdf' ? `${n} ${n === 1 ? 'pagina' : 'pagine'} A4 orizzontali in un PDF solo, nell'ordine dell'elenco.`
-                    : `${n} ${n === 1 ? 'immagine' : 'immagini'} ${f.toUpperCase()}${n > 1 ? ' in un file ZIP' : ''}, ${LARGHEZZA_TAVOLA_3D * 2} pixel di larghezza.`;
+                    : f === 'pdf' ? `${n} ${n === 1 ? 'pagina' : 'pagine'} ${tavole3d.carta} ${tavole3d.verso === 'v' ? (n === 1 ? 'verticale' : 'verticali') : (n === 1 ? 'orizzontale' : 'orizzontali')} in un PDF solo, nell'ordine dell'elenco.`
+                    : `${n} ${n === 1 ? 'immagine' : 'immagini'} ${f.toUpperCase()}${n > 1 ? ' in un file ZIP' : ''}, ${misureTavola3d().W * 2} pixel di larghezza (${tavole3d.carta} ${tavole3d.verso === 'v' ? 'verticale' : 'orizzontale'}).`;
                 T3('tavole3dEsporta').disabled = !n || tavole3d.lavoro;
                 const sc = sceltaSfondo3d();
                 const avviso = T3('tavole3dBasemap').checked && SOSTITUTI_ESPORTA_3D[T3('tavole3dFornitore').value]
@@ -471,6 +528,9 @@
                 T3('tavole3dPrima').disabled = tavole3d.scelta === 0;
                 T3('tavole3dDopo').disabled = tavole3d.scelta === tavole3d.voci.length - 1;
                 T3('tavole3dFoglio').classList.toggle('scuro', scuro);
+                // il foglio con le sue proporzioni (A4 o A3, orizzontale o verticale), grande quanto lo spazio
+                const { PW, PH } = foglioTavole3d(), fb = T3('tavole3dFoglio').parentElement, kf = Math.min(((fb.clientWidth || 900) - 36) / PW, ((fb.clientHeight || 600) - 36) / PH);
+                if (kf > 0) { T3('tavole3dFoglio').style.width = Math.round(PW * kf) + 'px'; T3('tavole3dFoglio').style.height = Math.round(PH * kf) + 'px'; }
                 const titolo = titoloTavola3d(v);
                 T3('tavole3dFoglio').querySelector('.tavole-foglio-tit').hidden = titolo === null;
                 T3('tavole3dFoglioTit').textContent = titolo || '';
@@ -489,7 +549,7 @@
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
-                    let svg = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 1400).svg;
+                    let svg = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), Math.round(misureTavola3d(v).W / tavole3d.scritte)).svg;
                     if (scuro) svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
                     // grande quanto lo spazio della figura nel foglio, con la sua proporzione
                     const box = img.parentElement, misura = () => { const k = Math.min((box.clientWidth || 800) / (img.naturalWidth || 1), (box.clientHeight || 500) / (img.naturalHeight || 1)); img.style.width = Math.round(img.naturalWidth * k) + 'px'; img.style.height = Math.round(img.naturalHeight * k) + 'px'; };
@@ -499,9 +559,10 @@
                     return;
                 }
                 tela.hidden = false; img.hidden = true;
-                let sc = scenaVoce3d(v, d, LARGHEZZA_TAVOLA_3D, ALTEZZA_TAVOLA_3D, opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera }));
+                const opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
+                let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
-                if (T3('tavole3dLegenda').checked) sc = conLegenda3d(sc, d);
+                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo], box = tela.parentElement;
                 // grande quanto lo spazio della figura nel foglio, con la sua proporzione
                 const k = Math.min((box.clientWidth || 800) / sc.W, (box.clientHeight || 500) / sc.H) || 0.5;
@@ -509,9 +570,9 @@
                 tela.style.width = Math.round(sc.W * k) + 'px'; tela.style.height = Math.round(sc.H * k) + 'px';
                 tavole3d.ultima = { sc, k };
                 // l'immagine sul terreno arriva a pezzi: si ridisegna finché non c'è tutta
-                const sf = d._sfondo;
+                const inCorso = s => s && s.caricate + s.errori < s.totali;
                 clearTimeout(tavole3d.attesa);
-                if (T3('tavole3dBasemap').checked && sf && sf.caricate + sf.errori < sf.totali) tavole3d.attesa = setTimeout(() => mostraTavola3d(), 500);
+                if (T3('tavole3dBasemap').checked && (inCorso(d._sfondo) || inCorso(opz.sfondoEsteso))) tavole3d.attesa = setTimeout(() => mostraTavola3d(), 500);
             }
             function regolaTavola3d(modifica) {
                 const v = tavole3d.voci[tavole3d.scelta];
@@ -547,7 +608,7 @@
                         const v = voci[i];
                         lbl.textContent = `Preparo ${i + 1} di ${voci.length}…`;
                         await new Promise(ok => setTimeout(ok, 0));
-                        const tela = await telaVoce3d(v, d, opzioniTavole3d({ reg: tavole3d.regola[v.id], scala: 2 }));
+                        const tela = await telaVoce3d(v, d, opzioniTavole3d({ reg: tavole3d.regola[v.id], scala: 2 }, v));
                         if (!tela) continue;
                         if (formato === 'pdf') {
                             const jpeg = await byteDaTela3d(tela, 'image/jpeg', 0.9);
@@ -559,7 +620,7 @@
                         }
                     }
                     if (formato === 'pdf') {
-                        const blob = pdfDaTavole3d(pagine, { sfondo: tavole3d.sfondo, titolo: `Tavole 3D — ${proj.name || ''}`, piede: [proj.name, proj.comune && proj.comune !== proj.name ? proj.comune : ''].filter(Boolean).join(' · ') });
+                        const blob = pdfDaTavole3d(pagine, Object.assign(foglioTavole3d(), { sfondo: tavole3d.sfondo, titolo: `Tavole 3D — ${proj.name || ''}`, piede: [proj.name, proj.comune && proj.comune !== proj.name ? proj.comune : ''].filter(Boolean).join(' · ') }));
                         scaricaBlobFile(blob, `Tavole3D_${nomeFile}.pdf`);
                     } else if (file.length === 1) {
                         scaricaBlobFile(new Blob([file[0].bytes], { type: formato === 'png' ? 'image/png' : 'image/jpeg' }), `${nomeFile}_${file[0].name}`);
@@ -615,6 +676,14 @@
             });
             sceltaTasti3d('tavole3dFormato', 'formato');
             sceltaTasti3d('tavole3dSfondo', 'sfondo');
+            // Foglio e scritte: cambiano tutte le pagine (e si ricordano col progetto).
+            [['tavole3dCarta', 'carta'], ['tavole3dVerso', 'verso'], ['tavole3dScritte', 'scritte']].forEach(([id, k]) => T3(id).addEventListener('click', (e) => {
+                const b = e.target.closest('button');
+                if (!b) return;
+                T3(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+                tavole3d[k] = k === 'scritte' ? Number(b.dataset[k]) : b.dataset[k];
+                salvaMemoriaTavole3d(); aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
+            }));
             T3('tavole3dBasemap').addEventListener('change', () => {
                 T3('tavole3dFornitore').disabled = !T3('tavole3dBasemap').checked;
                 if (T3('tavole3dBasemap').checked && !sceltaSfondo3d().id) { salvaSceltaSfondo3d({ id: T3('tavole3dFornitore').value }); riempiSceltaSfondo3d(); }
