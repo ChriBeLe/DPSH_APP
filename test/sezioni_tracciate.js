@@ -96,6 +96,15 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, app.d.querySelector('#elencoSezioni3d [data-id="sez_prova"] [data-vedi-sezione]'));
   const vista = $(app, 'vistaSezioneTracciata');
   t('«Vedi»: la sezione sotto l\'elenco, con P e P\', le prove, gli strati e la legenda', !!vista.querySelector('svg') && /P'/.test(vista.textContent) && /DPSH 1/.test(vista.textContent) && vista.querySelectorAll('polygon').length > 0 && /Esagerazione verticale ×\d+/.test(vista.textContent));
+  // Il riempimento: di base i pannelli di correlazione tra prove vicine lungo la traccia, a scelta il solido.
+  const pann = app.E(`(() => { const ds = datiSezioneTracciata(datiVista3dCorrenti, ${P}.sezioniTracciate.find(x => x.id === 'sez_prova'), 25);
+    let attese = 0; for (let i = 0; i + 1 < ds.prove.length; i++) { const A = ds.prove[i].p, B = ds.prove[i + 1].p; if (Math.max(0, Math.min(ds.L, ds.prove[i + 1].s)) - Math.max(0, Math.min(ds.L, ds.prove[i].s)) < 0.5) continue; A.occ.forEach((f, k) => { if (B.occ.get(k)) attese++; }); }
+    return { attese, poligoni: document.querySelectorAll('#vistaSezioneTracciata svg polygon').length, contatti: document.querySelectorAll('#vistaSezioneTracciata svg polyline[stroke="#334155"]').length }; })()`);
+  t(`di base i pannelli di correlazione: uno per strato comune a due prove vicine (${pann.poligoni}), con le linee di contatto (${pann.contatti})`, $(app, 'selRiempimentoSezioni3d').value === 'pannelli' && pann.attese > 0 && pann.poligoni === pann.attese && pann.contatti >= pann.attese
+    && /pannelli di correlazione tra le prove vicine/.test(vista.textContent));
+  $(app, 'selRiempimentoSezioni3d').value = 'solido'; $(app, 'selRiempimentoSezioni3d').dispatchEvent(new app.w.Event('change'));
+  t('a scelta il modello solido (e l\'app se lo ricorda)', /strati interpolati tra le prove/.test(vista.textContent) && app.E('state.settings.riempimentoSezioni2d') === 'solido');
+  $(app, 'selRiempimentoSezioni3d').value = 'pannelli'; $(app, 'selRiempimentoSezioni3d').dispatchEvent(new app.w.Event('change'));
   $(app, 'numFasciaSezione3d').value = '0'; $(app, 'numFasciaSezione3d').dispatchEvent(new app.w.Event('input'));
   t('la fascia decide quali prove entrano (a 0 m, solo quelle sulla linea)', !/DPSH 2/.test(vista.textContent) && /DPSH 1/.test(vista.textContent));
   $(app, 'numFasciaSezione3d').value = '25'; $(app, 'numFasciaSezione3d').dispatchEvent(new app.w.Event('input'));
