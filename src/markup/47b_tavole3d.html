@@ -1,0 +1,64 @@
+    <!-- LE TAVOLE DEL 3D DA ESPORTARE (come l'anteprima delle tavole di HyperGram 6.0b): una finestra al
+         centro dello schermo, sopra la mappa del progetto. A sinistra le pagine (spunta = si esporta;
+         Tutte / Nessuna), al centro la pagina scelta, che si gira, si inclina, si avvicina e si sposta
+         col mouse, a destra i comandi dell'esportazione (PDF unico o immagini, sfondo, mappa di base,
+         legenda). La riempie il 071p. -->
+    <div id="tavole3d" class="tavole-anteprima" hidden>
+        <div class="tavole-finestra" role="dialog" aria-modal="true" aria-label="Esporta le tavole del 3D">
+            <nav class="tavole-elenco" aria-label="Pagine">
+                <div class="tavole-elenco-testa"><span>Pagine <b id="tavole3dConta"></b></span>
+                    <button type="button" id="tavole3dTutte" class="btn-link" title="Esporta tutte le pagine">Tutte</button>
+                    <button type="button" id="tavole3dNessuna" class="btn-link" title="Togli tutte le pagine">Nessuna</button></div>
+                <div id="tavole3dPagine" class="tavole-pagine"></div>
+            </nav>
+            <div class="tavole-pagina">
+                <div class="tavole-pagina-testa">
+                    <button type="button" id="tavole3dPrima" class="tavole-passo" title="Tavola precedente" aria-label="Tavola precedente"><svg class="ico"><use href="#i-back"/></svg></button>
+                    <span id="tavole3dNome"></span>
+                    <button type="button" id="tavole3dDopo" class="tavole-passo" title="Tavola successiva" aria-label="Tavola successiva"><svg class="ico tavole-gira"><use href="#i-back"/></svg></button>
+                </div>
+                <div class="tavole-foglio-box"><div id="tavole3dFoglio" class="tavole-foglio">
+                    <div class="tavole-foglio-tit"><b id="tavole3dFoglioTit"></b><span id="tavole3dFoglioSotto"></span></div>
+                    <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden></div>
+                    <div class="tavole-foglio-piede"><span id="tavole3dPiede"></span><span id="tavole3dNumero"></span></div>
+                </div></div>
+                <div class="tavole-regola" id="tavole3dRegola">
+                    <button type="button" class="tavole-rbt" data-regola="az-" title="Gira a sinistra (15°)"><svg class="ico"><use href="#i-undo"/></svg></button>
+                    <button type="button" class="tavole-rbt" data-regola="az+" title="Gira a destra (15°)"><svg class="ico"><use href="#i-redo"/></svg></button>
+                    <button type="button" class="tavole-rbt" data-regola="el+" title="Più dall'alto (5°)"><svg class="ico"><use href="#i-arrow-up"/></svg></button>
+                    <button type="button" class="tavole-rbt" data-regola="el-" title="Più di lato (5°)"><svg class="ico tavole-gira"><use href="#i-arrow-up"/></svg></button>
+                    <button type="button" class="tavole-rbt" data-regola="zoom-" title="Allontana">−</button>
+                    <button type="button" class="tavole-rbt" data-regola="zoom+" title="Avvicina">+</button>
+                    <button type="button" class="tavole-rbt tavole-rbt-testo" data-regola="reset" title="L'inquadratura di partenza di questa tavola"><svg class="ico"><use href="#i-maximize"/></svg>Inquadra</button>
+                    <span class="tavole-aiuto" id="tavole3dAiuto">Trascina per girare · tasto destro o Maiusc per spostare · rotella per avvicinare · doppio clic: di nuovo inquadrata</span>
+                </div>
+            </div>
+            <aside class="tavole-comandi" aria-label="Esportazione">
+                <div class="tavole-comandi-testa"><b>Esporta le tavole</b>
+                    <button type="button" class="chiudi-x" id="tavole3dChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button></div>
+                <div class="tavole-campo"><span>Formato</span>
+                    <div class="tavole-scelte" id="tavole3dFormato" role="radiogroup">
+                        <button type="button" data-formato="pdf" aria-pressed="true">PDF unico</button>
+                        <button type="button" data-formato="png" aria-pressed="false">Immagini PNG</button>
+                        <button type="button" data-formato="jpg" aria-pressed="false">Immagini JPG</button>
+                    </div></div>
+                <div class="tavole-campo"><span>Sfondo</span>
+                    <div class="tavole-scelte" id="tavole3dSfondo" role="radiogroup">
+                        <button type="button" data-sfondo="chiaro" aria-pressed="true">Chiaro</button>
+                        <button type="button" data-sfondo="scuro" aria-pressed="false">Scuro</button>
+                    </div></div>
+                <label class="tavole-spunta"><input type="checkbox" id="tavole3dBasemap" checked> Mappa di base sul terreno</label>
+                <select id="tavole3dFornitore" class="form-control" aria-label="Mappa di base"></select>
+                <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
+                <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
+                <label class="tavole-spunta"><input type="checkbox" id="tavole3dLegenda" checked> Legenda</label>
+                <label class="tavole-campo tavole-riga"><span>Esagerazione verticale</span><input type="number" id="tavole3dEsag" class="form-control" min="1" max="50" step="1"></label>
+                <p class="t-didascalia" id="tavole3dRiepilogo"></p>
+                <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
+                <div class="tavole-azioni">
+                    <button type="button" class="bt" id="tavole3dAnnulla">Annulla</button>
+                    <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
+                </div>
+            </aside>
+        </div>
+    </div>

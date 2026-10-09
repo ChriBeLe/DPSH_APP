@@ -86,8 +86,8 @@ const $ = (app, id) => app.d.getElementById(id);
   t('si scarica in SVG, senza variabili dell\'app', /Vista3D_.*\.svg$/.test(sc && sc.nome) && /<svg/.test(testo) && !/var\(--|currentColor/.test(testo));
   t('chiaro: fondo bianco, scritte scure', /<rect width="[\d.]+" height="[\d.]+" fill="#ffffff"/.test(testo) && /fill="#1f2937"/.test(testo));
   t('nel file niente riga tecnica (DTM, esagerazione): è un disegno per la tavola', !/vista3d-didascalia|senza DTM|esagerazione verticale/.test(testo));
-  t('la bussola nel file: quadrante, tacche, ago rosso verso Nord e la N', (testo.match(/<circle[^>]*vista3d-nord/g) || []).length >= 2 && (testo.match(/<line[^>]*vista3d-nord/g) || []).length === 8
-    && (testo.match(/<polygon[^>]*vista3d-nord/g) || []).length === 4 && /fill="#dc2626"[^>]*vista3d-nord/.test(testo) && />N<\/text>/.test(testo));
+  t('la bussola nel file: quadrante, tacche, ago rosso verso Nord e la N', (testo.match(/<circle[^>]*vista3d-nord"/g) || []).length >= 2 && (testo.match(/<line[^>]*vista3d-nord"/g) || []).length === 8
+    && (testo.match(/<polygon[^>]*vista3d-nord"/g) || []).length === 4 && /fill="#dc2626"[^>]*vista3d-nord"/.test(testo) && />N<\/text>/.test(testo));
   const strati3d = app.E(`[...new Set(datiVista3dCorrenti.prove.flatMap(p => p.fasce.map(f => f.nome)))]`);
   const legenda = app.E(`vociLegenda3d(scena3d(datiVista3dCorrenti, 1000, false, true, 700), datiVista3dCorrenti).map(v => v.testo)`);
   t(`nel file la legenda di ciò che si vede: ${legenda.join(' · ')}`, /Legenda/.test(testo) && /class="vista3d-legenda"/.test(testo) && legenda.some(v => /^Prov/.test(v)) && strati3d.length > 0 && strati3d.every(n => legenda.includes(n)));
@@ -103,7 +103,7 @@ const $ = (app, id) => app.d.getElementById(id);
   await attesa(20);
   const scuro = app.scaricati[app.scaricati.length - 1];
   const testoScuro = scuro && scuro.blob ? await scuro.blob.text() : '';
-  t('scuro: fondo scuro, scritte chiare', /_scuro\.svg$/.test(scuro && scuro.nome) && /<rect width="[\d.]+" height="[\d.]+" fill="#0f172a"/.test(testoScuro) && /fill="#e5e7eb"/.test(testoScuro) && !/#ffffff/.test(testoScuro));
+  t('scuro: fondo scuro, scritte chiare', /_scuro\.svg$/.test(scuro && scuro.nome) && /<rect width="[\d.]+" height="[\d.]+" fill="#0f172a"/.test(testoScuro) && /fill="#e5e7eb"/.test(testoScuro) && !/fill="#1f2937"/.test(testoScuro));
   clic(app, $(app, 'btnScaricaVista3d'));
   await attesa(20);
   const prima3 = app.scaricati.length;

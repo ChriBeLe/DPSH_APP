@@ -54,6 +54,7 @@ markup/44_modalPalette.html
 markup/45_modalTerreno.html
 markup/46_modalSezione.html
 markup/47_modalVista3d.html
+markup/47b_tavole3d.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/05_tra-motore-e-app.html
@@ -152,5 +153,6 @@ js/071l_mappa-progetto.js
 js/071m_area-mappa.js
 js/071n_disegni.js
 js/071o_stili-livelli.js
+js/071p_esporta-viste-3d.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html
