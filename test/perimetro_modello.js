@@ -118,6 +118,8 @@ function zip(files, comprimi) { // ZIP minimo (stored o deflate)
   t('il perimetro a «L» non è convesso e si triangola (niente triangoli fuori)', !app.E('poligonoConvesso(involucroModello(modelloSolido(datiVista3dCorrenti)))')
     && app.E(`(() => { const Q = involucroModello(modelloSolido(datiVista3dCorrenti)), tt = triangoliniPoligono(Q, 2); return tt.length > 0 && tt.every(t => dentroPoligono(Q, (t[0][0] + t[1][0] + t[2][0]) / 3, (t[0][1] + t[1][1] + t[2][1]) / 3)); })()`)
     && Math.abs(app.E(`(() => { const Q = involucroModello(modelloSolido(datiVista3dCorrenti)); return triangoliPoligono(Q).reduce((s, t) => s + areaPoligono(t), 0) - areaPoligono(Q); })()`)) < 1);
+  t('nel 3D il poligono del perimetro non si vede: niente riempimento, contorno, nome, legenda', app.E(`ultimaScena3d.tutte.filter(f => f.disegno === ${JSON.stringify(id)}).length`) === 0
+    && !app.E(`ultimaScena3d.tutte.some(f => f.t === 'testo' && f.s === 'Area di cantiere')`));
   const nSolido = app.E(`ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-solido').length`);
   t('la scena ha il corpo e i suoi spigoli', nSolido > 50 && app.E(`ultimaScena3d.tutte.some(f => f.cls === 'vista3d-spigolo')`));
   // il terreno: c'è nella rientranza della «L» (fuori dal perimetro), non sopra il corpo

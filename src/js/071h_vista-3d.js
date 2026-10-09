@@ -1343,7 +1343,32 @@
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 ctx.fillStyle = fondo; ctx.fillRect(0, 0, sc.W, sc.H);
                 ctx.lineJoin = 'round';
-                sc.tutte.forEach(f => {
+                // I pezzi d'immagine trasparenti (il terreno, la parte tolta, la foto sopra il modello): ogni
+                // triangolo è allargato di mezzo pixel, e due bordi trasparenti sovrapposti farebbero una riga.
+                // In una fila di pezzi d'immagine, quelli con la stessa trasparenza si disegnano pieni su un
+                // foglio a parte, che poi si posa tutto insieme con la sua trasparenza: niente righe.
+                const alfa = f => (f.fo ?? 1) * (f.op ?? 1), conImmagine = f => f && f.t === 'poli' && f.sfondo;
+                const tutte = sc.tutte;
+                let foglio = null;
+                for (let i = 0; i < tutte.length; i++) {
+                    if (!conImmagine(tutte[i])) { disegnaPezzo(ctx, tutte[i]); continue; }
+                    let j = i;
+                    while (j + 1 < tutte.length && conImmagine(tutte[j + 1])) j++;
+                    const gruppi = new Map();
+                    for (let n = i; n <= j; n++) { const a = Math.round(alfa(tutte[n]) * 1e4) / 1e4; if (!gruppi.has(a)) gruppi.set(a, []); gruppi.get(a).push(tutte[n]); }
+                    if (!foglio) { foglio = document.createElement('canvas'); foglio.width = canvas.width; foglio.height = canvas.height; }
+                    const g2 = foglio.getContext && foglio.getContext('2d');
+                    gruppi.forEach((pezziA, a) => {
+                        if (a >= 0.999 || !g2 || pezziA.length < 2) { pezziA.forEach(f => disegnaPezzo(ctx, f)); return; }
+                        g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, foglio.width, foglio.height);
+                        pezziA.forEach(f => disegnaPezzo(g2, Object.assign({}, f, { fo: 1, op: 1 })));
+                        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(foglio, 0, 0); ctx.restore();
+                    });
+                    i = j;
+                }
+                ctx.globalAlpha = 1; ctx.setLineDash([]);
+                function disegnaPezzo(ctx, f) {
+                    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                     ctx.setLineDash(f.dash || []);
                     const op = f.op ?? 1;
                     if (f.t === 'poli' && f.sfondo) {
@@ -1391,8 +1416,7 @@
                         } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = f.coloreAlone ? col(f.coloreAlone) : fondo; ctx.strokeText(f.s, f.x, f.y); }
                         ctx.fillStyle = f.colore ? col(f.colore) : testoColore; ctx.fillText(f.s, f.x, f.y);
                     }
-                });
-                ctx.globalAlpha = 1; ctx.setLineDash([]);
+                }
             }
 
             /** La prova sotto il punto (x, y del canvas): la colonna o il nome più vicino, entro 9 px. */

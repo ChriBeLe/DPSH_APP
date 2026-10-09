@@ -308,24 +308,34 @@
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                 });
             }
-            /** Quanto è alta la pianta sotto (o sopra) una sezione 2D: compatta, alla scala della sezione,
-             * quanto basta per le prove della sezione (con un margine), tra un ottavo e un quinto della larghezza.
-             * Le prove che non ci stanno si segnano sul bordo con la freccia. */
-            function altezzaPiantaSezione(d, t, asse, W) {
-                const { L } = tracciaInScena(d, t), k = (asse.xb - asse.xa) / (L || 1);
-                const ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), lato = Math.max(0, ...ds.prove.map(q => q.lato));
-                return Math.round(Math.max(W * 0.125, Math.min(W * 0.2, 2 * (lato + 4) * k + 34)));
+            /** La pianta girata come la sezione (traccia in orizzontale, A a sinistra) e riadattata perché si
+             * vedano la traccia e le prove: i loro estremi lungo la traccia (s) e di lato (n), in metri. */
+            function ingombroPiantaSezione(d, t) {
+                const { a, b, L } = tracciaInScena(d, t), ux = (b[0] - a[0]) / (L || 1), uy = (b[1] - a[1]) / (L || 1);
+                const sn = (X, Y) => [(X - a[0]) * ux + (Y - a[1]) * uy, -(X - a[0]) * uy + (Y - a[1]) * ux];
+                const pp = d.prove.map(p => sn(p.x, p.y)).concat([[0, 0], [L, 0]]);
+                const s0 = Math.min(...pp.map(q => q[0])), s1 = Math.max(...pp.map(q => q[0])), n0 = Math.min(...pp.map(q => q[1])), n1 = Math.max(...pp.map(q => q[1]));
+                const mS = Math.max(4, (s1 - s0) * 0.06), mN = Math.max(4, (n1 - n0) * 0.1);
+                return { a, ux, uy, L, sn, s0: s0 - mS, s1: s1 + mS, n0: n0 - mN, n1: n1 + mN };
             }
-            /** LA PIANTA DELLA TRACCIA, GIRATA COME LA SEZIONE: la mappa di base ruotata perché la traccia stia
-             * in orizzontale, A a sinistra e A' a destra esattamente sotto (o sopra) la A e la A' della sezione,
-             * alla stessa scala orizzontale; riempie tutta la larghezza. La fascia delle prove proiettate
-             * tratteggiata, le prove col numero (gialle quelle nella sezione), la freccia del Nord girata. */
+            /** Quanto è alta la pianta sotto (o sopra) una sezione 2D: quanto serve perché, su tutta la larghezza,
+             * ci stiano le prove (tra un settimo e un terzo della larghezza). */
+            function altezzaPiantaSezione(d, t, asse, W) {
+                const ig = ingombroPiantaSezione(d, t);
+                return Math.round(Math.max(W * 0.14, Math.min(W * 0.34, W * (ig.n1 - ig.n0) / Math.max(1, ig.s1 - ig.s0))));
+            }
+            /** LA PIANTA DELLA TRACCIA, GIRATA: la foto satellitare ruotata perché la traccia stia in orizzontale
+             * (A a sinistra, A' a destra, come nella sezione) e riadattata perché si vedano le prove, su tutta la
+             * larghezza. La fascia delle prove proiettate tratteggiata, le prove col numero (gialle quelle nella
+             * sezione), la freccia del Nord girata. */
             function disegnaPiantaTraccia3d(g, d, t, ds, sfondi, x, y, w, h, conNord, asse) {
                 sfondi = (Array.isArray(sfondi) ? sfondi : [sfondi]).filter(s => s && s.uv && s.tela);
-                const { a, b, L } = tracciaInScena(d, t), ux = (b[0] - a[0]) / (L || 1), uy = (b[1] - a[1]) / (L || 1);
-                const xa = asse ? asse.xa : x + w * 0.06, xb = asse ? asse.xb : x + w * 0.94, yc = y + h / 2, k = (xb - xa) / (L || 1);
+                void asse;
+                const ig = ingombroPiantaSezione(d, t), { a, L } = ig;
+                const k = Math.min(w / Math.max(1, ig.s1 - ig.s0), h / Math.max(1, ig.n1 - ig.n0)), sc = (ig.s0 + ig.s1) / 2, nc = (ig.n0 + ig.n1) / 2;
                 // dalla scena (metri, x a Est, y a Nord) al foglio: lungo la traccia a destra, a sinistra della traccia in su
-                const S = (X, Y) => { const s = (X - a[0]) * ux + (Y - a[1]) * uy, n = -(X - a[0]) * uy + (Y - a[1]) * ux; return [xa + s * k, yc - n * k]; };
+                const S = (X, Y) => { const [s, n] = ig.sn(X, Y); return [x + w / 2 + (s - sc) * k, y + h / 2 - (n - nc) * k]; };
+                const [xa, yc] = S(a[0], a[1]), xb = xa + L * k;
                 g.save();
                 g.beginPath(); g.rect(x, y, w, h); g.clip();
                 g.fillStyle = '#d1d5db'; g.fillRect(x, y, w, h);

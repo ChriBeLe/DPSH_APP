@@ -143,11 +143,13 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`nelle tavole la mesh del modello non c'è (anche se nel 3D è accesa); si accende con «Mesh del modello» (${mesh.con} righe)`, mesh.senza === 0 && mesh.con > 50 && mesh.dopo === true && mesh.spunta);
   t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
   const piantaGirata = app.E(`(() => {
-    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], sez = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), 1400);
-    const asse = { xa: sez.x0, xb: sez.x1 }, h = altezzaPiantaSezione(d, t, asse, 1400);
-    return { x0: sez.x0, x1: sez.x1, W: sez.W, h };
+    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], W = 1400, h = altezzaPiantaSezione(d, t, null, W), ig = ingombroPiantaSezione(d, t);
+    const k = Math.min(W / (ig.s1 - ig.s0), h / (ig.n1 - ig.n0)), sc = (ig.s0 + ig.s1) / 2, nc = (ig.n0 + ig.n1) / 2;
+    const dentro = d.prove.filter(p => { const [s, n] = ig.sn(p.x, p.y), X = W / 2 + (s - sc) * k, Y = h / 2 - (n - nc) * k; return X > 0 && X < W && Y > 0 && Y < h; }).length;
+    const [sb, nb] = ig.sn(...tracciaInScena(d, t).b);
+    return { h, dentro, tutte: d.prove.length, orizzontale: Math.abs(nb) < 1e-6 && sb > 0 };
   })()`);
-  t(`la pianta della sezione 2D: girata con la traccia in orizzontale, A e A' sotto quelli della sezione (x ${piantaGirata.x0}–${piantaGirata.x1.toFixed(0)}), compatta (alta ${piantaGirata.h} su 1400)`, piantaGirata.x0 > 0 && piantaGirata.x1 < piantaGirata.W && piantaGirata.h >= 1400 * 0.125 && piantaGirata.h <= 1400 * 0.2);
+  t(`la pianta della sezione 2D: foto girata con la traccia in orizzontale (A a sinistra) e riadattata: si vedono tutte le prove (${piantaGirata.dentro}/${piantaGirata.tutte}), alta ${piantaGirata.h} su 1400`, piantaGirata.orizzontale && piantaGirata.dentro === piantaGirata.tutte && piantaGirata.h >= 1400 * 0.14 && piantaGirata.h <= 1400 * 0.34);
   const segue = app.E(`(() => {
     const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
     [1, 2.5, 6].forEach(z => { const sc = scenaVoce3d(v, d, 1400, 860, { reg: { zoom: z }, legenda: false }), e = sc.elementi.nordTerreno; out.push(e ? { w: e.x1 - e.x0, h: e.y1 - e.y0, dentro: e.x0 >= 0 && e.x1 <= 1400 && e.y0 >= 0 && e.y1 <= 860 } : null); });

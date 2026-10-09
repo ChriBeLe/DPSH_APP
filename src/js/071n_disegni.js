@@ -50,7 +50,10 @@
             /** Nel 3D: appoggiati sul terreno (i lati dei poligoni ne seguono il profilo). */
             function disegniNellaScena3d(d, P, sopra, testo) {
                 const zMedia = (d.zMin + d.zMax) / 2, alSuolo = (x, y) => { const z = d.zSuolo(x, y); return P(x, y, Number.isFinite(z) ? z : zMedia); };
-                disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
+                // Il poligono che fa da perimetro del modello, col corpo acceso, nel 3D non c'è: né riempimento, né
+                // contorno, né nome (né in legenda). Il contorno lo fanno gli spigoli del corpo.
+                const perimetro = vista3d.livelli.solido ? (state.projects[state.currentProjectId] || {}).perimetroModello : null;
+                disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id) && x.id !== perimetro).forEach(x => {
                     const xy = x.punti.map(p => d.daGeo(p.lat, p.lng)), st = stileLivello('d:' + x.id);
                     let qui;
                     if (x.tipo === 'punto') {
@@ -62,9 +65,7 @@
                             const b = xy[(i + 1) % xy.length];
                             for (let k = 0; k < 12; k++) bordo.push(alSuolo(a[0] + (b[0] - a[0]) * k / 12, a[1] + (b[1] - a[1]) * k / 12));
                         });
-                        // il perimetro del modello 3D, col corpo acceso: solo il contorno (il riempimento coprirebbe gli strati)
-                        const perimetro = vista3d.livelli.solido && (state.projects[state.currentProjectId] || {}).perimetroModello === x.id;
-                        if (st.opacita > 0 && !perimetro) sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: st.riempimento || st.colore, fo: st.opacita, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
+                        if (st.opacita > 0) sopra.push({ t: 'poli', p: bordo.map(q => [q[0], q[1]]), fill: st.riempimento || st.colore, fo: st.opacita, stroke: 'none', sw: 0, cls: 'vista3d-disegno', disegno: x.id });
                         const dash = trattoDash(st.tratto, 0.6);
                         bordo.forEach((q, i) => { const r = bordo[(i + 1) % bordo.length]; sopra.push({ t: 'linea', x1: q[0], y1: q[1], x2: r[0], y2: r[1], stroke: st.colore, sw: st.spessore, dash, cls: 'vista3d-disegno', disegno: x.id }); });
                         const c = d.daGeo(centroDisegno(x).lat, centroDisegno(x).lng);
