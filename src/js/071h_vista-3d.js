@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: true, falda: true, misure: true, distanze: true, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -486,7 +486,7 @@
                     const prof = Yd * ce - Z * se, s = occhio ? occhio / Math.max(occhio * 0.08, occhio + prof) : 1;
                     return [W / 2 + X * k * s, H / 2 + (-Z * ce - Yd * se) * k * s, prof];
                 };
-                const pezzi = [], sopra = [], colonne = [];
+                const pezzi = [], sopra = [], colonne = [], elementiTavola = {};
                 const poli = (pp, extra) => (extra.strato && (vista3d.stratiNascosti.has(extra.strato) || (extra.cls === 'vista3d-solido' && vista3d.stratiSolidoNascosti.has(extra.strato)))) || pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
                 // L'OMBREGGIATURA: la faccia (punti in metri veri) prende luce secondo come è girata. La
                 // normale (Newell, regge anche i quadrilateri schiacciati) si volta verso chi guarda: si
@@ -583,6 +583,29 @@
                             resto = dentroQui;
                         });
                     }
+                    // IL TERRENO ESTESO (solo nelle tavole esportate): attorno al riquadro del DTM il
+                    // terreno continua, piatto alla quota del bordo più vicino, con le tessere della mappa
+                    // di base di un mosaico più largo (est.sf), fin dove serve a riempire il foglio. A
+                    // maglie larghe, allineate al riquadro: dentro resta il terreno vero.
+                    const est = vista3d.terrenoEsteso;
+                    if (est && est.mezzo > 0 && nodi.length) {
+                        const tutti = nodi.flat().filter(n => isFinite(n[0]) && isFinite(n[1]));
+                        const x0 = Math.min(...tutti.map(n => n[0])), x1 = Math.max(...tutti.map(n => n[0])), y0 = Math.min(...tutti.map(n => n[1])), y1 = Math.max(...tutti.map(n => n[1]));
+                        const m = leggera ? 4 : 8, gx = (x1 - x0) / m, gy = (y1 - y0) / m;
+                        const ax = Math.max(0, Math.ceil((est.mezzo - (x1 - x0) / 2) / gx)), ay = Math.max(0, Math.ceil((est.mezzo - (y1 - y0) / 2) / gy));
+                        const sfE = L.immagine && est.sf && est.sf.uv ? est.sf : null, eps = 1e-6;
+                        const zBordo = (x, y) => { const v = d.zSuolo(Math.min(x1 - eps, Math.max(x0 + eps, x)), Math.min(y1 - eps, Math.max(y0 + eps, y))); return Number.isFinite(v) ? v : zRif; };
+                        const uvE = (x, y) => { const gg = d.geo(x, y); return sfE.uv(gg.lat, gg.lng); };
+                        for (let i = -ax; i < m + ax; i++) for (let j = -ay; j < m + ay; j++) {
+                            if (i >= 0 && i < m && j >= 0 && j < m) continue;
+                            const q = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => { const x = x0 + u * gx, y = y0 + v * gy; return [x, y, zBordo(x, y)]; });
+                            if (sfE) [[q[0], q[1], q[2]], [q[0], q[2], q[3]]].forEach(tri => {
+                                const sp = tri.map(w => P(...w));
+                                pezzi.push({ prof: sottoTutto + 5e6 + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(w => [w[0], w[1]]), uv: tri.map(w => uvE(w[0], w[1])), sfondo: sfE.tela, fill: colore((q[0][2] + q[2][2]) / 2, 0.9), fo: opacita, cls: 'vista3d-faccia' });
+                            });
+                            else { const sp = q.map(w => P(...w)), fill = colore((q[0][2] + q[2][2]) / 2, 0.9); pezzi.push({ prof: sottoTutto + 5e6 + sp.reduce((a, w) => a + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); }
+                        }
+                    }
                 }
                 // LA FRECCIA DEL NORD STESA SUL TERRENO (oltre alla bussola): nell'angolo del terreno più
                 // vicino a chi guarda, appoggiata alla superficie e scorciata con lei, con la sua N.
@@ -605,7 +628,9 @@
                     const sagoma = giu.slice(0, -1).concat(su.slice(0, -1));
                     const dentroSagoma = (x, y) => sagoma.length >= 3 && sagoma.every((a, i) => giro(a, sagoma[(i + 1) % sagoma.length], [x, y]) >= 0);
                     const libero = ([x, y]) => [[0, 1.45], [0, 1], [-0.5, -0.75], [0.5, -0.75], [0, -0.35]].every(([e, n]) => { const q = P(x + e * Lf, y + n * Lf, zIn(x + e * Lf, y + n * Lf));
-                        return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
+                        // (e fuori dal posto della legenda, quando le tavole gliel'hanno riservato)
+                        const rl = vista3d.postoLegenda, sottoLegenda = rl && q[0] > rl.x - 14 && q[0] < rl.x + rl.w + 14 && q[1] > rl.y - 14 && q[1] < rl.y + rl.h + 14;
+                        return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && !sottoLegenda && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
                     const vicinanza = ([x, y]) => P(x, y, zIn(x, y))[2];
                     const ordinati = angoli.slice().sort((a, b) => vicinanza(a) - vicinanza(b));
                     // Se nessun angolo è libero (vista avvicinata: gli angoli escono dal quadro), il punto
@@ -613,7 +638,8 @@
                     const griglia = [];
                     for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) griglia.push([x0 + dentro + (x1 - x0 - 2 * dentro) * i / 8, y0 + dentro + (y1 - y0 - 2 * dentro) * j / 8]);
                     const versoAngolo = q => { const s = P(q[0], q[1], zIn(q[0], q[1])); return Math.hypot(s[0] - W * 0.12, s[1] - H * 0.86); };
-                    const [fx, fy] = ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
+                    // spostata a mano nella finestra delle tavole: dove l'ha messa l'utente (metri della scena)
+                    const [fx, fy] = vista3d.nordTerrenoPos || ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
                     const pt = (e, n) => { const x = fx + e * Lf, y = fy + n * Lf; return P(x, y, zIn(x, y)); };
                     const punta = pt(0, 1), sx = pt(-0.5, -0.75), tacca = pt(0, -0.35), dx = pt(0.5, -0.75);
                     const prof = so ? 5e8 : Math.min(punta[2], sx[2], dx[2]) - lato * 0.05, xy = q => [q[0], q[1]];
@@ -621,6 +647,8 @@
                     pezzi.push({ prof: prof - 1e-4, t: 'poli', p: [punta, tacca, dx].map(xy), fill: '#ffffff', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
                     const n = pt(0, 1.45);
                     pezzi.push({ prof: prof - 2e-4, t: 'testo', x: n[0], y: n[1] + 6, s: 'N', size: 18, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord-terreno' });
+                    const xs = [punta, sx, dx, n].map(q => q[0]), ys = [punta, sx, dx, n].map(q => q[1]);
+                    elementiTavola.nordTerreno = { x0: Math.min(...xs) - 10, y0: Math.min(...ys) - 22, x1: Math.max(...xs) + 10, y1: Math.max(...ys) + 10, mondo: [fx, fy] };
                 }
                 const { pannelli, superfici } = modelloCorrelazione(d);
                 if (so) {
@@ -819,12 +847,24 @@
                     const b0 = P(ax, ay, zFondo), b1 = P(ax, ay, zTesta);
                     // I numeri dalla parte esterna: a destra se lo spigolo sta a destra del centro.
                     const aDestra = b1[0] >= P(mx, my, zRif)[0];
-                    sopra.push({ t: 'linea', x1: b0[0], y1: b0[1], x2: b1[0], y2: b1[1], stroke: stM.colore || 'currentColor', sw: stM.spessore, cls: 'vista3d-misure' });
-                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) {
+                    // BIANCA, con un filo scuro attorno: si legge sulla mappa di base come sullo sfondo chiaro
+                    // (un colore scelto in «Stile…» resta quello, senza filo).
+                    const coloreAsta = stM.colore || '#ffffff', filo = stM.colore ? null : 'rgba(15,23,42,0.85)';
+                    const lineaAsta = (x1, y1, x2, y2, sw) => {
+                        if (filo) sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: filo, sw: sw + 2, cls: 'vista3d-misure' });
+                        sopra.push({ t: 'linea', x1, y1, x2, y2, stroke: coloreAsta, sw, cls: 'vista3d-misure' });
+                    };
+                    lineaAsta(b0[0], b0[1], b1[0], b1[1], stM.spessore);
+                    // Le tacche tonde, più una alle due estremità dell'asta quando non ci cade già una
+                    // tonda (il fondo del modello a −4,6: la tacca c'è, col suo numero).
+                    const tacche = [];
+                    for (let z = Math.ceil((zFondo - 1e-6) / passo) * passo; z <= zTesta + 0.001; z += passo) tacche.push([z, passo < 1 ? 1 : 0]);
+                    [zFondo, zTesta].forEach(z => { if (!tacche.some(([q]) => Math.abs(q - z) < passo * 0.3)) tacche.push([z, 1]); });
+                    tacche.forEach(([z, dec]) => {
                         const t = P(ax, ay, z);
-                        sopra.push({ t: 'linea', x1: t[0] - 5, y1: t[1], x2: t[0] + 5, y2: t[1], stroke: stM.colore || 'currentColor', sw: Math.max(1, stM.spessore * 0.7), cls: 'vista3d-misure' });
-                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, passo < 1 ? 1 : 0), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure' });
-                    }
+                        lineaAsta(t[0] - 5, t[1], t[0] + 5, t[1], Math.max(1, stM.spessore * 0.7));
+                        if (vista3d.etichette.misure) testo(t[0] + (aDestra ? 8 : -8), t[1] + 4, numeroConVirgola(z, dec), { anchor: aDestra ? 'start' : 'end', cls: 'vista3d-misure', bold: true, colore: coloreAsta, alone: true, coloreAlone: filo || undefined });
+                    });
                 }
                 // Le distanze tra le prove: un livello a sé, spegnibile senza perdere l'asta.
                 if (L.distanze) d.lati.forEach(([i, j]) => {
@@ -848,11 +888,17 @@
                 // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola). Una rosa vera:
                 // quadrante con le tacche, ago a due colori (rosso verso Nord) e una N grande in punta,
                 // girati come il nord della vista (la direzione Nord sul piano delle prove, proiettata).
-                if (file) {
+                // Gli elementi della tavola (bussola, scala) si accendono, si spengono e si spostano dalla
+                // finestra delle tavole: vista3d.elementi (acceso sì/no) e vista3d.posizioni (frazioni del
+                // foglio). Dove sono finiti lo dice elementiTavola, per poterli prendere col mouse.
+                const EL = vista3d.elementi || {}, POS = vista3d.posizioni || {};
+                const fondo = 'var(--bg-card, #fff)';
+                if (file && EL.bussola !== false) {
                     const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
                     const lung = Math.hypot(nx - ox, ny - oy);
                     const ax = lung > 1e-6 ? (nx - ox) / lung : 0, ay = lung > 1e-6 ? (ny - oy) / lung : -1, px = -ay, py = ax;
-                    const R = 42, cx = W - 24 - R - 20, cy = H - 24 - R - 20, fondo = 'var(--bg-card, #fff)';
+                    const R = 42, cx = POS.bussola ? POS.bussola[0] * W : W - 24 - R - 20, cy = POS.bussola ? POS.bussola[1] * H : H - 24 - R - 20;
+                    elementiTavola.bussola = { x0: cx - R - 22, y0: cy - R - 22, x1: cx + R + 22, y1: cy + R + 22 };
                     const pt = (a, b) => [cx + ax * a + px * b, cy + ay * a + py * b];
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: R, fill: fondo, stroke: 'currentColor', so: 0.7, sw: 1.5, cls: 'vista3d-nord' });
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: R - 6, fill: 'none', stroke: 'currentColor', so: 0.25, sw: 1, cls: 'vista3d-nord' });
@@ -870,6 +916,16 @@
                     const [tx, ty] = pt(R + 15, 0);
                     testo(tx, ty + 7, 'N', { size: 20, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord' });
                 }
+                // LA SCALA GRAFICA, in basso a sinistra: senza prospettiva le distanze in orizzontale
+                // sullo schermo sono in scala vera (k pixel per metro). Quattro tratti alternati,
+                // 0, metà e tutta la lunghezza, tonda, sui 150 pixel.
+                if (file && EL.scala !== false && !vista3d.prospettiva && k > 0) {
+                    const metri = massimoTondo(150 / k), lp = metri * k, hb = 6;
+                    const sx0 = POS.scala ? POS.scala[0] * W : 24, sy0 = POS.scala ? POS.scala[1] * H : H - 44;
+                    elementiTavola.scala = { x0: sx0 - 10, y0: sy0 - 24, x1: sx0 + lp + 40, y1: sy0 + hb + 8 };
+                    for (let n = 0; n < 4; n++) sopra.push({ t: 'poli', p: [[sx0 + lp * n / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0 + hb], [sx0 + lp * n / 4, sy0 + hb]], fill: n % 2 ? fondo : 'currentColor', fo: 1, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-scala' });
+                    [[0, '0'], [lp / 2, numeroConVirgola(metri / 2, metri / 2 < 10 && metri % 2 ? 1 : 0)], [lp, numeroConVirgola(metri, 0) + ' m']].forEach(([x, s2], n) => testo(sx0 + x, sy0 - 5, s2, { size: 11, anchor: n === 2 ? 'start' : 'middle', alone: true, cls: 'vista3d-scala' }));
+                }
                 // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
                 // scaricato, che va in una tavola.
                 if (!file) {
@@ -877,6 +933,9 @@
                     if (W < 700) { testo(16, H - 30, quote, { size: 12, cls: 'vista3d-didascalia' }); testo(16, H - 14, esagTesto, { size: 12, cls: 'vista3d-didascalia' }); }
                     else testo(16, H - 14, quote + ' · ' + esagTesto, { size: 12, cls: 'vista3d-didascalia' });
                 }
+                // Le scritte più grandi (tavole esportate: «Scritte» della finestra delle tavole).
+                const scalaT = vista3d.scalaTesti || 1;
+                if (scalaT !== 1) pezzi.concat(sopra).forEach(f => { if (f.t === 'testo') f.size *= scalaT; });
                 // L'opacità dei livelli (menu del tasto destro): quella del livello del pezzo per quella
                 // della sua prova, del suo strato e della sua traccia.
                 const O = vista3d.opacita, o1 = k => (k && O[k] !== undefined ? O[k] : 1);
@@ -887,7 +946,7 @@
                     const o = (f.cls === 'vista3d-solido' ? o1('ss:' + f.strato) : 1) * o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1) * (f.disegno ? o1('d:' + f.disegno) : 1);
                     if (o < 1) f.op = o;
                 });
-                return { W, H, k, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
+                return { W, H, k, pezzi, sopra, colonne, elementi: elementiTavola, tutte: pezzi.concat(sopra) };
             }
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
@@ -904,7 +963,7 @@
                     // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
                     const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
                     const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
-                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="currentColor"${f.alone ? ' paint-order="stroke" stroke="var(--bg-card, #fff)" stroke-width="3"' : ''}${cls}>${esc(f.s)}</text>`;
+                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="${f.colore || 'currentColor'}"${f.alone ? ` paint-order="stroke" stroke="${f.coloreAlone || 'var(--bg-card, #fff)'}" stroke-width="3"` : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
             }
@@ -955,37 +1014,44 @@
                 if (altri.length) { voci.push({ tipo: 'titolo', testo: 'Altro' }); voci.push(...altri); }
                 return voci;
             }
-            /** La scena con la legenda in una colonna a destra: fuori dalla figura, che non copre. */
-            function conLegenda3d(sc, d) {
-                const voci = vociLegenda3d(sc, d);
-                if (!voci.length) return sc;
-                const CAR = 7.5, MAX = 30;
+            /** La legenda, piccola e sobria come in HyperGram: un riquadro in alto a destra, DENTRO la
+             * figura (che così resta grande quanto il foglio), col fondo appena velato. Righe di 10 px,
+             * campioni piccoli, i nomi lunghi vanno a capo. Le misure servono anche a chi inquadra. */
+            const LEGENDA_3D = { car: 6.1, max: 30, riga: 14, a_capo: 12, testa: 22, sez: 17, pad: 9 };
+            // fs: quanto più grandi le scritte (1 = come a schermo); tutto il riquadro cresce con loro.
+            function impaginaLegenda3d(voci, fs) {
+                const L = LEGENDA_3D, f = fs || 1;
                 const aCapo = s => {
                     const righe = [];
-                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= MAX) righe[u] += ' ' + p; else righe.push(p); });
+                    String(s).split(/\s+/).forEach(p => { const u = righe.length - 1; if (u >= 0 && (righe[u] + ' ' + p).length <= L.max) righe[u] += ' ' + p; else righe.push(p); });
                     return righe;
                 };
                 voci.forEach(v => { v.righe = v.tipo === 'titolo' ? [v.testo] : aCapo(v.testo); });
-                const lw = Math.round(Math.min(320, Math.max(190, 64 + CAR * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length))))))) ;
-                const x0 = sc.W + 18, forme = [], cls = 'vista3d-legenda';
-                // il fondo della colonna: quello che della figura sborda a destra (il terreno) non ci passa sotto
-                const Hl = Math.max(sc.H, 52 + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? 26 : 22 + (v.righe.length - 1) * 15), 0) + 16);
-                forme.push({ t: 'poli', p: [[sc.W, 0], [sc.W + lw, 0], [sc.W + lw, Hl], [sc.W, Hl]], fill: 'var(--bg-card, #fff)', fo: 1, stroke: 'none', sw: 0, cls });
-                forme.push({ t: 'linea', x1: sc.W, y1: 16, x2: sc.W, y2: sc.H - 16, stroke: 'currentColor', sw: 1, op: 0.25, cls });
-                forme.push({ t: 'testo', x: x0, y: 34, s: 'Legenda', size: 15, bold: true, cls });
-                let y = 52;
+                const w = Math.round(f * Math.min(230, Math.max(120, 2 * L.pad + 24 + L.car * Math.max(...voci.map(v => Math.max(...v.righe.map(r => r.length)))))));
+                const h = Math.round(f * (L.pad + L.testa + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? L.sez : L.riga + (v.righe.length - 1) * L.a_capo), 0) + L.pad - 4));
+                return { w, h };
+            }
+            function conLegenda3d(sc, d, fs, pos) {
+                const voci = vociLegenda3d(sc, d);
+                if (!voci.length) return sc;
+                const f = fs || 1, L = LEGENDA_3D, { w, h } = impaginaLegenda3d(voci, f), cls = 'vista3d-legenda';
+                // pos: l'angolo in alto a sinistra in frazioni del foglio (spostata a mano), dentro al foglio
+                const bx = pos ? Math.max(0, Math.min(sc.W - w, pos[0] * sc.W)) : sc.W - w - 12, by = pos ? Math.max(0, Math.min(sc.H - h, pos[1] * sc.H)) : 12, x0 = bx + L.pad * f, forme = [];
+                forme.push({ t: 'poli', p: [[bx, by], [bx + w, by], [bx + w, by + h], [bx, by + h]], fill: 'var(--bg-card, #fff)', fo: 0.86, stroke: 'currentColor', sw: 0.6, cls });
+                forme.push({ t: 'testo', x: x0, y: by + (L.pad + 9) * f, s: 'Legenda', size: 11 * f, bold: true, cls });
+                let y = by + (L.pad + L.testa - 4) * f;
                 voci.forEach(v => {
-                    if (v.tipo === 'titolo') { y += 8; forme.push({ t: 'testo', x: x0, y: y + 10, s: v.testo.toUpperCase(), size: 10.5, bold: true, op: 0.65, cls }); y += 18; return; }
-                    const cy = y + 8, xs = x0, xt = x0 + 34;
-                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - 6], [xs + 24, cy - 6], [xs + 24, cy + 6], [xs, cy + 6]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1.4 : 0.6, dash: v.dash, cls });
-                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + 24, y2: cy, stroke: v.stroke, sw: v.sw, dash: v.dash, cls });
-                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + 12, y: cy, r: v.r || 4.5, fill: v.fill || 'currentColor', stroke: v.stroke, cls });
-                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + 2, y1: cy - 2, x2: xs + 22, y2: cy - 2, stroke: 'currentColor', sw: 2, cls }); forme.push({ t: 'linea', x1: xs + 12, y1: cy - 2, x2: xs + 12, y2: cy + 6, stroke: 'currentColor', sw: 2, cls }); }
-                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + 12, y1: cy - 8, x2: xs + 12, y2: cy + 8, stroke: 'currentColor', sw: 1.4, cls }); [-7, 0, 7].forEach(k => forme.push({ t: 'linea', x1: xs + 8, y1: cy + k, x2: xs + 16, y2: cy + k, stroke: 'currentColor', sw: 1, cls })); }
-                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + 4 + i * 15, s: r, size: 12, cls }));
-                    y += 22 + (v.righe.length - 1) * 15;
+                    if (v.tipo === 'titolo') { forme.push({ t: 'testo', x: x0, y: y + 11 * f, s: v.testo.toUpperCase(), size: 8 * f, bold: true, op: 0.6, cls }); y += L.sez * f; return; }
+                    const cy = y + 6 * f, xs = x0, xt = x0 + 22 * f, q = n => n * f;
+                    if (v.tipo === 'riquadro') forme.push({ t: 'poli', p: [[xs, cy - q(4.5)], [xs + q(15), cy - q(4.5)], [xs + q(15), cy + q(4.5)], [xs, cy + q(4.5)]], fill: v.fill || 'none', fo: v.fo ?? 1, stroke: v.stroke || 'currentColor', sw: v.stroke ? 1 : 0.4, dash: v.dash, cls });
+                    else if (v.tipo === 'linea') forme.push({ t: 'linea', x1: xs, y1: cy, x2: xs + q(15), y2: cy, stroke: v.stroke, sw: Math.min(2.2, v.sw || 1.5) * Math.sqrt(f), dash: v.dash, cls });
+                    else if (v.tipo === 'cerchio') forme.push({ t: 'cerchio', x: xs + q(7.5), y: cy, r: Math.min(3.5, v.r || 3.5) * f, fill: v.fill || 'currentColor', stroke: v.stroke, cls });
+                    else if (v.tipo === 'giacitura') { forme.push({ t: 'linea', x1: xs + q(1), y1: cy - q(1.5), x2: xs + q(14), y2: cy - q(1.5), stroke: 'currentColor', sw: 1.5, cls }); forme.push({ t: 'linea', x1: xs + q(7.5), y1: cy - q(1.5), x2: xs + q(7.5), y2: cy + q(4), stroke: 'currentColor', sw: 1.5, cls }); }
+                    else if (v.tipo === 'asta') { forme.push({ t: 'linea', x1: xs + q(7.5), y1: cy - q(5.5), x2: xs + q(7.5), y2: cy + q(5.5), stroke: 'currentColor', sw: 1, cls }); [-5, 0, 5].forEach(k => forme.push({ t: 'linea', x1: xs + q(4.5), y1: cy + q(k), x2: xs + q(10.5), y2: cy + q(k), stroke: 'currentColor', sw: 0.8, cls })); }
+                    v.righe.forEach((r, i) => forme.push({ t: 'testo', x: xt, y: cy + q(3.5) + i * L.a_capo * f, s: r, size: 10 * f, cls }));
+                    y += (L.riga + (v.righe.length - 1) * L.a_capo) * f;
                 });
-                return { ...sc, W: sc.W + lw, H: Math.max(sc.H, y + 16), tutte: sc.tutte.concat(forme) };
+                return { ...sc, legenda: { x: bx, y: by, w, h }, tutte: sc.tutte.concat(forme) };
             }
 
             /** La scena sul canvas: stessa figura, disegnata in pochi millisecondi anche mentre gira. */
@@ -1049,8 +1115,8 @@
                             ctx.beginPath(); ctx.rect(x0 - 4, f.y - f.size, w + 8, f.size + 5); ctx.fill();
                             if (f.box === 'bordo') { ctx.globalAlpha = op; ctx.strokeStyle = testoColore; ctx.lineWidth = 1; ctx.stroke(); }
                             ctx.restore();
-                        } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = fondo; ctx.strokeText(f.s, f.x, f.y); }
-                        ctx.fillStyle = testoColore; ctx.fillText(f.s, f.x, f.y);
+                        } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = f.coloreAlone ? col(f.coloreAlone) : fondo; ctx.strokeText(f.s, f.x, f.y); }
+                        ctx.fillStyle = f.colore ? col(f.colore) : testoColore; ctx.fillText(f.s, f.x, f.y);
                     }
                 });
                 ctx.globalAlpha = 1; ctx.setLineDash([]);
@@ -1158,6 +1224,12 @@
                 c[2] += v * ce / vista3d.ex;
             }
             box3d.addEventListener('pointerdown', (e) => {
+                // Una sezione sotto il mouse (Seleziona): si trascina lei, la vista resta ferma.
+                if (e.button === 0 && !e.shiftKey && dita3d.size === 0 && iniziaSpostaTraccia3d(...puntoCanvas(e))) {
+                    vista3d.mosso = 0;
+                    if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
+                    return;
+                }
                 dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 vista3d.trascina = dita3d.size === 1 ? { x: e.clientX, y: e.clientY, sposta: e.button === 1 || e.button === 2 || e.shiftKey } : null;
                 vista3d.pizzico = dita3d.size === 2 ? pizzicoDita() : null;
@@ -1165,6 +1237,7 @@
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
             });
             box3d.addEventListener('pointermove', (e) => {
+                if (vista3d.spostaTraccia) { vista3d.mosso += 10; seguiSpostaTraccia3d(...puntoCanvas(e)); return; }
                 if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (vista3d.pizzico && dita3d.size === 2) {
                     const p = pizzicoDita(), prima = vista3d.pizzico;
@@ -1183,6 +1256,7 @@
                 ridisegna3d();
             });
             ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, (e) => {
+                if (vista3d.spostaTraccia) { const st = vista3d.spostaTraccia; vista3d.spostaTraccia = null; if (st.mossa) fineSpostaTraccia(); return; }
                 const eraMosso = vista3d.trascina || vista3d.pizzico;
                 dita3d.delete(e.pointerId);
                 vista3d.trascina = null; vista3d.pizzico = null;
@@ -1202,7 +1276,8 @@
                 if (vista3d.trascina || !ultimaScena3d) return;
                 if (vista3d.disegno) { seguiTracciaSezione3d(e); return; }
                 const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e);
-                if (c) c.style.cursor = provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
+                const tr = areaMappa.strumento === 'sel' && tracciaSottoIlMouse3d(mx, my);
+                if (c) c.style.cursor = tr ? (tr.parte === 'tutta' ? 'move' : 'crosshair') : provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
             });
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }

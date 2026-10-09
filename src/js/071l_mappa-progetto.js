@@ -69,9 +69,27 @@
                 const stV = stileLivello('prove');
                 if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
                     const st = stileLivello('t:' + t.id);
-                    L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: st.colore, weight: st.spessore, dashArray: trattoLeaflet(st.tratto), opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
-                        .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome), { sticky: true })
+                    const linea = L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: st.colore, weight: Math.max(st.spessore, 3), dashArray: trattoLeaflet(st.tratto), opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
+                        .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome) + ' · trascinala per spostarla', { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
+                    // SPOSTARLA IN TEMPO REALE: gli estremi si trascinano (A, A'), la linea pure (tutta).
+                    if (areaMappa.strumento === 'sel') {
+                        const maniglia = () => L.divIcon({ className: '', html: '<div class="mappa-traccia-maniglia"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
+                        const estremi = [t.a, t.b].map((g, i) => L.marker([g.lat, g.lng], { icon: maniglia(), draggable: true, keyboard: false, title: 'Trascina per spostare ' + estremiTraccia(t.nome)[i] }).addTo(m.livelli));
+                        const aggiorna = () => { linea.setLatLngs([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]); estremi[0].setLatLng([t.a.lat, t.a.lng]); estremi[1].setLatLng([t.b.lat, t.b.lng]); };
+                        estremi.forEach((mk, i) => {
+                            mk.on('drag', () => { const ll = mk.getLatLng(), g = { lat: ll.lat, lng: ll.lng }; spostaTraccia(t, i ? t.a : g, i ? g : t.b, false); linea.setLatLngs([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]); });
+                            mk.on('dragend', () => { fineSpostaTraccia(); disegnaProveMappa(); });
+                        });
+                        linea.on('mousedown', (e) => {
+                            L.DomEvent.stop(e);
+                            const mappa = m.mappa, p0 = e.latlng, a0 = Object.assign({}, t.a), b0 = Object.assign({}, t.b);
+                            mappa.dragging.disable();
+                            const muovi = (ev) => { const dl = ev.latlng.lat - p0.lat, dn = ev.latlng.lng - p0.lng; spostaTraccia(t, { lat: a0.lat + dl, lng: a0.lng + dn }, { lat: b0.lat + dl, lng: b0.lng + dn }, true); aggiorna(); };
+                            const fine = () => { mappa.off('mousemove', muovi); mappa.off('mouseup', fine); mappa.dragging.enable(); fineSpostaTraccia(); disegnaProveMappa(); };
+                            mappa.on('mousemove', muovi); mappa.on('mouseup', fine);
+                        });
+                    }
                     if (vista3d.etichette.sezioni) estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
                         L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia et-${st.etichetta}">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);

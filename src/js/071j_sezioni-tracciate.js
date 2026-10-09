@@ -5,7 +5,8 @@
             // (interpolati tra le prove), prove vicine alla linea proiettate. Si esportano in PDF
             // (sezione + vista dal satellite con la traccia) e in GeoPackage (071k).
 
-            const sezioniTracciateStato = { fascia: 25, vista: null };
+            // riempimento delle sezioni 2D: 'pannelli' (di correlazione tra le prove, di base) o 'solido'
+            const sezioniTracciateStato = { fascia: 25, vista: null, riempimento: 'pannelli' };
 
             function tracceDelProgetto() {
                 const proj = state.projects[state.currentProjectId];
@@ -148,6 +149,7 @@
                 if (sezioniTracciateStato.vista && !tracceDelProgetto().some(t => t.id === sezioniTracciateStato.vista && !t.griglia)) sezioniTracciateStato.vista = null;
                 proj.sezioniTracciate = tracceDelProgetto().filter(t => !t.griglia).concat(nuove);
                 saveState();
+                infoAreaMappa();
                 renderVista3d();
                 renderElencoSezioni3d();
             }
@@ -166,6 +168,74 @@
             function agganciaTaglioAllaGriglia3d(pos, dir) {
                 const vicina = tracceDelProgetto().filter(t => t.griglia && t.asse === dir).find(t => Math.abs(t.pos - pos) < 0.025);
                 return vicina ? vicina.pos : pos;
+            }
+
+            /** SPOSTARE UNA SEZIONE IN TEMPO REALE (nel 3D e sulla mappa 2D): un estremo (A o A') o tutta
+             * la linea. Nuovi estremi in gradi. Una linea della griglia spostata di lato resta della griglia
+             * (pos nuova) e, se il corpo era tagliato lì, il taglio la segue; girata (un estremo), diventa una
+             * traccia qualsiasi e il taglio, se era su di lei, la segue di sbieco. Non salva: lo fa chi
+             * smette di trascinare (fineSpostaTraccia). */
+            function spostaTraccia(t, ga, gb, tutta) {
+                const d = datiVista3dCorrenti, tg = vista3d.taglio;
+                const tagliataQui = (t.asse && tg.dir === t.asse && t.pos !== undefined && Math.abs(tg.pos - t.pos) < 1e-6) || (tg.retta && tg.traccia === t.id);
+                t.a = ga; t.b = gb;
+                if (!d) return;
+                const a = d.daGeo(ga.lat, ga.lng), b = d.daGeo(gb.lat, gb.lng);
+                if (t.asse && tutta) {
+                    const ax = t.asse === 'ns' ? 0 : 1, valori = contornoPerGriglia3d(d).map(p => p[ax]), lo = Math.min(...valori), hi = Math.max(...valori);
+                    t.pos = Math.max(0, Math.min(1, ((a[ax] + b[ax]) / 2 - lo) / ((hi - lo) || 1)));
+                    if (tagliataQui) { tg.pos = t.pos; const rng = document.getElementById('rngTaglioV3d'); if (rng) rng.value = Math.round(t.pos * 100); }
+                } else {
+                    if (t.asse) { delete t.asse; delete t.pos; delete t.griglia; }
+                    if (tagliataQui) vista3d.taglio = { dir: null, pos: tg.pos, lato: tg.lato, prof: tg.prof, retta: [a, b], traccia: t.id };
+                }
+            }
+            function fineSpostaTraccia() {
+                saveState();
+                infoAreaMappa();
+                renderVista3d();
+                renderElencoSezioni3d();
+                if (sezioniTracciateStato.vista) renderVistaSezioneTracciata();
+            }
+            /** Nel 3D: la traccia (o un suo estremo) sotto il mouse, dai segmenti disegnati nella scena. */
+            function tracciaSottoIlMouse3d(sx, sy) {
+                const sc = ultimaScena3d;
+                if (!sc) return null;
+                const per = new Map();
+                sc.tutte.forEach(f => { if (f.cls === 'vista3d-traccia' && f.traccia) { if (!per.has(f.traccia)) per.set(f.traccia, []); per.get(f.traccia).push(f); } });
+                let meglio = null;
+                per.forEach((segs, id) => {
+                    const A = [segs[0].x1, segs[0].y1], B = [segs[segs.length - 1].x2, segs[segs.length - 1].y2];
+                    [['a', A], ['b', B]].forEach(([parte, q]) => { const dd = Math.hypot(sx - q[0], sy - q[1]); if (dd < 13 && (!meglio || dd < meglio.d)) meglio = { id, parte, d: dd }; });
+                    if (meglio && meglio.parte !== 'tutta') return;
+                    segs.forEach(f => {
+                        const vx = f.x2 - f.x1, vy = f.y2 - f.y1, l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - f.x1) * vx + (sy - f.y1) * vy) / l2));
+                        const dd = Math.hypot(sx - f.x1 - u * vx, sy - f.y1 - u * vy);
+                        if (dd < 7 && (!meglio || (meglio.parte === 'tutta' && dd < meglio.d))) meglio = { id, parte: 'tutta', d: dd };
+                    });
+                });
+                return meglio;
+            }
+            /** Nel 3D: il trascinamento comincia (se sotto il mouse c'è una traccia) e prosegue. */
+            function iniziaSpostaTraccia3d(sx, sy) {
+                if (vista3d.disegno || areaMappa.strumento !== 'sel') return false;
+                const hit = tracciaSottoIlMouse3d(sx, sy), d = datiVista3dCorrenti, p0 = puntoAlSuolo3d(sx, sy);
+                if (!hit || !d || !p0) return false;
+                const t = tracceDelProgetto().find(x => x.id === hit.id);
+                if (!t) return false;
+                vista3d.spostaTraccia = { t, parte: hit.parte, p0, a0: d.daGeo(t.a.lat, t.a.lng), b0: d.daGeo(t.b.lat, t.b.lng) };
+                return true;
+            }
+            function seguiSpostaTraccia3d(sx, sy) {
+                const st = vista3d.spostaTraccia, d = datiVista3dCorrenti, p = puntoAlSuolo3d(sx, sy);
+                if (!st || !d || !p) return;
+                const dx = p[0] - st.p0[0], dy = p[1] - st.p0[1];
+                const a = st.parte === 'b' ? st.a0 : [st.a0[0] + dx, st.a0[1] + dy], b = st.parte === 'a' ? st.b0 : [st.b0[0] + dx, st.b0[1] + dy];
+                if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 1) return;
+                spostaTraccia(st.t, d.geo(...a), d.geo(...b), st.parte === 'tutta');
+                st.mossa = true;
+                ridisegna3d();
+                if (sezioniTracciateStato.vista === st.t.id) requestAnimationFrame(renderVistaSezioneTracciata);
             }
 
             /** IL TAGLIO VERTICALE DEL CORPO SOLIDO COME TRACCIA: la retta del taglio, da un lato all'altro
@@ -223,21 +293,33 @@
             /** LA SEZIONE IN SVG: strati del modello (dove la traccia attraversa le prove), profilo del
              * terreno, prove vicine con il loro nome e la distanza dalla linea, assi in metri, A e A'. */
             function svgSezioneTracciata(ds, larghezza) {
-                const W = Math.max(480, Math.round(larghezza || 900)), sx0 = 58, dx0 = 22, top = 40;
+                const W = Math.max(480, Math.round(larghezza || 900)), sx0 = 58, dx0 = 22;
                 const pw = W - sx0 - dx0;
                 const fondoProve = Math.max(0, ...ds.prove.map(q => q.p.fondo));
-                const fondo = Math.max(ds.so ? ds.so.fondo : 0, fondoProve, 1);
+                const fondo = Math.max(ds.so && sezioniTracciateStato.riempimento === 'solido' ? ds.so.fondo : 0, fondoProve, 1);
                 const zs = ds.campioni.map(c => c.z).filter(z => z !== null).concat(ds.prove.map(q => q.p.z));
                 if (!zs.length) zs.push(0);
                 const zTop = Math.max(...zs), zBot = Math.min(...zs) - fondo, zr = Math.max(1, zTop - zBot);
                 const sx = pw / Math.max(1, ds.L);
+                // I NOMI DELLE PROVE NON SI ACCAVALLANO: due prove vicine lungo la traccia mettono il nome
+                // su righe diverse (una sopra l'altra, col trattino fino alla colonna); la sezione si
+                // abbassa quanto serve. Lo stesso per le distanze dalla traccia, sotto le colonne.
+                const xProva = q => sx0 + Math.max(0, Math.min(ds.L, q.s)) * sx;
+                const righe = larghezze => { const fine = []; return ds.prove.map((q, i) => { const x = xProva(q), w = larghezze[i]; let r = 0; while (fine[r] !== undefined && x - w / 2 < fine[r] + 4) r++; fine[r] = x + w / 2; return r; }); };
+                const rigaNome = righe(ds.prove.map(q => nomeDpsh(q.p.s).length * 6.7 + 2));
+                const rigaLato = righe(ds.prove.map(q => q.lato >= 0.5 ? (`a ${numeroConVirgola(q.lato, 0)} m`).length * 5.2 : 0));
+                const top = 40 + Math.max(0, ...rigaNome) * 13;
                 const ex = Math.max(1, Math.min(50, Math.round(pw * 0.4 / (zr * sx))));
                 const ph = zr * sx * ex;
                 const X = s => sx0 + s * sx, Y = z => top + (zTop - z) * sx * ex;
                 const n = v => v.toFixed(1), esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
                 let corpo = '';
-                // Gli strati, per tratti continui dentro l'involucro.
-                if (ds.so) {
+                // IL RIEMPIMENTO. Di base i PANNELLI DI CORRELAZIONE: tra una prova e la successiva lungo
+                // la traccia, ogni strato presente in tutte e due si collega tetto con tetto e letto con
+                // letto (il terreno in mezzo segue il profilo), colorato, con le linee di contatto sopra.
+                // A scelta il modello solido (strati interpolati tra le prove, dentro il loro perimetro).
+                const solido = ds.so && sezioniTracciateStato.riempimento === 'solido';
+                if (solido) {
                     let tratto = [];
                     const chiudi = () => {
                         if (tratto.length > 1) ds.so.strati.forEach((st, k) => {
@@ -249,16 +331,50 @@
                     };
                     ds.campioni.forEach(c => { if (c.col) tratto.push(c); else chiudi(); });
                     chiudi();
+                } else {
+                    // il terreno lungo la traccia, per far seguire il profilo ai pannelli tra due prove
+                    const terra = ds.campioni.filter(c => c.z !== null);
+                    const zTerra = (sx, zA, zB, t) => {
+                        if (terra.length < 2) return zA + (zB - zA) * t;
+                        const k = terra.findIndex(c => c.s >= sx);
+                        if (k < 0) return terra[terra.length - 1].z;
+                        if (k === 0) return terra[0].z;
+                        const c0 = terra[k - 1], c1 = terra[k], f = (sx - c0.s) / ((c1.s - c0.s) || 1);
+                        return c0.z + (c1.z - c0.z) * f;
+                    };
+                    const sx = q => Math.max(0, Math.min(ds.L, q.s)), linee = [];
+                    for (let i = 0; i + 1 < ds.prove.length; i++) {
+                        const A = ds.prove[i], B = ds.prove[i + 1], sA = sx(A), sB = sx(B);
+                        if (sB - sA < 0.5) continue;
+                        const passi = Math.max(1, Math.min(24, Math.round((sB - sA) / 4)));
+                        A.p.occ.forEach((fa, k) => {
+                            const fb = B.p.occ.get(k);
+                            if (!fb) return;
+                            const su = [], giu = [];
+                            for (let m = 0; m <= passi; m++) {
+                                const t = m / passi, s2 = sA + (sB - sA) * t;
+                                const z = m === 0 ? A.p.z : m === passi ? B.p.z : zTerra(s2, A.p.z, B.p.z, t);
+                                su.push([X(s2), Y(z - (fa.da + (fb.da - fa.da) * t))]);
+                                giu.push([X(s2), Y(z - (fa.a + (fb.a - fa.a) * t))]);
+                            }
+                            corpo += `<polygon points="${su.concat(giu.slice().reverse()).map(q => n(q[0]) + ',' + n(q[1])).join(' ')}" fill="${fa.colore}" fill-opacity="0.75" stroke="none"><title>${esc(fa.nome)}</title></polygon>`;
+                            if (fa.da > 0 || fb.da > 0) linee.push(su);
+                            linee.push(giu);
+                        });
+                    }
+                    linee.forEach(l => { corpo += `<polyline points="${l.map(q => n(q[0]) + ',' + n(q[1])).join(' ')}" fill="none" stroke="#334155" stroke-width="0.9" stroke-opacity="0.85"/>`; });
                 }
                 // Il terreno.
                 const terreno = ds.campioni.filter(c => c.z !== null).map(c => `${n(X(c.s))},${n(Y(c.z))}`);
                 if (terreno.length > 1) corpo += `<polyline points="${terreno.join(' ')}" fill="none" stroke="#1f2937" stroke-width="1.6"/>`;
                 // Le prove vicine.
-                ds.prove.forEach(q => {
+                ds.prove.forEach((q, i) => {
                     const x = X(Math.max(0, Math.min(ds.L, q.s)));
                     q.p.fasce.forEach(f => { corpo += `<rect x="${n(x - 4)}" y="${n(Y(q.p.z - f.da))}" width="8" height="${n(Math.max(0.5, (f.a - f.da) * sx * ex))}" fill="${f.colore}" stroke="#111827" stroke-width="0.6"><title>${esc(nomeDpsh(q.p.s))}: ${esc(f.nome)}</title></rect>`; });
-                    corpo += `<text x="${n(x)}" y="${n(Y(q.p.z) - 6)}" font-size="11" font-weight="700" text-anchor="middle" fill="#111827" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(nomeDpsh(q.p.s))}</text>`;
-                    if (q.lato >= 0.5) corpo += `<text x="${n(x)}" y="${n(Y(q.p.z - q.p.fondo) + 12)}" font-size="9" text-anchor="middle" fill="#475569">a ${numeroConVirgola(q.lato, 0)} m</text>`;
+                    const yNome = Y(q.p.z) - 6 - rigaNome[i] * 13;
+                    if (rigaNome[i]) corpo += `<line x1="${n(x)}" y1="${n(yNome + 3)}" x2="${n(x)}" y2="${n(Y(q.p.z) - 1)}" stroke="#64748b" stroke-width="0.8"/>`;
+                    corpo += `<text x="${n(x)}" y="${n(yNome)}" font-size="11" font-weight="700" text-anchor="middle" fill="#111827" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(nomeDpsh(q.p.s))}</text>`;
+                    if (q.lato >= 0.5) corpo += `<text x="${n(x)}" y="${n(Y(q.p.z - q.p.fondo) + 12 + rigaLato[i] * 10)}" font-size="9" text-anchor="middle" fill="#475569" paint-order="stroke" stroke="#fff" stroke-width="2.5">a ${numeroConVirgola(q.lato, 0)} m</text>`;
                 });
                 // Assi: quote a sinistra, distanze sotto.
                 let assi = `<line x1="${sx0}" y1="${top}" x2="${sx0}" y2="${n(top + ph)}" stroke="#334155"/><line x1="${sx0}" y1="${n(top + ph)}" x2="${n(sx0 + pw)}" y2="${n(top + ph)}" stroke="#334155"/>`;
@@ -272,16 +388,18 @@
                 const estremi = `<text x="${sx0}" y="24" font-size="17" font-weight="800" text-anchor="middle" fill="#dc2626">${esc(e1)}</text><text x="${n(sx0 + pw)}" y="24" font-size="17" font-weight="800" text-anchor="middle" fill="#dc2626">${esc(e2)}</text>`;
                 // Legenda degli strati e note.
                 let y = top + ph + 52, x = sx0, legenda = '';
-                const voci = ds.so ? ds.so.strati : [];
+                // la legenda: gli strati del modello solido, o quelli delle prove della sezione (in ordine di profondità)
+                const stratiProve = () => { const m = new Map(); ds.prove.forEach(q => q.p.fasce.forEach(f => { const v = m.get(f.nome) || { nome: f.nome, colore: f.colore, da: 0, n: 0 }; v.da += f.da; v.n++; m.set(f.nome, v); })); return [...m.values()].sort((x, y) => x.da / x.n - y.da / y.n); };
+                const voci = solido ? ds.so.strati : stratiProve();
                 voci.forEach(st => {
                     const w = 22 + st.nome.length * 6.2;
                     if (x + w > W - dx0) { x = sx0; y += 16; }
-                    legenda += `<rect x="${n(x)}" y="${n(y - 9)}" width="12" height="10" fill="${st.colore}" fill-opacity="${st.ignoto ? 0.35 : 0.8}" stroke="#475569" stroke-width="0.5"/><text x="${n(x + 16)}" y="${n(y)}" font-size="10" fill="#1f2937">${esc(st.nome)}</text>`;
+                    legenda += `<rect x="${n(x)}" y="${n(y - 9)}" width="12" height="10" fill="${st.colore}" fill-opacity="${st.ignoto ? 0.35 : solido ? 0.8 : 0.75}" stroke="#475569" stroke-width="0.5"/><text x="${n(x + 16)}" y="${n(y)}" font-size="10" fill="#1f2937">${esc(st.nome)}</text>`;
                     x += w + 10;
                 });
                 y += voci.length ? 18 : 4;
                 const nota = `Esagerazione verticale ×${ex} · lunghezza ${numeroConVirgola(ds.L, 0)} m · direzione ${numeroConVirgola(ds.azimut, 0)}° · prove entro la fascia: ${ds.prove.length}`
-                    + (ds.so ? ' · strati interpolati tra le prove, solo dentro il loro perimetro' : ' · per gli strati servono almeno tre prove col GPS, non in fila');
+                    + (solido ? ' · strati interpolati tra le prove, solo dentro il loro perimetro' : ds.prove.length > 1 ? ' · pannelli di correlazione tra le prove vicine' : ' · per i pannelli servono almeno due prove vicine alla traccia');
                 legenda += `<text x="${sx0}" y="${n(y)}" font-size="10" fill="#475569">${esc(nota)}</text>`;
                 const H = Math.round(y + 12);
                 return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, sans-serif" class="sezione-tracciata">${corpo}${assi}${estremi}${legenda}</svg>`, ex, W, H };
@@ -341,6 +459,17 @@
                 creaGrigliaSezioni3d(v('numGrigliaDir3d') || 0, Math.max(1, v('numGrigliaPasso3d') || 25), Math.max(1, Math.min(26, Math.round(v('numGrigliaN3d') || 1))), document.getElementById('chkGrigliaIncrociata3d').checked);
             });
             document.getElementById('numFasciaSezione3d').addEventListener('input', (e) => { sezioniTracciateStato.fascia = Math.max(0, Number(e.target.value) || 0); renderVistaSezioneTracciata(); });
+            // Il riempimento delle sezioni 2D: pannelli di correlazione (di base) o modello solido; vale
+            // anche per le tavole, ed è ricordato nelle impostazioni dell'app.
+            sezioniTracciateStato.riempimento = (state.settings && state.settings.riempimentoSezioni2d) || 'pannelli';
+            document.getElementById('selRiempimentoSezioni3d').value = sezioniTracciateStato.riempimento;
+            document.getElementById('selRiempimentoSezioni3d').addEventListener('change', (e) => {
+                sezioniTracciateStato.riempimento = e.target.value === 'solido' ? 'solido' : 'pannelli';
+                if (!state.settings) state.settings = {};
+                state.settings.riempimentoSezioni2d = sezioniTracciateStato.riempimento;
+                saveState();
+                renderVistaSezioneTracciata();
+            });
             document.getElementById('elencoSezioni3d').addEventListener('change', (e) => {
                 const riga = e.target.closest('[data-id]'), t = riga && tracceDelProgetto().find(x => x.id === riga.dataset.id);
                 if (!t || !e.target.hasAttribute('data-nome-sezione')) return;
