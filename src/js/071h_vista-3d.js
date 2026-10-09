@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0, opacitaFoto: 0.5,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false, tagliaMappa: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false, tagliaMappa: false, spigoli: true },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -804,6 +804,31 @@
                             });
                             sopra.unshift(...foto);
                         }
+                        // GLI SPIGOLI DEL CORPO: una linea scura che ne disegna la forma (il contorno di sopra,
+                        // e delle pareti che si vedono il fondo e gli spigoli verticali). Col taglio seguono la
+                        // parte che resta. Stanno sotto alle tracce delle sezioni, che si disegnano dopo.
+                        if (L.spigoli) {
+                            const sp = { stroke: '#0f172a', sw: 1.3, cls: 'vista3d-spigolo' };
+                            const lungo = (a, b, prof) => {
+                                const n0 = Math.max(1, Math.min(24, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / passo)));
+                                let prima = null;
+                                for (let n = 0; n <= n0; n++) {
+                                    const x = a[0] + (b[0] - a[0]) * n / n0, y = a[1] + (b[1] - a[1]) * n / n0, q = P(x, y, colonnaIn(x, y).z - prof);
+                                    if (prima) sopra.push({ t: 'linea', x1: prima[0], y1: prima[1], x2: q[0], y2: q[1], ...sp });
+                                    prima = q;
+                                }
+                            };
+                            const verticale = a => { const z = colonnaIn(a[0], a[1]).z, q1 = P(a[0], a[1], z - hTaglio), q2 = P(a[0], a[1], z - so.fondo); sopra.push({ t: 'linea', x1: q1[0], y1: q1[1], x2: q2[0], y2: q2[1], ...sp }); };
+                            const angoli = new Set();
+                            Q.forEach((a, i) => {
+                                const b = Q[(i + 1) % Q.length], dx = b[0] - a[0], dy = b[1] - a[1];
+                                if (se > 0) lungo(a, b, hTaglio); // il sopra si vede guardando dall'alto
+                                if (Math.hypot(dx, dy) < 1e-6 || dy * vx - dx * vy >= 0) { if (se <= 0) lungo(a, b, so.fondo); return; } // parete di spalle
+                                lungo(a, b, so.fondo);
+                                angoli.add(i); angoli.add((i + 1) % Q.length);
+                            });
+                            angoli.forEach(i => verticale(Q[i]));
+                        }
                         // Il contorno della faccia di taglio, per vederla bene.
                         if (distTaglio || hTaglio > 0) Q.forEach((a, i) => {
                             const b = Q[(i + 1) % Q.length];
@@ -1048,7 +1073,7 @@
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
                 'vista3d-giacitura': 'giaciture', 'vista3d-giacitura-segno': 'giaciture', 'vista3d-falda': 'falda', 'vista3d-falda-segno': 'falda', 'vista3d-falda-nome': 'falda',
-                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno', 'vista3d-foto-sopra': 'fotoSopra' };
+                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno', 'vista3d-foto-sopra': 'fotoSopra', 'vista3d-spigolo': 'spigoli' };
             /** La scena in SVG: per il file scaricato (e per i test). */
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
@@ -1452,6 +1477,7 @@
                         liv('pannelli', sw('aree', 'background:#94a3b8; border-color:#64748b'), 'Pannelli di correlazione'),
                         liv('superfici', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Superfici di contatto'),
                         liv('falda', sw('linee', 'background:#0284c7'), 'Falda', '«T»: la profondità della falda su ogni colonna', E.falda),
+                        liv('spigoli', sw('aree', 'background:transparent; border-color:#0f172a'), 'Spigoli del modello', 'Una linea scura sugli spigoli del corpo solido (col taglio, della parte che resta)'),
                         liv('fantasma', sw('aree', 'background:transparent; border-color:#64748b; border-style:dashed'), 'Spigoli del pezzo tagliato', 'Col corpo tagliato: il contorno di quello che è stato tolto, tratteggiato sottile') ] },
                     // Gli strati del corpo solido (solo del modello: colonne e pannelli restano).
                     { id: 'solido', nome: 'Corpo solido', righe: (d && L.solido && modelloSolido(d) ? modelloSolido(d).strati : []).map(st => ({ chiave: 'ss:' + st.nome, solidoStrato: st.nome,

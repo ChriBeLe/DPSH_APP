@@ -127,6 +127,7 @@
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
                     if (opz && opz.fantasma !== undefined) vista3d.livelli.fantasma = !!opz.fantasma;
                     if (opz && opz.fotoSopra !== undefined) vista3d.livelli.fotoSopra = !!opz.fotoSopra;
+                    if (opz && opz.spigoli !== undefined) vista3d.livelli.spigoli = !!opz.spigoli;
                     if (opz && opz.tagliaMappa !== undefined) vista3d.livelli.tagliaMappa = !!opz.tagliaMappa;
                     if (opz && opz.opacitaFoto) vista3d.opacitaFoto = opz.opacitaFoto;
                     if (base.tracce) vista3d.tracceNascoste = new Set(tracceDelProgetto().map(t => t.id).filter(id => id !== base.tracce));
@@ -279,16 +280,18 @@
                 let svg = svgSezioneTracciata(ds, Math.round(W / (opz.scritte || 1))).svg;
                 if (opz.sfondo === 'scuro') svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
                 const img = await immagineDaSvg3d(svg);
-                const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
-                const hPianta = sf ? Math.round(W * 0.26) : 0, gap = sf ? 18 : 0;
-                const H = Math.round(img.height * W / img.width) + gap + hPianta;
+                // l'ubicazione della sezione (pianta dal satellite): sotto, sopra o niente («Ubicazione»)
+                const pos = opz.pianta || 'sotto';
+                const sf = opz.basemap !== false && pos !== 'no' ? await sfondoEsportabile3d(d) : null;
+                const hPianta = sf ? Math.round(W * 0.26) : 0, gap = sf ? 18 : 0, hSez = Math.round(img.height * W / img.width);
+                const H = hSez + gap + hPianta;
                 const tela = document.createElement('canvas');
                 tela.width = Math.round(W * scala); tela.height = Math.round(H * scala);
                 const g = tela.getContext('2d');
                 g.scale(scala, scala);
                 g.fillStyle = col.fondo; g.fillRect(0, 0, W, H);
-                g.drawImage(img, 0, 0, W, img.height * W / img.width);
-                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, sf, 0, H - hPianta, W, hPianta, opz.nordPianta !== false);
+                g.drawImage(img, 0, pos === 'sopra' && sf ? hPianta + gap : 0, W, hSez);
+                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, sf, 0, pos === 'sopra' ? 0 : H - hPianta, W, hPianta, opz.nordPianta !== false);
                 return tela;
             }
             function immagineDaSvg3d(svg) {
@@ -421,7 +424,7 @@
             // ---- LA FINESTRA DELLE TAVOLE ----
             // Lo stato: le tavole, quali si esportano, quale si vede, le regolazioni di ciascuna (ricordate
             // nel progetto, così esportando di nuovo l'inquadratura resta quella scelta) e le opzioni.
-            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, posizioni: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
+            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, posizioni: {}, pianta: 'sotto', escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
             const T3 = id => document.getElementById(id);
             // Il foglio (A4 o A3, orizzontale o verticale) in punti PDF, e la figura in pixel della scena:
             // sempre 1,78 pixel per punto, così una scritta è grande uguale su ogni foglio (su un A3 la
@@ -447,7 +450,7 @@
                 const { W, H } = misureTavola3d(v), basemap = T3('tavole3dBasemap').checked;
                 return Object.assign({
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
-                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, opacitaFoto: Number(T3('tavole3dOpacitaFoto').value) / 100, scritte: tavole3d.scritte,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, pianta: tavole3d.pianta, spigoli: T3('tavole3dSpigoli').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, opacitaFoto: Number(T3('tavole3dOpacitaFoto').value) / 100, scritte: tavole3d.scritte,
                     elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
                     ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
@@ -516,12 +519,15 @@
                 T3('tavole3dNordTerreno').checked = vista3d.livelli.nordTerreno !== false;
                 T3('tavole3dFantasma').checked = vista3d.livelli.fantasma !== false;
                 T3('tavole3dFotoSopra').checked = !!vista3d.livelli.fotoSopra;
+                T3('tavole3dSpigoli').checked = vista3d.livelli.spigoli !== false;
                 T3('tavole3dTagliaMappa').checked = !!vista3d.livelli.tagliaMappa;
                 T3('tavole3dOpacitaFoto').value = Math.round((mem.opacitaFoto || vista3d.opacitaFoto || 0.5) * 100);
                 T3('tavole3dOpacitaFotoVal').textContent = T3('tavole3dOpacitaFoto').value + '%';
                 tavole3d.posizioni = mem.posizioni || {};
+                tavole3d.pianta = mem.pianta || 'sotto';
+                T3('tavole3dPiantaPos').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pianta === tavole3d.pianta)));
                 const el = mem.elementi || {};
-                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
+                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa'], ['tavole3dSpigoli', 'spigoli']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
@@ -541,8 +547,9 @@
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
                 mem.posizioni = tavole3d.posizioni;
                 mem.ordine = tavole3d.voci.map(v => v.id);
+                mem.pianta = tavole3d.pianta;
                 mem.opacitaFoto = Number(T3('tavole3dOpacitaFoto').value) / 100;
-                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked };
+                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, spigoli: T3('tavole3dSpigoli').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -563,6 +570,7 @@
             function renderProveTavola3d(v) {
                 const box = T3('tavole3dProveBox'), t = v && v.tipo === 'sez2d' && tracceDelProgetto().find(x => x.id === v.traccia);
                 box.hidden = !t || !datiVista3dCorrenti;
+                T3('tavole3dPiantaBox').hidden = box.hidden;
                 if (box.hidden) return;
                 const ds = datiSezioneTracciata(datiVista3dCorrenti, t, sezioniTracciateStato.fascia), esc = escapeHtmlDidascalia;
                 if (document.activeElement !== T3('tavole3dFascia')) T3('tavole3dFascia').value = sezioniTracciateStato.fascia;
@@ -686,14 +694,38 @@
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
                     let svg = svgSezioneTracciata(datiSezioneTracciata(d, t, sezioniTracciateStato.fascia), Math.round(misureTavola3d(v).W / tavole3d.scritte)).svg;
                     if (scuro) svg = svg.replace(/#(1f2937|111827|334155)/g, '#e5e7eb').replace(/#475569/g, '#94a3b8').replace(/stroke="#fff"/g, 'stroke="#0f172a"');
-                    // grande quanto lo spazio della figura nel foglio, con la sua proporzione
-                    const box = img.parentElement, misura = () => { const k = Math.min((box.clientWidth || 800) / (img.naturalWidth || 1), (box.clientHeight || 500) / (img.naturalHeight || 1)); img.style.width = Math.round(img.naturalWidth * k) + 'px'; img.style.height = Math.round(img.naturalHeight * k) + 'px'; };
+                    // la pianta dal satellite (come nel PDF: sotto, sopra o niente), con l'immagine a schermo
+                    const pos = tavole3d.pianta, pianta = T3('tavole3dPianta');
+                    const sfP = T3('tavole3dBasemap').checked && pos !== 'no' ? sfondoPerScena(d) : null;
+                    const box = img.parentElement, ds = datiSezioneTracciata(d, t, sezioniTracciateStato.fascia);
+                    pianta.hidden = !(sfP && sfP.uv);
+                    box.classList.toggle('con-pianta', !pianta.hidden);
+                    box.classList.toggle('pianta-sopra', pos === 'sopra');
+                    // grande quanto lo spazio della figura nel foglio, con la sua proporzione (sezione + pianta)
+                    const misura = () => {
+                        const W0 = img.naturalWidth || 1, Hs = img.naturalHeight || 1, hP = pianta.hidden ? 0 : W0 * 0.26, gap = pianta.hidden ? 0 : 18;
+                        const k = Math.min((box.clientWidth || 800) / W0, (box.clientHeight || 500) / (Hs + gap + hP));
+                        img.style.width = Math.round(W0 * k) + 'px'; img.style.height = Math.round(Hs * k) + 'px';
+                        if (pianta.hidden) return;
+                        const dpr = window.devicePixelRatio || 1;
+                        pianta.width = Math.round(W0 * k * dpr); pianta.height = Math.round(hP * k * dpr);
+                        pianta.style.width = Math.round(W0 * k) + 'px'; pianta.style.height = Math.round(hP * k) + 'px';
+                        pianta.style.margin = pos === 'sopra' ? `0 0 ${Math.round(gap * k)}px` : `${Math.round(gap * k)}px 0 0`;
+                        const g = pianta.getContext && pianta.getContext('2d');
+                        if (!g) return;
+                        g.setTransform(k * dpr, 0, 0, k * dpr, 0, 0);
+                        g.fillStyle = scuro ? '#0f172a' : '#ffffff'; g.fillRect(0, 0, W0, hP);
+                        disegnaPiantaTraccia3d(g, d, t, ds, sfP, 0, 0, W0, hP, T3('tavole3dNordPianta').checked);
+                    };
                     img.onload = misura;
                     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                     if (img.complete && img.naturalWidth) misura();
+                    // le tessere arrivano a pezzi: si ridisegna finché non ci sono tutte
+                    clearTimeout(tavole3d.attesa);
+                    if (sfP && sfP.caricate + sfP.errori < sfP.totali) tavole3d.attesa = setTimeout(() => mostraTavola3d(), 600);
                     return;
                 }
-                tela.hidden = false; img.hidden = true;
+                tela.hidden = false; img.hidden = true; T3('tavole3dPianta').hidden = true; img.parentElement.classList.remove('con-pianta', 'pianta-sopra');
                 const opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
                 let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
@@ -860,7 +892,7 @@
                 if (id !== 'wms') { salvaSceltaSfondo3d({ id }); riempiSceltaSfondo3d(); }
                 aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
-            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta', 'tavole3dFotoSopra', 'tavole3dTagliaMappa'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta', 'tavole3dFotoSopra', 'tavole3dTagliaMappa', 'tavole3dSpigoli'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
             T3('tavole3dOpacitaFoto').addEventListener('input', (e) => { T3('tavole3dOpacitaFotoVal').textContent = e.target.value + '%'; salvaMemoriaTavole3d(); ridisegnaTavola3d(); });
             T3('tavole3dOpacitaFoto').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dRiposiziona').addEventListener('click', () => {
@@ -870,6 +902,13 @@
             });
             T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
+            T3('tavole3dPiantaPos').addEventListener('click', (e) => {
+                const b = e.target.closest('[data-pianta]');
+                if (!b) return;
+                T3('tavole3dPiantaPos').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+                tavole3d.pianta = b.dataset.pianta;
+                salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d();
+            });
             const dopoProveTavola3d = () => {
                 saveState(); mostraTavola3d(); aggiornaMiniaturaScelta3d();
                 if (sezioniTracciateStato.vista) renderVistaSezioneTracciata();

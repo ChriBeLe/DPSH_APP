@@ -22,7 +22,7 @@
                 </div>
                 <div class="tavole-foglio-box"><div id="tavole3dFoglio" class="tavole-foglio">
                     <div class="tavole-foglio-tit"><b id="tavole3dFoglioTit"></b><span id="tavole3dFoglioSotto"></span></div>
-                    <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden></div>
+                    <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden><canvas id="tavole3dPianta" class="tavole-pianta" aria-label="Ubicazione della sezione sulla mappa" hidden></canvas></div>
                     <div class="tavole-foglio-piede"><span id="tavole3dPiede"></span><span id="tavole3dNumero"></span></div>
                 </div></div>
                 <div class="tavole-regola" id="tavole3dRegola">
@@ -55,6 +55,13 @@
                         <button type="button" data-sfondo="chiaro" aria-pressed="true">Chiaro</button>
                         <button type="button" data-sfondo="scuro" aria-pressed="false">Scuro</button>
                     </div></div>
+                <div class="tavole-campo" id="tavole3dPiantaBox" hidden><span>Ubicazione della sezione (pianta dal satellite)</span>
+                    <div class="tavole-scelte" id="tavole3dPiantaPos" role="radiogroup">
+                        <button type="button" data-pianta="sotto" aria-pressed="true">Sotto</button>
+                        <button type="button" data-pianta="sopra" aria-pressed="false">Sopra</button>
+                        <button type="button" data-pianta="no" aria-pressed="false">Nessuna</button>
+                    </div>
+                    <span class="t-didascalia">Vale per tutte le sezioni 2D; serve la mappa di base.</span></div>
                 <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione</span>
                     <label class="tavole-riga tavole-fascia">entro <input type="number" id="tavole3dFascia" class="form-control" min="0" step="5"> m dalla traccia</label>
                     <div id="tavole3dProve" class="tavole-prove"></div>
@@ -89,6 +96,7 @@
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dScala" checked> Scala metrica</label>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordPianta" checked> Nord sulla pianta (sezioni 2D)</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dSpigoli" checked> Spigoli del modello</label>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dTagliaMappa"> Ritaglia anche la mappa (sezioni 3D)</label>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dFotoSopra"> Foto satellitare sopra il modello (trasparente)</label>
