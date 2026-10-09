@@ -486,7 +486,7 @@
                     const prof = Yd * ce - Z * se, s = occhio ? occhio / Math.max(occhio * 0.08, occhio + prof) : 1;
                     return [W / 2 + X * k * s, H / 2 + (-Z * ce - Yd * se) * k * s, prof];
                 };
-                const pezzi = [], sopra = [], colonne = [];
+                const pezzi = [], sopra = [], colonne = [], elementiTavola = {};
                 const poli = (pp, extra) => (extra.strato && (vista3d.stratiNascosti.has(extra.strato) || (extra.cls === 'vista3d-solido' && vista3d.stratiSolidoNascosti.has(extra.strato)))) || pezzi.push({ prof: pp.reduce((s, p) => s + p[2], 0) / pp.length, t: 'poli', p: pp.map(p => [p[0], p[1]]), ...extra });
                 // L'OMBREGGIATURA: la faccia (punti in metri veri) prende luce secondo come è girata. La
                 // normale (Newell, regge anche i quadrilateri schiacciati) si volta verso chi guarda: si
@@ -638,7 +638,8 @@
                     const griglia = [];
                     for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) griglia.push([x0 + dentro + (x1 - x0 - 2 * dentro) * i / 8, y0 + dentro + (y1 - y0 - 2 * dentro) * j / 8]);
                     const versoAngolo = q => { const s = P(q[0], q[1], zIn(q[0], q[1])); return Math.hypot(s[0] - W * 0.12, s[1] - H * 0.86); };
-                    const [fx, fy] = ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
+                    // spostata a mano nella finestra delle tavole: dove l'ha messa l'utente (metri della scena)
+                    const [fx, fy] = vista3d.nordTerrenoPos || ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
                     const pt = (e, n) => { const x = fx + e * Lf, y = fy + n * Lf; return P(x, y, zIn(x, y)); };
                     const punta = pt(0, 1), sx = pt(-0.5, -0.75), tacca = pt(0, -0.35), dx = pt(0.5, -0.75);
                     const prof = so ? 5e8 : Math.min(punta[2], sx[2], dx[2]) - lato * 0.05, xy = q => [q[0], q[1]];
@@ -646,6 +647,8 @@
                     pezzi.push({ prof: prof - 1e-4, t: 'poli', p: [punta, tacca, dx].map(xy), fill: '#ffffff', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
                     const n = pt(0, 1.45);
                     pezzi.push({ prof: prof - 2e-4, t: 'testo', x: n[0], y: n[1] + 6, s: 'N', size: 18, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord-terreno' });
+                    const xs = [punta, sx, dx, n].map(q => q[0]), ys = [punta, sx, dx, n].map(q => q[1]);
+                    elementiTavola.nordTerreno = { x0: Math.min(...xs) - 10, y0: Math.min(...ys) - 22, x1: Math.max(...xs) + 10, y1: Math.max(...ys) + 10, mondo: [fx, fy] };
                 }
                 const { pannelli, superfici } = modelloCorrelazione(d);
                 if (so) {
@@ -878,11 +881,17 @@
                 // Il nord, in basso a destra: solo nel file (a schermo c'è la bussola). Una rosa vera:
                 // quadrante con le tacche, ago a due colori (rosso verso Nord) e una N grande in punta,
                 // girati come il nord della vista (la direzione Nord sul piano delle prove, proiettata).
-                if (file) {
+                // Gli elementi della tavola (bussola, scala) si accendono, si spengono e si spostano dalla
+                // finestra delle tavole: vista3d.elementi (acceso sì/no) e vista3d.posizioni (frazioni del
+                // foglio). Dove sono finiti lo dice elementiTavola, per poterli prendere col mouse.
+                const EL = vista3d.elementi || {}, POS = vista3d.posizioni || {};
+                const fondo = 'var(--bg-card, #fff)';
+                if (file && EL.bussola !== false) {
                     const [ox, oy] = P(0, 0, zRif), [nx, ny] = P(0, 1, zRif);
                     const lung = Math.hypot(nx - ox, ny - oy);
                     const ax = lung > 1e-6 ? (nx - ox) / lung : 0, ay = lung > 1e-6 ? (ny - oy) / lung : -1, px = -ay, py = ax;
-                    const R = 42, cx = W - 24 - R - 20, cy = H - 24 - R - 20, fondo = 'var(--bg-card, #fff)';
+                    const R = 42, cx = POS.bussola ? POS.bussola[0] * W : W - 24 - R - 20, cy = POS.bussola ? POS.bussola[1] * H : H - 24 - R - 20;
+                    elementiTavola.bussola = { x0: cx - R - 22, y0: cy - R - 22, x1: cx + R + 22, y1: cy + R + 22 };
                     const pt = (a, b) => [cx + ax * a + px * b, cy + ay * a + py * b];
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: R, fill: fondo, stroke: 'currentColor', so: 0.7, sw: 1.5, cls: 'vista3d-nord' });
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: R - 6, fill: 'none', stroke: 'currentColor', so: 0.25, sw: 1, cls: 'vista3d-nord' });
@@ -899,14 +908,16 @@
                     sopra.push({ t: 'cerchio', x: cx, y: cy, r: 2.5, fill: 'currentColor', cls: 'vista3d-nord' });
                     const [tx, ty] = pt(R + 15, 0);
                     testo(tx, ty + 7, 'N', { size: 20, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord' });
-                    // LA SCALA GRAFICA, in basso a sinistra: senza prospettiva le distanze in orizzontale
-                    // sullo schermo sono in scala vera (k pixel per metro). Quattro tratti alternati,
-                    // 0, metà e tutta la lunghezza, tonda, sui 150 pixel.
-                    if (!vista3d.prospettiva && k > 0) {
-                        const metri = massimoTondo(150 / k), lp = metri * k, sx0 = 24, sy0 = H - 44, hb = 6;
-                        for (let n = 0; n < 4; n++) sopra.push({ t: 'poli', p: [[sx0 + lp * n / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0 + hb], [sx0 + lp * n / 4, sy0 + hb]], fill: n % 2 ? fondo : 'currentColor', fo: 1, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-scala' });
-                        [[0, '0'], [lp / 2, numeroConVirgola(metri / 2, metri / 2 < 10 && metri % 2 ? 1 : 0)], [lp, numeroConVirgola(metri, 0) + ' m']].forEach(([x, s2], n) => testo(sx0 + x, sy0 - 5, s2, { size: 11, anchor: n === 2 ? 'start' : 'middle', alone: true, cls: 'vista3d-scala' }));
-                    }
+                }
+                // LA SCALA GRAFICA, in basso a sinistra: senza prospettiva le distanze in orizzontale
+                // sullo schermo sono in scala vera (k pixel per metro). Quattro tratti alternati,
+                // 0, metà e tutta la lunghezza, tonda, sui 150 pixel.
+                if (file && EL.scala !== false && !vista3d.prospettiva && k > 0) {
+                    const metri = massimoTondo(150 / k), lp = metri * k, hb = 6;
+                    const sx0 = POS.scala ? POS.scala[0] * W : 24, sy0 = POS.scala ? POS.scala[1] * H : H - 44;
+                    elementiTavola.scala = { x0: sx0 - 10, y0: sy0 - 24, x1: sx0 + lp + 40, y1: sy0 + hb + 8 };
+                    for (let n = 0; n < 4; n++) sopra.push({ t: 'poli', p: [[sx0 + lp * n / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0 + hb], [sx0 + lp * n / 4, sy0 + hb]], fill: n % 2 ? fondo : 'currentColor', fo: 1, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-scala' });
+                    [[0, '0'], [lp / 2, numeroConVirgola(metri / 2, metri / 2 < 10 && metri % 2 ? 1 : 0)], [lp, numeroConVirgola(metri, 0) + ' m']].forEach(([x, s2], n) => testo(sx0 + x, sy0 - 5, s2, { size: 11, anchor: n === 2 ? 'start' : 'middle', alone: true, cls: 'vista3d-scala' }));
                 }
                 // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
                 // scaricato, che va in una tavola.
@@ -928,7 +939,7 @@
                     const o = (f.cls === 'vista3d-solido' ? o1('ss:' + f.strato) : 1) * o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1) * (f.disegno ? o1('d:' + f.disegno) : 1);
                     if (o < 1) f.op = o;
                 });
-                return { W, H, k, pezzi, sopra, colonne, tutte: pezzi.concat(sopra) };
+                return { W, H, k, pezzi, sopra, colonne, elementi: elementiTavola, tutte: pezzi.concat(sopra) };
             }
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
@@ -1013,11 +1024,12 @@
                 const h = Math.round(f * (L.pad + L.testa + voci.reduce((a, v) => a + (v.tipo === 'titolo' ? L.sez : L.riga + (v.righe.length - 1) * L.a_capo), 0) + L.pad - 4));
                 return { w, h };
             }
-            function conLegenda3d(sc, d, fs) {
+            function conLegenda3d(sc, d, fs, pos) {
                 const voci = vociLegenda3d(sc, d);
                 if (!voci.length) return sc;
                 const f = fs || 1, L = LEGENDA_3D, { w, h } = impaginaLegenda3d(voci, f), cls = 'vista3d-legenda';
-                const bx = sc.W - w - 12, by = 12, x0 = bx + L.pad * f, forme = [];
+                // pos: l'angolo in alto a sinistra in frazioni del foglio (spostata a mano), dentro al foglio
+                const bx = pos ? Math.max(0, Math.min(sc.W - w, pos[0] * sc.W)) : sc.W - w - 12, by = pos ? Math.max(0, Math.min(sc.H - h, pos[1] * sc.H)) : 12, x0 = bx + L.pad * f, forme = [];
                 forme.push({ t: 'poli', p: [[bx, by], [bx + w, by], [bx + w, by + h], [bx, by + h]], fill: 'var(--bg-card, #fff)', fo: 0.86, stroke: 'currentColor', sw: 0.6, cls });
                 forme.push({ t: 'testo', x: x0, y: by + (L.pad + 9) * f, s: 'Legenda', size: 11 * f, bold: true, cls });
                 let y = by + (L.pad + L.testa - 4) * f;

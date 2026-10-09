@@ -826,7 +826,7 @@
         .tavole-foglio-fig { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; margin: 1.2% 0; }
         .tavole-foglio-fig canvas, .tavole-foglio-fig img { max-width: 100%; max-height: 100%; display: block; }
         .tavole-foglio-fig canvas { cursor: grab; touch-action: none; outline: none; }
-        .tavole-foglio-fig [hidden], .tavole-foglio-tit[hidden] { display: none !important; }
+        .tavole-foglio-fig [hidden], .tavole-foglio-tit[hidden], .tavole-foglio-tit [hidden] { display: none !important; }
         .tavole-titolo .tavole-spunta { color: var(--text-main); }
         .tavole-titolo-azioni { display: flex; gap: 12px; }
         .tavole-foglio-fig canvas.trascina { cursor: grabbing; }

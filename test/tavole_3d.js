@@ -102,7 +102,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('il tasto «Tavole» apre la finestra sopra la mappa', !$(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   const pagine = () => [...$(app, 'tavole3dPagine').querySelectorAll('.tavole-pag')];
   t(`a sinistra le ${voci.length} pagine con la spunta, tutte accese («${$(app, 'tavole3dConta').textContent}»)`, pagine().length === voci.length && pagine().every(p => p.querySelector('input').checked) && $(app, 'tavole3dConta').textContent === `${voci.length} di ${voci.length}`);
-  t('in mezzo la prima pagina, col titolo e il progetto', $(app, 'tavole3dFoglioTit').textContent === voci[0] && /Nard/.test($(app, 'tavole3dFoglioSotto').textContent) && /1 \/ 10/.test($(app, 'tavole3dNome').textContent));
+  t('in mezzo la prima pagina, col titolo e senza sottotitolo (se non lo scrivi tu)', $(app, 'tavole3dFoglioTit').textContent === voci[0] && $(app, 'tavole3dFoglioSotto').hidden && $(app, 'tavole3dFoglioSotto').textContent === '' && /1 \/ 10/.test($(app, 'tavole3dNome').textContent));
   clic(app, $(app, 'tavole3dDopo'));
   t('freccia: la pagina dopo', $(app, 'tavole3dFoglioTit').textContent === voci[1]);
   clic(app, pagine()[3]);
@@ -136,6 +136,12 @@ const $ = (app, id) => app.d.getElementById(id);
   $(app, 'tavole3dTitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   t('si riscrive: cambia sul foglio e nell\'elenco, e il progetto se lo ricorda', $(app, 'tavole3dFoglioTit').textContent === 'Il modello del sottosuolo' && /Il modello del sottosuolo/.test(pagine()[0].textContent)
     && app.E(`${P}.tavole3d.titoli[tavole3d.voci[0].id].testo`) === 'Il modello del sottosuolo');
+  $(app, 'tavole3dSottotitolo').value = 'Scavi Cerignola';
+  $(app, 'tavole3dSottotitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  t('il sottotitolo lo scrivi tu: compare sotto il titolo', !$(app, 'tavole3dFoglioSotto').hidden && $(app, 'tavole3dFoglioSotto').textContent === 'Scavi Cerignola' && app.E(`${P}.tavole3d.titoli[tavole3d.voci[0].id].sotto`) === 'Scavi Cerignola');
+  $(app, 'tavole3dSottotitolo').value = '';
+  $(app, 'tavole3dSottotitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
+  t('(cancellato, sparisce)', $(app, 'tavole3dFoglioSotto').hidden);
   $(app, 'tavole3dConTitolo').checked = false;
   $(app, 'tavole3dConTitolo').dispatchEvent(new app.w.Event('change', { bubbles: true }));
   t('senza titolo: il foglio non ha la riga del titolo', app.d.querySelector('#tavole3dFoglio .tavole-foglio-tit').hidden && $(app, 'tavole3dTitolo').disabled && app.E('titoloTavola3d(tavole3d.voci[0])') === null);
@@ -155,6 +161,39 @@ const $ = (app, id) => app.d.getElementById(id);
     && JSON.stringify(app.E(`${P}.tavole3d.foglio`)) === JSON.stringify({ carta: 'A3', verso: 'v', scritte: 2 }));
   clic(app, $(app, 'tavole3dCarta').querySelector('[data-carta="A4"]'));
   clic(app, $(app, 'tavole3dVerso').querySelector('[data-verso="o"]'));
+  // Gli elementi della tavola: si spengono e si trascinano.
+  clic(app, pagine()[0]);
+  const conta = cls => app.E(`tavole3d.ultima.sc.tutte.filter(f => f.cls === '${cls}').length`);
+  t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
+  ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
+  t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
+    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true }));
+  ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
+  const trascina = (x0, y0, dx, dy) => {
+    const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };
+    ev('pointerdown', x0, y0); ev('pointermove', x0 + dx / 2, y0 + dy / 2); ev('pointermove', x0 + dx, y0 + dy); ev('pointerup', x0 + dx, y0 + dy);
+  };
+  const leg0 = app.E('tavole3d.ultima.sc.legenda');
+  trascina(leg0.x + leg0.w / 2, leg0.y + leg0.h / 2, -400, 200);
+  const leg1 = app.E('tavole3d.ultima.sc.legenda');
+  t(`la legenda si trascina dove vuoi (da ${Math.round(leg0.x)},${Math.round(leg0.y)} a ${Math.round(leg1.x)},${Math.round(leg1.y)}), la vista non gira`, Math.abs(leg1.x - (leg0.x - 400)) < 2 && Math.abs(leg1.y - (leg0.y + 200)) < 2
+    && !(app.E(`(${P}.tavole3d.regola[tavole3d.voci[0].id] || {}).dAz`)) && Array.isArray(app.E(`${P}.tavole3d.posizioni.legenda`)));
+  const bu0 = app.E('tavole3d.ultima.sc.elementi.bussola');
+  trascina((bu0.x0 + bu0.x1) / 2, (bu0.y0 + bu0.y1) / 2, -300, -250);
+  const bu1 = app.E('tavole3d.ultima.sc.elementi.bussola');
+  t('anche la bussola', Math.abs(bu1.x0 - (bu0.x0 - 300)) < 2 && Math.abs(bu1.y0 - (bu0.y0 - 250)) < 2);
+  const sca0 = app.E('tavole3d.ultima.sc.elementi.scala');
+  trascina(sca0.x0 + 30, sca0.y1 - 10, 200, -60);
+  const sca1 = app.E('tavole3d.ultima.sc.elementi.scala');
+  t('anche la scala metrica', Math.abs(sca1.x0 - (sca0.x0 + 200)) < 2 && Math.abs(sca1.y0 - (sca0.y0 - 60)) < 2);
+  const nt0 = app.E('tavole3d.ultima.sc.elementi.nordTerreno');
+  trascina((nt0.x0 + nt0.x1) / 2, (nt0.y0 + nt0.y1) / 2, 120, 40);
+  const nt1 = app.E('tavole3d.ultima.sc.elementi.nordTerreno');
+  t('e la freccia sul terreno (resta stesa sul terreno, nel punto nuovo: solo su questa pagina)', Math.abs((nt1.x0 + nt1.x1) / 2 - (nt0.x0 + nt0.x1) / 2 - 120) < 25 && Math.abs((nt1.y0 + nt1.y1) / 2 - (nt0.y0 + nt0.y1) / 2 - 40) < 25
+    && Array.isArray(app.E(`${P}.tavole3d.regola[tavole3d.voci[0].id].nordTerreno`)));
+  clic(app, $(app, 'tavole3dRiposiziona'));
+  const leg2 = app.E('tavole3d.ultima.sc.legenda');
+  t('«Rimettili al loro posto»', Math.abs(leg2.x - leg0.x) < 2 && Math.abs(leg2.y - leg0.y) < 2 && JSON.stringify(app.E(`${P}.tavole3d.posizioni`)) === '{}' && !app.E(`${P}.tavole3d.regola[tavole3d.voci[0].id].nordTerreno`));
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude le tavole, non la mappa del progetto sotto', $(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   clic(app, $(app, 'btnPdfSezioni3d'));

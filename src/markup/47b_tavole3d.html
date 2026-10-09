@@ -66,13 +66,20 @@
                 <div class="tavole-campo tavole-titolo"><span>Titolo di questa pagina</span>
                     <label class="tavole-spunta"><input type="checkbox" id="tavole3dConTitolo" checked> Con il titolo</label>
                     <input type="text" id="tavole3dTitolo" class="form-control" aria-label="Titolo della pagina" placeholder="automatico">
+                    <input type="text" id="tavole3dSottotitolo" class="form-control" aria-label="Sottotitolo della pagina" placeholder="Sottotitolo (se ti serve)">
                     <span class="tavole-titolo-azioni"><button type="button" class="btn-link" id="tavole3dTitoloAuto" title="Torna al titolo automatico">Automatico</button>
                         <button type="button" class="btn-link" id="tavole3dTitoliTutte" title="Titolo sì o no come questa, su tutte le pagine">Così su tutte</button></span></div>
                 <label class="tavole-spunta"><input type="checkbox" id="tavole3dBasemap" checked> Mappa di base sul terreno</label>
                 <select id="tavole3dFornitore" class="form-control" aria-label="Mappa di base"></select>
-                <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
-                <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
-                <label class="tavole-spunta"><input type="checkbox" id="tavole3dLegenda" checked> Legenda</label>
+                <div class="tavole-campo"><span>Elementi della tavola</span>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dLegenda" checked> Legenda</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dBussola" checked> Bussola (Nord sulla figura)</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dScala" checked> Scala metrica</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordPianta" checked> Nord sulla pianta (sezioni 2D)</label>
+                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
+                    <span class="t-didascalia">Legenda, bussola, scala e freccia sul terreno si trascinano nell'anteprima. <button type="button" class="btn-link" id="tavole3dRiposiziona">Rimettili al loro posto</button></span>
+                </div>
                 <label class="tavole-campo tavole-riga"><span>Esagerazione verticale</span><input type="number" id="tavole3dEsag" class="form-control" min="1" max="50" step="1"></label>
                 <p class="t-didascalia" id="tavole3dRiepilogo"></p>
                 <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>

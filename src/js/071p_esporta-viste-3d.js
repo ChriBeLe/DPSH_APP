@@ -31,13 +31,13 @@
              * rimette tutto com'era: la vista a schermo non se ne accorge. */
             function conVista3dTemporanea(modifica, fn) {
                 const prima = { az: vista3d.az, el: vista3d.el, ex: vista3d.ex, zoom: vista3d.zoom, centro: vista3d.centro.slice(), prospettiva: vista3d.prospettiva,
-                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti };
+                    taglio: Object.assign({}, vista3d.taglio), livelli: Object.assign({}, vista3d.livelli), tracceNascoste: new Set(vista3d.tracceNascoste), disegno: vista3d.disegno, postoLegenda: vista3d.postoLegenda, terrenoEsteso: vista3d.terrenoEsteso, scalaTesti: vista3d.scalaTesti, elementi: vista3d.elementi, posizioni: vista3d.posizioni, nordTerrenoPos: vista3d.nordTerrenoPos };
                 try {
                     vista3d.disegno = null;
                     modifica();
                     return fn();
                 } finally {
-                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti });
+                    Object.assign(vista3d, { az: prima.az, el: prima.el, ex: prima.ex, zoom: prima.zoom, centro: prima.centro, prospettiva: prima.prospettiva, taglio: prima.taglio, livelli: prima.livelli, tracceNascoste: prima.tracceNascoste, disegno: prima.disegno, postoLegenda: prima.postoLegenda, terrenoEsteso: prima.terrenoEsteso, scalaTesti: prima.scalaTesti, elementi: prima.elementi, posizioni: prima.posizioni, nordTerrenoPos: prima.nordTerrenoPos });
                 }
             }
 
@@ -101,6 +101,9 @@
                     if (base.solido) vista3d.livelli.solido = true;
                     if (opz && opz.ex) vista3d.ex = opz.ex;
                     if (opz && opz.scritte) vista3d.scalaTesti = opz.scritte;
+                    if (opz && opz.elementi) vista3d.elementi = opz.elementi;
+                    if (opz && opz.posizioni) vista3d.posizioni = opz.posizioni;
+                    vista3d.nordTerrenoPos = reg.nordTerreno || null;
                     if (opz && opz.basemap === false) vista3d.livelli.immagine = false;
                     if (opz && opz.basemap === true) { vista3d.livelli.immagine = true; vista3d.livelli.terreno = true; }
                     if (opz && opz.nordTerreno !== undefined) vista3d.livelli.nordTerreno = !!opz.nordTerreno;
@@ -114,8 +117,13 @@
                         // figura: il modello le lascia posto, il foglio resta intero), un po' d'aria attorno
                         let riserva = 0;
                         if (!opz || opz.legenda !== false) {
-                            const vl = vociLegenda3d(prima, d);
-                            if (vl.length) { const m = impaginaLegenda3d(vl, (opz && opz.scritte) || 1); riserva = m.w + 20; vista3d.postoLegenda = { x: W - m.w - 12, y: 12, w: m.w, h: m.h }; }
+                            const vl = vociLegenda3d(prima, d), pl = opz && opz.posizioni && opz.posizioni.legenda;
+                            if (vl.length) {
+                                const m = impaginaLegenda3d(vl, (opz && opz.scritte) || 1);
+                                // al suo posto (in alto a destra) le si lascia la striscia; spostata a mano, no
+                                if (!pl) riserva = m.w + 20;
+                                vista3d.postoLegenda = pl ? { x: pl[0] * W, y: pl[1] * H, w: m.w, h: m.h } : { x: W - m.w - 12, y: 12, w: m.w, h: m.h };
+                            }
                         }
                         const mx = W * 0.05, my = H * 0.07, libW = W - 2 * mx - 30 - riserva, libH = H - 2 * my - 30;
                         const s = Math.max(0.05, Math.min(libW / Math.max(1, bb.x1 - bb.x0), libH / Math.max(1, bb.y1 - bb.y0)));
@@ -131,8 +139,20 @@
                         const sfE = opz && opz.sfondoEsteso, tetto = sfE ? MEZZO_ESTESO_3D(d) : d.lato * 3;
                         vista3d.terrenoEsteso = { mezzo: Math.min(tetto, mezzoVisibile3d(W, H, prima.k * vista3d.zoom)), sf: sfE || null };
                     }
-                    return scena3d(d, W, leggera, true, H);
+                    const sc = scena3d(d, W, leggera, true, H);
+                    // il punto di vista della tavola: serve per riportare il mouse sul terreno
+                    sc.vista = { az: vista3d.az, el: vista3d.el, centro: vista3d.centro.slice(), ex: vista3d.ex, zRif: (d.zMin + d.zMax) / 2 };
+                    return sc;
                 });
+            }
+            /** Il punto del piano delle prove sotto (sx, sy) della tavola (vista senza prospettiva). */
+            function puntoTerrenoTavola3d(sc, sx, sy) {
+                const v = sc.vista;
+                if (!v) return null;
+                const ca = Math.cos(v.az), sa = Math.sin(v.az), ce = Math.cos(v.el), se = Math.sin(v.el);
+                if (Math.abs(se) < 0.05) return null;
+                const X = (sx - sc.W / 2) / sc.k, V = (sy - sc.H / 2) / sc.k, Z = -v.centro[2] * v.ex, Yd = (-V - Z * ce) / se;
+                return [v.centro[0] + X * ca + Yd * sa, v.centro[1] - X * sa + Yd * ca];
             }
 
             // ---- La mappa di base per le immagini esportate. Quella a schermo si carica senza chiedere il
@@ -247,7 +267,7 @@
                 g.scale(scala, scala);
                 g.fillStyle = col.fondo; g.fillRect(0, 0, W, H);
                 g.drawImage(img, 0, 0, W, img.height * W / img.width);
-                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, sf, 0, H - hPianta, W, hPianta);
+                if (sf) disegnaPiantaTraccia3d(g, d, t, ds, sf, 0, H - hPianta, W, hPianta, opz.nordPianta !== false);
                 return tela;
             }
             function immagineDaSvg3d(svg) {
@@ -260,7 +280,7 @@
             }
             /** La pianta della traccia sulla mappa di base: la traccia in rosso coi nomi agli estremi, le
              * prove col numero (gialle quelle nella sezione), la freccia del Nord. */
-            function disegnaPiantaTraccia3d(g, d, t, ds, sf, x, y, w, h) {
+            function disegnaPiantaTraccia3d(g, d, t, ds, sf, x, y, w, h, conNord) {
                 const ga = t.a, gb = t.b, [ua, va] = sf.uv(ga.lat, ga.lng), [ub, vb] = sf.uv(gb.lat, gb.lng);
                 const cu = (ua + ub) / 2, cv = (va + vb) / 2, Lp = Math.hypot(ub - ua, vb - va) || 1;
                 const k = Math.min(w * 0.8 / Math.max(Lp, 1), h * 0.8 / Math.max(Math.abs(vb - va), 1), w / 60 * 4);
@@ -285,11 +305,13 @@
                 const ux = (pb[0] - pa[0]) / (Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1), uy = (pb[1] - pa[1]) / (Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1);
                 const [e1, e2] = estremiTraccia(t.nome);
                 scritta(e1, pa[0] - ux * 20, pa[1] - uy * 20 + 8, 22, '#fff'); scritta(e2, pb[0] + ux * 20, pb[1] + uy * 20 + 8, 22, '#fff');
-                // la freccia del Nord, in alto a destra
+                // la freccia del Nord, in alto a destra (si spegne: «Nord sulla pianta»)
                 const nx = x + w - 34, ny = y + 46;
+                if (conNord !== false) {
                 g.beginPath(); g.moveTo(nx, ny - 26); g.lineTo(nx - 10, ny + 6); g.lineTo(nx, ny); g.closePath(); g.fillStyle = '#111827'; g.fill();
                 g.beginPath(); g.moveTo(nx, ny - 26); g.lineTo(nx + 10, ny + 6); g.lineTo(nx, ny); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 1; g.strokeStyle = '#111827'; g.stroke();
                 scritta('N', nx, ny - 32, 15, '#fff');
+                }
                 if (sf.attribuzione) { g.font = '10px Arial, sans-serif'; g.textAlign = 'right'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(sf.attribuzione, x + w - 6, y + h - 6); g.fillStyle = '#fff'; g.fillText(sf.attribuzione, x + w - 6, y + h - 6); }
                 g.restore();
                 g.strokeStyle = 'rgba(100,116,139,0.6)'; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
@@ -304,7 +326,7 @@
                 return conSfondoEsportabile3d(d, sf, () => {
                     let sc = scenaVoce3d(voce, d, W, H, Object.assign({}, opz, { sfondoEsteso: sfE }));
                     if (!sc) return null;
-                    if (opz.legenda !== false) sc = conLegenda3d(sc, d, opz.scritte);
+                    if (opz.legenda !== false) sc = conLegenda3d(sc, d, opz.scritte, opz.posizioni && opz.posizioni.legenda);
                     const tela = document.createElement('canvas');
                     disegnaScena(tela, sc, { fondo: (COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro).fondo, testo: (COLORI_ESPORTA_3D[opz.sfondo] || COLORI_ESPORTA_3D.chiaro).testo, scala: opz.scala || 2 });
                     return tela;
@@ -347,7 +369,7 @@
                 oggetto(4, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
                 oggetto(5, `<< /Title ${stringa(opz.titolo || 'Viste 3D')} /Producer (DPSH Field Collector) >>`);
                 pagine.forEach((p, i) => {
-                    const id = idPag(i), alto = altoTitoloPdf3d(!!p.titolo), basso = BASSO_PDF_3D;
+                    const id = idPag(i), alto = altoTitoloPdf3d(!!p.titolo, !!(p.titolo && p.sotto)), basso = BASSO_PDF_3D;
                     const bw = PW - 2 * M, bh = PH - alto - basso - 10, k = Math.min(bw / p.w, bh / p.h), iw = p.w * k, ih = p.h * k;
                     const ix = (PW - iw) / 2, iy = basso + 4 + (bh - ih) / 2;
                     const testo = (s, x, y, dim, grassetto, colore, ancora) => {
@@ -378,7 +400,7 @@
             // ---- LA FINESTRA DELLE TAVOLE ----
             // Lo stato: le tavole, quali si esportano, quale si vede, le regolazioni di ciascuna (ricordate
             // nel progetto, così esportando di nuovo l'inquadratura resta quella scelta) e le opzioni.
-            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
+            const tavole3d = { voci: [], scelta: 0, regola: {}, titoli: {}, posizioni: {}, escluse: new Set(), formato: 'pdf', sfondo: 'chiaro', carta: 'A4', verso: 'o', scritte: 1.3, trascina: null, attesa: null, lavoro: false };
             const T3 = id => document.getElementById(id);
             // Il foglio (A4 o A3, orizzontale o verticale) in punti PDF, e la figura in pixel della scena:
             // sempre 1,78 pixel per punto, così una scritta è grande uguale su ogni foglio (su un A3 la
@@ -388,10 +410,10 @@
                 const [a, b] = tavole3d.carta === 'A3' ? [1190.55, 841.89] : [841.89, 595.28];
                 return tavole3d.verso === 'v' ? { PW: b, PH: a } : { PW: a, PH: b };
             }
-            const altoTitoloPdf3d = conTitolo => conTitolo ? 52 : 18, BASSO_PDF_3D = 26;
+            const altoTitoloPdf3d = (conTitolo, conSotto) => conTitolo ? (conSotto ? 52 : 40) : 18, BASSO_PDF_3D = 26;
             function misureTavola3d(v) {
-                const { PW, PH } = foglioTavole3d(), conTitolo = !v || titoloTavola3d(v) !== null;
-                return { W: Math.round((PW - 2 * MARGINE_PDF_3D) * PX_PER_PT_3D), H: Math.round((PH - altoTitoloPdf3d(conTitolo) - BASSO_PDF_3D - 10) * PX_PER_PT_3D) };
+                const { PW, PH } = foglioTavole3d(), conTitolo = !v || titoloTavola3d(v) !== null, conSotto = conTitolo && !!(v && sottotitoloTavola3d(v));
+                return { W: Math.round((PW - 2 * MARGINE_PDF_3D) * PX_PER_PT_3D), H: Math.round((PH - altoTitoloPdf3d(conTitolo, conSotto) - BASSO_PDF_3D - 10) * PX_PER_PT_3D) };
             }
 
             function memoriaTavole3d() {
@@ -405,18 +427,17 @@
                 return Object.assign({
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
                     nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, scritte: tavole3d.scritte,
+                    elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
                     ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
             }
             /** Per l'anteprima: la mappa larga attorno, senza permesso di rilettura (basta vederla). */
             const sfondoEstesoAnteprima3d = () => T3('tavole3dBasemap').checked && datiVista3dCorrenti ? mosaicoSfondo3d(datiVista3dCorrenti, MEZZO_ESTESO_3D(datiVista3dCorrenti), 3072, false) : null;
             const tipoTavola3d = v => v.tipo === 'iso' ? 'Modello 3D' : v.tipo === 'sez3d' ? 'Sezione 3D (isometria)' : 'Sezione 2D';
+            /** Il sottotitolo: solo quello scritto dall'utente (di base niente). */
             const sottotitoloTavola3d = (v) => {
-                const proj = state.projects[state.currentProjectId] || {};
-                const t = v.traccia && tracceDelProgetto().find(x => x.id === v.traccia);
-                const dove = [proj.name, proj.comune && proj.comune !== proj.name ? proj.comune : ''].filter(Boolean).join(' · ');
-                const cosa = v.tipo === 'iso' ? `esagerazione verticale ×${opzioniTavole3d().ex}` : t && datiVista3dCorrenti ? `traccia lunga ${numeroConVirgola(tracciaInScena(datiVista3dCorrenti, t).L, 0)} m` : '';
-                return [dove, cosa].filter(Boolean).join(' · ');
+                const t = tavole3d.titoli[v.id];
+                return (t && t.sotto && t.sotto.trim()) || '';
             };
 
             function apriTavole3d(soloSezioni) {
@@ -440,6 +461,9 @@
                 sel.disabled = !T3('tavole3dBasemap').checked;
                 T3('tavole3dNordTerreno').checked = vista3d.livelli.nordTerreno !== false;
                 T3('tavole3dFantasma').checked = vista3d.livelli.fantasma !== false;
+                tavole3d.posizioni = mem.posizioni || {};
+                const el = mem.elementi || {};
+                [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
@@ -457,6 +481,8 @@
                 mem.escluse = [...tavole3d.escluse];
                 mem.titoli = tavole3d.titoli;
                 mem.foglio = { carta: tavole3d.carta, verso: tavole3d.verso, scritte: tavole3d.scritte };
+                mem.posizioni = tavole3d.posizioni;
+                mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked };
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -497,7 +523,7 @@
                 const tela = el.querySelector('canvas'), opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera: true, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
                 let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
-                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte);
+                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte, opz.posizioni.legenda);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo];
                 disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: 200 / opz.W });
                 tela.style.aspectRatio = `${opz.W} / ${opz.H}`;
@@ -535,6 +561,9 @@
                 T3('tavole3dFoglio').querySelector('.tavole-foglio-tit').hidden = titolo === null;
                 T3('tavole3dFoglioTit').textContent = titolo || '';
                 T3('tavole3dFoglioSotto').textContent = sottotitoloTavola3d(v);
+                T3('tavole3dFoglioSotto').hidden = !sottotitoloTavola3d(v);
+                T3('tavole3dSottotitolo').disabled = titolo === null;
+                if (document.activeElement !== T3('tavole3dSottotitolo')) T3('tavole3dSottotitolo').value = sottotitoloTavola3d(v);
                 T3('tavole3dConTitolo').checked = titolo !== null;
                 T3('tavole3dTitolo').disabled = titolo === null;
                 T3('tavole3dTitolo').placeholder = v.titolo;
@@ -562,7 +591,7 @@
                 const opz = opzioniTavole3d({ reg: tavole3d.regola[v.id], leggera, sfondoEsteso: sfondoEstesoAnteprima3d() }, v);
                 let sc = scenaVoce3d(v, d, opz.W, opz.H, opz);
                 if (!sc) return;
-                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte);
+                if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte, opz.posizioni.legenda);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo], box = tela.parentElement;
                 // grande quanto lo spazio della figura nel foglio, con la sua proporzione
                 const k = Math.min((box.clientWidth || 800) / sc.W, (box.clientHeight || 500) / sc.H) || 0.5;
@@ -613,7 +642,7 @@
                         if (formato === 'pdf') {
                             const jpeg = await byteDaTela3d(tela, 'image/jpeg', 0.9);
                             const titolo = titoloTavola3d(v);
-                            pagine.push({ titolo, sotto: titolo === null ? null : sottotitoloTavola3d(v), jpeg, w: tela.width, h: tela.height, pxW: tela.width, pxH: tela.height });
+                            pagine.push({ titolo, sotto: titolo === null ? null : (sottotitoloTavola3d(v) || null), jpeg, w: tela.width, h: tela.height, pxW: tela.width, pxH: tela.height });
                         } else {
                             const byte = await byteDaTela3d(tela, formato === 'png' ? 'image/png' : 'image/jpeg', 0.92);
                             file.push({ name: `${String(file.length + 1).padStart(2, '0')}_${(titoloTavola3d(v) || v.titolo).replace(/[^\w\-]+/g, '_').replace(/_+/g, '_')}.${formato}`, bytes: byte });
@@ -694,21 +723,27 @@
                 if (id !== 'wms') { salvaSceltaSfondo3d({ id }); riempiSceltaSfondo3d(); }
                 aggiornaContoTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
-            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda'].forEach(id => T3(id).addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); }));
+            ['tavole3dNordTerreno', 'tavole3dFantasma', 'tavole3dLegenda', 'tavole3dBussola', 'tavole3dScala', 'tavole3dNordPianta'].forEach(id => T3(id).addEventListener('change', () => { salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d(); }));
+            T3('tavole3dRiposiziona').addEventListener('click', () => {
+                tavole3d.posizioni = {};
+                Object.values(tavole3d.regola).forEach(r => { delete r.nordTerreno; });
+                salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d();
+            });
             T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
             // Il titolo della pagina scelta: si scrive (vuoto = automatico), si toglie, «così su tutte».
             const titoloScelta3d = () => { const v = tavole3d.voci[tavole3d.scelta]; return v && (tavole3d.titoli[v.id] || (tavole3d.titoli[v.id] = {})); };
             const dopoTitolo3d = () => {
                 const v = tavole3d.voci[tavole3d.scelta], t = v && tavole3d.titoli[v.id];
-                if (t && !t.senza && !(t.testo && t.testo.trim() && t.testo.trim() !== v.titolo)) delete tavole3d.titoli[v.id];
+                if (t && !t.senza && !(t.sotto && t.sotto.trim()) && !(t.testo && t.testo.trim() && t.testo.trim() !== v.titolo)) delete tavole3d.titoli[v.id];
                 salvaMemoriaTavole3d(); mostraTavola3d();
                 const nome = document.querySelector(`#tavole3dPagine [data-tavola="${tavole3d.scelta}"] .tavole-pag-nome`);
                 if (nome && v) nome.textContent = `${tavole3d.scelta + 1}. ${titoloTavola3d(v) || v.titolo}`;
             };
             T3('tavole3dTitolo').addEventListener('input', () => { const t = titoloScelta3d(); if (!t) return; t.testo = T3('tavole3dTitolo').value; dopoTitolo3d(); });
+            T3('tavole3dSottotitolo').addEventListener('input', () => { const t = titoloScelta3d(); if (!t) return; t.sotto = T3('tavole3dSottotitolo').value; dopoTitolo3d(); });
             T3('tavole3dConTitolo').addEventListener('change', () => { const t = titoloScelta3d(); if (!t) return; t.senza = !T3('tavole3dConTitolo').checked; dopoTitolo3d(); });
-            T3('tavole3dTitoloAuto').addEventListener('click', () => { const v = tavole3d.voci[tavole3d.scelta]; if (!v) return; delete tavole3d.titoli[v.id]; T3('tavole3dTitolo').value = v.titolo; dopoTitolo3d(); });
+            T3('tavole3dTitoloAuto').addEventListener('click', () => { const v = tavole3d.voci[tavole3d.scelta], t = v && tavole3d.titoli[v.id]; if (!v) return; if (t) { delete t.testo; delete t.senza; } T3('tavole3dTitolo').value = v.titolo; dopoTitolo3d(); });
             T3('tavole3dTitoliTutte').addEventListener('click', () => {
                 const senza = !T3('tavole3dConTitolo').checked;
                 tavole3d.voci.forEach(v => { const t = tavole3d.titoli[v.id] || (tavole3d.titoli[v.id] = {}); t.senza = senza; if (!senza && !(t.testo && t.testo.trim())) delete tavole3d.titoli[v.id]; });
@@ -731,15 +766,56 @@
             // rotella = avvicina; doppio clic = di nuovo inquadrata.
             const tela3dT = T3('tavole3dTela');
             tela3dT.addEventListener('contextmenu', e => e.preventDefault());
+            /** Dove sta il mouse nella tavola (pixel della scena) e quale elemento c'è sotto. */
+            function puntoTavola3d(e) {
+                const u = tavole3d.ultima;
+                if (!u) return null;
+                const r = tela3dT.getBoundingClientRect();
+                return { x: (e.clientX - r.left) / u.k, y: (e.clientY - r.top) / u.k };
+            }
+            function elementoSotto3d(q) {
+                const u = tavole3d.ultima;
+                if (!u || !q) return null;
+                const sc = u.sc, el = sc.elementi || {}, dentro = b => b && q.x >= b.x0 && q.x <= b.x1 && q.y >= b.y0 && q.y <= b.y1;
+                if (sc.legenda && dentro({ x0: sc.legenda.x, y0: sc.legenda.y, x1: sc.legenda.x + sc.legenda.w, y1: sc.legenda.y + sc.legenda.h })) return 'legenda';
+                if (dentro(el.bussola)) return 'bussola';
+                if (dentro(el.scala)) return 'scala';
+                if (dentro(el.nordTerreno)) return 'nordTerreno';
+                return null;
+            }
             tela3dT.addEventListener('pointerdown', (e) => {
+                const q = puntoTavola3d(e), quale = e.button === 0 && !e.shiftKey ? elementoSotto3d(q) : null;
                 tavole3d.trascina = { x: e.clientX, y: e.clientY, sposta: e.button === 2 || e.button === 1 || e.shiftKey };
+                if (quale) {
+                    // Si sposta un elemento della tavola, non la vista.
+                    const sc = tavole3d.ultima.sc, el = sc.elementi || {};
+                    const inizio = quale === 'legenda' ? [sc.legenda.x, sc.legenda.y] : quale === 'bussola' ? [(el.bussola.x0 + el.bussola.x1) / 2, (el.bussola.y0 + el.bussola.y1) / 2]
+                        : quale === 'scala' ? [el.scala.x0 + 10, el.scala.y0 + 24] : el.nordTerreno.mondo.slice();
+                    Object.assign(tavole3d.trascina, { elemento: quale, sc, q0: q, inizio, mondo0: quale === 'nordTerreno' ? puntoTerrenoTavola3d(sc, q.x, q.y) : null });
+                }
                 tela3dT.classList.add('trascina');
                 try { tela3dT.setPointerCapture(e.pointerId); } catch (_) { /* jsdom */ }
                 e.preventDefault();
             });
             tela3dT.addEventListener('pointermove', (e) => {
                 const t = tavole3d.trascina;
-                if (!t) return;
+                if (!t) { tela3dT.style.cursor = elementoSotto3d(puntoTavola3d(e)) ? 'move' : ''; return; }
+                if (t.elemento) {
+                    const q = puntoTavola3d(e), sc = t.sc, v = tavole3d.voci[tavole3d.scelta];
+                    if (!q) return;
+                    const nx = t.inizio[0] + q.x - t.q0.x, ny = t.inizio[1] + q.y - t.q0.y;
+                    if (t.elemento === 'nordTerreno') {
+                        const m = puntoTerrenoTavola3d(sc, q.x, q.y);
+                        if (m && t.mondo0) regolaTavola3d(r => { r.nordTerreno = [t.inizio[0] + m[0] - t.mondo0[0], t.inizio[1] + m[1] - t.mondo0[1]]; });
+                    } else {
+                        const fx = Math.max(0, Math.min(1, nx / sc.W)), fy = Math.max(0, Math.min(1, ny / sc.H));
+                        tavole3d.posizioni = Object.assign({}, tavole3d.posizioni, { [t.elemento]: [fx, fy] });
+                        salvaMemoriaTavole3d();
+                    }
+                    void v;
+                    ridisegnaTavola3d(true);
+                    return;
+                }
                 const dx = e.clientX - t.x, dy = e.clientY - t.y, k = (tavole3d.ultima && tavole3d.ultima.k) || 1;
                 t.x = e.clientX; t.y = e.clientY;
                 regolaTavola3d(r => {
