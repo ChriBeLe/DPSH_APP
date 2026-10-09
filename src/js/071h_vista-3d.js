@@ -667,6 +667,7 @@
                     // corpo è stato tolto torna il terreno).
                     const contornoTerreno = so ? (distTaglio ? ritagliaPoligono(involucroModello(so), q => distTaglio(q[0], q[1])) : involucroModello(so)) : null;
                     const contornoConvesso = !contornoTerreno || poligonoConvesso(contornoTerreno);
+                    const triangoliContorno = contornoConvesso ? [] : triangoliPoligono(contornoTerreno.filter((q, i, A) => Math.hypot(q[0] - A[(i + 1) % A.length][0], q[1] - A[(i + 1) % A.length][1]) > 1e-9)).filter(T => Math.abs(areaPoligono(T)) > 1e-9);
                     for (let j = 0; j + 1 < nodi.length; j++) for (let i = 0; i + 1 < Math.min(nodi[j].length, nodi[j + 1].length); i++) {
                         const a = nodi[j][i], b = nodi[j][i + 1], c = nodi[j + 1][i + 1], e = nodi[j + 1][i];
                         if (![a, b, c, e].every(n => isFinite(n[2]))) continue;
@@ -679,20 +680,27 @@
                         // Col modello solido il terreno si ferma sul bordo del corpo: del riquadro resta
                         // solo la parte fuori (riquadro meno poligono convesso, un lato alla volta).
                         if (!contornoConvesso) {
-                            // Un perimetro non convesso: la cella intera se è tutta fuori, niente se tutta
-                            // dentro, altrimenti a quadretti, tenendo quelli col centro fuori.
-                            const cella = [a, b, c, e];
+                            // Un perimetro non convesso (a «L»): il riquadro meno ciascun triangolo del perimetro
+                            // (convesso: un lato alla volta, come sotto), esatto sul bordo, senza scalini.
+                            const cella = [a, b, c, e], zq = ([x, y]) => { const v = d.zSuolo(x, y); return Number.isFinite(v) ? v : (a[2] + c[2]) / 2; };
                             const x0c = Math.min(...cella.map(q => q[0])), x1c = Math.max(...cella.map(q => q[0])), y0c = Math.min(...cella.map(q => q[1])), y1c = Math.max(...cella.map(q => q[1]));
-                            const dentroC = cella.concat([[(x0c + x1c) / 2, (y0c + y1c) / 2]]).map(q => dentroPoligono(contornoTerreno, q[0], q[1]));
-                            const vertici = contornoTerreno.some(q => q[0] > x0c && q[0] < x1c && q[1] > y0c && q[1] < y1c);
-                            if (!vertici && dentroC.every(v => !v)) { terreno(cella, fill); continue; }
-                            if (!vertici && dentroC.every(v => v)) continue;
-                            const N6 = 6, zq = (x, y) => { const v = d.zSuolo(x, y); return Number.isFinite(v) ? v : (a[2] + c[2]) / 2; };
-                            for (let u = 0; u < N6; u++) for (let w = 0; w < N6; w++) {
-                                const xa = x0c + (x1c - x0c) * u / N6, xb = x0c + (x1c - x0c) * (u + 1) / N6, ya = y0c + (y1c - y0c) * w / N6, yb = y0c + (y1c - y0c) * (w + 1) / N6;
-                                if (dentroPoligono(contornoTerreno, (xa + xb) / 2, (ya + yb) / 2)) continue;
-                                terreno([[xa, ya, zq(xa, ya)], [xb, ya, zq(xb, ya)], [xb, yb, zq(xb, yb)], [xa, yb, zq(xa, yb)]], fill);
-                            }
+                            let pezziC = [cella.map(n => [n[0], n[1]])];
+                            triangoliContorno.forEach(T => {
+                                if (!pezziC.length || Math.max(...T.map(q => q[0])) < x0c || Math.min(...T.map(q => q[0])) > x1c || Math.max(...T.map(q => q[1])) < y0c || Math.min(...T.map(q => q[1])) > y1c) return;
+                                const nuovi = [];
+                                pezziC.forEach(pz => {
+                                    let resto = pz;
+                                    T.forEach((A, i2) => {
+                                        if (resto.length < 3) return;
+                                        const B = T[(i2 + 1) % 3], lato = q => (B[0] - A[0]) * (q[1] - A[1]) - (B[1] - A[1]) * (q[0] - A[0]);
+                                        const fuori = ritagliaPoligono(resto, q => -lato(q));
+                                        if (fuori.length >= 3) nuovi.push(fuori);
+                                        resto = ritagliaPoligono(resto, lato);
+                                    });
+                                });
+                                pezziC = nuovi;
+                            });
+                            pezziC.forEach(pz => terreno(pz.map(q => [q[0], q[1], zq(q)]), fill));
                             continue;
                         }
                         let resto = [a, b, c, e].map(n => [n[0], n[1]]);
@@ -754,20 +762,32 @@
                             if (lung < 1e-6 || dy * vxB - dx * vyB >= 0) return; // di spalle
                             const sulTaglio = Math.abs(distTaglio(a[0], a[1])) < 1e-6 && Math.abs(distTaglio(b[0], b[1])) < 1e-6;
                             if (!sulTaglio && esteso) return;
-                            const n0 = sulTaglio ? 64 : 16;
-                            let prima = null;
-                            for (let n = 0; n <= n0; n++) {
-                                const x = a[0] + dx * n / n0, y = a[1] + dy * n / n0, q = { x, y, z: zS(x, y) };
-                                if (prima) {
-                                    const mx = (prima.x + x) / 2, my = (prima.y + y) / 2;
-                                    if (!(sulTaglio && piede && dentroPoligono(piede, mx, my))) {
-                                        const pw = [[prima.x, prima.y, prima.z], [x, y, q.z], [x, y, q.z - fondoB], [prima.x, prima.y, prima.z - fondoB]], sp = pw.map(w => P(...w)), fill = ombra(COL_BLOCCO, pw, sulTaglio ? undefined : 'ombra');
-                                        pezzi.push({ prof: baseProf + sp.reduce((s2, w) => s2 + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: 1, stroke: fill, sw: 0.5, cls: 'vista3d-blocco' });
-                                        linee.push([[prima.x, prima.y, prima.z - fondoB], [x, y, q.z - fondoB]]);
-                                    }
-                                }
-                                prima = q;
+                            // sul taglio, i punti dove la retta entra ed esce dal modello: lì la faccia si ferma
+                            // esatta (niente spazio tra la faccia del blocco e la sezione del modello)
+                            const tt = [0, 1];
+                            if (sulTaglio && piede) piede.forEach((P1, i2) => {
+                                const P2 = piede[(i2 + 1) % piede.length], ex2 = P2[0] - P1[0], ey2 = P2[1] - P1[1], den = dx * ey2 - dy * ex2;
+                                if (Math.abs(den) < 1e-12) return;
+                                const u = ((P1[0] - a[0]) * ey2 - (P1[1] - a[1]) * ex2) / den, v = ((P1[0] - a[0]) * dy - (P1[1] - a[1]) * dx) / den;
+                                if (u > 0 && u < 1 && v >= -1e-9 && v <= 1 + 1e-9) tt.push(u);
+                            });
+                            tt.sort((m, n) => m - n);
+                            const passiT = [];
+                            for (let i2 = 0; i2 + 1 < tt.length; i2++) {
+                                const t0 = tt[i2], t1 = tt[i2 + 1], mm = Math.max(1, Math.ceil((t1 - t0) * (sulTaglio ? 64 : 16)));
+                                if (t1 - t0 < 1e-9) continue;
+                                const tm = (t0 + t1) / 2, dentroM = sulTaglio && piede && dentroPoligono(piede, a[0] + dx * tm, a[1] + dy * tm);
+                                for (let m = 0; m < mm; m++) passiT.push({ t0: t0 + (t1 - t0) * m / mm, t1: t0 + (t1 - t0) * (m + 1) / mm, via: dentroM });
                             }
+                            passiT.forEach(({ t0, t1, via }) => {
+                                if (via) return;
+                                const prima = { x: a[0] + dx * t0, y: a[1] + dy * t0 }, x = a[0] + dx * t1, y = a[1] + dy * t1;
+                                prima.z = zS(prima.x, prima.y);
+                                const q = { x, y, z: zS(x, y) };
+                                const pw = [[prima.x, prima.y, prima.z], [x, y, q.z], [x, y, q.z - fondoB], [prima.x, prima.y, prima.z - fondoB]], sp = pw.map(w => P(...w)), fill = ombra(COL_BLOCCO, pw, sulTaglio ? undefined : 'ombra');
+                                pezzi.push({ prof: baseProf + sp.reduce((s2, w) => s2 + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: 1, stroke: fill, sw: 0.5, cls: 'vista3d-blocco' });
+                                linee.push([[prima.x, prima.y, prima.z - fondoB], [x, y, q.z - fondoB]]);
+                            });
                             [a, b].forEach(e => linee.push([[e[0], e[1], zS(e[0], e[1])], [e[0], e[1], zS(e[0], e[1]) - fondoB]]));
                         });
                         linee.forEach(([u, w]) => { const p1 = P(...u), p2 = P(...w); pezzi.push({ prof: baseProf - 1 + Math.min(p1[2], p2[2]), t: 'linea', x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], stroke: '#57534e', sw: 1, cls: 'vista3d-blocco' }); });
