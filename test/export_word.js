@@ -63,7 +63,34 @@ const $ = (app, id) => app.d.getElementById(id);
   const benFormati = nomi.filter(n => /\.(xml|rels)$/.test(n)).every(n => !new app.w.DOMParser().parseFromString(testo(n), 'application/xml').querySelector('parsererror'));
   t('XML ben formato in ogni parte', benFormati);
   t('l\'immagine è collegata al documento', /Id="rIdImg1"[^>]*Target="media\/immagine1\.png"/.test(testo('word/_rels/document.xml.rels')));
-  t('compatibilità Word 2010: niente spazi stretti nel testo giustificato', /compatibilityMode[^>]*w:val="14"/.test(testo('word/settings.xml')));
+  // Con la 14 (Word 2010) Word apriva il file con «[Modalità compatibilità]» nella barra del titolo:
+  // un documento che non sembra scritto con Word.
+  t('compatibilità di Word di oggi (15): niente «Modalità compatibilità»', /compatibilityMode[^>]*w:val="15"/.test(testo('word/settings.xml')));
+
+  console.log('--- L\'intestazione è l\'intestazione di Word ---');
+  {
+    // Prima l'intestazione stava nel corpo e il margine superiore di Word era la posizione del
+    // logo. Ora è una parte header di Word, con le sue immagini nelle relazioni della parte.
+    const ctx = { intestazioni: new Map(), intestazioneVuota: null, titolo: 'Relazione Nardò' };
+    t('senza intestazioni nessun riferimento', app.E('intestazioneInSezione')(ctx, null) === '');
+    const parte = { rid: 'rIdIntestazione1', nome: 'header1.xml', distanzaTw: 170,
+      xml: `<w:p>${app.E('immagineInLineaWord')({ media: [], idDisegno: 7 }, { estensione: 'png', bytes: new Uint8Array([1]) }, 100, 40)}</w:p>` };
+    ctx.intestazioni.set('logo', parte);
+    t('la sezione la richiama', app.E('intestazioneInSezione')(ctx, parte) === '<w:headerReference w:type="default" r:id="rIdIntestazione1"/>');
+    // Una sezione senza riferimento in Word erediterebbe l'intestazione della precedente.
+    t('una pagina senza intestazione dopo una che ce l\'ha prende quella vuota', /r:id="rIdIntestazioneVuota"/.test(app.E('intestazioneInSezione')(ctx, null)));
+    const b2 = app.E('pacchettoDocxWord')('<w:p/>', '<w:sectPr/>', [{ nome: 'immagine7.png', bytes: new Uint8Array([1]), rid: 'rIdImg7' }], ctx);
+    const v2 = await app.E('readZipStoreOnly')(b2);
+    const t2 = (n) => { const x = v2.find(v => v.name === n); return x ? new TextDecoder().decode(x.bytes) : ''; };
+    t('nel pacchetto la parte header c\'è, ben formata', /^<\?xml[^>]*>\s*<w:hdr /.test(t2('word/header1.xml'))
+      && !new app.w.DOMParser().parseFromString(t2('word/header1.xml'), 'application/xml').querySelector('parsererror'));
+    t('e anche quella vuota', /<w:hdr /.test(t2('word/header0.xml')));
+    t('collegata al documento e dichiarata', /Id="rIdIntestazione1"[^>]*relationships\/header" Target="header1\.xml"/.test(t2('word/_rels/document.xml.rels'))
+      && /PartName="\/word\/header1\.xml"[^>]*header\+xml/.test(t2('[Content_Types].xml')));
+    t('il logo è nelle relazioni della parte header', /Id="rIdImg7"[^>]*Target="media\/immagine7\.png"/.test(t2('word/_rels/header1.xml.rels')));
+    t('le proprietà del documento: titolo e lingua (File › Informazioni)', /<dc:title>Relazione Nardò<\/dc:title>/.test(t2('docProps/core.xml'))
+      && /core-properties" Target="docProps\/core\.xml"/.test(t2('_rels/.rels')));
+  }
 
   console.log('--- Indice e numeri di pagina: le funzioni vere di Word ---');
   {

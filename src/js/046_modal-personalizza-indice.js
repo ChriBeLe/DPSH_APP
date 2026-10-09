@@ -572,6 +572,7 @@
                     if (esportaPdfContext.formato === 'word') {
                         const risultato = await documentoStampaInDocx(fullDoc, {
                             qualitaJpeg: qualitaScelta,
+                            titolo,
                             onAvanzamento: (testo, quota) => {
                                 if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = testo;
                                 if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = (95 + Math.round(quota * 5)) + '%';

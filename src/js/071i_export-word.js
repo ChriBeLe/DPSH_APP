@@ -46,7 +46,7 @@
                 const stili = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
                 const sprite = Array.from(doc.querySelectorAll('svg')).filter(s => s.querySelector('symbol'))
                     .map(s => new XMLSerializer().serializeToString(s)).join('');
-                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85, idSegnalibro: 1, titoliFatti: new Set(), stiliSommario: '', piede: null };
+                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85, idSegnalibro: 1, titoliFatti: new Set(), stiliSommario: '', piede: null, intestazioni: new Map(), intestazioneVuota: null, titolo: (opzioni && opzioni.titolo) || '' };
             }
 
             function nascostoWord(ctx, el) {
@@ -414,6 +414,18 @@
                 if (jc === 'left' || jc === 'both') indDx = -margine.dx;
                 else if (jc === 'right') indSx -= margine.sx;
                 else { const m = Math.min(margine.sx, margine.dx); indSx -= m; indDx = -m; }
+                // Testo centrato o a destra in un riquadro più stretto della regione (l'intestazione
+                // è un riquadro centrato largo quanto il suo testo): col solo rientro a sinistra Word
+                // lo centrava nello spazio rimasto a destra, cioè spostato. Il rientro a destra lo
+                // rimette dov'è nel PDF.
+                // Un po' d'agio ai lati (Word e LibreOffice misurano le lettere un poco più larghe del
+                // browser): senza, la riga andrebbe a capo; il centro resta dov'è.
+                if ((jc === 'center' || jc === 'right') && !foglia.margineCella && ctx.regione && Math.abs(ctx.regione.x - xRegione) < 0.5) {
+                    indDx = Math.max(0, ctx.regione.x + ctx.regione.w - (foglia.r.x + foglia.r.w));
+                    const agio = Math.min(indSx, jc === 'center' ? indDx : Infinity, foglia.r.w * 0.15 + 6);
+                    indSx -= agio;
+                    if (jc === 'center') indDx -= agio;
+                }
                 const twSegno = (px) => Math.round(px * PX_TWIP);
                 // Se una riga nel PDF riempie quasi tutta la cella, anche il margine può non bastare:
                 // il testo si stringe in larghezza (scala orizzontale di Word) quanto serve a
@@ -425,7 +437,7 @@
                     const f = larghezza > 0 && soloACapoVeri ? Math.min(1, spazio / (larghezza * 1.08)) : 1;
                     if (f < 0.995) runs = stringiRunWord(runs, f);
                 }
-                const destra = indDx < -0.5 ? ` w:right="${twSegno(indDx)}"` : '';
+                const destra = Math.abs(indDx) > 0.5 ? ` w:right="${twSegno(indDx)}"` : '';
                 let ind = (Math.abs(indSx) > 0.5 ? ` w:left="${twSegno(indSx)}"` : '') + destra;
                 const rientro = parseFloat(cs.textIndent) || 0;
                 let prima = '';
@@ -603,6 +615,7 @@
                     return `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>${sinistra > 0.5 ? `<w:ind w:left="${tw(sinistra)}"/>` : ''}<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr>${immagineInLineaWord(ctx, img, img.w, img.h)}</w:p>`;
                 }
                 const sinistra = f.r.x - xRegione;
+                ctx.regione = null; // dentro una tabella o una scatola la regione è un'altra
                 const conRientro = Object.assign({}, f, { rientroTw: sinistra > 0.5 ? tw(sinistra) : 0 });
                 return f.tipo === 'tabella' ? tabellaWord(ctx, conRientro) : scatolaWord(ctx, conRientro);
             }
@@ -626,6 +639,7 @@
                         const sinistra = Math.max(0, Math.min(...banda.foglie.map(f => f.r.x)) - x);
                         pezzo = `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>${sinistra > 0.5 ? `<w:ind w:left="${tw(sinistra)}"/>` : ''}<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr>${immagineInLineaWord(ctx, img, img.w, img.h)}</w:p>`;
                     } else if (banda.foglie.length === 1) {
+                        ctx.regione = { x, w: larghezza };
                         pezzo = await fogliaWord(ctx, banda.foglie[0], x);
                     } else {
                         const colonne = dividiWord(banda.foglie, 'x');
@@ -636,6 +650,7 @@
                             pezzo = '';
                             const ordinate = banda.foglie.slice().sort((a, b) => a.r.y - b.r.y || a.r.x - b.r.x);
                             for (const f of ordinate) {
+                                ctx.regione = { x, w: larghezza };
                                 const xmlF = await fogliaWord(ctx, f, x);
                                 if (/<\/w:tbl>$/.test(pezzo) && /^<w:tbl>/.test(xmlF)) pezzo += paragrafoVuotoWord(20);
                                 pezzo += xmlF;
@@ -797,6 +812,40 @@
                 return '<w:pgNumType w:start="1"/>';
             }
 
+            /** L'INTESTAZIONE DI WORD di un foglio: una parte header di Word, con testo e immagini
+             * alle distanze del PDF. Le pagine con la stessa intestazione (di solito tutte) usano la
+             * stessa parte: il logo sta nel file una volta sola. `distanzaTw` è la distanza
+             * dell'intestazione dal bordo superiore, cioè «Intestazione: da bordo» di Word. */
+            async function intestazioneWord(ctx, intestazione, ri, rf) {
+                const chiave = intestazione.innerHTML;
+                if (ctx.intestazioni.has(chiave)) return ctx.intestazioni.get(chiave);
+                const foglie = raccogliFoglieWord(ctx, intestazione, [], [intestazione]).filter(f => f.tipo !== 'vuoto');
+                if (!foglie.length) return null;
+                const y0 = Math.min(...foglie.map(f => f.r.y));
+                const limitePrima = ctx.limite;
+                ctx.limite = Infinity;
+                let xml = (await impaginaWord(ctx, foglie, ri.left, ri.width, y0)).xml;
+                ctx.limite = limitePrima;
+                // Word vuole un paragrafo in fondo all'intestazione.
+                if (!/<\/w:p>$/.test(xml)) xml += paragrafoVuotoWord(20);
+                const n = ctx.intestazioni.size + 1;
+                const parte = { rid: 'rIdIntestazione' + n, nome: `header${n}.xml`, xml, distanzaTw: tw(y0 - rf.top) };
+                ctx.intestazioni.set(chiave, parte);
+                return parte;
+            }
+            /** Il riferimento all'intestazione nella sezione. Una sezione senza riferimento in Word
+             * EREDITA l'intestazione della precedente: una pagina che nel PDF non ce l'ha (il
+             * contenuto che scorre, un template senza intestazione) prende quella vuota. */
+            function intestazioneInSezione(ctx, parte) {
+                if (parte) return `<w:headerReference w:type="default" r:id="${parte.rid}"/>`;
+                if (!ctx.intestazioni.size) return '';
+                if (!ctx.intestazioneVuota) ctx.intestazioneVuota = { rid: 'rIdIntestazioneVuota', nome: 'header0.xml', xml: paragrafoVuotoWord(20), distanzaTw: 0 };
+                return `<w:headerReference w:type="default" r:id="${ctx.intestazioneVuota.rid}"/>`;
+            }
+            function partiIntestazioneWord(ctx) {
+                return Array.from(ctx.intestazioni.values()).concat(ctx.intestazioneVuota ? [ctx.intestazioneVuota] : []);
+            }
+
             /** Un foglio del report: una sezione di Word con gli stessi margini. */
             async function foglioWord(ctx, foglio) {
                 const interno = foglio.querySelector('.dpsh-sheet-inner') || foglio;
@@ -804,18 +853,17 @@
                 let ri = interno.getBoundingClientRect();
                 ctx.limite = ri.bottom;
                 // L'intestazione sta nel margine superiore del foglio, fuori dall'area del contenuto
-                // (htmlIntestazioneNelMargine): in Word la pagina comincia dove comincia lei, e
-                // il contenuto la segue alla stessa distanza del PDF.
+                // (htmlIntestazioneNelMargine). In Word va nell'INTESTAZIONE vera (intestazioneWord):
+                // prima stava nel corpo, e il margine superiore di Word diventava la posizione del
+                // logo, pochi millimetri; un doppio clic in alto non apriva niente.
                 const intestazione = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'intestazione' && !nascostoWord(ctx, c));
-                const foglieSopra = intestazione ? raccogliFoglieWord(ctx, intestazione, [], [intestazione]) : [];
-                const topPagina = foglieSopra.length ? Math.min(ri.top, ...foglieSopra.map(f => f.r.y)) : ri.top;
+                const parteIntestazione = intestazione ? await intestazioneWord(ctx, intestazione, ri, rf) : null;
                 let corpo;
                 if (foglio.hasAttribute('data-sommario')) corpo = await sommarioWord(ctx, foglio, ri);
                 else {
-                    const foglie = foglieSopra.concat(raccogliFoglieWord(ctx, interno, []));
-                    corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, topPagina)).xml : '';
+                    const foglie = raccogliFoglieWord(ctx, interno, []);
+                    corpo = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, ri.top)).xml : '';
                 }
-                ri = { top: topPagina, bottom: ri.bottom, left: ri.left, right: ri.right, width: ri.width };
                 // Una prova senza titoli: nell'indice c'è la sua riga («Prova N° 3»). In Word un campo
                 // VOCE DI SOMMARIO (TC), che non si vede, col segnalibro: il Sommario la ritrova.
                 if (foglio.hasAttribute('data-voce-testo')) {
@@ -825,8 +873,8 @@
                 }
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
-                const sezione = `<w:sectPr>${piedeInSezione(ctx, foglio)}<w:pgSz w:w="11906" w:h="16838"/>`
-                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0))}" w:left="${tw(ri.left - rf.left)}" w:header="0" w:footer="0" w:gutter="0"/>`
+                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, parteIntestazione)}${piedeInSezione(ctx, foglio)}<w:pgSz w:w="11906" w:h="16838"/>`
+                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0))}" w:left="${tw(ri.left - rf.left)}" w:header="${parteIntestazione ? parteIntestazione.distanzaTw : 0}" w:footer="0" w:gutter="0"/>`
                     + `${numerazioneInSezione(ctx, foglio)}<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
@@ -867,6 +915,18 @@
 
             function pacchettoDocxWord(corpo, sezioneFinale, media, extra) {
                 const x = extra || {};
+                const intestazioni = x.intestazioni ? partiIntestazioneWord(x) : [];
+                const NS_HDR = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
+                    + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+                    + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+                // Le immagini di un'intestazione si cercano nelle relazioni della SUA parte.
+                const relazioniIntestazione = (h) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
+                    + media.filter(m => h.xml.includes(`r:embed="${m.rid}"`)).map(m => `<Relationship Id="${m.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.nome}"/>`).join('')
+                    + `</Relationships>`;
+                const adesso = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+                const proprieta = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">`
+                    + (x.titolo ? `<dc:title>${xmlTesto(x.titolo)}</dc:title>` : '') + `<dc:language>it-IT</dc:language>`
+                    + `<dcterms:created xsi:type="dcterms:W3CDTF">${adesso}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${adesso}</dcterms:modified></cp:coreProperties>`;
                 const ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
                     + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
                     + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
@@ -877,13 +937,15 @@
                     + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`
                     + `<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`
                     + (x.stiliSommario || '') + `</w:styles>`;
-                // Compatibilità 14 (Word 2010): dalla 15 Word stringe gli spazi del testo giustificato
-                // e fa stare più parole per riga del browser, cioè a capo diversi dal PDF.
-                const impostazioni = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:defaultTabStop w:val="709"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="14"/></w:compat></w:settings>`;
+                // Compatibilità 15, quella dei documenti scritti con Word di oggi. Con la 14 (Word
+                // 2010) gli a capo del testo giustificato erano più vicini al PDF, ma Word apriva il
+                // file con «[Modalità compatibilità]» nella barra del titolo.
+                const impostazioni = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:defaultTabStop w:val="709"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
                 const relazioni = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
                     + `<Relationship Id="rIdStili" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`
                     + `<Relationship Id="rIdImpostazioni" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>`
                     + (x.piede ? `<Relationship Id="rIdPiede" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>` : '')
+                    + intestazioni.map(h => `<Relationship Id="${h.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="${h.nome}"/>`).join('')
                     + media.map(m => `<Relationship Id="${m.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.nome}"/>`).join('')
                     + `</Relationships>`;
                 const tipi = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`
@@ -893,8 +955,11 @@
                     + `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>`
                     + `<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>`
                     + (x.piede ? `<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>` : '')
+                    + intestazioni.map(h => `<Override PartName="/word/${h.nome}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`).join('')
+                    + `<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>`
                     + `</Types>`;
-                const radice = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+                const radice = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>`
+                    + `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
                 const enc = new TextEncoder();
                 return buildZipBlob([
                     { name: '[Content_Types].xml', bytes: enc.encode(tipi) },
@@ -904,6 +969,11 @@
                     { name: 'word/settings.xml', bytes: enc.encode(impostazioni) },
                     { name: 'word/_rels/document.xml.rels', bytes: enc.encode(relazioni) },
                     ...(x.piede ? [{ name: 'word/footer1.xml', bytes: enc.encode(x.piede) }] : []),
+                    ...intestazioni.flatMap(h => [
+                        { name: 'word/' + h.nome, bytes: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr ${NS_HDR}>${h.xml}</w:hdr>`) },
+                        { name: `word/_rels/${h.nome}.rels`, bytes: enc.encode(relazioniIntestazione(h)) }
+                    ]),
+                    { name: 'docProps/core.xml', bytes: enc.encode(proprieta) },
                     ...media.map(m => ({ name: 'word/media/' + m.nome, bytes: m.bytes }))
                 ]);
             }
@@ -934,7 +1004,7 @@
                 const r = seg.padre.getBoundingClientRect();
                 const corpo = foglie.length ? (await impaginaWord(ctx, foglie, r.left, r.width, Math.min(...foglie.map(f => f.r.y)))).xml : '';
                 const mm = (v) => Math.round(v * 56.6929);
-                const sezione = `<w:sectPr>${piedeInSezione(ctx)}<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="${mm(mrg.top)}" w:right="${mm(mrg.right)}" w:bottom="${mm(mrg.bottom)}" w:left="${mm(mrg.left)}" w:header="0" w:footer="0" w:gutter="0"/><w:cols w:space="0"/></w:sectPr>`;
+                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, null)}${piedeInSezione(ctx)}<w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="${mm(mrg.top)}" w:right="${mm(mrg.right)}" w:bottom="${mm(mrg.bottom)}" w:left="${mm(mrg.left)}" w:header="0" w:footer="0" w:gutter="0"/><w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
 

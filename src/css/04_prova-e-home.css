@@ -869,3 +869,12 @@
         }
         .strato-senza-dati { font-size: var(--fs-testo); color: var(--text-muted); line-height: 1.4; text-align: left; }
         .strato-senza-dati-azioni { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+
+        /* Margini del template come in Word (editor del template, barra laterale). */
+        .margine-riga { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 3px; }
+        .margine-valore { display: inline-flex; align-items: center; gap: 4px; }
+        .margine-cm { width: 56px; padding: 3px 6px; text-align: right; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font: inherit; font-family: var(--font-mono, monospace); }
+        .margini-preimpostati { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px; }
+        .margini-preimpostati button { min-height: 32px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .margini-preimpostati button.attivo { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+        .nota-margine { font-size: 10.5px; line-height: 1.35; color: var(--avviso-testo); background: var(--warning-soft, rgba(250, 204, 21, 0.12)); border-radius: var(--radius-sm); padding: 6px 8px; margin: 4px 0; }

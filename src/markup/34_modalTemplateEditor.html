@@ -126,41 +126,52 @@
                      nuovo architetturalmente. Vedi sincronizzaControlliMarginiSidebar per
                      l'aggiornamento delle label quando i margini cambiano da altrove (es. maniglie
                      sul foglio, doppio tocco di reset). -->
+                <!-- MARGINI COME IN WORD: in centimetri con la virgola, con le preimpostazioni del menu
+                     «Margini» di Word (Layout › Margini). Il cursore resta per regolare a occhio. -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 4px;">
-                    <span style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px;">Margini pagina</span>
-                    <button type="button" id="btnResetMarginiTemplate" title="Ripristina i margini predefiniti (14mm sopra/sotto, 12mm laterali)" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg class="ico" style="width: 12px; height: 12px;"><use href="#i-undo"/></svg></button>
+                    <span style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px;">Margini</span>
+                    <button type="button" id="btnResetMarginiTemplate" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg class="ico" style="width: 12px; height: 12px;"><use href="#i-undo"/></svg></button>
                 </div>
                 <div style="font-size: 9.5px; color: var(--text-muted); line-height: 1.35; margin-bottom: 8px;">Valgono per l'intero template, tutte le pagine insieme — non solo quella che stai guardando ora.</div>
+                <div class="margini-preimpostati" id="marginiPreimpostati">
+                    <button type="button" data-margini-preset="normale" title="Superiore 2,5 · Inferiore 2 · Sinistro 2 · Destro 2 cm">Normale</button>
+                    <button type="button" data-margini-preset="stretto" title="1,27 cm su tutti i lati">Stretto</button>
+                    <button type="button" data-margini-preset="moderato" title="Superiore e inferiore 2,54 · Sinistro e destro 1,91 cm">Moderato</button>
+                    <button type="button" data-margini-preset="largo" title="Superiore e inferiore 2,54 · Sinistro e destro 5,08 cm">Largo</button>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 4px;">
                     <div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-muted); font-weight:700; margin-bottom:3px;">
-                            <span>Sopra</span>
-                            <span id="lblMargineTop">14mm</span>
+                        <div class="margine-riga">
+                            <label for="lblMargineTop">Superiore</label>
+                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineTop" class="margine-cm" data-margine-side="top" value="1,40" aria-label="Margine superiore in centimetri"> cm</span>
                         </div>
-                        <input type="range" id="rangeMargineTop" data-margine-side="top" min="0" max="40" step="1" value="14" style="width:100%; accent-color:var(--accent);">
+                        <input type="range" id="rangeMargineTop" data-margine-side="top" min="0" max="60" step="0.5" value="14" style="width:100%; accent-color:var(--accent);">
                     </div>
                     <div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-muted); font-weight:700; margin-bottom:3px;">
-                            <span>Sotto</span>
-                            <span id="lblMargineBottom">14mm</span>
+                        <div class="margine-riga">
+                            <label for="lblMargineBottom">Inferiore</label>
+                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineBottom" class="margine-cm" data-margine-side="bottom" value="1,40" aria-label="Margine inferiore in centimetri"> cm</span>
                         </div>
-                        <input type="range" id="rangeMargineBottom" data-margine-side="bottom" min="0" max="40" step="1" value="14" style="width:100%; accent-color:var(--accent);">
+                        <input type="range" id="rangeMargineBottom" data-margine-side="bottom" min="0" max="60" step="0.5" value="14" style="width:100%; accent-color:var(--accent);">
                     </div>
                     <div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-muted); font-weight:700; margin-bottom:3px;">
-                            <span>Sinistra</span>
-                            <span id="lblMargineLeft">12mm</span>
+                        <div class="margine-riga">
+                            <label for="lblMargineLeft">Sinistro</label>
+                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineLeft" class="margine-cm" data-margine-side="left" value="1,20" aria-label="Margine sinistro in centimetri"> cm</span>
                         </div>
-                        <input type="range" id="rangeMargineLeft" data-margine-side="left" min="0" max="40" step="1" value="12" style="width:100%; accent-color:var(--accent);">
+                        <input type="range" id="rangeMargineLeft" data-margine-side="left" min="0" max="60" step="0.5" value="12" style="width:100%; accent-color:var(--accent);">
                     </div>
                     <div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; font-size:10.5px; color:var(--text-muted); font-weight:700; margin-bottom:3px;">
-                            <span>Destra</span>
-                            <span id="lblMargineRight">12mm</span>
+                        <div class="margine-riga">
+                            <label for="lblMargineRight">Destro</label>
+                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineRight" class="margine-cm" data-margine-side="right" value="1,20" aria-label="Margine destro in centimetri"> cm</span>
                         </div>
-                        <input type="range" id="rangeMargineRight" data-margine-side="right" min="0" max="40" step="1" value="12" style="width:100%; accent-color:var(--accent);">
+                        <input type="range" id="rangeMargineRight" data-margine-side="right" min="0" max="60" step="0.5" value="12" style="width:100%; accent-color:var(--accent);">
                     </div>
                 </div>
+                <!-- Se l'intestazione è più alta del margine superiore, il foglio usa di più: lo si dice
+                     qui (sincronizzaControlliMarginiSidebar), invece di cambiarlo in silenzio. -->
+                <div id="notaMargineIntestazione" class="nota-margine" hidden></div>
 
                 <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Intestazione</div>
                 <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; margin-bottom: 6px;" title="Vale per l'intero template, non solo per questa pagina: se attiva, l'intestazione compare su ogni pagina.">

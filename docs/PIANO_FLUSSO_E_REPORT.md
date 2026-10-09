@@ -314,3 +314,24 @@ Le lettere continuano quelle di `PIANO_RIARCHITETTURA.md` (G–K).
 2. Uno screenshot del **problema dei margini** così come lo vedi, per essere sicuri che sia W1,
    W7 o W8 e non un altro.
 3. Le scelte L–Q, anche «ok a tutte».
+
+---
+
+## 9. Avanzamento
+
+L'utente ha detto di procedere in autonomia (09/10/2026). Senza il .docx dell'ufficio si usano i
+valori di Word italiano. Per le decisioni L–Q valgono le proposte, da confermare.
+
+| Data | Passo | Fatto | Test |
+|---|---|---|---|
+| 09/10/2026 | B (in parte) | F2, F3, F4 e la X della procedura guidata che non chiudeva; dopo «Riconosci strati» il tasto «Dai un nome» (avvio di C) | `strati_vicoli_ciechi.js` |
+| 09/10/2026 | E (primo pezzo) | W1: intestazione nell'intestazione vera di Word (parte header, logo nelle sue relazioni, pagine senza intestazione con quella vuota); margine superiore vero. W2: compatibilità 15. W5: `docProps/core.xml` (titolo, lingua, date). Testo centrato in un riquadro stretto non più spostato a destra | `export_word.js` |
+| 09/10/2026 | D (primo pezzo) | W7: margini in cm con la virgola, nomi e preimpostazioni di Word (Normale, Stretto, Moderato, Largo), cursore fino a 6 cm. W8: la nota dice quanto margine usa davvero l'intestazione | `margini_come_word.js` |
+
+**Da fare dopo, nell'ordine:** distanza dell'intestazione dal bordo (oggi 3 mm, in Word 1,25 cm)
+insieme all'intestazione unica per documento con testo formattato (D); una sezione di Word per
+orientamento invece che per pagina, stili Titolo 1–3 e autore del documento (E); capitolo Tavole
+(F); parametri per progetto (G); percorso nel Progetto e scaletta (H).
+
+**Annotato:** Annulla dell'editor dei template copre le pagine, non i margini né l'intestazione
+accesa o spenta (era così anche prima).

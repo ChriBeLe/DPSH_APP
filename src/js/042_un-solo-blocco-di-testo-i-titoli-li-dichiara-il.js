@@ -1086,7 +1086,7 @@
                 triggerVibrate(12);
                 renderTemplateEditorCanvas();
                 renderManigliePaginaEditor();
-                if (side !== 'header') sincronizzaControlliMarginiSidebar();
+                sincronizzaControlliMarginiSidebar();
             }
             let ultimoTapManigliaPagina = { side: null, t: 0 };
             function attivaTrascinamentoManigliaPagina(handleEl, side) {
@@ -1218,19 +1218,43 @@
                 const range = document.getElementById(`rangeMargine${cap}`);
                 if (!range) return;
                 range.addEventListener('input', (e) => {
-                    const nuovo = parseInt(e.target.value, 10) || 0;
+                    const nuovo = parseFloat(e.target.value) || 0;
                     templateEditorState.margins = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                     templateEditorState.margins[side] = nuovo;
-                    const lbl = document.getElementById(`lblMargine${cap}`);
-                    if (lbl) lbl.textContent = `${nuovo}mm`;
+                    sincronizzaControlliMarginiSidebar();
                     renderTemplateEditorCanvas();
                     renderManigliePaginaEditor();
                 });
+                // Il valore scritto in centimetri, come in Word: vale quando si esce dal campo o con Invio.
+                const campo = document.getElementById(`lblMargine${cap}`);
+                if (campo) {
+                    const applica = () => {
+                        const mm = mmDaCm(campo.value);
+                        const attuale = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                        if (mm === null || Math.abs(mm - attuale[side]) < 0.05) { campo.value = cmMargine(attuale[side]); return; }
+                        salvaUndoSnapshotEditor();
+                        templateEditorState.margins = Object.assign(attuale, { [side]: mm });
+                        campo.value = cmMargine(mm);
+                        sincronizzaControlliMarginiSidebar();
+                        renderTemplateEditorCanvas();
+                        renderManigliePaginaEditor();
+                    };
+                    campo.addEventListener('change', applica);
+                    campo.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); campo.blur(); } });
+                }
                 // Un solo salvataggio undo a fine trascinamento (non ad ogni tick dello slider),
                 // stesso principio delle maniglie dirette sul foglio (vedi
                 // attivaTrascinamentoManigliaPagina) — 'change' scatta solo al rilascio.
                 range.addEventListener('change', () => salvaUndoSnapshotEditor());
             });
+            document.querySelectorAll('[data-margini-preset]').forEach(b => b.addEventListener('click', () => {
+                salvaUndoSnapshotEditor();
+                templateEditorState.margins = Object.assign({}, MARGINI_WORD[b.dataset.marginiPreset]);
+                sincronizzaControlliMarginiSidebar();
+                renderTemplateEditorCanvas();
+                renderManigliePaginaEditor();
+                triggerVibrate(12);
+            }));
             const btnResetMarginiTemplate = document.getElementById('btnResetMarginiTemplate');
             if (btnResetMarginiTemplate) {
                 btnResetMarginiTemplate.addEventListener('click', () => {
