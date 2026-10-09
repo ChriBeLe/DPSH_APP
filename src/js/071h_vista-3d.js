@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0, opacitaFoto: 0.5,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false, tagliaMappa: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -560,7 +560,18 @@
                         const x = pp.reduce((a, q) => a + q[0], 0) / pp.length, y = pp.reduce((a, q) => a + q[1], 0) / pp.length;
                         return distTaglio(x, y) < 0 && pieno.every((A, i) => { const B = pieno[(i + 1) % pieno.length]; return (B[0] - A[0]) * (y - A[1]) - (B[1] - A[1]) * (x - A[0]) >= -1e-6; });
                     };
-                    const terreno = (pp, fill) => {
+                    // «Ritaglia anche la mappa»: col taglio verticale il terreno (e la sua immagine) dalla parte
+                    // tolta non c'è più, la mappa si ferma sul piano del taglio come il modello.
+                    const tagliaMappa = L.tagliaMappa && distTaglio;
+                    const mappaTagliata = (pp, zDi) => {
+                        if (!tagliaMappa) return pp;
+                        if (pp.every(q => distTaglio(q[0], q[1]) >= -1e-9)) return pp;
+                        return ritagliaPoligono(pp.map(q => [q[0], q[1]]), q => distTaglio(q[0], q[1])).map(([x, y]) => [x, y, zDi(x, y)]);
+                    };
+                    const terreno = (pp0, fill) => {
+                        const zMedia = pp0.reduce((a, q) => a + q[2], 0) / pp0.length;
+                        const pp = mappaTagliata(pp0, (x, y) => { const z = d.zSuolo(x, y); return Number.isFinite(z) ? z : zMedia; });
+                        if (pp.length < 3) return;
                         const scavo = nelloScavo(pp);
                         if (!sf || !sf.uv) { const sp = pp.map(q => P(...q)); pezzi.push({ prof: sottoTutto + sp.reduce((a, q) => a + q[2], 0) / sp.length, t: 'poli', p: sp.map(q => [q[0], q[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia', scavo }); return; }
                         for (let n = 1; n + 1 < pp.length; n++) {
@@ -611,21 +622,23 @@
                         const uvE = (x, y) => { const gg = d.geo(x, y); return sfE.uv(gg.lat, gg.lng); };
                         for (let i = -ax; i < m + ax; i++) for (let j = -ay; j < m + ay; j++) {
                             if (i >= 0 && i < m && j >= 0 && j < m) continue;
-                            const q = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => { const x = x0 + u * gx, y = y0 + v * gy; return [x, y, zBordo(x, y)]; });
-                            if (sfE) [[q[0], q[1], q[2]], [q[0], q[2], q[3]]].forEach(tri => {
+                            const q = mappaTagliata([[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => { const x = x0 + u * gx, y = y0 + v * gy; return [x, y, zBordo(x, y)]; }), zBordo);
+                            if (q.length < 3) continue;
+                            if (sfE) q.slice(1, -1).map((w, n) => [q[0], w, q[n + 2]]).forEach(tri => {
                                 const sp = tri.map(w => P(...w));
                                 pezzi.push({ prof: sottoTutto + 5e6 + (sp[0][2] + sp[1][2] + sp[2][2]) / 3, t: 'poli', p: sp.map(w => [w[0], w[1]]), uv: tri.map(w => uvE(w[0], w[1])), sfondo: sfE.tela, fill: colore((q[0][2] + q[2][2]) / 2, 0.9), fo: opacita, cls: 'vista3d-faccia' });
                             });
-                            else { const sp = q.map(w => P(...w)), fill = colore((q[0][2] + q[2][2]) / 2, 0.9); pezzi.push({ prof: sottoTutto + 5e6 + sp.reduce((a, w) => a + w[2], 0) / 4, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); }
+                            else { const sp = q.map(w => P(...w)), fill = colore((q[0][2] + q[2][2]) / 2, 0.9); pezzi.push({ prof: sottoTutto + 5e6 + sp.reduce((a, w) => a + w[2], 0) / sp.length, t: 'poli', p: sp.map(w => [w[0], w[1]]), fill, fo: opacita, stroke: fill, sw: 0.4, cls: 'vista3d-faccia' }); }
                         }
                     }
                 }
                 // LA FRECCIA DEL NORD STESA SUL TERRENO (oltre alla bussola): nell'angolo del terreno più
                 // vicino a chi guarda, appoggiata alla superficie e scorciata con lei, con la sua N.
-                if (L.terreno && L.nordTerreno && d.nodi && d.nodi.length) {
+                if (L.terreno && L.nordTerreno && d.nodi && d.nodi.length && Math.abs(se) >= 0.12) {
                     const tutti = d.nodi.flat().filter(n => isFinite(n[0]) && isFinite(n[1]));
                     const x0 = Math.min(...tutti.map(n => n[0])), x1 = Math.max(...tutti.map(n => n[0])), y0 = Math.min(...tutti.map(n => n[1])), y1 = Math.max(...tutti.map(n => n[1]));
-                    const lato = Math.min(x1 - x0, y1 - y0), Lf = lato * 0.075, dentro = lato * 0.13;
+                    // grande sempre uguale sullo schermo (circa 70 pixel), comunque si avvicini la vista
+                    const lato = Math.min(x1 - x0, y1 - y0), Lf = 70 / Math.max(1e-6, k), dentro = lato * 0.13;
                     const zIn = (x, y) => { const z = d.zSuolo(x, y); return (Number.isFinite(z) ? z : zRif) + (d.zMax - d.zMin) * 0.004; };
                     const angoli = [[x0 + dentro, y0 + dentro], [x1 - dentro, y0 + dentro], [x1 - dentro, y1 - dentro], [x0 + dentro, y1 - dentro]];
                     // L'angolo più vicino a chi guarda in cui freccia e N non finiscono dietro al modello
@@ -644,24 +657,41 @@
                         // (e fuori dal posto della legenda, quando le tavole gliel'hanno riservato)
                         const rl = vista3d.postoLegenda, sottoLegenda = rl && q[0] > rl.x - 14 && q[0] < rl.x + rl.w + 14 && q[1] > rl.y - 14 && q[1] < rl.y + rl.h + 14;
                         return q[0] > 14 && q[0] < W - 14 && q[1] > 14 && q[1] < H - 14 && !sottoLegenda && ![[0, 0], [12, 0], [-12, 0], [0, 12], [0, -12]].some(([ox, oy]) => dentroSagoma(q[0] + ox, q[1] + oy)); });
-                    const vicinanza = ([x, y]) => P(x, y, zIn(x, y))[2];
-                    const ordinati = angoli.slice().sort((a, b) => vicinanza(a) - vicinanza(b));
-                    // Se nessun angolo è libero (vista avvicinata: gli angoli escono dal quadro), il punto
-                    // libero del terreno più vicino all'angolo in basso a sinistra dello schermo.
-                    const griglia = [];
-                    for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) griglia.push([x0 + dentro + (x1 - x0 - 2 * dentro) * i / 8, y0 + dentro + (y1 - y0 - 2 * dentro) * j / 8]);
-                    const versoAngolo = q => { const s = P(q[0], q[1], zIn(q[0], q[1])); return Math.hypot(s[0] - W * 0.12, s[1] - H * 0.86); };
+                    // SEGUE LA VISTA: a ogni disegno si cercano i punti del terreno che stanno nel quadro (una
+                    // griglia di punti dello schermo riportati sul piano), si tengono quelli dove freccia e N
+                    // sono liberi e si sceglie il più vicino all'angolo in basso a sinistra. Così gira, si
+                    // avvicina e si sposta con la vista e resta sempre in vista, intera.
+                    const est = vista3d.terrenoEsteso && vista3d.terrenoEsteso.mezzo;
+                    const bx0 = est ? -est : x0, bx1 = est ? est : x1, by0 = est ? -est : y0, by1 = est ? est : y1;
+                    const sulPiano = (sx, sy) => {
+                        const X = (sx - W / 2) / k, V = (sy - H / 2) / k, Z = -cz * ex, Yd = (-V - Z * ce) / se;
+                        return [cx + X * ca + Yd * sa, cy - X * sa + Yd * ca];
+                    };
+                    const candidati = [];
+                    for (let i = 0; i <= 12; i++) for (let j = 0; j <= 9; j++) {
+                        const q = sulPiano(50 + (W - 100) * i / 12, 50 + (H - 100) * j / 9);
+                        // sul terreno che c'è (con la mappa ritagliata, dalla parte che resta)
+                        if (q[0] > bx0 + Lf && q[0] < bx1 - Lf && q[1] > by0 + Lf && q[1] < by1 - Lf && !(L.tagliaMappa && distTaglio && distTaglio(q[0], q[1]) < Lf * 1.6)) candidati.push(q);
+                    }
+                    const versoAngolo = q => { const s2 = P(q[0], q[1], zIn(q[0], q[1])); return Math.hypot(s2[0] - W * 0.12, s2[1] - H * 0.86); };
+                    const nelQuadro = ([x, y]) => [[0, 1.45], [0, 1], [-0.5, -0.75], [0.5, -0.75]].every(([e, n]) => { const q = P(x + e * Lf, y + n * Lf, zIn(x + e * Lf, y + n * Lf)); return q[0] > 14 && q[0] < W - 14 && q[1] > 24 && q[1] < H - 14; });
+                    candidati.sort((a, b) => versoAngolo(a) - versoAngolo(b));
                     // spostata a mano nella finestra delle tavole: dove l'ha messa l'utente (metri della scena)
-                    const [fx, fy] = vista3d.nordTerrenoPos || ordinati.find(libero) || griglia.filter(libero).sort((a, b) => versoAngolo(a) - versoAngolo(b))[0] || ordinati[0];
+                    const liberoQui = vista3d.nordTerrenoPos || candidati.find(libero), scelto = liberoQui || candidati.find(nelQuadro);
+                    if (scelto) {
+                    const [fx, fy] = scelto;
+                    // senza un posto libero (vista tutta sul modello) la freccia sta sopra al modello, non sotto
+                    const metti = liberoQui ? f => pezzi.push(f) : f => sopra.unshift(f);
                     const pt = (e, n) => { const x = fx + e * Lf, y = fy + n * Lf; return P(x, y, zIn(x, y)); };
                     const punta = pt(0, 1), sx = pt(-0.5, -0.75), tacca = pt(0, -0.35), dx = pt(0.5, -0.75);
                     const prof = so ? 5e8 : Math.min(punta[2], sx[2], dx[2]) - lato * 0.05, xy = q => [q[0], q[1]];
-                    pezzi.push({ prof, t: 'poli', p: [punta, sx, tacca].map(xy), fill: '#111827', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
-                    pezzi.push({ prof: prof - 1e-4, t: 'poli', p: [punta, tacca, dx].map(xy), fill: '#ffffff', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' });
                     const n = pt(0, 1.45);
-                    pezzi.push({ prof: prof - 2e-4, t: 'testo', x: n[0], y: n[1] + 6, s: 'N', size: 18, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord-terreno' });
+                    [{ prof: prof - 2e-4, t: 'testo', x: n[0], y: n[1] + 6, s: 'N', size: 18, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nord-terreno' },
+                        { prof: prof - 1e-4, t: 'poli', p: [punta, tacca, dx].map(xy), fill: '#ffffff', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' },
+                        { prof, t: 'poli', p: [punta, sx, tacca].map(xy), fill: '#111827', stroke: '#111827', sw: 1, cls: 'vista3d-nord-terreno' }].forEach(f => metti(f));
                     const xs = [punta, sx, dx, n].map(q => q[0]), ys = [punta, sx, dx, n].map(q => q[1]);
                     elementiTavola.nordTerreno = { x0: Math.min(...xs) - 10, y0: Math.min(...ys) - 22, x1: Math.max(...xs) + 10, y1: Math.max(...ys) + 10, mondo: [fx, fy] };
+                    }
                 }
                 const { pannelli, superfici } = modelloCorrelazione(d);
                 if (so) {

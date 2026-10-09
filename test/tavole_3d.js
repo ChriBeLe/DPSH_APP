@@ -122,6 +122,23 @@ const $ = (app, id) => app.d.getElementById(id);
   t('nel 3D la spunta «Foto sopra il modello» nei Livelli (Sfondo)', foto.riga && foto.schermo > 0);
   t('(nell\'SVG, che le immagini non le porta, niente velo)', !foto.nelSvg);
 
+  console.log('--- Ritagliare la mappa, la freccia che segue la vista ---');
+  const rit = app.E(`(() => {
+    const d = datiVista3dCorrenti, v3 = vociEsportazione3d(d).find(v => v.tipo === 'sez3d');
+    const sc = (tm) => scenaVoce3d(v3, d, 1400, 860, { tagliaMappa: tm });
+    const tolti = sc0 => { const tg = sc0.vista; return sc0.tutte.filter(f => f.cls === 'vista3d-faccia').length; };
+    const a = sc(false), b = sc(true);
+    return { senza: tolti(a), con: tolti(b) };
+  })()`);
+  t(`«Ritaglia anche la mappa»: dalla parte tolta il terreno non c'è più (${rit.senza} → ${rit.con} pezzi di terreno)`, rit.con < rit.senza * 0.8 && rit.con > 0);
+  t('(nel 3D è un tasto della scheda «Modello e tagli»)', !!app.d.querySelector('#tagliVista3d [data-livello="tagliaMappa"]'));
+  const segue = app.E(`(() => {
+    const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
+    [1, 2.5, 6].forEach(z => { const sc = scenaVoce3d(v, d, 1400, 860, { reg: { zoom: z }, legenda: false }), e = sc.elementi.nordTerreno; out.push(e ? { w: e.x1 - e.x0, h: e.y1 - e.y0, dentro: e.x0 >= 0 && e.x1 <= 1400 && e.y0 >= 0 && e.y1 <= 860 } : null); });
+    return out;
+  })()`);
+  t(`la freccia del Nord sul terreno segue la vista: avvicinando resta nel quadro e grande uguale (${segue.map(e => e && Math.round(e.w) + '×' + Math.round(e.h)).join(', ')})`, segue.every(e => e && e.dentro) && Math.max(...segue.map(e => e.w)) / Math.min(...segue.map(e => e.w)) < 1.6);
+
   console.log('--- La finestra ---');
   clic(app, $(app, 'btnTavole3d'));
   await attesa(80);
@@ -195,7 +212,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
-    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false }));
+    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false }));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   const trascina = (x0, y0, dx, dy) => {
     const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };
