@@ -171,6 +171,26 @@
                 return { zoom: z, tessere, centroTessereX: cx, centroTessereY: cy, x0, y0 };
             }
 
+            /** LE TESSERE DI UNA FINESTRA, SENZA BUCHI. Segnalato: nel riquadro dell'inquadramento
+             * regionale una fascia grigia — una colonna di tessere che il servizio non aveva
+             * consegnato. Ora: (1) una tessera che non arriva si richiede una seconda volta; (2)
+             * sotto c'è lo stesso pezzo di mondo allo zoom di sopra (un quarto delle tessere,
+             * ingrandite ×2), così una tessera che manca ancora lascia vedere la foto meno nitida
+             * invece del fondo grigio; e la tessera persa si toglie (non è più un «riquadro non
+             * caricato»: il buco è coperto). Il codice sta negli attributi: la figura viaggia anche
+             * nella finestra di stampa, dove le funzioni dell'app non ci sono. */
+            function htmlTessereFinestra(url, centro, zoom, larghezzaPx, altezzaPx) {
+                const RIPROVA_TESSERA = "if(!this.dataset.riprova){this.dataset.riprova='1';var s=this.src;this.src=s+(s.indexOf('?')<0?'?':'&')+'riprova=1';}";
+                const img = (t, rimuovi) => `<img src="${url(t.z, t.x, t.y)}" decoding="async" onerror="${RIPROVA_TESSERA}${rimuovi ? 'else this.remove();' : ''}" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; display:block;">`;
+                const f = calcolaTessereFinestra(centro, zoom, larghezzaPx, altezzaPx);
+                let sotto = '';
+                if (f.zoom > 1) {
+                    const g = calcolaTessereFinestra(centro, f.zoom - 1, larghezzaPx / 2, altezzaPx / 2);
+                    sotto = `<div data-tessere-riserva="1" style="position:absolute; left:0; top:0; width:${(larghezzaPx / 2).toFixed(1)}px; height:${(altezzaPx / 2).toFixed(1)}px; transform:scale(2); transform-origin:0 0;">${g.tessere.map(t => img(t, false)).join('')}</div>`;
+                }
+                return sotto + f.tessere.map(t => img(t, true)).join('');
+            }
+
             /** Dove cade un punto geografico DENTRO la finestra, in pixel. Serve alle pin, alle
              * loro etichette e al riquadro rosso dell'inquadramento regionale. */
             function puntoNellaFinestra(punto, centro, zoom, larghezzaPx, altezzaPx) {
@@ -479,10 +499,7 @@
                         tessere = `<img src="${url}" decoding="async" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">`;
                     }
                 } else {
-                    const f = calcolaTessereFinestra(centro, zoom, larghezzaPx, altezzaPx);
-                    tessere = f.tessere.map(t =>
-                        `<img src="${provider.url ? provider.url(t.z, t.x, t.y) : ''}" decoding="async" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; display:block;">`
-                    ).join('');
+                    tessere = provider.url ? htmlTessereFinestra(provider.url, centro, zoom, larghezzaPx, altezzaPx) : '';
                 }
 
                 // ---- il riquadro rosso, calcolato ----
@@ -566,10 +583,7 @@
                         sfondoHtml = `<img src="${url}" decoding="async" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">${avvisoHttp}`;
                     }
                 } else {
-                    const f = calcolaTessereFinestra(centro, zoom, larghezzaPx, altezzaPx);
-                    sfondoHtml = f.tessere.map(t =>
-                        `<img src="${provider.url(t.z, t.x, t.y)}" decoding="async" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; display:block;">`
-                    ).join('');
+                    sfondoHtml = htmlTessereFinestra(provider.url, centro, zoom, larghezzaPx, altezzaPx);
                 }
 
                 // ---- TOPONIMI ----

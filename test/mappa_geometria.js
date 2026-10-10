@@ -126,7 +126,7 @@ console.log('--- Il disegno della mappa ---');
 {
   // Si estraggono anche le funzioni che producono HTML: qui bastano le stringhe.
   const NOMI2=['posizioneElementoMappa','htmlPinMappa','htmlBarraScalaMappa','htmlNordMappa',
-               'htmlInsetRegionaleMappa','buildMappaInquadramentoHtml','puntiProveDelProgetto','escapeHtmlDidascalia','radiceProva','proveFisiche'];
+               'htmlInsetRegionaleMappa','htmlTessereFinestra','buildMappaInquadramentoHtml','puntiProveDelProgetto','escapeHtmlDidascalia','radiceProva','proveFisiche'];
   const RIGHE_COST = righe.filter(r =>
       r.includes('const LATO_TESSERA = 256;') ||
       r.includes('const VERTICI_MAPPA = {') ||
@@ -155,6 +155,14 @@ console.log('--- Il disegno della mappa ---');
   t('il riquadro esce con la misura chiesta', /width:140mm; height:140mm/.test(html));
   t('le tessere sono posate a offset di PIXEL, non in una griglia',
      /left:-?\d+px; top:-?\d+px; width:256px/.test(html) && !/grid-template-columns/.test(html));
+  {
+    // Una tessera che non arriva non lascia una fascia grigia: si richiede, e sotto c'è lo
+    // stesso pezzo allo zoom di sopra (×2); persa due volte, si toglie (il buco è coperto).
+    const ins = api2.buildMappaInquadramentoHtml({ centro: SAVA, zoom: 16, larghezzaMm: 140, altezzaMm: 100, inset: { attivo: true, zoom: 11 } });
+    const riserve = ins.match(/data-tessere-riserva="1"[^>]*transform:scale\(2\)/g) || [];
+    t('sotto le tessere (mappa e inquadramento regionale) c\'è lo strato di riserva allo zoom di sopra', riserve.length === 2 && /\/tile\/15\//.test(ins) && /\/tile\/10\//.test(ins));
+    t('una tessera persa si richiede una volta, poi si toglie', /onerror="if\(!this\.dataset\.riprova\)[^"]*else this\.remove\(\);"/.test(ins));
+  }
   t('ci sono tutte e tre le pin', (html.match(/data-pin-mappa=/g) || []).length === 3);
   t('ognuna con la sua etichetta DPSH', /DPSH 1/.test(html) && /DPSH 2/.test(html) && /DPSH 3/.test(html));
   t('e col suo numero sulla pin', (html.match(/data-pin-etichetta=/g) || []).length === 3);
