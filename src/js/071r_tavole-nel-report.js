@@ -44,9 +44,10 @@
                 const pagina = (tpl && tpl.pages && tpl.pages[0]) || {};
                 const headerEnabled = !!(tpl && tpl.headerEnabled);
                 const mrg = Object.assign(marginiPaginaDiDefault(), (tpl && tpl.margins) || {});
-                const mrgFoglio = margineConIntestazione(mrg, pagina.header, headerEnabled);
-                const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pagina.header, mrg) : '';
-                const { riservaFooterMm } = calcolaBudgetPaginaMm(mrgFoglio, !!(tpl && tpl.footerEnabled));
+                const piedeAcceso = !!(tpl && tpl.footerEnabled);
+                const mrgFoglio = margineConIntestazione(mrg, pagina.header, headerEnabled, pagina.footer, piedeAcceso);
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pagina.header, mrg) : '') + (piedeAcceso ? htmlPiedeNelMargine(pagina.footer, mrg) : '');
+                const { riservaFooterMm } = calcolaBudgetPaginaMm(mrgFoglio, piedeAcceso && !mrgFoglio.piedeNelMargine);
                 // L'altezza di ogni tavola: metà dello spazio utile del foglio, meno titolo, sottotitolo
                 // e respiro (circa 14 mm), e sul primo foglio meno il titolo del capitolo. Il foglio è
                 // rigido: una tavola troppo alta verrebbe tagliata, invece di passare alla pagina dopo.

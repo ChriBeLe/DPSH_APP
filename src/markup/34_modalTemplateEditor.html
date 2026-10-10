@@ -208,6 +208,12 @@
                 </label>
                 <div id="pageFooterControls" style="display: none; flex-direction: column; gap: 5px;">
                     <input type="text" id="inputFooterText" class="form-control" placeholder="Testo piè di pagina" style="font-size: 11px; padding: 5px 6px;">
+                    <!-- Grassetto, colori, più righe, i contatti su più colonne (una tabella): nel margine inferiore. -->
+                    <button type="button" class="btn-action" id="btnFormattaPiede" style="font-size: 11px; padding: 6px 8px;">Testo formattato…</button>
+                    <div class="margine-riga" title="La distanza tra il bordo inferiore del foglio e il piè di pagina formattato. Vale per tutte le pagine del template.">
+                        <label for="inputDistanzaPiede">Distanza dal bordo</label>
+                        <span class="margine-valore"><input type="text" inputmode="decimal" id="inputDistanzaPiede" class="margine-cm" value="0,30" aria-label="Distanza del piè di pagina dal bordo in centimetri"> cm</span>
+                    </div>
                     <!-- L'INTERRUTTORE DEL NUMERO DI PAGINA E' STATO TOLTO DA QUI.
                          Stava nel template, ma un template descrive UNA prova: la numerazione e'
                          una proprieta' del DOCUMENTO, e un template che dice "numera" mentre un

@@ -354,6 +354,14 @@
                         foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true }));
                         document.getElementById('templateEditorHeaderZone').style.outline = '1px dashed #cbd5e1';
                     }
+                    // Il piè di pagina formattato, nella fascia del margine inferiore, come nell'export.
+                    const vecchioPiede = document.getElementById('templateEditorFooterZone');
+                    if (vecchioPiede) vecchioPiede.remove();
+                    if (foglioEditor && templateEditorState.footerEnabled && page.footer && page.footer.html) {
+                        const mrgP = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                        foglioEditor.insertAdjacentHTML('beforeend', htmlPiedeNelMargine(page.footer, mrgP, { id: 'templateEditorFooterZone', classe: 'tpl-editor-footer-zone' }));
+                        document.getElementById('templateEditorFooterZone').style.outline = '1px dashed #cbd5e1';
+                    }
                 }
 
                 // Spaziatura verticale distribuita (richiesta esplicitamente, "SI ASSOLUTAMENTE DA
@@ -481,7 +489,8 @@
 
                 // page.footer.enabled non esiste più: mostra/nascondi è del TEMPLATE, stesso
                 // ragionamento dell'intestazione qui sopra.
-                if (templateEditorState.footerEnabled && page.footer) {
+                // Col testo formattato il piè di pagina sta nel margine inferiore (templateEditorFooterZone).
+                if (templateEditorState.footerEnabled && page.footer && !page.footer.html) {
                     // margin-top:auto (il canvas è ora un flex a colonna con min-height pari
                     // all'area stampabile, vedi sotto) spinge il piè di pagina fino al fondo
                     // FISICO del foglio invece di lasciarlo appiccicato subito sotto l'ultima riga
@@ -499,7 +508,7 @@
                 // renderManigliePaginaEditor): applicati qui al riquadro invece che fissi in CSS,
                 // così il resto del canvas (area stampabile, guide, riflusso automatico) li segue
                 // automaticamente ad ogni render senza doverli ricalcolare altrove.
-                const mrg = margineConIntestazione(templateEditorState.margins, page.header, templateEditorState.headerEnabled);
+                const mrg = margineConIntestazione(templateEditorState.margins, page.header, templateEditorState.headerEnabled, page.footer, templateEditorState.footerEnabled);
                 const frame = document.getElementById('templateEditorPageFrame');
                 if (frame) frame.style.padding = `${mrg.top}mm ${mrg.right}mm ${mrg.bottom}mm ${mrg.left}mm`;
 

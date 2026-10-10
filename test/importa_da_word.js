@@ -42,13 +42,15 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR
 const docx = zipCompresso({
   'word/document.xml': `<?xml version="1.0"?><w:document ${W}><w:body><w:p><w:r><w:t>Corpo</w:t></w:r></w:p>`
     + `<w:sectPr><w:headerReference w:type="default" r:id="rIdH"/><w:footerReference w:type="default" r:id="rIdF"/><w:pgSz w:w="11906" w:h="16838"/>`
-    + `<w:pgMar w:top="1418" w:right="1133" w:bottom="709" w:left="1620" w:header="567" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>`,
+    + `<w:pgMar w:top="1418" w:right="1133" w:bottom="709" w:left="1620" w:header="567" w:footer="113" w:gutter="0"/></w:sectPr></w:body></w:document>`,
   'word/_rels/document.xml.rels': `<?xml version="1.0"?><Relationships ${REL}><Relationship Id="rIdH" Type="h" Target="header1.xml"/><Relationship Id="rIdF" Type="f" Target="footer1.xml"/></Relationships>`,
   'word/header1.xml': `<?xml version="1.0"?><w:hdr ${W}><w:p><w:r><w:drawing><wp:anchor><wp:extent cx="7363460" cy="930275"/><a:graphic><a:graphicData><a:blip r:embed="rId1"/></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p>`
     + `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1E40AF"/></w:rPr><w:t>Studio Rossi</w:t></w:r><w:r><w:t xml:space="preserve"> &amp; associati</w:t></w:r></w:p></w:hdr>`,
   'word/_rels/header1.xml.rels': `<?xml version="1.0"?><Relationships ${REL}><Relationship Id="rId1" Type="i" Target="media/image1.png"/></Relationships>`,
   'word/media/image1.png': PNG,
-  'word/footer1.xml': `<?xml version="1.0"?><w:ftr ${W}><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Eurisko S.R.L.</w:t></w:r></w:p></w:tc>`
+  'word/footer1.xml': `<?xml version="1.0"?><w:ftr ${W}><w:tbl><w:tblGrid><w:gridCol w:w="2000"/><w:gridCol w:w="3000"/></w:tblGrid>`
+    + `<w:tr><w:tc><w:tcPr><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Direttore Tecnico</w:t></w:r></w:p></w:tc></w:tr>`
+    + `<w:tr><w:tc><w:p><w:r><w:t>Eurisko S.R.L.</w:t></w:r></w:p></w:tc>`
     + `<w:tc><w:p><w:r><w:t>Via Parini, 30</w:t></w:r></w:p><w:p><w:r><w:t>73100 Lecce</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:p/></w:ftr>`,
   'word/styles.xml': `<?xml version="1.0"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:sz w:val="22"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`
     + `<w:style w:type="paragraph" w:styleId="Normale"><w:name w:val="Normal"/><w:pPr><w:spacing w:line="360" w:lineRule="auto"/><w:jc w:val="both"/></w:pPr><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr></w:style>`
@@ -65,18 +67,22 @@ const docx = zipCompresso({
   app.E('decomprimiDeflate = async (b) => window.__inflate(b)');
 
   const l = await app.E('letturaDaWord')(new app.w.Uint8Array(docx));
-  t('i margini del Word, in mm: 2,50 · 1,25 · 2,86 · 2,00; intestazione a 1,00 cm',
-    JSON.stringify(l.margini) === JSON.stringify({ top: 25, bottom: 12.5, left: 28.6, right: 20, header: 10 }));
+  t('i margini del Word, in mm: 2,50 · 1,25 · 2,86 · 2,00; intestazione a 1,00 cm, piè di pagina a 0,20',
+    JSON.stringify(l.margini) === JSON.stringify({ top: 25, bottom: 12.5, left: 28.6, right: 20, header: 10, footer: 2 }));
   t('l\'immagine dell\'intestazione, coi byte originali e la sua misura (20,45 × 2,58 cm)',
     /^data:image\/png;base64,/.test(l.intestazione.immagine) && l.intestazione.larghezzaMm === 204.5 && l.intestazione.altezzaMm === 25.8);
   t('il testo dell\'intestazione, con grassetto, colore e centratura',
     l.intestazione.html === '<p style="text-align: center"><strong><span style="color: #1E40AF">Studio Rossi</span></strong> &amp; associati</p>');
-  t('il piè di pagina: le celle della tabella diventano una riga', l.piede.testo === 'Eurisko S.R.L. · Via Parini, 30, 73100 Lecce' && l.piede.tabella);
+  t('il piè di pagina: la versione semplice in una riga', l.piede.testo === 'Direttore Tecnico · Eurisko S.R.L. · Via Parini, 30, 73100 Lecce' && l.piede.tabella);
+  t('e quella formattata: la tabella resta tabella, con le larghezze delle colonne e la cella unita',
+    l.piede.html === '<table><colgroup><col style="width: 40.0%"><col style="width: 60.0%"></colgroup><tbody>'
+      + '<tr><td colspan="2"><p><strong>Direttore Tecnico</strong></p></td></tr>'
+      + '<tr><td><p>Eurisko S.R.L.</p></td><td><p>Via Parini, 30</p><p>73100 Lecce</p></td></tr></tbody></table>' && l.piede.righe === 3);
   t('lo stile: Calibri 11, interlinea 1,5, 8 pt dopo, giustificato, titoli 18 / 12 / 11',
     JSON.stringify(l.stile) === JSON.stringify({ font: 'Calibri', fontNelWord: 'Calibri', corpoPt: 11, interlinea: 1.5, spazioParagrafoPt: 8, allineamento: 'justify', h1Pt: 18, h2Pt: 12, h3Pt: 11 }));
   const righe = app.E('riepilogoLetturaWord')(l);
   t('il riepilogo prima di applicare dice tutto in centimetri', righe.length === 4 && /superiore 2,50 cm, inferiore 1,25 cm, sinistro 2,86 cm, destro 2,00 cm; intestazione a 1,00 cm/.test(righe[0])
-    && /su più colonne/.test(righe[2]));
+    && /su più colonne come nel Word, a 0,20 cm dal bordo/.test(righe[2]));
 
   // Applicato al template aperto.
   app.E(`state.reportTemplates.tplW = { id: 'tplW', name: 'W', builtIn: false, pages: [
@@ -86,8 +92,8 @@ const docx = zipCompresso({
   await attesa(30);
   app.E('applicaLetturaWord')(l);
   const S = 'templateEditorState';
-  t('margini e distanza dell\'intestazione nel template', app.E(`JSON.stringify(${S}.margins)`) === JSON.stringify({ top: 25, bottom: 12.5, left: 28.6, right: 20, header: 10 }));
-  t('intestazione e piè di pagina accesi, uguali su tutte le pagine', app.E(`${S}.headerEnabled && ${S}.headerTutte && ${S}.footerEnabled && ${S}.pages.every(p => p.header.html && p.footer.text === 'Eurisko S.R.L. · Via Parini, 30, 73100 Lecce')`));
+  t('margini e distanze di intestazione e piè di pagina nel template', app.E(`JSON.stringify(${S}.margins)`) === JSON.stringify({ top: 25, bottom: 12.5, left: 28.6, right: 20, header: 10, footer: 2 }));
+  t('intestazione e piè di pagina accesi, uguali su tutte le pagine', app.E(`${S}.headerEnabled && ${S}.headerTutte && ${S}.footerEnabled && ${S}.pages.every(p => p.header.html && p.footer.html && /<table>/.test(p.footer.html) && p.footer.heightMm === 14.5)`));
   t('la fascia più larga del testo diventa «a tutta larghezza», alta quanto a tutta pagina (26 mm + la riga)',
     app.E(`${S}.pages[0].header.tuttaPagina === true && ${S}.pages[0].header.heightMm === 26 + 5`));
   t('lo stile del testo del template', app.E(`${S}.stileTesto.corpoPt === 11 && ${S}.stileTesto.spazioParagrafoPt === 8 && ${S}.stileTesto.h1Pt === 18 && ${S}.stileTesto.interlinea === 1.5`));
@@ -99,6 +105,32 @@ const docx = zipCompresso({
   t('la fascia non aggiunge la distanza dal bordo sopra di sé', app.E(`margineConIntestazione(${S}.margins, ${S}.pages[0].header, true).top`) === 33);
   const normale = app.E(`htmlIntestazioneNelMargine({ imageDataUrl: 'data:image/png;base64,AAAA', text: 'x' }, { top: 25, left: 20, right: 20, header: 10 })`);
   t('un\'immagine normale resta dentro i margini, alla sua distanza', /left:20mm; right:20mm; padding:10mm 0 2mm/.test(normale) && !/data-tutta-pagina/.test(normale));
+
+  // Il piè di pagina formattato sta nel margine inferiore, come in Word.
+  const piede = app.E(`htmlPiedeNelMargine(${S}.pages[0].footer, ${S}.margins)`);
+  t('sul foglio il piè di pagina formattato sta in fondo, nel margine, alla sua distanza dal bordo', /data-blocco="piede"[^>]*bottom:0; left:28\.6mm; right:20mm; height:18\.5mm;[^>]*padding:2mm 0 2mm/.test(piede) && /<table>/.test(piede));
+  const mrgP = app.E(`margineConIntestazione(${S}.margins, null, false, ${S}.pages[0].footer, true)`);
+  t('il margine inferiore si allarga quanto il piè di pagina (14,5 + 0,2 + 0,2 cm) e non gli si riserva altro spazio nel testo',
+    mrgP.bottom === 18.5 && app.E(`calcolaBudgetPaginaMm(margineConIntestazione(${S}.margins, null, false, ${S}.pages[0].footer, true), true).riservaFooterMm`) === 0
+    && app.E(`calcolaBudgetPaginaMm(${S}.margins, true).riservaFooterMm`) === 8);
+  const foglioP = app.E(`buildPaginaRigheHtml(${S}.pages[0], ${S}.ctx || computeEditorPreviewCtx(), 1, 1, true, ${S}.margins, '1', false, false, true)`);
+  t('nel foglio del report il piè di pagina formattato, non la riga semplice', /data-blocco="piede"/.test(foglioP) && !/data-blocco="pie"/.test(foglioP));
+  t('nell\'editor la riga semplice è da leggere e c\'è «Testo formattato…» anche per il piè di pagina',
+    app.d.getElementById('inputFooterText').readOnly && !!app.d.getElementById('btnFormattaPiede') && app.d.getElementById('inputDistanzaPiede').value === '0,20');
+
+  // Nel Word: il piè di pagina del template è un piè di pagina di Word.
+  {
+    const c = { intestazioni: new Map(), intestazioneVuota: null, piediTemplate: new Map(), piedeVuoto: null, piede: null };
+    const parte = { rid: 'rIdPiedeT1', nome: 'footer2.xml', xml: '<w:p><w:r><w:t>Eurisko</w:t></w:r></w:p>', distanzaTw: 113, tipo: 'footer' };
+    c.piediTemplate.set('x', parte);
+    t('nel Word la sezione richiama il piè di pagina del template', app.E('piedeInSezione')(c, null, parte) === '<w:footerReference w:type="default" r:id="rIdPiedeT1"/>');
+    t('e una pagina senza piè dopo una che ce l\'ha prende quello vuoto (in Word erediterebbe)', /rIdPiedeVuoto/.test(app.E('piedeInSezione')(c, null, null)));
+    const pac = await app.E('readZipStoreOnly')(app.E('pacchettoDocxWord')('<w:p/>', '<w:sectPr/>', [], c));
+    const txt = (n) => { const v = pac.find(x => x.name === n); return v ? new TextDecoder().decode(v.bytes) : ''; };
+    t('nel pacchetto: footer2.xml è un piè di pagina di Word, collegato e dichiarato', /<w:ftr /.test(txt('word/footer2.xml')) && /<w:ftr /.test(txt('word/footer0.xml'))
+      && /Id="rIdPiedeT1" Type="[^"]*relationships\/footer" Target="footer2\.xml"/.test(txt('word/_rels/document.xml.rels'))
+      && /PartName="\/word\/footer2\.xml" ContentType="[^"]*footer\+xml"/.test(txt('[Content_Types].xml')));
+  }
 
   // Nel Word: ancorata alla pagina, coi byte originali.
   const ctx = { media: [], idDisegno: 3 };

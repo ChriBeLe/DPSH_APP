@@ -878,3 +878,9 @@
         .margini-preimpostati button { min-height: 32px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
         .margini-preimpostati button.attivo { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
         .nota-margine { font-size: 10.5px; line-height: 1.35; color: var(--avviso-testo); background: var(--warning-soft, rgba(250, 204, 21, 0.12)); border-radius: var(--radius-sm); padding: 6px 8px; margin: 4px 0; }
+
+        /* Intestazione e piè di pagina formattati sul foglio dell'editor: le stesse regole della
+           stampa (getReportPrintStyleBlock), perché l'editor mostri quello che esce. */
+        #templateEditorPageFrame .tpl-intestazione-testo p, #templateEditorPageFrame .tpl-piede-testo p { margin: 0; text-indent: 0; }
+        #templateEditorPageFrame .tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #templateEditorPageFrame .tpl-piede-testo td, #templateEditorPageFrame .tpl-piede-testo th { border: none; padding: 0 1.5mm; vertical-align: top; }

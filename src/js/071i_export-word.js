@@ -46,7 +46,7 @@
                 const stili = Array.from(doc.querySelectorAll('style')).map(s => s.textContent).join('\n');
                 const sprite = Array.from(doc.querySelectorAll('svg')).filter(s => s.querySelector('symbol'))
                     .map(s => new XMLSerializer().serializeToString(s)).join('');
-                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85, idSegnalibro: 1, titoliFatti: new Set(), stiliSommario: '', piede: null, intestazioni: new Map(), intestazioneVuota: null, titolo: (opzioni && opzioni.titolo) || '' };
+                return { doc, win: doc.defaultView, stili, sprite, media: [], idDisegno: 1, qualita: (opzioni && opzioni.qualitaJpeg) || 0.85, idSegnalibro: 1, titoliFatti: new Set(), stiliSommario: '', piede: null, intestazioni: new Map(), intestazioneVuota: null, piediTemplate: new Map(), piedeVuoto: null, titolo: (opzioni && opzioni.titolo) || '' };
             }
 
             function nascostoWord(ctx, el) {
@@ -802,7 +802,38 @@
                     + `${t('Pagina ')}${campoWord(' PAGE ', t('1'), rPr)}${t(' di ')}${conIndice && totale ? t(totale) : campoWord(' NUMPAGES ', t('1'), rPr)}</w:p>`
                     + `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr></w:p></w:ftr>`;
             }
-            const piedeInSezione = (ctx, foglio) => ctx.piede && !(foglio && foglio.hasAttribute('data-sommario')) ? '<w:footerReference w:type="default" r:id="rIdPiede"/>' : '';
+            /** Il piè di pagina della sezione: quello del template (piedeTemplateWord, col numero di
+             * pagina dentro se c'è), altrimenti quello col solo numero. Come per l'intestazione, una
+             * sezione senza riferimento erediterebbe la precedente: dopo un piè del template, una
+             * pagina che non ne ha prende quello vuoto. */
+            const piedeInSezione = (ctx, foglio, parte) => {
+                if (parte) return `<w:footerReference w:type="default" r:id="${parte.rid}"/>`;
+                if (ctx.piede && !(foglio && foglio.hasAttribute('data-sommario'))) return '<w:footerReference w:type="default" r:id="rIdPiede"/>';
+                if (!ctx.piediTemplate.size) return '';
+                if (!ctx.piedeVuoto) ctx.piedeVuoto = { rid: 'rIdPiedeVuoto', nome: 'footer0.xml', xml: paragrafoVuotoWord(20), distanzaTw: 0, tipo: 'footer' };
+                return `<w:footerReference w:type="default" r:id="${ctx.piedeVuoto.rid}"/>`;
+            };
+            /** IL PIÈ DI PAGINA DEL TEMPLATE (testo formattato, i contatti su più colonne): una parte
+             * footer di Word, alla distanza dal bordo del PDF. Se il documento ha anche il numero di
+             * pagina, quello (una cornice ancorata alla pagina, piedeWord) va nella stessa parte. */
+            async function piedeTemplateWord(ctx, piede, ri, rf) {
+                const chiave = piede.innerHTML;
+                if (ctx.piediTemplate.has(chiave)) return ctx.piediTemplate.get(chiave);
+                const limitePrima = ctx.limite;
+                ctx.limite = Infinity; // il piè sta sotto l'area del contenuto
+                const foglie = raccogliFoglieWord(ctx, piede, [], [piede]).filter(f => f.tipo !== 'vuoto');
+                let xml = '';
+                if (foglie.length) xml = (await impaginaWord(ctx, foglie, ri.left, ri.width, Math.min(...foglie.map(f => f.r.y)))).xml;
+                ctx.limite = limitePrima;
+                if (!xml) return null;
+                if (!/<\/w:p>$/.test(xml)) xml += paragrafoVuotoWord(20);
+                if (ctx.piede) xml += (/<w:ftr[^>]*>([\s\S]*)<\/w:ftr>/.exec(ctx.piede) || [])[1] || '';
+                const fondo = Math.max(...foglie.map(f => f.r.y + f.r.h));
+                const n = ctx.piediTemplate.size + 1;
+                const parte = { rid: 'rIdPiedeT' + n, nome: `footer${n + 1}.xml`, xml, distanzaTw: tw(Math.max(0, rf.bottom - fondo)), tipo: 'footer' };
+                ctx.piediTemplate.set(chiave, parte);
+                return parte;
+            }
             /** La prima pagina dopo l'indice riparte da 1, come nel PDF (numeraPagineDocumento).
              * L'indice è in testa: le sue sezioni non hanno piè di pagina, e Word non ne eredita
              * nessuno perché nessuna sezione prima ne ha uno. */
@@ -891,6 +922,8 @@
                 // logo, pochi millimetri; un doppio clic in alto non apriva niente.
                 const intestazione = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'intestazione' && !nascostoWord(ctx, c));
                 const parteIntestazione = intestazione ? await intestazioneWord(ctx, intestazione, ri, rf) : null;
+                const piedeFoglio = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'piede' && !nascostoWord(ctx, c));
+                const partePiede = piedeFoglio ? await piedeTemplateWord(ctx, piedeFoglio, ri, rf) : null;
                 let corpo;
                 if (foglio.hasAttribute('data-sommario')) corpo = await sommarioWord(ctx, foglio, ri);
                 else {
@@ -906,8 +939,10 @@
                 }
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
-                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, parteIntestazione)}${piedeInSezione(ctx, foglio)}<w:pgSz w:w="11906" w:h="16838"/>`
-                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0))}" w:left="${tw(ri.left - rf.left)}" w:header="${parteIntestazione ? parteIntestazione.distanzaTw : 0}" w:footer="0" w:gutter="0"/>`
+                // Col piè di pagina del template il margine inferiore è quello vero (la sua fascia).
+                const sotto = partePiede ? tw(rf.bottom - ri.bottom) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
+                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, parteIntestazione)}${piedeInSezione(ctx, foglio, partePiede)}<w:pgSz w:w="11906" w:h="16838"/>`
+                    + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${sotto}" w:left="${tw(ri.left - rf.left)}" w:header="${parteIntestazione ? parteIntestazione.distanzaTw : 0}" w:footer="${partePiede ? partePiede.distanzaTw : 0}" w:gutter="0"/>`
                     + `${numerazioneInSezione(ctx, foglio)}<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
             }
@@ -949,6 +984,8 @@
             function pacchettoDocxWord(corpo, sezioneFinale, media, extra) {
                 const x = extra || {};
                 const intestazioni = x.intestazioni ? partiIntestazioneWord(x) : [];
+                const piediT = x.piediTemplate ? Array.from(x.piediTemplate.values()).concat(x.piedeVuoto ? [x.piedeVuoto] : []) : [];
+                const partiHf = intestazioni.concat(piediT);
                 const NS_HDR = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
                     + 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
                     + 'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
@@ -978,7 +1015,7 @@
                     + `<Relationship Id="rIdStili" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`
                     + `<Relationship Id="rIdImpostazioni" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>`
                     + (x.piede ? `<Relationship Id="rIdPiede" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>` : '')
-                    + intestazioni.map(h => `<Relationship Id="${h.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="${h.nome}"/>`).join('')
+                    + partiHf.map(h => `<Relationship Id="${h.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${h.tipo === 'footer' ? 'footer' : 'header'}" Target="${h.nome}"/>`).join('')
                     + media.map(m => `<Relationship Id="${m.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.nome}"/>`).join('')
                     + `</Relationships>`;
                 const tipi = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`
@@ -988,7 +1025,7 @@
                     + `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>`
                     + `<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>`
                     + (x.piede ? `<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>` : '')
-                    + intestazioni.map(h => `<Override PartName="/word/${h.nome}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`).join('')
+                    + partiHf.map(h => `<Override PartName="/word/${h.nome}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.${h.tipo === 'footer' ? 'footer' : 'header'}+xml"/>`).join('')
                     + `<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>`
                     + `</Types>`;
                 const radice = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>`
@@ -1002,8 +1039,10 @@
                     { name: 'word/settings.xml', bytes: enc.encode(impostazioni) },
                     { name: 'word/_rels/document.xml.rels', bytes: enc.encode(relazioni) },
                     ...(x.piede ? [{ name: 'word/footer1.xml', bytes: enc.encode(x.piede) }] : []),
-                    ...intestazioni.flatMap(h => [
-                        { name: 'word/' + h.nome, bytes: enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr ${NS_HDR}>${h.xml}</w:hdr>`) },
+                    ...partiHf.flatMap(h => [
+                        { name: 'word/' + h.nome, bytes: enc.encode(h.tipo === 'footer'
+                            ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:ftr ${NS_HDR}>${h.xml}</w:ftr>`
+                            : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr ${NS_HDR}>${h.xml}</w:hdr>`) },
                         { name: `word/_rels/${h.nome}.rels`, bytes: enc.encode(relazioniIntestazione(h)) }
                     ]),
                     { name: 'docProps/core.xml', bytes: enc.encode(proprieta) },

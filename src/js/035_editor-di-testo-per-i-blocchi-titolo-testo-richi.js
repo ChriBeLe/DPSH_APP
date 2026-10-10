@@ -10,6 +10,16 @@
              * questo è il suo «id» per l'editor. Il testo va in page.header.html; page.header.text
              * ne tiene la versione semplice, che leggono le versioni dell'app senza testo formattato. */
             const ID_INTESTAZIONE_EDITOR = '__intestazione__';
+            /** Lo stesso per il piè di pagina formattato (page.footer.html). Vale per tutte le pagine:
+             * come in Word, il piè di pagina è del documento. */
+            const ID_PIEDE_EDITOR = '__piede__';
+            function bloccoPiedeEditor() {
+                const page = templateEditorState.pages[templateEditorState.activePageIdx];
+                if (!page) return null;
+                const ft = page.footer || {};
+                const semplice = String(ft.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return { type: 'piede', richHtml: ft.html || (semplice ? `<p style="text-align: center">${semplice}</p>` : '') };
+            }
             function bloccoIntestazioneEditor() {
                 const page = templateEditorState.pages[templateEditorState.activePageIdx];
                 if (!page) return null;
@@ -131,11 +141,11 @@
                 // il blocco vero non c'e': quella pagina mostra solo una fetta, e le sue righe
                 // sono vuote per costruzione. Cercandolo li' non si trovava niente e la funzione
                 // usciva in silenzio — il comando c'era, si premeva, e non succedeva nulla.
-                const blk = blockId === ID_INTESTAZIONE_EDITOR ? bloccoIntestazioneEditor() : trovaBloccoPerIdOvunque(blockId);
+                const blk = blockId === ID_INTESTAZIONE_EDITOR ? bloccoIntestazioneEditor() : blockId === ID_PIEDE_EDITOR ? bloccoPiedeEditor() : trovaBloccoPerIdOvunque(blockId);
                 if (!blk) return;
                 tplTextEditorTargetBlockId = blockId;
                 const lblTitolo = document.getElementById('lblTplTextEditorTitle');
-                if (lblTitolo) lblTitolo.textContent = blk.type === 'titolo' ? 'Modifica titolo' : blk.type === 'intestazione' ? 'Testo dell\'intestazione' : 'Modifica testo';
+                if (lblTitolo) lblTitolo.textContent = blk.type === 'titolo' ? 'Modifica titolo' : blk.type === 'intestazione' ? 'Testo dell\'intestazione' : blk.type === 'piede' ? 'Testo del piè di pagina' : 'Modifica testo';
                 creaEditorTesto();
                 if (editorTesto) {
                     editorTesto.commands.setContent(blk.richHtml || '', { emitUpdate: false });
@@ -180,6 +190,21 @@
             if (btnTplTextEditorSalva) {
                 btnTplTextEditorSalva.addEventListener('click', () => {
                     if (!tplTextEditorTargetBlockId) return;
+                    if (tplTextEditorTargetBlockId === ID_PIEDE_EDITOR) {
+                        if (editorTesto) {
+                            const html = editorTesto.isEmpty ? '' : editorTesto.getHTML();
+                            const testo = editorTesto.isEmpty ? '' : editorTesto.getText({ blockSeparator: ' · ' }).trim();
+                            salvaUndoSnapshotEditor();
+                            templateEditorState.pages.forEach(p => {
+                                p.footer = Object.assign({}, p.footer, { text: testo });
+                                if (html) p.footer.html = html; else { delete p.footer.html; delete p.footer.heightMm; }
+                            });
+                        }
+                        chiudiTplTextEditor();
+                        renderTemplateEditorPageControls();
+                        renderTemplateEditorCanvas();
+                        return;
+                    }
                     if (tplTextEditorTargetBlockId === ID_INTESTAZIONE_EDITOR) {
                         const page = templateEditorState.pages[templateEditorState.activePageIdx];
                         if (page && editorTesto) {

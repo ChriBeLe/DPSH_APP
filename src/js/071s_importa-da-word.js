@@ -67,7 +67,7 @@
                 const sez = sezioni[sezioni.length - 1];
                 const mar = figliW(sez, 'pgMar')[0];
                 const margini = mar ? { top: mmDaTwip(attrW(mar, 'top')), bottom: mmDaTwip(attrW(mar, 'bottom')), left: mmDaTwip(attrW(mar, 'left')),
-                    right: mmDaTwip(attrW(mar, 'right')), header: mmDaTwip(attrW(mar, 'header') || 0) } : null;
+                    right: mmDaTwip(attrW(mar, 'right')), header: mmDaTwip(attrW(mar, 'header') || 0), footer: mmDaTwip(attrW(mar, 'footer') || 0) } : null;
                 const parteDi = (tipo) => {
                     const ref = figliW(sez, tipo + 'Reference').find(r => attrW(r, 'type') === 'default');
                     return ref ? relDoc.get(ref.getAttribute('r:id')) : null;
@@ -126,7 +126,29 @@
                         ? figliW(f, 'tc').map(c => figliW(c, 'p').map(p => figliW(p, 't').map(t => t.textContent).join('').trim()).filter(Boolean).join(', '))
                         : figliW(f, 'p').map(p => figliW(p, 't').map(t => t.textContent).join('').trim());
                     const riga = pezzi.filter(Boolean).join(' · ');
-                    if (riga) piede = { testo: riga, tabella: figliW(f, 'tbl').length > 0, numeroPagina: /\bPAGE\b/.test(testo(pF)) };
+                    // Il testo formattato: una tabella resta una tabella (i contatti su più colonne),
+                    // con le larghezze delle colonne e le celle unite del Word.
+                    const tbl = figliW(f, 'tbl')[0];
+                    let html = '', righeTesto = 0;
+                    if (tbl) {
+                        const griglia = figliW(tbl, 'gridCol').map(g => Number(attrW(g, 'w')) || 0);
+                        const totale = griglia.reduce((a, b) => a + b, 0) || 1;
+                        const righe = figliW(tbl, 'tr').map(tr => {
+                            const celle = figliW(tr, 'tc').map(tc => {
+                                const span = Number(attrW(figliW(tc, 'gridSpan')[0], 'val')) || 1;
+                                const par = paragrafiHtml(tc);
+                                return { html: `<td${span > 1 ? ` colspan="${span}"` : ''}>${par.join('') || '<p></p>'}</td>`, n: par.length };
+                            });
+                            righeTesto += Math.max(1, ...celle.map(c => c.n));
+                            return `<tr>${celle.map(c => c.html).join('')}</tr>`;
+                        });
+                        html = `<table><colgroup>${griglia.map(w => `<col style="width: ${(w / totale * 100).toFixed(1)}%">`).join('')}</colgroup><tbody>${righe.join('')}</tbody></table>`;
+                    } else {
+                        const par = paragrafiHtml(f);
+                        html = par.join('');
+                        righeTesto = par.length;
+                    }
+                    if (riga) piede = { testo: riga, html, righe: righeTesto, tabella: !!tbl, numeroPagina: /\bPAGE\b/.test(testo(pF)) };
                 }
 
                 // Lo stile: «Normal» e «heading 1–3» per nome (l'id cambia con la lingua di Word),
@@ -176,7 +198,7 @@
                 const r = [];
                 if (l.margini) r.push(`Margini: superiore ${cm(l.margini.top)}, inferiore ${cm(l.margini.bottom)}, sinistro ${cm(l.margini.left)}, destro ${cm(l.margini.right)}; intestazione a ${cm(l.margini.header)} dal bordo.`);
                 if (l.intestazione) r.push(`Intestazione: ${l.intestazione.immagine ? `immagine di ${cm(l.intestazione.larghezzaMm)} × ${cm(l.intestazione.altezzaMm)}` : 'senza immagine'}${l.intestazione.testo ? `, testo «${l.intestazione.testo.slice(0, 60)}${l.intestazione.testo.length > 60 ? '…' : ''}»` : ''}.`);
-                if (l.piede) r.push(`Piè di pagina: «${l.piede.testo.slice(0, 70)}${l.piede.testo.length > 70 ? '…' : ''}»${l.piede.tabella ? ' (nel Word è su più colonne: qui diventa una riga)' : ''}.`);
+                if (l.piede) r.push(`Piè di pagina: «${l.piede.testo.slice(0, 70)}${l.piede.testo.length > 70 ? '…' : ''}»${l.piede.tabella ? ', su più colonne come nel Word' : ''}${l.margini ? `, a ${cm(l.margini.footer)} dal bordo` : ''}.`);
                 if (l.stile) {
                     const s = l.stile, parti = [];
                     if (s.fontNelWord) parti.push(s.font ? s.font : `${s.fontNelWord} (non disponibile: resta il carattere di adesso)`);
@@ -214,7 +236,9 @@
                 }
                 if (l.piede) {
                     templateEditorState.footerEnabled = true;
-                    templateEditorState.pages.forEach(p => { p.footer = Object.assign({}, p.footer, { text: l.piede.testo }); });
+                    const ft = { text: l.piede.testo };
+                    if (l.piede.html) { ft.html = l.piede.html; ft.heightMm = Math.max(5, l.piede.righe * 4.5 + 1); }
+                    templateEditorState.pages.forEach(p => { p.footer = Object.assign({}, p.footer, ft); });
                 }
                 if (l.stile) {
                     const nuovo = {};

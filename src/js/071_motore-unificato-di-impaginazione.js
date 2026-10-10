@@ -144,14 +144,14 @@
                 // comunque all'interno della grandezza dell'A4").
                 // L'intestazione sta nel margine superiore; se è più alta del margine, il contenuto
                 // parte più in basso e qui lo spazio si riduce di conseguenza (margineConIntestazione).
-                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled);
-                const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '';
+                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled, pageDef.footer, footerEnabled);
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg) : '');
                 // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
                 // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
                 // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un
                 // template con margini suoi era impaginato su una larghezza e stampato su un'altra.
                 const stileSopra = ` padding:${mrgFoglio.top}mm ${mrgFoglio.right}mm ${mrgFoglio.bottom}mm ${mrgFoglio.left}mm; --margine-sotto:${mrgFoglio.bottom}mm;`;
-                const { riservaFooterMm, areaStampabileMm, limiteImpaginazioneMm: maxAltezzaPaginaMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled);
+                const { riservaFooterMm, areaStampabileMm, limiteImpaginazioneMm: maxAltezzaPaginaMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled && !mrgFoglio.piedeNelMargine);
                 const pagineContenuto = impaginaBlocchiSuPagineFisiche(atomi, maxAltezzaPaginaMm, indiciForzati);
                 const maxHeightMm = areaStampabileMm.toFixed(2);
                 const numPagineFisiche = pagineContenuto.length;

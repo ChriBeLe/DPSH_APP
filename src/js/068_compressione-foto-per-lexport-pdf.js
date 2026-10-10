@@ -161,6 +161,12 @@
                     /* Nell'intestazione le righe stanno strette, come in quella di Word: niente spazio tra i
                        paragrafi e niente rientro, che sono del corpo del documento. */
                     .tpl-intestazione-testo p { margin: 0; text-indent: 0; }
+                    /* Il piè di pagina formattato (htmlPiedeNelMargine): righe strette, e una tabella senza
+                       bordi per i contatti su più colonne, come nella carta intestata di Word. */
+                    .tpl-piede-testo p { margin: 0; text-indent: 0; }
+                    /* Più specifiche delle regole delle tabelle del testo (bordi, a sinistra), che vengono dopo. */
+                    .tpl-block-richtext.tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+                    .tpl-block-richtext.tpl-piede-testo table td, .tpl-block-richtext.tpl-piede-testo table th { border: none; background: none; padding: 0 1.5mm; vertical-align: top; text-align: inherit; font-weight: inherit; }
                     /* Il capitolo Tavole (071r): due tavole per foglio, titolo e sottotitolo veri. */
                     .tavole-report-capitolo { font-size: 16pt; font-weight: 700; line-height: 1.2; margin: 0 0 4mm; color: #0f172a; }
                     .tavola-report { margin: 0 0 5mm; }

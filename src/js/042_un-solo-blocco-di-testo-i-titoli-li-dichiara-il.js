@@ -363,7 +363,8 @@
             function calcolaBudgetPaginaMm(margins, footerEnabled) {
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                 const areaStampabileMm = 297 - mrg.top - mrg.bottom;
-                const riservaFooterMm = footerEnabled ? 8 : 0;
+                // Il piè di pagina nel margine (margineConIntestazione) non toglie spazio al testo.
+                const riservaFooterMm = footerEnabled && !mrg.piedeNelMargine ? 8 : 0;
                 // MARGINE DI SICUREZZA (2mm) — l'altra metà della riscrittura a "fogli rigidi".
                 // Gli atomi vengono misurati in un iframe nascosto e poi resi nella finestra di
                 // stampa: due contesti di rendering diversi, che sullo stesso contenuto possono
@@ -1168,7 +1169,7 @@
                             const base = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                             base[side] = nuovo;
                             const pagLive = templateEditorState.pages[templateEditorState.activePageIdx];
-                            const mrgLive = margineConIntestazione(base, pagLive && pagLive.header, templateEditorState.headerEnabled);
+                            const mrgLive = margineConIntestazione(base, pagLive && pagLive.header, templateEditorState.headerEnabled, pagLive && pagLive.footer, templateEditorState.footerEnabled);
                             frame.style.padding = `${mrgLive.top}mm ${mrgLive.right}mm ${mrgLive.bottom}mm ${mrgLive.left}mm`;
                             canvas.style.minHeight = `${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm`;
                             const hz = document.getElementById('templateEditorHeaderZone');
@@ -1249,8 +1250,10 @@
             });
             document.querySelectorAll('[data-margini-preset]').forEach(b => b.addEventListener('click', () => {
                 salvaUndoSnapshotEditor();
-                const distanza = (templateEditorState.margins || {}).header;
-                templateEditorState.margins = Object.assign({}, MARGINI_WORD[b.dataset.marginiPreset], distanza != null ? { header: distanza } : {});
+                // Le distanze di intestazione e piè di pagina dal bordo restano: non sono margini.
+                const attuali = templateEditorState.margins || {};
+                templateEditorState.margins = Object.assign({}, MARGINI_WORD[b.dataset.marginiPreset],
+                    attuali.header != null ? { header: attuali.header } : {}, attuali.footer != null ? { footer: attuali.footer } : {});
                 sincronizzaControlliMarginiSidebar();
                 renderTemplateEditorCanvas();
                 renderManigliePaginaEditor();
@@ -1274,6 +1277,22 @@
                 });
                 campoDistanza.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); campoDistanza.blur(); } });
             }
+            const campoDistanzaPiede = document.getElementById('inputDistanzaPiede');
+            if (campoDistanzaPiede) {
+                campoDistanzaPiede.addEventListener('change', () => {
+                    const mm = mmDaCm(campoDistanzaPiede.value);
+                    const attuale = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
+                    if (mm !== null && Math.abs(mm - distanzaPiedeMm(attuale)) >= 0.05) {
+                        templateEditorState.margins = Object.assign(attuale, { footer: mm });
+                        renderTemplateEditorCanvas();
+                        renderManigliePaginaEditor();
+                    }
+                    sincronizzaControlliMarginiSidebar();
+                });
+                campoDistanzaPiede.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); campoDistanzaPiede.blur(); } });
+            }
+            const btnFormattaPiede = document.getElementById('btnFormattaPiede');
+            if (btnFormattaPiede) btnFormattaPiede.addEventListener('click', () => apriTplTextEditor(ID_PIEDE_EDITOR));
             const btnDistanzaWord = document.getElementById('btnDistanzaIntestazioneWord');
             if (btnDistanzaWord) btnDistanzaWord.addEventListener('click', () => impostaDistanzaIntestazione(12.5));
             const btnResetMarginiTemplate = document.getElementById('btnResetMarginiTemplate');

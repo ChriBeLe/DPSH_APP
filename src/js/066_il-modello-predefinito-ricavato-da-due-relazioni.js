@@ -994,12 +994,47 @@
             }
 
             /** I margini del foglio con la fascia dell'intestazione: sopra vale il più grande tra il
-             * margine e l'altezza dell'intestazione (più il respiro). */
-            function margineConIntestazione(margins, header, headerEnabled) {
+             * margine e l'altezza dell'intestazione (più il respiro). Col PIÈ DI PAGINA NEL MARGINE
+             * (testo formattato, footer.html) lo stesso sotto, e piedeNelMargine dice a
+             * calcolaBudgetPaginaMm di non riservargli più spazio dentro l'area del testo. */
+            function margineConIntestazione(margins, header, headerEnabled, footer, footerEnabled) {
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                 const hMm = headerEnabled ? altezzaIntestazioneMm(header, mrg) : 0;
                 if (hMm) mrg.top = Math.max(mrg.top, hMm + respiroIntestazioneMm(mrg, header));
+                if (footerEnabled && footer && footer.html) {
+                    mrg.bottom = Math.max(mrg.bottom, altezzaPiedeMm(footer) + distanzaPiedeMm(mrg) + 2);
+                    mrg.piedeNelMargine = true;
+                }
                 return mrg;
+            }
+
+            /** «PIÈ DI PAGINA: DA BORDO», come in Word: la distanza tra il bordo inferiore del foglio e
+             * il piè di pagina (margins.footer); senza, 3 mm. */
+            function distanzaPiedeMm(margins) {
+                const v = margins && Number(margins.footer);
+                return isFinite(v) && v >= 0 ? v : 3;
+            }
+            /** L'altezza (mm) del piè di pagina formattato: quella scelta; se no circa 4 mm per riga
+             * (in una tabella conta la cella con più righe, riga per riga). */
+            function altezzaPiedeMm(footer) {
+                const ft = footer || {};
+                if (ft.heightMm) return ft.heightMm;
+                const html = ft.html || '';
+                const righeTabella = html.match(/<tr\b[\s\S]*?<\/tr>/g);
+                const righe = righeTabella
+                    ? righeTabella.reduce((tot, tr) => tot + Math.max(1, ...(tr.match(/<t[dh]\b[\s\S]*?<\/t[dh]>/g) || ['']).map(td => (td.match(/<p\b/g) || []).length)), 0)
+                    : Math.max(1, (html.match(/<(p|li)\b/g) || []).length);
+                return righe * 4.5 + 1;
+            }
+            /** Il piè di pagina formattato nella fascia del margine inferiore: un riquadro assoluto in
+             * fondo al foglio, largo quanto il testo, che finisce alla distanza dal bordo. */
+            function htmlPiedeNelMargine(footer, margins, extra) {
+                const ft = footer || {};
+                if (!ft.html && !(extra && extra.anche_vuota)) return '';
+                const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
+                const fascia = Math.max(mrg.bottom, altezzaPiedeMm(ft) + distanzaPiedeMm(mrg) + 2);
+                return `<div data-blocco="piede"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; bottom:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:2mm 0 ${distanzaPiedeMm(mrg)}mm; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden;">`
+                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${ft.html || ''}</div></div>`;
             }
 
             /** L'intestazione disegnata nella fascia del margine superiore: un riquadro assoluto dentro
@@ -1082,7 +1117,8 @@
                 // Stessa correzione del bordo header qui sopra: nessuna linea sopra il piè di
                 // pagina, era una decorazione fissa mia non richiesta — solo lo spazio (padding-top)
                 // per staccare il testo dal contenuto, nessun bordo disegnato.
-                const footerHtml = footerEnabled ? `
+                // Col testo formattato il piè di pagina sta nel margine (htmlPiedeNelMargine), non qui.
+                const footerHtml = footerEnabled && !ft.html ? `
                     <div data-blocco="pie" style="position:absolute; left:0; right:0; bottom:0; padding-top:6px; font-size:9px; color:#94a3b8; background:#fff;">
                         <span>${ft.text || ''}</span>
                     </div>
@@ -1259,14 +1295,14 @@
                 // Fase A del piano di unificazione: stessa fonte unica di
                 // costruisciPagineTemplateUnificato qui sopra, invece di ricalcolare a mano —
                 // coerenza garantita tra miniatura editor ed export vero.
-                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled);
-                const intestazione = headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '';
+                const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled, pageDef.footer, footerEnabled);
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg) : '');
                 // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
                 // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
                 // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un
                 // template con margini suoi era impaginato su una larghezza e stampato su un'altra.
                 const stileSopra = ` padding:${mrgFoglio.top}mm ${mrgFoglio.right}mm ${mrgFoglio.bottom}mm ${mrgFoglio.left}mm; --margine-sotto:${mrgFoglio.bottom}mm;`;
-                const { riservaFooterMm: paddingBottomMm, areaStampabileMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled);
+                const { riservaFooterMm: paddingBottomMm, areaStampabileMm } = calcolaBudgetPaginaMm(mrgFoglio, footerEnabled && !mrgFoglio.piedeNelMargine);
                 const maxHeightMm = areaStampabileMm.toFixed(2);
                 const pageLabel = `Prova ${provaNr || '?'} — pagina ${pageIndex}/${totalPages}`;
                 // FOGLIO RIGIDO: stessa identica struttura di costruisciPagineTemplateUnificato

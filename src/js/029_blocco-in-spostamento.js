@@ -1477,7 +1477,11 @@
                 if (chkFooter) chkFooter.checked = footerOn;
                 if (footerControls) footerControls.style.display = footerOn ? 'flex' : 'none';
                 const inputFooterTextEl = document.getElementById('inputFooterText');
-                if (inputFooterTextEl) inputFooterTextEl.value = (page.footer && page.footer.text) || '';
+                if (inputFooterTextEl) {
+                    inputFooterTextEl.value = (page.footer && page.footer.text) || '';
+                    inputFooterTextEl.readOnly = !!(page.footer && page.footer.html);
+                    inputFooterTextEl.title = inputFooterTextEl.readOnly ? 'Testo formattato: si cambia con «Testo formattato…»' : '';
+                }
                 // Impostazione del TEMPLATE, non della singola pagina (vedi
                 // templateEditorState.footerShowPageNumber) — non dipende più da "page" qui sopra.
 
@@ -1504,6 +1508,8 @@
                     if (range && document.activeElement !== range) range.value = String(mrg[side]);
                     if (lbl && document.activeElement !== lbl) lbl.value = cmMargine(mrg[side]);
                 });
+                const campoDistanzaPiede = document.getElementById('inputDistanzaPiede');
+                if (campoDistanzaPiede && document.activeElement !== campoDistanzaPiede) campoDistanzaPiede.value = cmMargine(distanzaPiedeMm(mrg));
                 const campoDistanza = document.getElementById('inputDistanzaIntestazione');
                 if (campoDistanza && document.activeElement !== campoDistanza) campoDistanza.value = cmMargine(distanzaIntestazioneMm(mrg));
                 const nota = document.getElementById('notaMargineIntestazione');
