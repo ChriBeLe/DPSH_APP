@@ -923,4 +923,7 @@
             .trova-dtm { padding: 0; }
             .trova-dtm-finestra { height: 100%; border-radius: 0; }
             .trova-dtm-dati, .fonte-dtm-fogli { grid-template-columns: 1fr; }
+            /* sul telefono il piede non deve mangiarsi l'elenco: bottoni più bassi */
+            .trova-dtm-piede { padding: 8px 12px; gap: 6px; }
+            .trova-dtm-piede .bt { min-height: 38px; font-size: 13px; padding: 0 10px; }
         }

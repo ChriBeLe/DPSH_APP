@@ -10,7 +10,7 @@
             // vecchio l'APK installato ed è la stessa data dei file in backup/. Si aggiorna alla fine
             // di ogni sessione in cui questo file cambia. Compare in fondo al menu Impostazioni e
             // dentro i backup dell'archivio (campo versioneApp).
-            const APP_VERSIONE = '2026.09.27.9';
+            const APP_VERSIONE = '2026.10.10';
             const lblVersioneApp = document.getElementById('lblVersioneApp');
             if (lblVersioneApp) lblVersioneApp.textContent = APP_VERSIONE;
 

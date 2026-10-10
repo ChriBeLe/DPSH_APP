@@ -405,7 +405,10 @@
                 };
                 const zona = luogo.zona, r = riquadroUtm(luogo.bbox, zona);
                 const latC = (luogo.bbox.s + luogo.bbox.n) / 2;
-                const passo = Math.max(1, Math.round(40075016.686 * Math.cos(latC * Math.PI / 180) / (256 * Math.pow(2, z)) * 10) / 10);
+                // Il passo del pixel delle tessere; per un progetto esteso, quanto basta ad averne al più
+                // DTM_MAX_CELLE per lato (il ritaglio non ne terrebbe di più).
+                const pixel = 40075016.686 * Math.cos(latC * Math.PI / 180) / (256 * Math.pow(2, z));
+                const passo = Math.max(1, Math.round(Math.max(pixel, Math.max(r.x1 - r.x0, r.y1 - r.y0) / DTM_MAX_CELLE) * 10) / 10);
                 const nx = Math.ceil((r.x1 - r.x0) / passo), ny = Math.ceil((r.y1 - r.y0) / passo);
                 return {
                     nx, ny, dx: passo, dy: passo, x0: r.x0, y0: r.y0 + ny * passo, epsg: 32600 + zona, z,
