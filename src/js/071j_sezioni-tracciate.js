@@ -47,9 +47,10 @@
                     for (let i = 1; i < pt.length; i++) sopra.push({ t: 'linea', x1: pt[i - 1][0], y1: pt[i - 1][1], x2: pt[i][0], y2: pt[i][1], stroke: st ? st.colore : '#dc2626', sw: st ? st.spessore * 0.65 : 1.6, dash: st ? trattoDash(st.tratto, 0.6) : null, cls: 'vista3d-traccia', traccia: t && t.id });
                     if (!t || !vista3d.etichette.sezioni) return;
                     const [e1, e2] = estremiTraccia(t.nome);
-                    const box = st.etichetta === 'testo' ? null : st.etichetta;
-                    testo(pt[0][0], pt[0][1] - 8, e1, { size: 14, bold: true, anchor: 'middle', alone: true, box, cls: 'vista3d-traccia-nome', traccia: t.id });
-                    testo(pt[24][0], pt[24][1] - 8, e2, { size: 14, bold: true, anchor: 'middle', alone: true, box, cls: 'vista3d-traccia-nome', traccia: t.id });
+                    // le lettere come nella mappa 2D (stile della sezione: grandezza, colore, alone, riquadro)
+                    const stE = Object.assign({}, st, SENZA_SIMBOLO);
+                    etichettaScena3d(testo, pt[0][0], pt[0][1] - 3, e1, stE, { cls: 'vista3d-traccia-nome', traccia: t.id }, 'sopra', 14);
+                    etichettaScena3d(testo, pt[24][0], pt[24][1] - 3, e2, stE, { cls: 'vista3d-traccia-nome', traccia: t.id }, 'sopra', 14);
                 });
                 misuraNellaScena3d(d, P, sopra, testo);
             }

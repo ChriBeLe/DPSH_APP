@@ -18,17 +18,35 @@
                 giaciture: { campi: ['spessore', 'dimensione'], def: () => ({ spessore: 2.6, dimensione: 1 }) },
                 misure: { campi: ['colore', 'spessore'], def: () => ({ colore: '', spessore: 1.5 }) }
             };
-            const tipoStile = k => (k.startsWith('t:') ? 'traccia' : k.startsWith('d:') ? 'disegno' : STILI_LIVELLO[k] ? k : null);
-            /** Lo stile di un livello: quello di base del suo tipo con sopra le scelte salvate nel progetto. */
+            // I GRUPPI: lo stile del gruppo (tasto destro sul gruppo nei Livelli) vale per tutti i suoi elementi;
+            // un elemento può avere il suo (tasto destro sull'elemento), che vince su quello del gruppo finché non
+            // si preme «Come il gruppo». Chiavi: gruppi 'prove', 'sezioni', 'disegni'; elementi 'p:', 't:', 'd:'.
+            const GRUPPO_DI_STILE = { 'p:': 'prove', 't:': 'sezioni', 'd:': 'disegni' };
+            const gruppoDiStile = k => GRUPPO_DI_STILE[k.slice(0, 2)] || null;
+            const NOMI_GRUPPI_STILE = { prove: 'Prove', sezioni: 'Sezioni', disegni: 'Disegnati' };
+            const tipoStile = k => (k.startsWith('p:') ? 'prove' : k.startsWith('t:') ? 'traccia' : k.startsWith('d:') ? 'disegno' : k === 'sezioni' ? 'traccia' : k === 'disegni' ? 'disegno' : STILI_LIVELLO[k] ? k : null);
+            /** Lo stile di un livello: quello di base del suo tipo, sopra lo stile del suo gruppo, sopra il suo. */
             function stileLivello(k) {
-                const tipo = tipoStile(k), proj = state.projects[state.currentProjectId], def = STILI_LIVELLO[tipo].def();
+                const tipo = tipoStile(k), proj = state.projects[state.currentProjectId], def = STILI_LIVELLO[tipo].def(), stili = (proj && proj.stili) || {};
                 // il disegno ha già il suo colore (dato alla nascita)
                 if (tipo === 'disegno') { const x = disegniDelProgetto().find(y => 'd:' + y.id === k); if (x) { def.colore = x.colore; if (x.tipo === 'punto') Object.assign(def, { contorno: '#ffffff', spessore: 1.5 }); else def.etichettaPosizione = 'centro'; } }
-                return Object.assign(def, (proj && proj.stili && proj.stili[k]) || {});
+                const g = gruppoDiStile(k);
+                return Object.assign(def, (g && stili[g]) || {}, stili[k] || {});
+            }
+            /** Un elemento ha uno stile suo (diverso da quello del gruppo)? */
+            const stileProprio = k => { const proj = state.projects[state.currentProjectId]; return !!(proj && proj.stili && proj.stili[k] && Object.keys(proj.stili[k]).length); };
+            /** Tutti gli elementi del gruppo tornano allo stile del gruppo. */
+            function togliStiliPropri(gruppo) {
+                const proj = state.projects[state.currentProjectId];
+                if (!proj || !proj.stili) return;
+                Object.keys(proj.stili).forEach(k => { if (gruppoDiStile(k) === gruppo) delete proj.stili[k]; });
+                saveState(); disegnaProveMappa(); renderVista3d();
             }
             /** I campi del pannellino: un disegno mostra quelli del suo tipo (il punto non ha tratto, il poligono non ha dimensione). */
             function campiStile(k) {
                 const tipo = tipoStile(k), x = tipo === 'disegno' && disegniDelProgetto().find(y => 'd:' + y.id === k);
+                // il gruppo dei disegnati: i campi dei punti e dei poligoni insieme
+                if (k === 'disegni') return ['simbolo', 'colore', 'riempimento', 'opacita', 'contorno', 'spessore', 'tratto', 'dimensione', ...CAMPI_ETICHETTA];
                 if (!x) return STILI_LIVELLO[tipo].campi;
                 return x.tipo === 'punto' ? ['simbolo', 'colore', 'contorno', 'spessore', 'dimensione', ...CAMPI_ETICHETTA] : ['colore', 'riempimento', 'opacita', 'spessore', 'tratto', ...CAMPI_ETICHETTA.filter(c => c !== 'etichettaPosizione')];
             }
@@ -114,13 +132,16 @@
                 const campi = campiStile(k), primi = campi.filter(c => !CAMPI_ETICHETTA.includes(c)), etichette = campi.filter(c => CAMPI_ETICHETTA.includes(c));
                 const gruppi = `<div class="stile-gruppo">${primi.includes('simbolo') ? 'Simbolo' : 'Linea e riempimento'}</div>${primi.map(campo).join('')}`
                     + (etichette.length ? `<div class="stile-gruppo">Etichette <span>(si accendono con la «T» nei Livelli)</span></div>${etichette.map(campo).join('')}` : '');
-                const toccato = !!(proj.stili && proj.stili[k]);
-                stilePop.innerHTML = `<div class="stile-testa"><svg class="ico"><use href="#i-draw"/></svg><b>Stile · ${esc(nome)}</b>`
+                const toccato = !!(proj.stili && proj.stili[k]), gruppo = gruppoDiStile(k), diGruppo = !!NOMI_GRUPPI_STILE[k];
+                // l'elemento torna al gruppo; il gruppo torna allo stile di base
+                const tastoBase = gruppo ? `<svg class="ico"><use href="#i-reset"/></svg>Come il gruppo` : `<svg class="ico"><use href="#i-reset"/></svg>Di base`;
+                const nota = gruppo ? (toccato ? `stile suo: non segue «${NOMI_GRUPPI_STILE[gruppo]}»` : `segue lo stile di «${NOMI_GRUPPI_STILE[gruppo]}»`) : diGruppo ? 'per tutto il gruppo (tranne chi ha uno stile suo)' : 'mappa, 3D, PDF, GeoPackage, KMZ';
+                stilePop.innerHTML = `<div class="stile-testa"><svg class="ico"><use href="#i-draw"/></svg><b>${diGruppo ? 'Stile del gruppo' : 'Stile'} · ${esc(nome)}</b>`
                         + `<button type="button" class="am-pnl-bt" data-az="fatto" title="Chiudi (le modifiche restano)"><svg class="ico"><use href="#i-x"/></svg></button></div>`
                     + `<div class="stile-righe">${gruppi}</div>`
-                    + `<div class="stile-piede"><button type="button" class="bt-link" data-az="base"${toccato ? '' : ' disabled'} title="Torna allo stile di base"><svg class="ico"><use href="#i-reset"/></svg>Di base</button>`
-                        + `<span class="stile-nota">mappa, 3D, PDF, GeoPackage, KMZ</span><button type="button" class="bt-link" data-az="annulla" title="Annulla le modifiche (Esc)">Annulla</button></div>`;
-                const cambia = (campo, v) => { salvaStile(k, { [campo]: v }); stilePop.querySelector('[data-az="base"]').disabled = false; };
+                    + `<div class="stile-piede"><button type="button" class="bt-link" data-az="base"${toccato ? '' : ' disabled'} title="${gruppo ? 'Torna allo stile del gruppo' : 'Torna allo stile di base'}">${tastoBase}</button>`
+                        + `<span class="stile-nota">${nota}</span><button type="button" class="bt-link" data-az="annulla" title="Annulla le modifiche (Esc)">Annulla</button></div>`;
+                const cambia = (campo, v) => { salvaStile(k, { [campo]: v }); stilePop.querySelector('[data-az="base"]').disabled = false; if (gruppo) stilePop.querySelector('.stile-nota').textContent = `stile suo: non segue «${NOMI_GRUPPI_STILE[gruppo]}»`; };
                 stilePop.querySelectorAll('.griglia-colori').forEach(gr => {
                     const segna = v => gr.querySelectorAll('.griglia-colore-btn').forEach(b => b.setAttribute('aria-checked', String(b.dataset.v !== undefined ? b.dataset.v.toUpperCase() === v.toUpperCase() : (!!v && !COLORI_STILE.includes(v.toUpperCase())))));
                     gr.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (b) { segna(b.dataset.v); cambia(gr.dataset.campo, b.dataset.v); } });

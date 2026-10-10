@@ -66,7 +66,6 @@
                 // Quel che compare per la prima volta (o si riaccende) entra animato; la prova scelta pulsa una volta.
                 if (m.progettoVisti !== state.currentProjectId) { m.visti = new Set(); m.progettoVisti = state.currentProjectId; m.pulsata = null; }
                 const ora = new Set(), nuovo = k => { ora.add(k); return !m.visti.has(k); };
-                const stV = stileLivello('prove');
                 if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
                     const st = stileLivello('t:' + t.id);
                     const linea = L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: st.colore, weight: Math.max(st.spessore, 3), dashArray: trattoLeaflet(st.tratto), opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
@@ -110,7 +109,7 @@
                     }
                     // con le maniglie (strumento Sposta o ALT) ogni prova si trascina (poi la doppia conferma)
                     const mobile = modificaMappaAttiva();
-                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: iconaProvaMappa(nome, scelta, stV), draggable: mobile, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
+                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: iconaProvaMappa(nome, scelta, stileLivello('p:' + s.id)), draggable: mobile, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
                     mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
                     mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
                     if (mobile) { mk.on('dragstart', () => trascinamentoMappa(true)); mk.on('dragend', () => { trascinamentoMappa(false); spostaProvaDallaMappa(s.id, mk.getLatLng()); }); }

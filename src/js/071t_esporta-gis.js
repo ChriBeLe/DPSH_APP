@@ -190,14 +190,19 @@
                 const layer = []; // { nome, descr, geom, z, srs, campi, righe: [{ geom, pp, valori }], qml }
                 const riga = (geom, pp, valori) => ({ geom, pp, valori });
                 if (scelti.prove) {
-                    const st = stileLivello('prove');
-                    layer.push({ nome: 'prove', descr: 'Prove DPSH — ' + progetto, geom: 'POINT', srs: 4326, campi: 'nome TEXT, numero TEXT, quota_m REAL, profondita_m REAL, falda_m REAL, progetto TEXT',
-                        righe: proveFisiche(proveConCoordinate(proj)).map(s => {
+                    // tutte con lo stile del gruppo: un simbolo solo; se qualcuna ha il suo, uno per prova
+                    const prove = proveFisiche(proveConCoordinate(proj)), st = stileLivello('prove');
+                    const voci = prove.map(s => ({ chiave: 'p_' + s.id, nome: nomeDpsh(s), st: stileLivello('p:' + s.id) }));
+                    const uguali = voci.every(v => JSON.stringify(v.st) === JSON.stringify(st));
+                    layer.push({ nome: 'prove', descr: 'Prove DPSH — ' + progetto, geom: 'POINT', srs: 4326, campi: 'nome TEXT, numero TEXT, quota_m REAL, profondita_m REAL, falda_m REAL, stile TEXT, progetto TEXT',
+                        righe: prove.map(s => {
                             const h = s.header, pp = [[parseFloat(h.lng), parseFloat(h.lat)]], q = quotaDellaProva(proj, h), pv = d && d.prove.find(p => p.s.id === s.id), fa = parseFloat(h.faldaDa);
-                            return riga(wkbPunto(pp[0]), pp, [nomeDpsh(s), String(h.provaNr || ''), q === null ? null : realeSqlite(+q.toFixed(2)), pv ? realeSqlite(+pv.fondo.toFixed(2)) : null, Number.isFinite(fa) ? realeSqlite(fa) : null, progetto]);
+                            return riga(wkbPunto(pp[0]), pp, [nomeDpsh(s), String(h.provaNr || ''), q === null ? null : realeSqlite(+q.toFixed(2)), pv ? realeSqlite(+pv.fondo.toFixed(2)) : null, Number.isFinite(fa) ? realeSqlite(fa) : null, 'p_' + s.id, progetto]);
                         }),
-                        qml: documentoQml({ renderer: `<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0" referencescale="-1"><symbols>${simboloPuntoQml('0', st)}</symbols></renderer-v2>`,
-                            etichette: `<labeling type="simple">${etichetteQml(st, 'nome', 'punto')}</labeling>`, conEtichette: L.prove }) });
+                        qml: uguali
+                            ? documentoQml({ renderer: `<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0" referencescale="-1"><symbols>${simboloPuntoQml('0', st)}</symbols></renderer-v2>`,
+                                etichette: `<labeling type="simple">${etichetteQml(st, 'nome', 'punto')}</labeling>`, conEtichette: L.prove })
+                            : documentoQml({ renderer: categorieQml(voci, simboloPuntoQml), etichette: etichettePerRegolaQml(voci, 'nome', 'punto'), conEtichette: L.prove }) });
                 }
                 const tracce = proj.sezioniTracciate || [];
                 if (scelti.sezioni && tracce.length) {
@@ -304,8 +309,14 @@
                 const cartella = (nome, corpo) => corpo ? `<Folder><name>${e(nome)}</name>${corpo}</Folder>` : '';
                 const punto = (nome, stile, g, descr) => `<Placemark><name>${e(nome)}</name>${descr ? `<description>${e(descr)}</description>` : ''}<styleUrl>#${stile}</styleUrl><Point><coordinates>${g.lng},${g.lat},0</coordinates></Point></Placemark>`;
                 if (scelti.prove) {
-                    stilePunto('prove', stileLivello('prove'), L.prove);
-                    segnaposti.push(cartella('Prove', proveFisiche(proveConCoordinate(proj)).map(s => punto(nomeDpsh(s), 'prove', { lat: parseFloat(s.header.lat), lng: parseFloat(s.header.lng) }, `Prova ${s.header.provaNr || ''}`)).join('')));
+                    // lo stile del gruppo per tutte; una prova con lo stile suo ha il suo
+                    const stG = stileLivello('prove');
+                    stilePunto('prove', stG, L.prove);
+                    segnaposti.push(cartella('Prove', proveFisiche(proveConCoordinate(proj)).map(s => {
+                        const stS = stileLivello('p:' + s.id), id = JSON.stringify(stS) === JSON.stringify(stG) ? 'prove' : 'p_' + s.id.replace(/\W/g, '');
+                        if (id !== 'prove') stilePunto(id, stS, L.prove);
+                        return punto(nomeDpsh(s), id, { lat: parseFloat(s.header.lat), lng: parseFloat(s.header.lng) }, `Prova ${s.header.provaNr || ''}`);
+                    }).join('')));
                 }
                 const tracce = proj.sezioniTracciate || [];
                 if (scelti.sezioni && tracce.length) {
@@ -331,23 +342,39 @@
                 return { testo, icone };
             }
 
-            // ---- La finestra ----
+            // ---- LA FINESTRA «ESPORTA»: un menu solo (tasto «Esporta…» in alto nella mappa, 2D e 3D): le tavole
+            // per la relazione, i dati per i GIS (coi livelli da scegliere), la vista 3D in SVG o il modello in OBJ ----
             const gisStato = { formato: 'gpkg', scelti: null };
             const G = id => document.getElementById(id);
-            function apriEsportaGis() {
+            const FORMATI_GIS = ['gpkg', 'kmz', 'kml'];
+            const NOTE_FORMATI = {
+                tavole: 'Si apre la finestra delle tavole: scegli e sistemi le pagine (modello 3D, sezioni 3D e 2D), poi PDF unico o immagini.',
+                gpkg: 'Per QGIS: un file solo, i layer con i loro stili (simboli, colori, etichette) e il modello 3D da vedere nella «Nuova vista mappa 3D».',
+                kmz: 'Per Google Earth: i segnaposto con le loro icone disegnate come nella mappa, colori ed etichette.',
+                kml: 'KML semplice: le icone sono quelle standard di Google Earth, nei colori scelti (per le icone esatte, KMZ).',
+                svg: 'La vista 3D com\'è adesso (inquadratura, tagli, livelli accesi), con la legenda: sfondo chiaro o scuro.',
+                obj: 'Terreno, colonne, pannelli e superfici in metri veri (senza esagerazione), in uno ZIP con i materiali.'
+            };
+            function apriEsportaGis(formato) {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return;
                 const mem = proj.esportaGis || {};
-                gisStato.formato = mem.formato || 'gpkg';
+                gisStato.formato = typeof formato === 'string' ? formato : mem.formato || 'gpkg';
                 gisStato.scelti = Object.assign({ prove: true, sezioni: true, punti: true, poligoni: true, modello3d: true, colonne3d: true }, mem.scelti || {});
                 renderEsportaGis();
                 G('esportaGis').hidden = false;
             }
             function renderEsportaGis() {
                 const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti || datiVista3d(proj), f = gisStato.formato;
-                G('gisFormato').querySelectorAll('[data-formato]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.formato === f)));
-                G('gisNotaFormato').textContent = f === 'gpkg' ? 'Per QGIS: un file solo, i layer con i loro stili (simboli, colori, etichette) e il modello 3D da vedere nella «Nuova vista mappa 3D».'
-                    : f === 'kmz' ? 'Per Google Earth: i segnaposto con le loro icone disegnate come nella mappa, colori ed etichette.' : 'KML semplice: le icone sono quelle standard di Google Earth, nei colori scelti (per le icone esatte, KMZ).';
+                G('gisFormato').querySelectorAll('[data-formato]').forEach(b => {
+                    b.setAttribute('aria-pressed', String(b.dataset.formato === f));
+                    // le tavole vogliono almeno una prova col GPS; la vista 3D e il modello, il 3D
+                    b.disabled = ['tavole', 'svg', 'obj'].includes(b.dataset.formato) && !d;
+                });
+                G('gisNotaFormato').textContent = NOTE_FORMATI[f] || '';
+                const gis = FORMATI_GIS.includes(f);
+                G('gisLivelliBox').hidden = !gis; G('gisNotaStili').hidden = !gis;
+                G('gisEsporta').querySelector('span').textContent = f === 'tavole' ? 'Apri le tavole…' : 'Esporta';
                 G('gisLivelli').innerHTML = LIVELLI_GIS.map(l => {
                     const n = contaLivelloGis(proj, d, l.id), ok = n > 0 && (!l.solo || l.solo === f);
                     const perche = !n ? 'niente da esportare' : l.solo && l.solo !== f ? 'solo nel GeoPackage' : `${n}`;
@@ -360,8 +387,17 @@
                 proj.esportaGis = { formato: gisStato.formato, scelti: Object.assign({}, gisStato.scelti) };
                 saveState();
             }
+            /** Le tavole e la vista 3D si fanno dal 3D: se si è nella mappa 2D, ci si passa. */
+            function nel3d() { if (areaMappa.modo !== '3d') modoAreaMappa('3d'); }
             async function esportaGis() {
-                const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti || datiVista3d(proj);
+                const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti || datiVista3d(proj), f = gisStato.formato;
+                if (!FORMATI_GIS.includes(f)) {
+                    G('esportaGis').hidden = true;
+                    if (f === 'tavole') { nel3d(); apriTavole3d(false); }
+                    else if (f === 'svg') { nel3d(); G('btnScaricaVista3d').click(); }
+                    else if (f === 'obj') G('btnScaricaObj3d').click();
+                    return;
+                }
                 const scelti = {};
                 G('gisLivelli').querySelectorAll('[data-livello-gis]').forEach(c => { scelti[c.dataset.livelloGis] = c.checked && !c.disabled; });
                 if (!Object.values(scelti).some(Boolean)) { appAlert('Scegli almeno un livello da esportare.'); return; }
@@ -376,7 +412,8 @@
                     G('esportaGis').hidden = true;
                 } catch (e) { appAlert(e.message || String(e)); }
             }
-            G('btnGpkgSezioni3d').addEventListener('click', apriEsportaGis);
+            G('btnGpkgSezioni3d').addEventListener('click', () => apriEsportaGis('gpkg'));
+            G('btnEsportaMappa').addEventListener('click', () => apriEsportaGis());
             G('gisFormato').addEventListener('click', (e) => { const b = e.target.closest('[data-formato]'); if (!b) return; gisStato.formato = b.dataset.formato; salvaSceltaGis(); renderEsportaGis(); });
             G('gisLivelli').addEventListener('change', (e) => { const c = e.target.closest('[data-livello-gis]'); if (c) { gisStato.scelti[c.dataset.livelloGis] = c.checked; salvaSceltaGis(); } });
             G('gisTutti').addEventListener('click', () => { LIVELLI_GIS.forEach(l => { gisStato.scelti[l.id] = true; }); salvaSceltaGis(); renderEsportaGis(); });

@@ -94,7 +94,7 @@ const $ = (app, id) => app.d.getElementById(id);
     const a = scenaVoce3d(v, d, 1400, 860, { scritte: 1 }), b = scenaVoce3d(v, d, 1400, 860, { scritte: 1.6 });
     const la = conLegenda3d(a, d, 1).legenda, lb = conLegenda3d(b, d, 1.6).legenda;
     return { a: nome(a), b: nome(b), la: la.w, lb: lb.w, schermo: ultimaScena3d.tutte.find(f => f.cls === 'vista3d-nome').size }; })()`);
-  t(`la grandezza delle scritte: nomi da ${scr.a} a ${scr.b} px, e la legenda con loro (${scr.la} → ${scr.lb} px)`, Math.abs(scr.b / scr.a - 1.6) < 0.01 && scr.lb > scr.la * 1.5 && scr.schermo === 13);
+  t(`la grandezza delle scritte: nomi da ${scr.a} a ${scr.b} px, e la legenda con loro (${scr.la} → ${scr.lb} px)`, Math.abs(scr.b / scr.a - 1.6) < 0.01 && scr.lb > scr.la * 1.5 && scr.schermo === 12);
 
   console.log('--- La foto sopra il modello ---');
   const foto = app.E(`(() => {

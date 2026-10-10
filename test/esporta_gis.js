@@ -37,7 +37,7 @@ const LAT0 = 40.1968, LNG0 = 17.993, G = (x, y) => ({ lat: LAT0 + y / 111000, ln
   // ---- La finestra ----
   clic(app, $(app, 'btnGpkgSezioni3d'));
   const livelli = () => [...app.d.querySelectorAll('#gisLivelli [data-livello-gis]')];
-  t(`la finestra: formato (GeoPackage, KMZ, KML) e i livelli (${livelli().map(c => c.dataset.livelloGis).join(', ')})`, !$(app, 'esportaGis').hidden && app.d.querySelectorAll('#gisFormato [data-formato]').length === 3
+  t(`la finestra «Esporta»: tavole, GeoPackage, KMZ, KML, vista 3D (SVG, OBJ); per i GIS i livelli (${livelli().map(c => c.dataset.livelloGis).join(', ')})`, !$(app, 'esportaGis').hidden && ['tavole', 'gpkg', 'kmz', 'kml', 'svg', 'obj'].every(f => app.d.querySelector(`#gisFormato [data-formato="${f}"]`))
     && ['prove', 'sezioni', 'punti', 'poligoni', 'modello3d', 'colonne3d'].every(id => livelli().some(c => c.dataset.livelloGis === id && c.checked && !c.disabled)));
   clic(app, app.d.querySelector('#gisFormato [data-formato="kml"]'));
   t('col KML il modello 3D e le colonne non si possono scegliere (solo nel GeoPackage)', livelli().filter(c => /3d$/.test(c.dataset.livelloGis)).every(c => c.disabled && !c.checked));
@@ -139,6 +139,21 @@ print(json.dumps({'stili': len(d.findall('.//k:Style', ns)), 'segnaposti': len(d
   const kmz = app.scaricati[app.scaricati.length - 1], zb = Buffer.from(await kmz.blob.arrayBuffer());
   t(`il KMZ: uno ZIP con doc.kml (${kmz.nome})`, /\.kmz$/.test(kmz.nome) && zb.readUInt32LE(0) === 0x04034b50 && zb.toString('latin1').includes('doc.kml'));
 
+  // ---- Il menu «Esporta» unico: in alto nella mappa (2D e 3D), tavole, GIS, vista 3D ----
+  clic(app, $(app, 'btnEsportaMappa'));
+  t('«Esporta…» in alto nella mappa apre lo stesso menu (l\'ultimo formato scelto)', !$(app, 'esportaGis').hidden && app.d.querySelector('#gisFormato [aria-pressed="true"]').dataset.formato === 'kmz');
+  clic(app, app.d.querySelector('#gisFormato [data-formato="tavole"]'));
+  t('«Tavole 2D e 3D»: niente livelli da scegliere, il tasto apre le tavole', $(app, 'gisLivelliBox').hidden && /Apri le tavole/.test($(app, 'gisEsporta').textContent));
+  clic(app, $(app, 'gisEsporta'));
+  await attesa(30);
+  t('(e si aprono)', !$(app, 'tavole3d').hidden && $(app, 'esportaGis').hidden);
+  app.E(`document.getElementById('tavole3dChiudi').click()`);
+  t('nella barra in alto un tasto solo («Esporta…»): Tavole, SVG e OBJ sono dentro', ['btnTavole3d', 'btnScaricaVista3d', 'btnScaricaObj3d'].every(id => $(app, id).classList.contains('am-nascosto')));
+  // una prova col suo stile: nel GeoPackage le prove per categorie (una per prova), nel KML il suo stile
+  app.E(`salvaStile('p:g0_0', { simbolo: 'stella', colore: '#22C55E' })`);
+  const dimGpkg = app.E(`(() => { const r = geopackageGis(state.projects[state.currentProjectId], datiVista3dCorrenti, { prove: true }); return r.length; })()`);
+  const kml2 = app.E(`documentoKmlGis(state.projects[state.currentProjectId], { prove: true }, false).testo`);
+  t(`una prova con lo stile suo: il GeoPackage si scrive (${dimGpkg} byte) e nel KML ha il suo stile`, dimGpkg > 0 && /<Style id="p_g0_0">/.test(kml2) && /<styleUrl>#p_g0_0<\/styleUrl>/.test(kml2) && (kml2.match(/<styleUrl>#prove<\/styleUrl>/g) || []).length === 11);
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`${ok} ok, ${ko} KO`);

@@ -574,7 +574,7 @@
                 // vedono solo quelle facce; la luce viene dall'alto, da nord-ovest, come per il terreno.
                 const luceF = [-0.5, 0.5, 0.7].map(v => v / Math.hypot(-0.5, 0.5, 0.7)), versoOcchio = [-sa * ce, -ca * ce, se];
                 // Gli stili dei livelli (menu «Stile…»).
-                const stP = stileLivello('pannelli'), stS = stileLivello('superfici'), stF = stileLivello('falda'), stG = stileLivello('giaciture'), stM = stileLivello('misure'), stV = stileLivello('prove');
+                const stP = stileLivello('pannelli'), stS = stileLivello('superfici'), stF = stileLivello('falda'), stG = stileLivello('giaciture'), stM = stileLivello('misure');
                 // luce: 'taglio' = faccia del taglio, esposta (colore pieno, un filo più chiaro); 'ombra' =
                 // il resto del corpo quando è tagliato (più scuro): si vede subito dov'è la sezione.
                 const ombra = (colore, pw, luce) => {
@@ -1170,9 +1170,10 @@
                 maniglieNellaScena3d(d, P, sopra);
                 d.prove.forEach(p => {
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
-                    const [tx, ty] = P(p.x, p.y, p.z);
-                    sopra.push({ t: 'cerchio', x: tx, y: ty, r: 4 * stV.dimensione, fill: stV.colore || 'currentColor', stroke: stV.colore ? stV.contorno : undefined, cls: 'vista3d-testa', prova: p.s.id });
-                    if (conNome(p)) testo(tx, ty - 10, nomeDpsh(p.s), { size: stV.etichettaDimensione + 1 || 13, bold: stV.etichettaGrassetto !== false, anchor: 'middle', alone: true, colore: stV.etichettaColore, coloreAlone: stV.etichettaAlone || undefined, cls: 'vista3d-nome', prova: p.s.id });
+                    // in cima alla colonna lo stesso simbolo e la stessa etichetta della mappa 2D (stile della prova)
+                    const [tx, ty] = P(p.x, p.y, p.z), stP = stileLivello('p:' + p.s.id);
+                    simboloScena3d(sopra, tx, ty, stP, { cls: 'vista3d-testa', prova: p.s.id });
+                    if (conNome(p)) etichettaScena3d(testo, tx, ty, nomeDpsh(p.s), stP, { cls: 'vista3d-nome', prova: p.s.id });
                     colonne.push({ id: p.s.id, x1: tx, y1: ty - 22, x2: tx, y2: ty });
                 });
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.
@@ -1256,8 +1257,8 @@
                     if (f.t === 'cerchio') return `<circle cx="${n(f.x)}" cy="${n(f.y)}" r="${f.r}" fill="${f.fill}"${f.stroke ? ` stroke="${f.stroke}" stroke-opacity="${f.so ?? 1}"${f.sw ? ` stroke-width="${f.sw}"` : ''}` : ''}${cls}/>`;
                     // etichetta con sfondo (e bordo): un riquadro dietro, largo quanto il testo
                     const w = f.s.length * f.size * 0.62, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
-                    const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="var(--bg-card, #fff)" fill-opacity="0.88"${f.box === 'bordo' ? ' stroke="currentColor" stroke-width="1"' : ''}/>` : '';
-                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="${f.colore || 'currentColor'}"${f.alone ? ` paint-order="stroke" stroke="${f.coloreAlone || 'var(--bg-card, #fff)'}" stroke-width="3"` : ''}${cls}>${esc(f.s)}</text>`;
+                    const box = f.box ? `<rect x="${n(x0 - 4)}" y="${n(f.y - f.size)}" width="${n(w + 8)}" height="${n(f.size + 5)}" rx="3" fill="${f.boxColore || 'var(--bg-card, #fff)'}" fill-opacity="${f.boxColore ? 0.82 : 0.88}"${f.box === 'bordo' ? ` stroke="${f.boxColore ? '#ffffff' : 'currentColor'}" stroke-width="1"` : ''}/>` : '';
+                    return box + `<text x="${n(f.x)}" y="${n(f.y)}" font-size="${f.size}"${f.famiglia ? ` font-family="${f.famiglia}"` : ''}${f.bold ? ' font-weight="700"' : ''}${f.anchor ? ` text-anchor="${f.anchor}"` : ''} fill="${f.colore || 'currentColor'}"${f.alone ? ` paint-order="stroke" stroke="${f.coloreAlone || 'var(--bg-card, #fff)'}" stroke-width="3"` : ''}${cls}>${esc(f.s)}</text>`;
                 };
                 return `<svg viewBox="0 0 ${sc.W} ${sc.H}" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vista 3D del terreno e delle prove" style="display: block; font-family: var(--font-mono), monospace;"><rect width="${sc.W}" height="${sc.H}" fill="var(--bg-card, #fff)"/>${sc.tutte.map(forma).join('')}</svg>`;
             }
@@ -1426,13 +1427,13 @@
                         if (f.fill !== 'none') { ctx.globalAlpha = op; ctx.fillStyle = col(f.fill); ctx.fill(); }
                         if (f.stroke) { ctx.globalAlpha = (f.so ?? 1) * op; ctx.strokeStyle = col(f.stroke); ctx.lineWidth = f.sw || 1; ctx.stroke(); }
                     } else {
-                        ctx.globalAlpha = op; ctx.font = `${f.bold ? '700 ' : ''}${f.size}px ${mono}`;
+                        ctx.globalAlpha = op; ctx.font = `${f.bold ? '700 ' : f.famiglia ? '500 ' : ''}${f.size}px ${f.famiglia || mono}`;
                         ctx.textAlign = f.anchor === 'middle' ? 'center' : f.anchor === 'end' ? 'right' : 'left';
                         if (f.box) {
                             const w = ctx.measureText(f.s).width, x0 = f.anchor === 'middle' ? f.x - w / 2 : f.anchor === 'end' ? f.x - w : f.x;
-                            ctx.save(); ctx.globalAlpha = 0.88 * op; ctx.fillStyle = fondo;
+                            ctx.save(); ctx.globalAlpha = (f.boxColore ? 0.82 : 0.88) * op; ctx.fillStyle = f.boxColore || fondo;
                             ctx.beginPath(); ctx.rect(x0 - 4, f.y - f.size, w + 8, f.size + 5); ctx.fill();
-                            if (f.box === 'bordo') { ctx.globalAlpha = op; ctx.strokeStyle = testoColore; ctx.lineWidth = 1; ctx.stroke(); }
+                            if (f.box === 'bordo') { ctx.globalAlpha = op; ctx.strokeStyle = f.boxColore ? '#ffffff' : testoColore; ctx.lineWidth = 1; ctx.stroke(); }
                             ctx.restore();
                         } else if (f.alone) { ctx.lineWidth = 3; ctx.strokeStyle = f.coloreAlone ? col(f.coloreAlone) : fondo; ctx.strokeText(f.s, f.x, f.y); }
                         ctx.fillStyle = f.colore ? col(f.colore) : testoColore; ctx.fillText(f.s, f.x, f.y);
@@ -1841,9 +1842,11 @@
                 voci.push(opacita);
                 const t = r.traccia && tracceDelProgetto().find(x => x.id === r.traccia);
                 const dis = r.disegno && disegniDelProgetto().find(x => x.id === r.disegno);
-                // «Stile…»: colore, contorno, riempimento, tratto… del livello (le prove, tutte insieme)
-                const chiaveStile = r.prova ? 'prove' : r.traccia ? 't:' + r.traccia : r.disegno ? 'd:' + r.disegno : r.giacitura !== undefined ? 'giaciture' : ['falda', 'pannelli', 'superfici', 'misure'].includes(r.livello) ? r.livello : null;
-                if (chiaveStile) voci.push(['Stile…', 'i-draw', '', () => setTimeout(() => apriStileLivello(chiaveStile, chiaveStile === 'prove' ? 'Prove' : chiaveStile === 'giaciture' ? 'Giaciture' : r.nome, { x, y }))]);
+                // «Stile…»: lo stile suo (prova, sezione, disegno: vince su quello del gruppo) o del livello
+                const chiaveStile = r.prova ? 'p:' + r.prova : r.traccia ? 't:' + r.traccia : r.disegno ? 'd:' + r.disegno : r.giacitura !== undefined ? 'giaciture' : ['falda', 'pannelli', 'superfici', 'misure'].includes(r.livello) ? r.livello : null;
+                if (chiaveStile) voci.push([gruppoDiStile(chiaveStile) && stileProprio(chiaveStile) ? 'Stile… (suo)' : 'Stile…', 'i-draw', '', () => setTimeout(() => apriStileLivello(chiaveStile, chiaveStile === 'giaciture' ? 'Giaciture' : r.nome, { x, y }))]);
+                const gStile = chiaveStile && gruppoDiStile(chiaveStile);
+                if (gStile) voci.push([`Stile del gruppo «${NOMI_GRUPPI_STILE[gStile]}»…`, 'i-layers', '', () => setTimeout(() => apriStileLivello(gStile, NOMI_GRUPPI_STILE[gStile], { x, y }))]);
                 if (r.prova) voci.push('-', ...vociProvaMappa(r.prova));
                 else if (t) voci.push('-', ...vociTracciaMappa(t));
                 else if (dis) voci.push('-', ...vociDisegno(dis, { x, y }));
@@ -1893,6 +1896,14 @@
                     if (r && !e.target.matches('input, button') && !r.sfondo2d) inquadraLivello3d(r);
                 });
                 albero.addEventListener('contextmenu', (e) => {
+                    // sul gruppo (Prove, Sezioni, Disegnati): lo stile del gruppo, per tutti i suoi elementi
+                    const testa = !e.target.closest('.liv-riga') && e.target.closest('.liv-gruppo');
+                    if (testa && NOMI_GRUPPI_STILE[testa.dataset.gruppo]) {
+                        const g = testa.dataset.gruppo, x = e.clientX, y = e.clientY, propri = Object.keys((state.projects[state.currentProjectId] || {}).stili || {}).filter(k => gruppoDiStile(k) === g).length;
+                        apriMenuContesto(e, NOMI_GRUPPI_STILE[g], [['Stile del gruppo…', 'i-draw', '', () => setTimeout(() => apriStileLivello(g, NOMI_GRUPPI_STILE[g], { x, y }))],
+                            [propri ? `Tutti come il gruppo (${propri} con lo stile suo)` : 'Tutti seguono già il gruppo', 'i-reset', '', () => { if (propri) togliStiliPropri(g); }]]);
+                        return;
+                    }
                     const r = riga(e);
                     if (!r) return;
                     livelloScelto3d = r.chiave;
