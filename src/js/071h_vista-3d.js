@@ -2407,11 +2407,7 @@
                 apriVista3d();
             });
             document.getElementById('btnChiudiVista3d').addEventListener('click', closeAnyOpenModal);
-            // Il DTM si carica anche da qui: poi la scena si rifà col terreno, nello stesso modo.
-            document.getElementById('btnCaricaDtm3d').addEventListener('click', () => chiediFileDtm(state.currentProjectId, errore => {
-                if (errore) { appAlert(errore); return; }
-                apriVista3d(areaMappa.modo);
-            }));
+            // Il bottone DTM apre la finestra «DTM per le prove» (071t): da file o dalle fonti in rete.
             const nomeFileProgetto3d = () => (state.projects[state.currentProjectId].name || 'progetto').replace(/[^\w\-]+/g, '_');
             // I colori del disegno scaricato: lo sfondo lo sceglie chi scarica, chiaro o scuro.
             const SFONDI_SVG_3D = { chiaro: { fondo: '#ffffff', testo: '#1f2937' }, scuro: { fondo: '#0f172a', testo: '#e5e7eb' } };

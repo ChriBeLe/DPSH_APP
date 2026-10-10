@@ -162,8 +162,12 @@
                 return out;
             }
 
-            function leggiGeoTiff(buf) {
+            /** buf: il file intero, oppure solo il suo inizio (le intestazioni) se c'è leggiByte, che
+             * porta il resto a pezzi: così un GeoTIFF in rete (COG) si legge chiedendo solo le tessere
+             * attorno alle prove. */
+            function leggiGeoTiff(buf, leggiByte) {
                 const t = tagTiff(buf), le = t.le;
+                const byte = leggiByte || (async (off, n) => new Uint8Array(buf, off, n));
                 const nx = t[256][0], ny = t[257][0];
                 const bit = (t[258] || [8])[0], formato = (t[339] || [1])[0], spp = (t[277] || [1])[0];
                 const compr = (t[259] || [1])[0], pred = (t[317] || [1])[0];
@@ -190,7 +194,7 @@
                     : (formato === 2 ? dv.getInt32(o, le) : dv.getUint32(o, le));
 
                 async function pezzo(i, righe) {
-                    let b = new Uint8Array(buf, offs[i], lunghe[i]);
+                    let b = await byte(offs[i], lunghe[i]);
                     if (compr === 5) b = lzwTiff(b);
                     else if (compr === 8 || compr === 32946) b = await inflateZlib(b);
                     else b = b.slice();
@@ -256,6 +260,12 @@
                 const nome = file.name || 'DTM';
                 const buf = await file.arrayBuffer();
                 const sorg = /\.(asc|txt)$/i.test(nome) ? leggiAsciiGrid(new TextDecoder().decode(buf)) : leggiGeoTiff(buf);
+                return ritaglioDaSorgente(sorg, nome, proj);
+            }
+
+            /** Il ritaglio attorno alle prove da una griglia qualunque (file, servizio in rete, tessere):
+             * sorg come la danno i lettori qui sopra; nome è la fonte che si legge poi nella finestra. */
+            async function ritaglioDaSorgente(sorg, nome, proj) {
                 const prove = proveConCoordinate(proj);
                 if (!prove.length) throw new Error('Nessuna prova del progetto ha le coordinate: servono per sapere quale parte del DTM tenere. Prendi il GPS di almeno una prova.');
                 const punti = prove.map(s => [parseFloat(s.header.lat), parseFloat(s.header.lng)]);

@@ -46,8 +46,10 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'btnSezioneA3d'));
   t('dalla sezione, «Vista 3D» apre il 3D (e chiude la sezione)', $(app, 'modalVista3d').classList.contains('open') && !$(app, 'modalSezione').classList.contains('open'));
   t('(senza DTM offre di caricarlo)', $(app, 'lblCaricaDtm3d').textContent === 'Carica un DTM');
-  // Il DTM si carica dal 3D, che si ridisegna col terreno.
+  // Il DTM si carica dal 3D (bottone DTM › «Carica da file»), che si ridisegna col terreno.
   clic(app, $(app, 'btnCaricaDtm3d'));
+  t('il bottone DTM del 3D apre «DTM per le prove», sopra la mappa', !$(app, 'trovaDtm').hidden && $(app, 'modalVista3d').classList.contains('open'));
+  clic(app, $(app, 'trovaDtmDaFile'));
   Object.defineProperty($(app, 'fileDtm'), 'files', { value: [file], configurable: true });
   $(app, 'fileDtm').dispatchEvent(new app.w.Event('change'));
   for (let i = 0; i < 100 && !app.E(`!!${P}.dtm`); i++) await attesa(30);
