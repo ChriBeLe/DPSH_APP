@@ -179,9 +179,13 @@
              * invece del fondo grigio; e la tessera persa si toglie (non è più un «riquadro non
              * caricato»: il buco è coperto). Il codice sta negli attributi: la figura viaggia anche
              * nella finestra di stampa, dove le funzioni dell'app non ci sono. */
+            // E soprattutto (la fascia restava): il foglio di stile del report ha «img { max-width:
+            // 100% }», e il riquadro regionale è più stretto di una tessera — ogni tessera veniva
+            // stretta alla larghezza del riquadro e fra una colonna e l'altra restava il fondo.
+            // Le tessere hanno la loro misura in pixel e nessun tetto: max-width:none.
             function htmlTessereFinestra(url, centro, zoom, larghezzaPx, altezzaPx) {
                 const RIPROVA_TESSERA = "if(!this.dataset.riprova){this.dataset.riprova='1';var s=this.src;this.src=s+(s.indexOf('?')<0?'?':'&')+'riprova=1';}";
-                const img = (t, rimuovi) => `<img src="${url(t.z, t.x, t.y)}" decoding="async" onerror="${RIPROVA_TESSERA}${rimuovi ? 'else this.remove();' : ''}" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; display:block;">`;
+                const img = (t, rimuovi) => `<img src="${url(t.z, t.x, t.y)}" decoding="async" onerror="${RIPROVA_TESSERA}${rimuovi ? 'else this.remove();' : ''}" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; max-width:none; max-height:none; display:block;">`;
                 const f = calcolaTessereFinestra(centro, zoom, larghezzaPx, altezzaPx);
                 let sotto = '';
                 if (f.zoom > 1) {
@@ -603,7 +607,7 @@
                     const fEt = calcolaTessereFinestra(centro, zEt, larghezzaPx / k, altezzaPx / k);
                     etichetteHtml = `<div data-livello-toponimi="1" style="position:absolute; inset:0; pointer-events:none; opacity:${Math.max(0, Math.min(100, o.opacitaToponimi === undefined ? 100 : o.opacitaToponimi)) / 100};">
                         <div style="position:absolute; left:0; top:0; width:${(larghezzaPx / k).toFixed(0)}px; height:${(altezzaPx / k).toFixed(0)}px; transform:scale(${k}); transform-origin:0 0;">
-                            ${fEt.tessere.map(t => `<img src="${ETICHETTE_MAPPA_URL(t.z, t.x, t.y)}" decoding="async" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; display:block;">`).join('')}
+                            ${fEt.tessere.map(t => `<img src="${ETICHETTE_MAPPA_URL(t.z, t.x, t.y)}" decoding="async" style="position:absolute; left:${t.sinistra}px; top:${t.alto}px; width:${LATO_TESSERA}px; height:${LATO_TESSERA}px; max-width:none; max-height:none; display:block;">`).join('')}
                         </div></div>`;
                 }
 
