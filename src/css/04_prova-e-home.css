@@ -180,6 +180,11 @@
         .progetto { display: flex; flex-direction: column; gap: var(--sp-3); }
         .progetto-barra { display: flex; align-items: center; justify-content: space-between; }
         .progetto-barra .bt-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 44px; }
+        /* Annulla e Ripeti (pezzo 004f): spenti quando non c'è niente; Ripeti sul telefono compare
+           solo quando c'è qualcosa da ripetere, per non togliere spazio alla testata. */
+        .cronologia-gruppo { display: inline-flex; gap: 4px; margin-left: auto; }
+        [data-cronologia]:disabled { opacity: .35; cursor: default; }
+        [data-cronologia][hidden] { display: none; }
         .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
         .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
         .progetto-prove { padding: 0; overflow: hidden; }
@@ -233,7 +238,7 @@
             .pc-barra { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 40; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--border); }
             .pc-lato { position: fixed; top: 52px; bottom: 30px; left: 0; width: 260px; z-index: 40; box-sizing: border-box; overflow-y: auto; padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; gap: 2px; background: var(--bg-card); border-right: 1px solid var(--border); }
             .pc-stato { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-4); font-size: 12px; color: var(--text-muted); background: var(--bg-card); border-top: 1px solid var(--border); }
-            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome { display: none !important; }
+            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome, .cronologia-telefono { display: none !important; }
             #btnProgettoAltro { margin-left: auto; }
         }
         .pc-percorso { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }

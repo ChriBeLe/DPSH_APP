@@ -187,6 +187,8 @@
                 const copia = JSON.parse(JSON.stringify(proj, (k, v) => (k === 'dataUrl' ? undefined : v)));
                 scriviStatoAttivoNelProgetto(copia);
                 contenutiConosciuti.set(projId, testoContenutoProgetto(copia));
+                // Per la stessa ragione aprire non è un passo da annullare (pezzo 004f).
+                try { accettaAperturaInCronologia(projId, copia); } catch (e) { ignoraErrore('accettaAperturaInCronologia', e); }
             }
 
             /** Dopo la lettura dei dati: tutto ciò che c'è è il punto di partenza, nessuna modifica. */
