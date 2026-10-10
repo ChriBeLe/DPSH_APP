@@ -33,7 +33,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t(`il pannellino: ${[...pop().querySelectorAll('.stile-nome')].map(e => e.textContent).join(', ')}`, pop().classList.contains('aperto') && /Stile · A-A'/.test(pop().textContent)
     && ['Colore', 'Spessore', 'Tratto', 'Etichette'].every(c => pop().textContent.includes(c)));
   clic(app, pop().querySelector('[data-campo="colore"] [data-v="#22C55E"]'));
-  const sp = pop().querySelector('select[data-campo="spessore"]'); sp.value = '6'; sp.dispatchEvent(new app.w.Event('change'));
+  const sp = pop().querySelector('input[type="range"][data-campo="spessore"]'); sp.value = '6'; sp.dispatchEvent(new app.w.Event('input'));
   clic(app, pop().querySelector('[data-campo="tratto"] [data-v="tratteggiato"]'));
   clic(app, pop().querySelector('[data-campo="etichetta"] [data-v="bordo"]'));
   const linea = pezzi('vista3d-traccia')[0], nome = pezzi('vista3d-traccia-nome')[0];
@@ -59,10 +59,18 @@ const $ = (app, id) => app.d.getElementById(id);
   t('falda: riempimento più pieno, segni del colore scelto', pezzi('vista3d-falda').every(f => f.fo === 0.75) && pezzi('vista3d-falda-segno').every(f => f.stroke === '#F97316'));
   await apriStile('[data-prova3d]');
   t('sulle prove lo stile vale per tutte («Stile · Prove»)', /Stile · Prove/.test(pop().textContent));
-  const dim = pop().querySelector('select[data-campo="dimensione"]'); dim.value = '1.8'; dim.dispatchEvent(new app.w.Event('change'));
+  t('le prove: il simbolo (di base il triangolo con la punta sul punto) e le etichette (grandezza, colore, alone, posizione)', pop().querySelector('.stile-simboli [data-v="triangolo-giu"][aria-checked="true"]')
+    && ['etichettaDimensione', 'etichettaColore', 'etichettaAlone', 'etichettaPosizione'].every(c => pop().querySelector(`[data-campo="${c}"]`)));
+  const dim = pop().querySelector('input[type="range"][data-campo="dimensione"]'); dim.value = '1.8'; dim.dispatchEvent(new app.w.Event('input'));
   clic(app, pop().querySelector('[data-campo="colore"] [data-v="#FACC15"]'));
+  clic(app, pop().querySelector('.stile-simboli [data-v="quadrato"]'));
+  const ed = pop().querySelector('input[type="range"][data-campo="etichettaDimensione"]'); ed.value = '18'; ed.dispatchEvent(new app.w.Event('input'));
+  clic(app, pop().querySelector('[data-campo="etichettaPosizione"] [data-v="destra"]'));
   app.E('chiudiStileLivello(true)');
   t('prove: le teste delle colonne più grandi e del colore scelto', pezzi('vista3d-testa').every(f => Math.abs(f.r - 7.2) < 1e-9 && f.fill === '#FACC15'));
+  const sv = app.E(`JSON.stringify(stileLivello('prove'))`);
+  t('e lo stile delle prove ricorda simbolo, grandezza dell\'etichetta e posizione', /"simbolo":"quadrato"/.test(sv) && /"etichettaDimensione":18/.test(sv) && /"etichettaPosizione":"destra"/.test(sv)
+    && pezzi('vista3d-nome').every(f => f.size === 19));
   await apriStile('[data-livello="pannelli"]');
   clic(app, pop().querySelector('[data-campo="opacita"] [data-v="0.2"]'));
   clic(app, pop().querySelector('[data-campo="contorno"] [data-v="#111111"]'));

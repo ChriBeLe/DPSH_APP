@@ -1,0 +1,22 @@
+    <!-- ESPORTA PER GIS: il formato (GeoPackage per QGIS, KMZ/KML per Google Earth) e i livelli da mettere,
+         con gli stili della mappa. La riempie il 071t. -->
+    <div id="esportaGis" class="gis-esporta" hidden>
+        <div class="gis-finestra" role="dialog" aria-modal="true" aria-labelledby="gisTitolo">
+            <div class="gis-testa"><b id="gisTitolo">Esporta per GIS</b>
+                <button type="button" class="chiudi-x" id="gisChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button></div>
+            <div class="gis-campo"><span>Formato</span>
+                <div class="tavole-scelte" id="gisFormato" role="radiogroup">
+                    <button type="button" data-formato="gpkg" aria-pressed="true">GeoPackage (QGIS)</button>
+                    <button type="button" data-formato="kmz" aria-pressed="false">KMZ (Google Earth)</button>
+                    <button type="button" data-formato="kml" aria-pressed="false">KML</button>
+                </div>
+                <span class="t-didascalia" id="gisNotaFormato"></span></div>
+            <div class="gis-campo"><span>Livelli da includere <span class="gis-tutti"><button type="button" class="bt-link" id="gisTutti">Tutti</button> · <button type="button" class="bt-link" id="gisNessuno">Nessuno</button></span></span>
+                <div id="gisLivelli" class="gis-livelli"></div></div>
+            <p class="t-didascalia">Gli stili sono quelli della mappa: simbolo, riempimento, contorno, grandezza ed etichette di ogni livello (si cambiano col tasto destro sul livello → «Stile…»).</p>
+            <div class="tavole-azioni">
+                <button type="button" class="bt" id="gisAnnulla">Annulla</button>
+                <button type="button" class="bt bt-principale" id="gisEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
+            </div>
+        </div>
+    </div>
