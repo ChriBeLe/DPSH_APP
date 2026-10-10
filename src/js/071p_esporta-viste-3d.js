@@ -384,6 +384,7 @@
             }
             function chiudiTavole3d() {
                 if (tavole3d.lavoro) return;
+                salvaMemoriaTavole3d();
                 T3('tavole3d').hidden = true;
                 clearTimeout(tavole3d.attesa);
                 saveState();
@@ -392,6 +393,9 @@
                 const mem = memoriaTavole3d();
                 mem.regola = tavole3d.regola;
                 mem.escluse = [...tavole3d.escluse];
+                // Anche le opzioni della finestra: il capitolo Tavole del report (071r) le rifà uguali.
+                if (!T3('tavole3d').hidden) mem.opzioni = { sfondo: tavole3d.sfondo, basemap: T3('tavole3dBasemap').checked, legenda: T3('tavole3dLegenda').checked,
+                    nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, ex: Number(T3('tavole3dEsag').value) || vista3d.ex };
             }
 
             /** L'elenco delle pagine: spunta, miniatura, nome e tipo. */

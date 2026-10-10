@@ -984,7 +984,9 @@
                     const d = dimensioniImmagineDataUrl(hd.imageDataUrl);
                     h = d ? Math.min(INTESTAZIONE_MAX_NATURALE_MM, (210 - mrg.left - mrg.right) * d.h / d.w) : 20;
                 }
-                if (hd.text) h += 5;
+                // Il testo formattato: circa 4,5 mm per riga (10 pt con interlinea 1,25).
+                if (hd.html) h += 4.5 * Math.max(1, (hd.html.match(/<(p|h[1-6]|li)\b/g) || []).length);
+                else if (hd.text) h += 5;
                 return h;
             }
 
@@ -1002,12 +1004,16 @@
              * L'immagine si adatta dentro, il testo sotto. classeExtra/idExtra servono all'editor. */
             function htmlIntestazioneNelMargine(header, margins, extra) {
                 const hd = header || {};
-                if (!hd.imageDataUrl && !hd.text && !(extra && extra.anche_vuota)) return '';
+                if (!hd.imageDataUrl && !hd.text && !hd.html && !(extra && extra.anche_vuota)) return '';
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                 const fascia = Math.max(mrg.top, altezzaIntestazioneMm(hd, mrg) + respiroIntestazioneMm(mrg));
                 return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:${distanzaIntestazioneMm(mrg)}mm 0 2mm; display:flex; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
                         ${hd.imageDataUrl ? `<img src="${hd.imageDataUrl}" style="max-width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; display:block;"/>` : ''}
-                        ${hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
+                        ${hd.html
+                            // IL TESTO FORMATTATO (scritto con l'editor dei blocchi Testo): grassetto,
+                            // colori, più righe, allineamento. Di base centrato, come la riga semplice.
+                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="width:100%; font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${hd.html}</div>`
+                            : hd.text ? `<div style="font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
                     </div>`;
             }
 

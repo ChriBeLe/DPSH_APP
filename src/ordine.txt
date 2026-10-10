@@ -155,5 +155,6 @@ js/071n_disegni.js
 js/071o_stili-livelli.js
 js/071p_esporta-viste-3d.js
 js/071q_strati-senza-vicoli-ciechi.js
+js/071r_tavole-nel-report.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

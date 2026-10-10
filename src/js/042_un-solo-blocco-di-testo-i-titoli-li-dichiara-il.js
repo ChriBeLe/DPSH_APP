@@ -1321,6 +1321,8 @@
                     renderTemplateEditorCanvas();
                 });
             }
+            const btnFormattaIntestazione = document.getElementById('btnFormattaIntestazione');
+            if (btnFormattaIntestazione) btnFormattaIntestazione.addEventListener('click', () => apriTplTextEditor(ID_INTESTAZIONE_EDITOR));
             const btnUploadHeaderImage = document.getElementById('btnUploadHeaderImage');
             const fileHeaderImage = document.getElementById('fileHeaderImage');
             if (btnUploadHeaderImage && fileHeaderImage) {

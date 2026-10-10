@@ -329,10 +329,12 @@ valori di Word italiano. Per le decisioni L–Q valgono le proposte, da conferma
 | 09/10/2026 | D (primo pezzo) | W7: margini in cm con la virgola, nomi e preimpostazioni di Word (Normale, Stretto, Moderato, Largo), cursore fino a 6 cm. W8: la nota dice quanto margine usa davvero l'intestazione | `margini_come_word.js` |
 | 09/10/2026 | D (secondo pezzo) | «Distanza dal bordo» dell'intestazione (Word: «Intestazione: da bordo»), con «Come in Word (1,25 cm)»; senza, 3 mm come prima. Sta nei margini del template (`margins.header`), si salva con lui; nel Word diventa la distanza dell'intestazione | `margini_come_word.js` |
 | 09/10/2026 | **bug dei margini** | Nel report di progetto i fogli avevano i margini PREDEFINITI (1,4 / 1,2 cm) qualunque fosse il template: solo quello superiore veniva dal template. Il contenuto però era impaginato con i margini del template: larghezze diverse tra impaginazione e stampa. Ora ogni foglio porta i quattro margini del suo template, nel PDF e quindi nel Word | `margini_come_word.js` |
+| 10/10/2026 | D (terzo pezzo) | Intestazione con **testo formattato**: «Testo formattato…» apre lo stesso editor dei blocchi Testo (grassetto, colori, più righe, allineamento). Va in `page.header.html`; `page.header.text` ne tiene la versione semplice per le versioni vecchie dell'app. Nel Word grassetto e colori sono formattazione vera dell'intestazione | `intestazione_formattata.js` |
+| 10/10/2026 | F | Capitolo **Tavole 2D e 3D** dopo le prove: le tavole scelte nella finestra «Tavole» del 3D, con le loro inquadrature e opzioni, due per foglio, coi margini e l'intestazione del template della prima prova; voce «Tavole» nell'indice. Si accende nell'esportazione (riga «Tavole 2D e 3D», spenta di base); senza prove col GPS la riga dice cosa serve | `tavole_nel_report.js` |
 
-**Da fare dopo, nell'ordine:** intestazione unica per documento con testo formattato (D); una sezione di Word per
-orientamento invece che per pagina, stili Titolo 1–3 e autore del documento (E); capitolo Tavole
-(F); parametri per progetto (G); percorso nel Progetto e scaletta (H).
+**Da fare dopo, nell'ordine:** una intestazione per documento con «Prima pagina diversa» e i campi (Pagina, Data, Progetto) nell'intestazione e nel piè di pagina; «Importa intestazione da un .docx» (D); una sezione di Word per
+orientamento invece che per pagina, stili Titolo 1–3 e autore del documento (E); tavole in A4
+orizzontale (F, oggi due per foglio verticale); parametri per progetto (G); percorso nel Progetto e scaletta (H).
 
 **Annotato:** Annulla dell'editor dei template copre le pagine, non i margini né l'intestazione
 accesa o spenta (era così anche prima).

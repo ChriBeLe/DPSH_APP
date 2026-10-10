@@ -470,7 +470,7 @@
                 if (survList.length === 0) return null;
                 // Con il capitolo introduttivo anche una prova sola produce DUE sezioni: l'indice
                 // torna ad avere senso, e la condizione conta le sezioni vere invece delle prove.
-                const sezioniPreviste = survList.length + ((opzioni && opzioni.includiIntroduzione) ? 1 : 0);
+                const sezioniPreviste = survList.length + ((opzioni && opzioni.includiIntroduzione) ? 1 : 0) + ((opzioni && opzioni.includiTavole) ? 1 : 0);
                 const includiIndice = (!opzioni || opzioni.includiIndice !== false) && sezioniPreviste > 1;
 
                 // Sezione automatica Riepilogo/Dettagliata/Allegato RIMOSSA (richiesto
@@ -527,6 +527,14 @@
                         html: fieldResult.html,
                         pageCount: fieldResult.pageCount
                     });
+                }
+
+                // LE TAVOLE 2D E 3D, dopo le prove (071r): una sezione come le altre, coi margini e
+                // l'intestazione del template della prima prova.
+                if (opzioni && opzioni.includiTavole) {
+                    const tplPrima = state.reportTemplates[getReportTemplateIdPerProva(survList[0])];
+                    const tavole = await capitoloTavoleHtml(proj, tplPrima, opzioni.onAvanzamento);
+                    if (tavole) sezioni.push({ numero: '', id: '__tavole__', etichetta: 'Tavole', html: tavole.html, pageCount: tavole.pageCount });
                 }
 
                 // Pagina indice: se inclusa sta davanti a tutto ma NON si conta: la numerazione

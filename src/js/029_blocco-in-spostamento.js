@@ -1457,7 +1457,13 @@
                     if (btnRemoveImg) btnRemoveImg.style.display = 'none';
                 }
                 const inputHeaderTextEl = document.getElementById('inputHeaderText');
-                if (inputHeaderTextEl) inputHeaderTextEl.value = (page.header && page.header.text) || '';
+                if (inputHeaderTextEl) {
+                    inputHeaderTextEl.value = (page.header && page.header.text) || '';
+                    // Col testo formattato la riga semplice è solo da leggere: si cambia con «Testo
+                    // formattato», altrimenti scrivendoci si perderebbe la formattazione.
+                    inputHeaderTextEl.readOnly = !!(page.header && page.header.html);
+                    inputHeaderTextEl.title = inputHeaderTextEl.readOnly ? 'Testo formattato: si cambia con «Testo formattato…»' : '';
+                }
 
                 // Stesso ragionamento dell'intestazione qui sopra: mostra/nascondi è del TEMPLATE.
                 const chkFooter = document.getElementById('chkPageFooterEnabled');

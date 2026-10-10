@@ -6,6 +6,17 @@
             // reso identicamente sia nell'anteprima dell'editor sia nella stampa/PDF (stessa
             // funzione buildBlockContentHtml, unica fonte di verità).
             let tplTextEditorTargetBlockId = null;
+            /** L'intestazione della pagina aperta si scrive con lo stesso editor dei blocchi Testo:
+             * questo è il suo «id» per l'editor. Il testo va in page.header.html; page.header.text
+             * ne tiene la versione semplice, che leggono le versioni dell'app senza testo formattato. */
+            const ID_INTESTAZIONE_EDITOR = '__intestazione__';
+            function bloccoIntestazioneEditor() {
+                const page = templateEditorState.pages[templateEditorState.activePageIdx];
+                if (!page) return null;
+                const hd = page.header || {};
+                const semplice = String(hd.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return { type: 'intestazione', richHtml: hd.html || (semplice ? `<p style="text-align: center">${semplice}</p>` : '') };
+            }
             let editorTesto = null;   // il motore montato nell'editor di testo dei template
 
             /** Stesso motore delle note, montato qui. Il testo di un blocco puo' contenere
@@ -120,11 +131,11 @@
                 // il blocco vero non c'e': quella pagina mostra solo una fetta, e le sue righe
                 // sono vuote per costruzione. Cercandolo li' non si trovava niente e la funzione
                 // usciva in silenzio — il comando c'era, si premeva, e non succedeva nulla.
-                const blk = trovaBloccoPerIdOvunque(blockId);
+                const blk = blockId === ID_INTESTAZIONE_EDITOR ? bloccoIntestazioneEditor() : trovaBloccoPerIdOvunque(blockId);
                 if (!blk) return;
                 tplTextEditorTargetBlockId = blockId;
                 const lblTitolo = document.getElementById('lblTplTextEditorTitle');
-                if (lblTitolo) lblTitolo.textContent = blk.type === 'titolo' ? 'Modifica titolo' : 'Modifica testo';
+                if (lblTitolo) lblTitolo.textContent = blk.type === 'titolo' ? 'Modifica titolo' : blk.type === 'intestazione' ? 'Testo dell\'intestazione' : 'Modifica testo';
                 creaEditorTesto();
                 if (editorTesto) {
                     editorTesto.commands.setContent(blk.richHtml || '', { emitUpdate: false });
@@ -169,6 +180,20 @@
             if (btnTplTextEditorSalva) {
                 btnTplTextEditorSalva.addEventListener('click', () => {
                     if (!tplTextEditorTargetBlockId) return;
+                    if (tplTextEditorTargetBlockId === ID_INTESTAZIONE_EDITOR) {
+                        const page = templateEditorState.pages[templateEditorState.activePageIdx];
+                        if (page && editorTesto) {
+                            if (!page.header) page.header = { imageDataUrl: null, text: '' };
+                            page.header.html = editorTesto.isEmpty ? '' : editorTesto.getHTML();
+                            page.header.text = editorTesto.isEmpty ? '' : editorTesto.getText({ blockSeparator: ' · ' }).trim();
+                            if (!page.header.html) delete page.header.html;
+                            allineaIntestazioniEditor(page);
+                        }
+                        chiudiTplTextEditor();
+                        renderTemplateEditorPageControls();
+                        renderTemplateEditorCanvas();
+                        return;
+                    }
                     // Stesso motivo dell'apertura: il blocco puo' vivere su un'altra pagina.
                     // Salvare cercandolo solo in quella aperta voleva dire perdere le modifiche
                     // appena fatte, senza dire niente.
