@@ -147,9 +147,12 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E(`${P}.disegni = [{ id: 'd1', tipo: 'poligono', nome: 'Recinto', colore: '#22c55e', punti: [{ lat: 40.197, lng: 17.992 }, { lat: 40.197, lng: 17.993 }, { lat: 40.198, lng: 17.993 }] }, { id: 'd2', tipo: 'punto', nome: 'Pozzo', colore: '#3b82f6', punti: [{ lat: 40.1975, lng: 17.9925 }] }]`);
   const n0 = app.scaricati.length;
   clic(app, $(app, 'btnGpkgSezioni3d'));
+  t('«Esporta per GIS…» apre la finestra: formato e livelli da scegliere', !$(app, 'esportaGis').hidden && app.d.querySelectorAll('#gisLivelli [data-livello-gis]').length >= 4);
+  ['modello3d', 'colonne3d'].forEach(id => { const c = app.d.querySelector(`[data-livello-gis="${id}"]`); if (c) c.checked = false; });
+  clic(app, $(app, 'gisEsporta'));
   await attesa(30);
   const file = app.scaricati[app.scaricati.length - 1];
-  t('si scarica «Sezioni_….gpkg»', app.scaricati.length === n0 + 1 && /^Sezioni_.*\.gpkg$/.test(file.nome));
+  t('si scarica «DPSH_….gpkg»', app.scaricati.length === n0 + 1 && /^DPSH_.*\.gpkg$/.test(file.nome));
   const dove = path.join(os.tmpdir(), 'dpsh_test_' + process.pid + '.gpkg');
   fs.writeFileSync(dove, Buffer.from(await file.blob.arrayBuffer()));
   const py = `
@@ -186,7 +189,8 @@ print(json.dumps(r))
   t('è un GeoPackage 1.3 («GPKG», versione 10300) con le sue tabelle', r && r.app_id === 0x47504B47 && r.user_version === 10300
     && ['gpkg_contents', 'gpkg_geometry_columns', 'gpkg_spatial_ref_sys', 'prove', 'sezioni'].every(n => r.tabelle.includes(n)) && r.srs.join() === '-1,0,4326');
   t(`i disegni: il poligono (${r && r.poligono.join(' · ')}) e i punti (${r && r.punti.join(', ')})`, r && r.poligono[0] === 'Recinto' && r.poligono[2] === 3 && r.poligono[3] === 1 && r.poligono[4] === 4 && r.poligono[5] === true && r.poligono[1] > 3000 && r.punti.join() === 'Pozzo');
-  t('quattro layer: sezioni (linee), prove (punti), disegni (punti e poligoni), in WGS84', r && JSON.stringify(r.geomcol) === JSON.stringify([['sezioni', 'geom', 'LINESTRING'], ['prove', 'geom', 'POINT'], ['disegni_punti', 'geom', 'POINT'], ['disegni_poligoni', 'geom', 'POLYGON']]) && r.contents.every(x => x[1] === 'features' && x[2] === 4326));
+  t('i layer: prove (punti), sezioni (linee) e i loro estremi, disegni (punti e poligoni), in WGS84; e la tabella degli stili', r && JSON.stringify(r.geomcol) === JSON.stringify([['prove', 'geom', 'POINT'], ['sezioni', 'geom', 'LINESTRING'], ['sezioni_estremi', 'geom', 'POINT'], ['disegni_punti', 'geom', 'POINT'], ['disegni_poligoni', 'geom', 'POLYGON']])
+    && r.contents.filter(x => x[0] !== 'layer_styles').every(x => x[1] === 'features' && x[2] === 4326) && r.contents.some(x => x[0] === 'layer_styles' && x[1] === 'attributes'));
   const p1 = app.E(`(() => { const h = Object.values(${P}.surveys).find(s => s.header.provaNr == '1').header; return [+h.lng, +h.lat]; })()`);
   t(`la traccia P-P': nome, estremi, lunghezza, geometria GP + WKB dalla prova 1 (${r && r.sezione.slice(0, 4).join(' · ')})`, r && r.sezione[0] === "P-P'" && r.sezione[1] === 'P' && r.sezione[2] === "P'" && Math.abs(r.sezione[3] - ds.L) < 0.01 && r.sezione[4] === 'real'
     && r.sezione[5] === 'GP' && r.sezione[6] === 3 && r.sezione[7] === 4326 && r.sezione[8] === 2 && r.sezione[9] === 2 && Math.abs(r.sezione[10] - p1[0]) < 1e-9 && Math.abs(r.sezione[11] - p1[1]) < 1e-9);

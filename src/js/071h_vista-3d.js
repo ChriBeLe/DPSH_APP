@@ -1172,7 +1172,7 @@
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
                     sopra.push({ t: 'cerchio', x: tx, y: ty, r: 4 * stV.dimensione, fill: stV.colore || 'currentColor', stroke: stV.colore ? stV.contorno : undefined, cls: 'vista3d-testa', prova: p.s.id });
-                    if (conNome(p)) testo(tx, ty - 10, nomeDpsh(p.s), { size: 13, bold: true, anchor: 'middle', alone: true, cls: 'vista3d-nome', prova: p.s.id });
+                    if (conNome(p)) testo(tx, ty - 10, nomeDpsh(p.s), { size: stV.etichettaDimensione + 1 || 13, bold: stV.etichettaGrassetto !== false, anchor: 'middle', alone: true, colore: stV.etichettaColore, coloreAlone: stV.etichettaAlone || undefined, cls: 'vista3d-nome', prova: p.s.id });
                     colonne.push({ id: p.s.id, x1: tx, y1: ty - 22, x2: tx, y2: ty });
                 });
                 // L'attribuzione dell'immagine: è una condizione d'uso dei servizi.

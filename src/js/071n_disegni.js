@@ -37,16 +37,17 @@
                 disegniDelProgetto().filter(x => !vista3d.disegniNascosti.has(x.id)).forEach(x => {
                     const o = vista3d.opacita['d:' + x.id] ?? 1, ll = x.punti.map(p => [p.lat, p.lng]), className = nuovo && nuovo('d:' + x.id) ? 'am-entra' : '';
                     const st = stileLivello('d:' + x.id), dash = trattoLeaflet(st.tratto);
+                    // il punto: il suo simbolo, con l'etichetta (se accesa) secondo lo stile
                     const forma = x.tipo === 'punto'
-                        ? L.circleMarker(ll[0], { radius: 6 * st.dimensione, color: st.contorno || st.colore, weight: Math.max(1, st.spessore * 0.6), fillColor: st.colore, fillOpacity: o, opacity: o, className })
+                        ? L.marker(ll[0], { icon: iconaSimbolo2d(st, vista3d.etichette.disegni ? x.nome : '', className), opacity: o, keyboard: false })
                         : L.polygon(ll, { color: st.colore, weight: st.spessore, dashArray: dash, opacity: o, fillColor: st.riempimento || st.colore, fillOpacity: st.opacita * o, className });
                     forma.addTo(gruppo).bindTooltip(`${esc(x.nome)} · ${testoDisegno(x)}`, { sticky: true })
                         .on('contextmenu', (e) => { L.DomEvent.stop(e); menuDisegno(e.originalEvent, x.id); });
                     // le maniglie (solo con lo strumento Sposta o ALT): vertici e poligono intero, o il punto
                     if (modificaMappaAttiva()) maniglieDisegno2d(gruppo, x, forma);
-                    if (!vista3d.etichette.disegni) return;
+                    if (!vista3d.etichette.disegni || x.tipo === 'punto') return;
                     const c = x.tipo === 'punto' ? x.punti[0] : centroDisegno(x);
-                    L.marker([c.lat, c.lng], { interactive: false, opacity: o, icon: L.divIcon({ className: '', html: `<span class="mappa-disegno-nome et-${st.etichetta}${x.tipo === 'poligono' ? ' centrato' : ''}">${esc(x.nome)}</span>`, iconSize: null, iconAnchor: x.tipo === 'punto' ? [-10, 9] : [0, 9] }) }).addTo(gruppo);
+                    L.marker([c.lat, c.lng], { interactive: false, opacity: o, icon: L.divIcon({ className: '', html: `<span class="mappa-disegno-nome et-${st.etichetta}${x.tipo === 'poligono' ? ' centrato' : ''}" style="${cssEtichetta(st)}">${esc(x.nome)}</span>`, iconSize: null, iconAnchor: x.tipo === 'punto' ? [-10, 9] : [0, 9] }) }).addTo(gruppo);
                 });
             }
             /** Nel 3D: appoggiati sul terreno (i lati dei poligoni ne seguono il profilo). */

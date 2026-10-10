@@ -874,7 +874,25 @@
         .mappa-maniglia { width: 14px; height: 14px; box-sizing: border-box; border-radius: 3px; background: #fff; border: 3px solid #f59e0b; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: move; }
         .mappa-maniglia.grande { width: 16px; height: 16px; border-radius: 50%; }
         /* con le maniglie accese le prove hanno l'anello: si possono trascinare */
-        .mappa-modifica .gps-altra-prova-pin, .mappa-modifica .gps-mia-prova-pin { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #2563eb; cursor: move; }
+        .mappa-modifica .sim-icona .sim-forma { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #2563eb); cursor: move; }
+        /* LA SIMBOLOGIA SULLA MAPPA 2D (071s): il simbolo e l'etichetta, col punto nell'origine dell'icona */
+        .sim-icona { overflow: visible; }
+        .sim-icona .sim-forma { position: absolute; overflow: visible; }
+        .sim-icona .sim-et { position: absolute; white-space: nowrap; line-height: 1.15; font-family: Arial, var(--font-ui, sans-serif); pointer-events: none; }
+        .sim-icona .sim-et.et-sfondo, .sim-icona .sim-et.et-bordo { background: rgba(15,23,42,0.82); padding: 1px 5px; border-radius: 4px; text-shadow: none !important; }
+        .sim-icona .sim-et.et-bordo { border: 1px solid #fff; }
+        .sim-icona.sim-scelta .sim-forma { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 4px #2563eb); }
+        .sim-icona .sim-forma.entra { animation: amPop 0.42s var(--ease-entra) both; transform-origin: 50% 100%; }
+        .sim-icona .sim-forma.pulsa { animation: amPop 0.5s var(--ease-entra); transform-origin: 50% 100%; }
+        /* l'editor dello stile: i simboli, i cursori, i gruppi */
+        .stile-simboli { display: flex; flex-wrap: wrap; gap: 4px; }
+        .stile-simboli button { width: 34px; height: 34px; padding: 1px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-main); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .stile-simboli button[aria-checked="true"] { border-color: var(--accent, #14b8a6); box-shadow: 0 0 0 2px var(--accent, #14b8a6); }
+        .stile-cursore { display: flex; align-items: center; gap: 8px; flex: 1; }
+        .stile-cursore input { flex: 1; min-width: 90px; }
+        .stile-cursore b { min-width: 46px; text-align: right; font-size: 12px; }
+        .stile-gruppo { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 8px 0 2px; }
+        .stile-gruppo span { text-transform: none; font-weight: 500; letter-spacing: 0; }
         .mappa-modifica .leaflet-interactive { cursor: move; }
         .tavole-prove { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); }
         .tavole-prove label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-main); cursor: pointer; }
@@ -895,3 +913,18 @@
         .tavole-pianta-maniglia.sopra svg { transform: scaleY(-1); }
         .tavole-pianta-maniglia svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
         .tavole-pianta-maniglia:hover { transform: scale(1.12); }
+
+        /* ESPORTA PER GIS (071t): una finestrina sopra l'area della mappa */
+        .gis-esporta { position: fixed; inset: 0; z-index: 4000; background: rgba(2,6,23,0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .gis-esporta[hidden] { display: none; }
+        .gis-finestra { width: min(560px, 100%); max-height: 100%; overflow: auto; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.5); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+        .gis-testa { display: flex; align-items: center; justify-content: space-between; font-size: 16px; }
+        .gis-campo { display: flex; flex-direction: column; gap: 6px; }
+        .gis-campo > span:first-child { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; justify-content: space-between; }
+        .gis-tutti { font-weight: 500; }
+        .gis-livelli { display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+        .gis-livello { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .gis-livello:hover { background: var(--bg-main); }
+        .gis-livello span { flex: 1; }
+        .gis-livello b { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+        .gis-livello.spento { opacity: 0.5; cursor: default; }
