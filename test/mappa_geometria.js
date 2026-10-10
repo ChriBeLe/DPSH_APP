@@ -161,6 +161,8 @@ console.log('--- Il disegno della mappa ---');
     const ins = api2.buildMappaInquadramentoHtml({ centro: SAVA, zoom: 16, larghezzaMm: 140, altezzaMm: 100, inset: { attivo: true, zoom: 11 } });
     const riserve = ins.match(/data-tessere-riserva="1"[^>]*transform:scale\(2\)/g) || [];
     t('sotto le tessere (mappa e inquadramento regionale) c\'è lo strato di riserva allo zoom di sopra', riserve.length === 2 && /\/tile\/15\//.test(ins) && /\/tile\/10\//.test(ins));
+    t('le tessere non hanno tetto di larghezza (il report ha «img { max-width: 100% }»: stringeva le tessere del riquadro regionale e lasciava una fascia)',
+      (ins.match(/<img [^>]*width:256px; height:256px;[^>]*>/g) || []).every(x => /max-width:none; max-height:none/.test(x)) && /max-width:none/.test(ins));
     t('una tessera persa si richiede una volta, poi si toglie', /onerror="if\(!this\.dataset\.riprova\)[^"]*else this\.remove\(\);"/.test(ins));
   }
   t('ci sono tutte e tre le pin', (html.match(/data-pin-mappa=/g) || []).length === 3);
