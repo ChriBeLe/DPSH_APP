@@ -61,7 +61,7 @@
                     let qui;
                     if (x.tipo === 'punto') {
                         qui = alSuolo(...xy[0]);
-                        sopra.push({ t: 'cerchio', x: qui[0], y: qui[1], r: 6 * st.dimensione, fill: st.colore, stroke: st.contorno || st.colore, cls: 'vista3d-disegno', disegno: x.id });
+                        simboloScena3d(sopra, qui[0], qui[1], st, { cls: 'vista3d-disegno', disegno: x.id }); // come nella mappa 2D
                     } else {
                         const bordo = [];
                         xy.forEach((a, i) => {
@@ -74,7 +74,7 @@
                         const c = d.daGeo(centroDisegno(x).lat, centroDisegno(x).lng);
                         qui = alSuolo(...c);
                     }
-                    if (vista3d.etichette.disegni) testo(qui[0] + (x.tipo === 'punto' ? 9 : 0), qui[1] + 4, x.nome, { size: 12, bold: true, alone: true, box: st.etichetta === 'testo' ? null : st.etichetta, anchor: x.tipo === 'punto' ? undefined : 'middle', cls: 'vista3d-disegno-nome', disegno: x.id });
+                    if (vista3d.etichette.disegni) etichettaScena3d(testo, qui[0], qui[1], x.nome, x.tipo === 'punto' ? st : Object.assign({}, st, SENZA_SIMBOLO), { cls: 'vista3d-disegno-nome', disegno: x.id }, x.tipo === 'punto' ? undefined : 'centro');
                 });
             }
 

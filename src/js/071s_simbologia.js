@@ -62,3 +62,23 @@
                 const et = testo ? `<span class="sim-et et-${st.etichetta || 'testo'}" style="left:${p.x}px;top:${p.y}px;transform:translate(${p.tx},${p.ty});${cssEtichetta(st)}">${esc(testo)}</span>` : '';
                 return L.divIcon({ className: 'sim-icona' + (extra ? ' ' + extra : ''), html: svg + et, iconSize: [0, 0], iconAnchor: [0, 0] });
             }
+
+            // ---- Nel 3D: lo stesso simbolo e la stessa etichetta della mappa 2D (in pixel sullo schermo) ----
+            /** Il simbolo di un punto nella scena 3D, col punto in (x, y) dello schermo. */
+            function simboloScena3d(lista, x, y, st, extra) {
+                const f = SIMBOLI_PUNTO[st.simbolo] || SIMBOLI_PUNTO.cerchio, r = BASE_SIMBOLO * (st.dimensione || 1) / 2;
+                const fill = st.colore || '#dc2626', sw = st.spessore ?? 1.5, bordo = st.contorno && sw > 0;
+                if (f.cerchio) lista.push({ t: 'cerchio', x, y, r, fill, stroke: bordo ? st.contorno : undefined, sw, ...extra });
+                else if (f.linee) f.linee.forEach(([a, b]) => lista.push({ t: 'linea', x1: x + a[0] * r, y1: y + a[1] * r, x2: x + b[0] * r, y2: y + b[1] * r, stroke: fill, sw: Math.max(2, sw * 1.6), x, y, ...extra }));
+                else lista.push({ t: 'poli', p: f.punti.map(([px, py]) => [x + px * r, y + py * r]), fill, fo: 1, stroke: bordo ? st.contorno : undefined, sw: bordo ? sw : 0, x, y, ...extra }); // (x, y: il punto)
+            }
+            /** L'etichetta nella scena 3D, messa come nella mappa 2D (sopra, sotto, a destra… del simbolo). */
+            function etichettaScena3d(testo, x, y, s, st, extra, pos, dimDefault) {
+                const ig = ingombroSimbolo(st), g = 3, px = st.etichettaDimensione || dimDefault || 12, mezzo = (ig.sopra - ig.sotto) / 2;
+                const dove = { sopra: [x, y - ig.sopra - g - px * 0.22, 'middle'], sotto: [x, y + ig.sotto + g + px * 0.82, 'middle'], destra: [x + ig.lato + g, y - mezzo + px * 0.35, undefined],
+                    sinistra: [x - ig.lato - g, y - mezzo + px * 0.35, 'end'], centro: [x, y - mezzo + px * 0.35, 'middle'] }[pos || st.etichettaPosizione || 'sopra'];
+                const box = st.etichetta === 'sfondo' || st.etichetta === 'bordo' ? st.etichetta : null;
+                testo(dove[0], dove[1], s, { size: px, bold: st.etichettaGrassetto !== false, anchor: dove[2], famiglia: 'Arial', colore: st.etichettaColore || '#ffffff', alone: !box && !!st.etichettaAlone, coloreAlone: st.etichettaAlone || undefined, box, boxColore: box ? '#0f172a' : undefined, ...extra });
+            }
+            /** Un punto senza simbolo (le etichette delle sezioni, dei poligoni): l'etichetta come un simbolo di grandezza zero. */
+            const SENZA_SIMBOLO = { simbolo: 'cerchio', dimensione: 0 };

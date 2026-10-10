@@ -928,3 +928,12 @@
         .gis-livello span { flex: 1; }
         .gis-livello b { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
         .gis-livello.spento { opacity: 0.5; cursor: default; }
+
+        /* il menu Esporta unico: i formati a schede, a gruppi */
+        .area-mappa .am-nascosto { display: none !important; }
+        .gis-formati { display: flex; flex-direction: column; gap: 4px; }
+        .gis-formati-gruppo { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 6px; }
+        .gis-formati button { display: grid; grid-template-columns: 22px auto 1fr; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); cursor: pointer; font-size: 13px; }
+        .gis-formati button span { color: var(--text-muted); font-size: 12px; }
+        .gis-formati button[aria-pressed="true"] { border-color: var(--accent, #14b8a6); box-shadow: 0 0 0 2px var(--accent, #14b8a6) inset; }
+        .gis-formati button:disabled { opacity: 0.45; cursor: default; }
