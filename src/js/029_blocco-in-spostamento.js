@@ -1457,6 +1457,11 @@
                     if (btnRemoveImg) btnRemoveImg.style.display = 'none';
                 }
                 const inputHeaderTextEl = document.getElementById('inputHeaderText');
+                const chkTutta = document.getElementById('chkHeaderTuttaPagina');
+                if (chkTutta) {
+                    chkTutta.checked = !!(page.header && page.header.tuttaPagina);
+                    chkTutta.parentElement.style.display = page.header && page.header.imageDataUrl ? 'flex' : 'none';
+                }
                 if (inputHeaderTextEl) {
                     inputHeaderTextEl.value = (page.header && page.header.text) || '';
                     // Col testo formattato la riga semplice è solo da leggere: si cambia con «Testo

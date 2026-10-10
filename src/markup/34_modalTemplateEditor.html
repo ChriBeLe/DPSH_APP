@@ -133,6 +133,9 @@
                     <button type="button" id="btnResetMarginiTemplate" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg class="ico" style="width: 12px; height: 12px;"><use href="#i-undo"/></svg></button>
                 </div>
                 <div style="font-size: 9.5px; color: var(--text-muted); line-height: 1.35; margin-bottom: 8px;">Valgono per l'intero template, tutte le pagine insieme — non solo quella che stai guardando ora.</div>
+                <!-- Da una relazione già fatta: margini, intestazione, piè di pagina e stile del testo (071s). -->
+                <button type="button" class="btn-action" id="btnImportaDaWord" style="width: 100%; font-size: 11px; padding: 6px 8px; margin-bottom: 6px;" title="Prende margini, intestazione, piè di pagina e stile del testo da un documento Word (.docx) dell'ufficio">Importa da un Word…</button>
+                <input type="file" id="fileImportaDaWord" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
                 <div class="margini-preimpostati" id="marginiPreimpostati">
                     <button type="button" data-margini-preset="normale" title="Superiore 2,5 · Inferiore 2 · Sinistro 2 · Destro 2 cm">Normale</button>
                     <button type="button" data-margini-preset="stretto" title="1,27 cm su tutti i lati">Stretto</button>
@@ -190,6 +193,9 @@
                     <button type="button" class="btn-action" id="btnUploadHeaderImage" style="font-size: 11px; padding: 6px 8px;">Carica immagine</button>
                     <input type="file" id="fileHeaderImage" accept="image/*" style="display: none;">
                     <img id="previewHeaderImage" style="display: none; max-width: 100%; max-height: 40px; border-radius: 4px; border: 1px solid var(--border); object-fit: contain;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer;" title="L'immagine va da bordo a bordo del foglio e parte dal bordo superiore, come la fascia di una carta intestata">
+                        <input type="checkbox" id="chkHeaderTuttaPagina"> Immagine a tutta larghezza
+                    </label>
                     <button type="button" class="btn-action" id="btnRemoveHeaderImage" style="display: none; font-size: 10.5px; padding: 5px 8px; color: var(--danger);">Rimuovi immagine</button>
                     <input type="text" id="inputHeaderText" class="form-control" placeholder="Testo sotto l'immagine (opzionale)" style="font-size: 11px; padding: 5px 6px;">
                     <!-- Il testo con grassetto, colori, più righe e allineamento: lo stesso editor dei blocchi Testo. -->

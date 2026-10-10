@@ -819,13 +819,21 @@
             async function intestazioneWord(ctx, intestazione, ri, rf) {
                 const chiave = intestazione.innerHTML;
                 if (ctx.intestazioni.has(chiave)) return ctx.intestazioni.get(chiave);
+                // La fascia a tutta larghezza (data-tutta-pagina): un'immagine ANCORATA alla pagina,
+                // dietro al testo, come nella carta intestata fatta con Word. Nascosta con
+                // visibility (non display) perché il testo resti dov'è mentre si raccoglie il resto.
+                const fascia = intestazione.querySelector('img[data-tutta-pagina]');
+                const ancora = fascia ? immagineAncorataWord(ctx, fascia, rf) : '';
+                if (fascia) fascia.style.visibility = 'hidden';
                 const foglie = raccogliFoglieWord(ctx, intestazione, [], [intestazione]).filter(f => f.tipo !== 'vuoto');
-                if (!foglie.length) return null;
-                const y0 = Math.min(...foglie.map(f => f.r.y));
+                if (fascia) fascia.style.visibility = '';
+                if (!foglie.length && !ancora) return null;
+                const y0 = foglie.length ? Math.min(...foglie.map(f => f.r.y)) : rf.top;
                 const limitePrima = ctx.limite;
                 ctx.limite = Infinity;
-                let xml = (await impaginaWord(ctx, foglie, ri.left, ri.width, y0)).xml;
+                let xml = foglie.length ? (await impaginaWord(ctx, foglie, ri.left, ri.width, y0)).xml : '';
                 ctx.limite = limitePrima;
+                if (ancora) xml = `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr>${ancora}</w:p>` + xml;
                 // Word vuole un paragrafo in fondo all'intestazione.
                 if (!/<\/w:p>$/.test(xml)) xml += paragrafoVuotoWord(20);
                 const n = ctx.intestazioni.size + 1;
@@ -833,6 +841,31 @@
                 ctx.intestazioni.set(chiave, parte);
                 return parte;
             }
+            /** Un'immagine ancorata alla PAGINA (dietro al testo, senza scorrimento), alla posizione e
+             * alla misura che ha nel PDF; i byte sono quelli originali, non ridisegnati. */
+            function immagineAncorataWord(ctx, img, rf) {
+                const m = /^data:image\/(png|jpe?g|gif);base64,/i.exec(img.getAttribute('src') || '');
+                if (!m) return '';
+                const r = img.getBoundingClientRect();
+                // object-fit:contain, in alto al centro: la parte disegnata può essere più piccola del riquadro.
+                const rapporto = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : r.width / Math.max(1, r.height);
+                const w = Math.min(r.width, r.height * rapporto), h = w / rapporto;
+                const x = r.left - rf.left + (r.width - w) / 2, y = r.top - rf.top;
+                const id = ctx.idDisegno++;
+                const estensione = m[1].toLowerCase() === 'jpg' ? 'jpeg' : m[1].toLowerCase();
+                const nome = `immagine${id}.${estensione}`;
+                ctx.media.push({ nome, bytes: dataUrlToUint8Array(img.getAttribute('src')).bytes, rid: 'rIdImg' + id, estensione });
+                const cx = Math.round(w * PX_EMU), cy = Math.round(h * PX_EMU);
+                return `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="${251658240 + id}" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1">`
+                    + `<wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>${Math.round(x * PX_EMU)}</wp:posOffset></wp:positionH>`
+                    + `<wp:positionV relativeFrom="page"><wp:posOffset>${Math.round(y * PX_EMU)}</wp:posOffset></wp:positionV>`
+                    + `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="${id}" name="Intestazione ${id}"/>`
+                    + `<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>`
+                    + `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${nome}"/><pic:cNvPicPr/></pic:nvPicPr>`
+                    + `<pic:blipFill><a:blip r:embed="rIdImg${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`
+                    + `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
+            }
+
             /** Il riferimento all'intestazione nella sezione. Una sezione senza riferimento in Word
              * EREDITA l'intestazione della precedente: una pagina che nel PDF non ce l'ha (il
              * contenuto che scorre, un template senza intestazione) prende quella vuota. */

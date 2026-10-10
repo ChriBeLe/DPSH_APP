@@ -1113,7 +1113,7 @@
                     let valoreIniziale;
                     if (side === 'header') {
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.max(8, Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) - respiroIntestazioneMm(templateEditorState.margins)) : 20);
+                        valoreIniziale = (page.header && page.header.heightMm) || (hz ? Math.max(8, Math.round(hz.getBoundingClientRect().height / scale / pxPerMm) - respiroIntestazioneMm(templateEditorState.margins, page.header)) : 20);
                     } else {
                         const mrg = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
                         valoreIniziale = mrg[side];
@@ -1145,7 +1145,7 @@
                         // L'intestazione sta nel margine superiore: crescendo oltre il margine allarga
                         // la fascia e il contenuto scende (margineConIntestazione), come nell'export.
                         const hz = document.getElementById('templateEditorHeaderZone');
-                        if (hz) hz.style.height = (nuovo + respiroIntestazioneMm(templateEditorState.margins)) + 'mm';
+                        if (hz) hz.style.height = (nuovo + respiroIntestazioneMm(templateEditorState.margins, templateEditorState.pages[templateEditorState.activePageIdx] && templateEditorState.pages[templateEditorState.activePageIdx].header)) + 'mm';
                         const frameH = document.getElementById('templateEditorPageFrame');
                         const pagH = templateEditorState.pages[templateEditorState.activePageIdx];
                         if (frameH && pagH) frameH.style.paddingTop = margineConIntestazione(templateEditorState.margins, Object.assign({}, pagH.header, { heightMm: nuovo }), true).top + 'mm';
@@ -1172,7 +1172,7 @@
                             frame.style.padding = `${mrgLive.top}mm ${mrgLive.right}mm ${mrgLive.bottom}mm ${mrgLive.left}mm`;
                             canvas.style.minHeight = `${calcolaBudgetPaginaMm(mrgLive, false).areaStampabileMm}mm`;
                             const hz = document.getElementById('templateEditorHeaderZone');
-                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + respiroIntestazioneMm(base)) + 'mm'; }
+                            if (hz) { hz.style.left = base.left + 'mm'; hz.style.right = base.right + 'mm'; hz.style.height = Math.max(base.top, altezzaIntestazioneMm(pagLive && pagLive.header, base) + respiroIntestazioneMm(base, pagLive && pagLive.header)) + 'mm'; }
                         }
                     }
                 });
@@ -1321,6 +1321,16 @@
                     renderTemplateEditorCanvas();
                 });
             }
+            const chkHeaderTuttaPagina = document.getElementById('chkHeaderTuttaPagina');
+            if (chkHeaderTuttaPagina) chkHeaderTuttaPagina.addEventListener('change', (e) => {
+                const page = templateEditorState.pages[templateEditorState.activePageIdx];
+                if (!page || !page.header) return;
+                salvaUndoSnapshotEditor();
+                if (e.target.checked) page.header.tuttaPagina = true; else delete page.header.tuttaPagina;
+                allineaIntestazioniEditor(page);
+                renderTemplateEditorPageControls();
+                renderTemplateEditorCanvas();
+            });
             const btnFormattaIntestazione = document.getElementById('btnFormattaIntestazione');
             if (btnFormattaIntestazione) btnFormattaIntestazione.addEventListener('click', () => apriTplTextEditor(ID_INTESTAZIONE_EDITOR));
             const btnUploadHeaderImage = document.getElementById('btnUploadHeaderImage');
