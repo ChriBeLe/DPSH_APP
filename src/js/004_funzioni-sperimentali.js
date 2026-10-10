@@ -396,6 +396,9 @@
                     // Data dell'ultima modifica VERA di ogni progetto (Fase 2, pezzo 004e). Un suo
                     // errore non deve mai fermare il salvataggio: si registra e si va avanti.
                     try { registraModificheVere(); } catch (e) { ignoraErrore('registraModificheVere', e); }
+                    // Annulla e Ripeti (pezzo 004f): se il contenuto è cambiato, quello di prima
+                    // diventa un passo da annullare. Come sopra, non ferma mai il salvataggio.
+                    try { registraPassoCronologia(); } catch (e) { ignoraErrore('registraPassoCronologia', e); }
                     const cleanState = JSON.parse(JSON.stringify(state));
                     if (cleanState.photos && cleanState.photos.length > 0) {
                         cleanState.photos.forEach(p => {

@@ -17,3 +17,6 @@ quando la si affronta, la fase o il commit che la chiude.
 | 27/09/2026 | telefono | Il riconoscimento automatico degli strati non deve stare nascosto nel ⋯. | fatto: tasto «Riconosci strati» (Fase 6, passo 3) |
 | 27/09/2026 | telefono, campo | «Ultimi intervalli» si chiama «Intervalli», con una freccia: toccandolo si inverte l'ordine dell'elenco (non del grafico). | fatto (Fase 6, passo 3) |
 | 27/09/2026 | telefono, campo | La falda ha troppa importanza: si indica una volta sola in tutta la prova. Va messa nella gerarchia giusta. | fatto: via la spia, voce «Falda» nel ⋯ della prova (Fase 6) |
+| 09/10/2026 | PC e telefono | Usabilità dell'intero percorso conteggio → strati → parametri avanzati → template: togliere bug e vicoli ciechi tra i menu. Il telefono resta, cosa togliergli si decide dopo. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` |
+| 09/10/2026 | PC, ufficio | Template: risolvere i margini; intestazione con testo formattato (RTF); il .docx deve sembrare scritto in Word. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` (§3, §4.5–4.7) |
+| 09/10/2026 | PC, ufficio | Le tavole 2D e 3D nel report, come capitolo dopo le prove. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` (§5) |

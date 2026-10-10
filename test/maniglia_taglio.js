@@ -282,7 +282,7 @@ const clic = el => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })
     // e una pagina di continuazione ha le righe vuote per costruzione — li' non c'e' niente
     // da trovare. Usciva in silenzio: il comando c'era, si premeva, non succedeva nulla.
     t('l editor del testo cerca il blocco in TUTTE le pagine',
-       /function apriTplTextEditor\(blockId\) \{[\s\S]{0,600}?const blk = trovaBloccoPerIdOvunque\(blockId\);/.test(codice));
+       /function apriTplTextEditor\(blockId\) \{[\s\S]{0,600}?const blk = [^;\n]*trovaBloccoPerIdOvunque\(blockId\);/.test(codice));
     t('e anche il salvataggio, o si perderebbero le modifiche appena fatte',
        /const blk = trovaBloccoPerIdOvunque\(tplTextEditorTargetBlockId\);/.test(codice));
 

@@ -164,7 +164,8 @@
                         delete noteImageMemoryCache[id];
                         // Se una copia automatica usa ancora l'immagine resta nel database: la recupera
                         // «Foto orfane» quando la copia scade.
-                        if (!copieAutomatiche.idNote.has(id)) {
+                        // Lo stesso se Annulla può ancora rimetterla (pezzo 004f).
+                        if (!copieAutomatiche.idNote.has(id) && !idImmaginiNoteNellaCronologia().has(id)) {
                             try { deleteNoteImageFromIDB(id); } catch (e) { ignoraErrore('eliminaImmagineNota', e); }
                         }
                     }

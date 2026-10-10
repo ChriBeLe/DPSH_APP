@@ -108,6 +108,10 @@
          prove, barra di stato. Nascoste sotto i 1024 px; le riempie renderPc. -->
     <nav class="pc-barra" id="pcBarra" aria-label="Percorso">
         <ol class="pc-percorso" id="pcPercorso"></ol>
+        <!-- ANNULLA E RIPETI (pezzo 004f): ogni azione che cambia i dati. Sul telefono stanno nelle
+             testate delle tre schermate. -->
+        <button type="button" class="bt-icona" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
+        <button type="button" class="bt-icona" data-cronologia="avanti" aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
         <button type="button" class="bt" id="pcBtnContatore" aria-pressed="false" title="Contatore dei colpi anche sul PC (C)"><svg class="ico"><use href="#i-target"/></svg>Contatore</button>
         <button type="button" class="bt" id="pcBtnConsegna"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
         <button type="button" class="bt-icona" id="pcBtnImpostazioni" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
@@ -147,6 +151,8 @@
                     <span class="testata-titolo-prova" id="lblSurveySummary">Prova</span>
                     <span class="testata-titolo-progetto" id="lblSurveySub"></span>
                 </button>
+                <button type="button" class="bt-icona cronologia-telefono" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
+                <button type="button" class="bt-icona cronologia-telefono" data-cronologia="avanti" data-nascondi-vuoto hidden aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
                 <div class="menu-ancora">
                     <button type="button" class="bt-icona" id="btnHeaderMore" aria-label="Altre azioni" title="Altre azioni" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
                     <div class="menu-azioni" id="headerActionsSecondary" role="menu">
@@ -197,6 +203,8 @@
                 <!-- Template di report e archivio litologico restano a un tocco dalla Home come prima
                      (la Libreria arriva con la Fase 5); Impostazioni come nel prototipo. -->
                 <div class="home-azioni">
+                    <button type="button" class="bt-icona bordato cronologia-telefono" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
+                    <button type="button" class="bt-icona bordato cronologia-telefono" data-cronologia="avanti" data-nascondi-vuoto hidden aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
                     <button type="button" class="bt-icona bordato" id="btnOpenReportTemplatesHome" aria-label="Template di report" title="Template di report"><svg class="ico"><use href="#i-file"/></svg></button>
                     <button type="button" class="bt-icona bordato" id="btnOpenArchiveManagerHome" aria-label="Archivio litologico" title="Archivio litologico"><svg class="ico"><use href="#i-database"/></svg></button>
                     <button type="button" class="bt-icona bordato" id="btnImpostazioniHome" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
@@ -237,6 +245,10 @@
         <div id="viewProject" class="progetto" style="display: none;">
             <div class="progetto-barra">
                 <button type="button" class="bt-link" id="btnProgettoAiProgetti"><svg class="ico"><use href="#i-back"/></svg>Progetti</button>
+                <span class="cronologia-gruppo cronologia-telefono">
+                    <button type="button" class="bt-icona" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
+                    <button type="button" class="bt-icona" data-cronologia="avanti" data-nascondi-vuoto hidden aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
+                </span>
                 <button type="button" class="bt-icona" id="btnProgettoAltro" aria-label="Altre azioni sul progetto" title="Altre azioni sul progetto"><svg class="ico"><use href="#i-more"/></svg></button>
             </div>
             <h1 class="progetto-nome" id="lblProgettoNome"></h1>

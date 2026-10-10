@@ -97,7 +97,7 @@ t('le foto che servono alle copie non si cancellano',
   /function idFotoAncoraInUso\(\) \{[\s\S]{0,1000}copieAutomatiche\.idFoto\.forEach\(id => vivi\.add\(id\)\);/.test(src));
 t('nemmeno le immagini delle note',
   /function idImmaginiNoteAncoraInUso\(\) \{[\s\S]{0,1000}copieAutomatiche\.idNote\.forEach/.test(src)
-  && /if \(!copieAutomatiche\.idNote\.has\(id\)\) \{\s*try \{ deleteNoteImageFromIDB\(id\);/.test(src));
+  && /if \(!copieAutomatiche\.idNote\.has\(id\)( && !idImmaginiNoteNellaCronologia\(\)\.has\(id\))?\) \{\s*try \{ deleteNoteImageFromIDB\(id\);/.test(src));
 t('il ripristino salva prima una copia di adesso',
   /async function ripristinaProgettoDaCopia[\s\S]{0,800}await scriviCopiaAutomatica\('prima'[\s\S]{0,200}state\.projects\[projId\] = /.test(src));
 t('il ripristino ricarica la prova aperta dal progetto ripristinato, prima di salvare',

@@ -605,6 +605,7 @@
             }
             function chiudiTavole3d() {
                 if (tavole3d.lavoro) return;
+                salvaMemoriaTavole3d();
                 T3('tavole3d').hidden = true;
                 clearTimeout(tavole3d.attesa);
                 saveState();
@@ -621,6 +622,8 @@
                 mem.piante = JSON.parse(JSON.stringify(tavole3d.piante || {}));
                 mem.opacitaFoto = Number(T3('tavole3dOpacitaFoto').value) / 100;
                 mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked };
+                // Anche le opzioni della finestra: il capitolo Tavole del report (071r) le rifà uguali.
+                if (!T3('tavole3d').hidden) { const o = opzioniTavole3d(); delete o.W; delete o.H; mem.opzioni = JSON.parse(JSON.stringify(o)); }
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {

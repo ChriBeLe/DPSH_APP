@@ -68,9 +68,9 @@ const spunta = (app, el, v) => { el.checked = v; el.dispatchEvent(new app.w.Even
   t('nel documento di stampa (PDF e Word) l\'intestazione è su ogni pagina', fogli.length === 4 && fogli.every(h => /data-blocco="intestazione"[\s\S]*Studio Rossi/.test(h)));
   t('nel margine superiore del foglio, fuori dall\'area del contenuto', fogli.every(h => { const f = leggi(h), i = f.querySelector('[data-blocco="intestazione"]');
     return i && i.parentElement === f && !i.closest('.dpsh-sheet-inner') && /position:absolute; top:0/.test(i.getAttribute('style')); }));
-  t('alta 22 mm (più del margine di 14): la fascia si allarga e il contenuto parte più in basso', /padding-top:27mm/.test(leggi(fogli[0]).getAttribute('style'))
+  t('alta 22 mm (più del margine di 14): la fascia si allarga e il contenuto parte più in basso', /padding:27mm 12mm 14mm 12mm/.test(leggi(fogli[0]).getAttribute('style'))
     && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, true).top`) === 27 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 6 }, true).top`) === 14 && app.E(`margineConIntestazione({ top: 14 }, { heightMm: 22 }, false).top`) === 14);
-  t('(senza altezza scelta sta nel margine: il contenuto non perde niente)', !/padding-top/.test(app.E(`buildPaginaRigheHtml(Object.assign({}, state.reportTemplates.tplIntest.pages[0], { header: { text: 'x' } }), templateEditorState.ctx, 1, 1, true, null, '1', false, true, false)`).match(/<div class="dpsh-sheet"[^>]*>/)[0]));
+  t('(senza altezza scelta sta nel margine: il contenuto non perde niente)', /padding:14mm 12mm 14mm 12mm/.test(app.E(`buildPaginaRigheHtml(Object.assign({}, state.reportTemplates.tplIntest.pages[0], { header: { text: 'x' } }), templateEditorState.ctx, 1, 1, true, null, '1', false, true, false)`).match(/<div class="dpsh-sheet"[^>]*>/)[0]));
   // Un logo senza altezza scelta: la sua altezza NATURALE a tutta larghezza (come Word), letta
   // dal file. PNG 1572×181 (un'intestazione larga e bassa) su 186 mm di larghezza → 21,4 mm.
   const png = (w, h) => { const b = Buffer.alloc(24); b.write('\x89PNG\r\n\x1a\n', 0, 'latin1'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return 'data:image/png;base64,' + b.toString('base64'); };

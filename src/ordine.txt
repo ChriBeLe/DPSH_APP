@@ -56,6 +56,7 @@ markup/46_modalSezione.html
 markup/47_modalVista3d.html
 markup/47b_tavole3d.html
 markup/47c_esportaGis.html
+markup/47c_trovaDtm.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/05_tra-motore-e-app.html
@@ -69,6 +70,7 @@ js/004b_versione-dello-schema-e-migrazioni.js
 js/004c_controllo-di-integrita.js
 js/004d_tracciabilita-degli-intervalli.js
 js/004e_impronta-e-modifiche-vere.js
+js/004f_annulla-e-ripeti.js
 js/005_fase-2-riconoscimento-automatico-degli-strati.js
 js/006_retini-litologici-ufficiali-estratti-pixel-per-p.js
 js/007_archivio-litologico-globale.js
@@ -159,5 +161,10 @@ js/071q_perimetro-modello.js
 js/071r_sposta-sulla-mappa.js
 js/071s_simbologia.js
 js/071t_esporta-gis.js
+js/071s_confini-province.js
+js/071t_trova-dtm.js
+js/071q_strati-senza-vicoli-ciechi.js
+js/071r_tavole-nel-report.js
+js/071s_importa-da-word.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

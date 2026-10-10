@@ -180,6 +180,11 @@
         .progetto { display: flex; flex-direction: column; gap: var(--sp-3); }
         .progetto-barra { display: flex; align-items: center; justify-content: space-between; }
         .progetto-barra .bt-link { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: 44px; }
+        /* Annulla e Ripeti (pezzo 004f): spenti quando non c'è niente; Ripeti sul telefono compare
+           solo quando c'è qualcosa da ripetere, per non togliere spazio alla testata. */
+        .cronologia-gruppo { display: inline-flex; gap: 4px; margin-left: auto; }
+        [data-cronologia]:disabled { opacity: .35; cursor: default; }
+        [data-cronologia][hidden] { display: none; }
         .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
         .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
         .progetto-prove { padding: 0; overflow: hidden; }
@@ -233,7 +238,7 @@
             .pc-barra { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 40; display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3) 0 var(--sp-4); background: var(--bg-card); border-bottom: 1px solid var(--border); }
             .pc-lato { position: fixed; top: 52px; bottom: 30px; left: 0; width: 260px; z-index: 40; box-sizing: border-box; overflow-y: auto; padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; gap: 2px; background: var(--bg-card); border-right: 1px solid var(--border); }
             .pc-stato { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; z-index: 40; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-4); font-size: 12px; color: var(--text-muted); background: var(--bg-card); border-top: 1px solid var(--border); }
-            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome { display: none !important; }
+            #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome, .cronologia-telefono { display: none !important; }
             #btnProgettoAltro { margin-left: auto; }
         }
         .pc-percorso { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }
@@ -937,3 +942,65 @@
         .gis-formati button span { color: var(--text-muted); font-size: 12px; }
         .gis-formati button[aria-pressed="true"] { border-color: var(--accent, #14b8a6); box-shadow: 0 0 0 2px var(--accent, #14b8a6) inset; }
         .gis-formati button:disabled { opacity: 0.45; cursor: default; }
+        /* DTM per le prove (071t): finestra sopra «Terreno e sezioni» e sopra la mappa del progetto */
+        .trova-dtm { position: fixed; inset: 0; z-index: 370; background: rgba(2, 6, 23, 0.72); display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+        .trova-dtm[hidden], .trova-dtm [hidden] { display: none; }
+        .trova-dtm-finestra { width: min(860px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 60px rgba(0,0,0,0.5); overflow: hidden; }
+        .trova-dtm-testa { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 4px 16px; font-weight: 800; border-bottom: 1px solid var(--border); }
+        .trova-dtm-corpo { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+        .trova-dtm-dove { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 1.05em; }
+        .trova-dtm-dati { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 13px; }
+        .trova-dtm-dati dt, .fonte-dtm-fogli dt { color: var(--text-muted); }
+        .trova-dtm-dati dd, .fonte-dtm-fogli dd { margin: 0; font-family: var(--font-mono), monospace; overflow-wrap: anywhere; }
+        .trova-dtm-prove table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+        .trova-dtm-prove th, .trova-dtm-prove td { text-align: left; padding: 2px 6px; border-bottom: 1px solid var(--border); }
+        .trova-dtm-filtri, .trova-dtm-cerca, .fonte-dtm-azioni { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .trova-dtm [aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+        .trova-dtm-gruppo { width: 100%; margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+        .trova-dtm-fonti { display: flex; flex-direction: column; gap: 10px; }
+        .fonte-dtm { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .fonte-dtm-testa { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+        .fonte-dtm-etichette { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
+        .fonte-dtm-etichette span { padding: 1px 8px; border-radius: 999px; background: var(--bg-main); border: 1px solid var(--border); }
+        .fonte-dtm-etichette .fonte-dtm-tipo { font-weight: 800; border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+        .fonte-dtm-fogli { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: 12.5px; }
+        .fonte-dtm-azioni a.bt { text-decoration: none; }
+        .trova-dtm-piede { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); }
+        @media (max-width: 600px) {
+            .trova-dtm { padding: 0; }
+            .trova-dtm-finestra { height: 100%; border-radius: 0; }
+            .trova-dtm-dati, .fonte-dtm-fogli { grid-template-columns: 1fr; }
+            /* sul telefono il piede non deve mangiarsi l'elenco: bottoni più bassi */
+            .trova-dtm-piede { padding: 8px 12px; gap: 6px; }
+            .trova-dtm-piede .bt { min-height: 38px; font-size: 13px; padding: 0 10px; }
+        }
+
+        /* Strati e parametri senza vicoli ciechi (071q): la prova su cui si calcola e il messaggio
+           di uno strato senza intervalli, con i tasti che portano dove si rimedia. */
+        .strati-prova-calcolo {
+            display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap;
+            padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius-md);
+            background: var(--bg-card-hover); font-size: var(--fs-testo); color: var(--text-muted);
+        }
+        .strati-prova-calcolo select {
+            min-height: var(--h-bottone); flex: 1; min-width: 140px; padding: 0 var(--sp-2);
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg-card); color: var(--text-main); font: inherit; font-weight: 700;
+        }
+        .strato-senza-dati { font-size: var(--fs-testo); color: var(--text-muted); line-height: 1.4; text-align: left; }
+        .strato-senza-dati-azioni { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+
+        /* Margini del template come in Word (editor del template, barra laterale). */
+        .margine-riga { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-weight: 700; margin-bottom: 3px; }
+        .margine-valore { display: inline-flex; align-items: center; gap: 4px; }
+        .margine-cm { width: 56px; padding: 3px 6px; text-align: right; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font: inherit; font-family: var(--font-mono, monospace); }
+        .margini-preimpostati { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px; }
+        .margini-preimpostati button { min-height: 32px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .margini-preimpostati button.attivo { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+        .nota-margine { font-size: 10.5px; line-height: 1.35; color: var(--avviso-testo); background: var(--warning-soft, rgba(250, 204, 21, 0.12)); border-radius: var(--radius-sm); padding: 6px 8px; margin: 4px 0; }
+
+        /* Intestazione e piè di pagina formattati sul foglio dell'editor: le stesse regole della
+           stampa (getReportPrintStyleBlock), perché l'editor mostri quello che esce. */
+        #templateEditorPageFrame .tpl-intestazione-testo p, #templateEditorPageFrame .tpl-piede-testo p { margin: 0; text-indent: 0; }
+        #templateEditorPageFrame .tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #templateEditorPageFrame .tpl-piede-testo td, #templateEditorPageFrame .tpl-piede-testo th { border: none; padding: 0 1.5mm; vertical-align: top; }

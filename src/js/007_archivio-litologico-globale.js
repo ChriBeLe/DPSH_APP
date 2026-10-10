@@ -237,6 +237,7 @@
                 const container = document.getElementById('stratiListContainer');
                 if (!container) return;
                 container.innerHTML = '';
+                renderProvaDiCalcoloStrati();
                 const risultatoPerId = calcolaRisultatiPerStratiCorrenti();
                 state.strati.forEach((s, idx) => {
                     ensureParametriAvanzati(s);
