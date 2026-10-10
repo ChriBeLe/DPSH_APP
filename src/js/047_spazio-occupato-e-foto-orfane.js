@@ -49,6 +49,8 @@
                 // sue immagini sarebbe un ripristino a metà. Restano finché la copia esiste (al massimo
                 // 14 giorni), poi tornano orfane e «Foto orfane» le recupera.
                 copieAutomatiche.idFoto.forEach(id => vivi.add(id));
+                // E quelle che Annulla può ancora rimettere (pezzo 004f), finché il passo esiste.
+                if (typeof idFotoNellaCronologia === 'function') idFotoNellaCronologia().forEach(id => vivi.add(id));
                 // Ogni foto ritagliata tiene da parte la sua versione intera sotto un id
                 // derivato: e' quello che rende il ritaglio ripensabile. Va dichiarata viva
                 // insieme alla foto, o la pulizia delle orfane se la porterebbe via al primo
@@ -71,6 +73,7 @@
                 };
                 Object.values(state.projects || {}).forEach(proj => { if (proj && proj.notes) raccogli(proj.notes.html); });
                 copieAutomatiche.idNote.forEach(id => vivi.add(id)); // come le foto: servono alle copie automatiche
+                if (typeof idImmaginiNoteNellaCronologia === 'function') idImmaginiNoteNellaCronologia().forEach(id => vivi.add(id)); // e ad Annulla (pezzo 004f)
                 // Stesso ragionamento delle foto: l'immagine intera messa da parte prima di un
                 // ritaglio appartiene all'immagine che e' ancora nella nota.
                 Array.from(vivi).forEach(id => vivi.add(id + SUFFISSO_ORIGINALE));

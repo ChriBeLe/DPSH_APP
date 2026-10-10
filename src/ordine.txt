@@ -68,6 +68,7 @@ js/004b_versione-dello-schema-e-migrazioni.js
 js/004c_controllo-di-integrita.js
 js/004d_tracciabilita-degli-intervalli.js
 js/004e_impronta-e-modifiche-vere.js
+js/004f_annulla-e-ripeti.js
 js/005_fase-2-riconoscimento-automatico-degli-strati.js
 js/006_retini-litologici-ufficiali-estratti-pixel-per-p.js
 js/007_archivio-litologico-globale.js
