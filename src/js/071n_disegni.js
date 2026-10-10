@@ -42,6 +42,8 @@
                         : L.polygon(ll, { color: st.colore, weight: st.spessore, dashArray: dash, opacity: o, fillColor: st.riempimento || st.colore, fillOpacity: st.opacita * o, className });
                     forma.addTo(gruppo).bindTooltip(`${esc(x.nome)} · ${testoDisegno(x)}`, { sticky: true })
                         .on('contextmenu', (e) => { L.DomEvent.stop(e); menuDisegno(e.originalEvent, x.id); });
+                    // le maniglie (solo con lo strumento Sposta o ALT): vertici e poligono intero, o il punto
+                    if (modificaMappaAttiva()) maniglieDisegno2d(gruppo, x, forma);
                     if (!vista3d.etichette.disegni) return;
                     const c = x.tipo === 'punto' ? x.punti[0] : centroDisegno(x);
                     L.marker([c.lat, c.lng], { interactive: false, opacity: o, icon: L.divIcon({ className: '', html: `<span class="mappa-disegno-nome et-${st.etichetta}${x.tipo === 'poligono' ? ' centrato' : ''}">${esc(x.nome)}</span>`, iconSize: null, iconAnchor: x.tipo === 'punto' ? [-10, 9] : [0, 9] }) }).addTo(gruppo);

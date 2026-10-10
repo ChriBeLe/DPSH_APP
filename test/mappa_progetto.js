@@ -14,6 +14,7 @@ const $ = (app, id) => app.d.getElementById(id);
 
 (async () => {
   const app = await avviaApp({ stato: STATO_V0, idb: telefonoV0() });
+  app.w.HTMLCanvasElement.prototype.getContext = () => null; // jsdom non ha il canvas (la scheda «Sposta» resta nel 3D e lo ridisegna)
   if (app.dialogo()) clic(app, app.dialogo().ok);
   await attesa(30);
   const pid = app.E("Object.keys(state.projects).find(id => /Nard/.test(state.projects[id].name))");

@@ -38,6 +38,13 @@ const $ = (app, id) => app.d.getElementById(id);
   let s = segmenti(), m = s[12];
   t('sotto il mouse, a metà della linea: «tutta»; su un estremo: quell\'estremo', app.E(`tracciaSottoIlMouse3d(${m[0]}, ${m[1]}).parte`) === 'tutta' && app.E(`tracciaSottoIlMouse3d(${s[0][0]}, ${s[0][1]}).parte`) === 'a'
     && app.E(`tracciaSottoIlMouse3d(${s[s.length - 1][2]}, ${s[s.length - 1][3]}).parte`) === 'b');
+  // Con Seleziona la sezione NON si sposta (si gira la vista): si sposta solo con lo strumento Sposta o con ALT.
+  const posSel = app.E(`tracceDelProgetto().find(t => t.id === ${JSON.stringify(A.id)}).pos`);
+  ev('pointerdown', m[0], m[1]); ev('pointermove', m[0] + 40, m[1]); ev('pointerup', m[0] + 40, m[1]);
+  t('con Seleziona la sezione non si sposta (trascinando si gira la vista)', app.E(`tracceDelProgetto().find(t => t.id === ${JSON.stringify(A.id)}).pos`) === posSel && app.E(`ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-maniglia').length`) === 0);
+  app.E(`vista3d.az = 0.3; vista3d.el = 0.9; scegliStrumentoMappa('sposta')`);
+  t('strumento Sposta: compaiono le maniglie (estremi delle sezioni, prove, disegni)', app.E(`ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-maniglia').length`) >= 2 * app.E('tracceDelProgetto().length') + app.E('datiVista3dCorrenti.prove.length'));
+  s = segmenti(); m = s[12];
   const az0 = app.E('vista3d.az');
   ev('pointerdown', m[0], m[1]);
   ev('pointermove', m[0] + 40, m[1]);
@@ -59,6 +66,18 @@ const $ = (app, id) => app.d.getElementById(id);
   t('dall\'estremo A: A si sposta, A\' resta; ora è una sezione di sbieco', Math.abs(girata.b.lat - dopo.b.lat) < 1e-7 && Math.abs(girata.b.lng - dopo.b.lng) < 1e-7 && Math.hypot(girata.a.lat - dopo.a.lat, girata.a.lng - dopo.a.lng) > 1e-5 && !girata.asse && !girata.griglia);
   t('e il corpo resta tagliato lungo di lei', !app.E('vista3d.taglio.dir') && app.E('vista3d.taglio.traccia') === A.id && app.E(`(() => { const d = datiVista3dCorrenti, a = d.daGeo(${girata.a.lat}, ${girata.a.lng}); return Math.hypot(vista3d.taglio.retta[0][0] - a[0], vista3d.taglio.retta[0][1] - a[1]) < 1e-6; })()`));
   t('(una sezione non sotto il mouse: si gira la vista, come prima)', (() => { ev('pointerdown', 5, 5); ev('pointermove', 60, 5); ev('pointerup', 60, 5); return app.E('vista3d.az') !== az0; })());
+  // ALT tenuto premuto: le maniglie compaiono con qualunque strumento, e si sposta; lasciato, spariscono.
+  app.E(`scegliStrumentoMappa('sel'); vista3d.az = 0.3; vista3d.el = 0.9; renderVista3d()`);
+  const tasto = (tipo) => app.d.dispatchEvent(new app.w.KeyboardEvent(tipo, { key: 'Alt', bubbles: true, cancelable: true }));
+  tasto('keydown');
+  const conAlt = app.E(`ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-maniglia').length`);
+  s = segmenti(); m = s[12];
+  const primaAlt = copia(app.E(`tracceDelProgetto().find(t => t.id === ${JSON.stringify(A.id)})`));
+  ev('pointerdown', m[0], m[1]); ev('pointermove', m[0] + 30, m[1] + 20); ev('pointerup', m[0] + 30, m[1] + 20);
+  const dopoAlt = copia(app.E(`tracceDelProgetto().find(t => t.id === ${JSON.stringify(A.id)})`));
+  tasto('keyup');
+  t(`con ALT (strumento Seleziona) le maniglie compaiono (${conAlt}) e la sezione si sposta; lasciato ALT, spariscono`, conAlt > 0 && Math.hypot(dopoAlt.a.lat - primaAlt.a.lat, dopoAlt.a.lng - primaAlt.a.lng) > 1e-7
+    && app.E(`ultimaScena3d.tutte.filter(f => f.cls === 'vista3d-maniglia').length`) === 0 && !app.E('areaMappa.alt'));
 
   // Sulla mappa 2D (Leaflet: jsdom non la carica, provata nel browser): maniglie degli estremi trascinabili
   // e linea trascinabile, che passano dalla stessa spostaTraccia.
