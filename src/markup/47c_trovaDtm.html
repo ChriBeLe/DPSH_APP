@@ -1,0 +1,32 @@
+    <!-- DTM PER LE PROVE: dove sono le prove del progetto (regione, provincia, riquadro, coordinate),
+         le fonti di DTM che le coprono (nazionali e della regione), per ognuna le tessere da chiedere,
+         e i comandi: apri la pagina, carica nel progetto, scarica. Tutto finisce anche in una scheda
+         da copiare o scaricare, per cercare il DTM fuori dall'app. Si apre da «Terreno e sezioni» e
+         dal bottone DTM della mappa del progetto, sopra di loro. La riempie il 071t. -->
+    <div id="trovaDtm" class="trova-dtm" hidden>
+        <div class="trova-dtm-finestra" role="dialog" aria-modal="true" aria-labelledby="trovaDtmTitolo">
+            <div class="trova-dtm-testa">
+                <span id="trovaDtmTitolo">DTM per le prove del progetto</span>
+                <button type="button" class="chiudi-x" id="trovaDtmChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="trova-dtm-corpo">
+                <div id="trovaDtmEsito" role="status" aria-live="polite"></div>
+                <section id="trovaDtmLuogo" class="trova-dtm-luogo" aria-label="Dove sono le prove"></section>
+                <div class="trova-dtm-filtri" role="group" aria-label="Tipo di modello">
+                    <span class="t-didascalia">Mostra</span>
+                    <button type="button" class="bt" data-tipo-dtm="tutti" aria-pressed="true">Tutti</button>
+                    <button type="button" class="bt" data-tipo-dtm="DTM" aria-pressed="false" title="Il terreno nudo, senza edifici né alberi">DTM</button>
+                    <button type="button" class="bt" data-tipo-dtm="DSM" aria-pressed="false" title="La superficie, con edifici e alberi">DSM</button>
+                </div>
+                <div id="trovaDtmFonti" class="trova-dtm-fonti"></div>
+                <div id="trovaDtmCerca" class="trova-dtm-cerca"></div>
+            </div>
+            <div class="trova-dtm-piede">
+                <button type="button" class="bt bt-principale" id="trovaDtmDaFile" title="GeoTIFF (.tif) o ASCII Grid (.asc) già sul dispositivo"><svg class="ico"><use href="#i-upload"/></svg>Carica da file</button>
+                <button type="button" class="bt" id="trovaDtmCopia" title="Tutte le informazioni di questa finestra, come testo"><svg class="ico"><use href="#i-copy"/></svg>Copia la scheda</button>
+                <button type="button" class="bt" id="trovaDtmScheda"><svg class="ico"><use href="#i-download"/></svg>Scheda (.txt)</button>
+                <button type="button" class="bt" id="trovaDtmArea" title="Le prove e il riquadro da chiedere, da aprire in QGIS o nei visualizzatori dei portali"><svg class="ico"><use href="#i-download"/></svg>Area (GeoJSON)</button>
+                <button type="button" class="bt" id="trovaDtmRitaglio" title="Il DTM che il progetto ha già, come ASCII Grid"><svg class="ico"><use href="#i-download"/></svg>DTM del progetto (.asc)</button>
+            </div>
+        </div>
+    </div>
