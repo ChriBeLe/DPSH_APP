@@ -218,7 +218,7 @@
             }
             /** Nel 3D: il trascinamento comincia (se sotto il mouse c'è una traccia) e prosegue. */
             function iniziaSpostaTraccia3d(sx, sy) {
-                if (vista3d.disegno || areaMappa.strumento !== 'sel') return false;
+                if (vista3d.disegno || !modificaMappaAttiva()) return false; // solo con le maniglie (Sposta o ALT)
                 const hit = tracciaSottoIlMouse3d(sx, sy), d = datiVista3dCorrenti, p0 = puntoAlSuolo3d(sx, sy);
                 if (!hit || !d || !p0) return false;
                 const t = tracceDelProgetto().find(x => x.id === hit.id);

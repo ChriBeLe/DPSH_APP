@@ -870,6 +870,12 @@
         }
         /* le maniglie degli estremi di una sezione sulla mappa 2D: si trascinano */
         .mappa-traccia-maniglia { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: #fff; border: 3px solid #dc2626; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: move; }
+        /* le maniglie dei disegni (vertici, punti): solo con lo strumento Sposta o ALT */
+        .mappa-maniglia { width: 14px; height: 14px; box-sizing: border-box; border-radius: 3px; background: #fff; border: 3px solid #f59e0b; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: move; }
+        .mappa-maniglia.grande { width: 16px; height: 16px; border-radius: 50%; }
+        /* con le maniglie accese le prove hanno l'anello: si possono trascinare */
+        .mappa-modifica .gps-altra-prova-pin, .mappa-modifica .gps-mia-prova-pin { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #2563eb; cursor: move; }
+        .mappa-modifica .leaflet-interactive { cursor: move; }
         .tavole-prove { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); }
         .tavole-prove label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-main); cursor: pointer; }
         .tavole-prove label .t-didascalia { margin-left: auto; }

@@ -1167,6 +1167,7 @@
                 });
                 tracceNellaScena3d(d, P, sopra, testo);
                 disegniNellaScena3d(d, P, sopra, testo);
+                maniglieNellaScena3d(d, P, sopra);
                 d.prove.forEach(p => {
                     if (!tieni(p.x, p.y) || vista3d.proveNascoste.has(p.s.id)) return;
                     const [tx, ty] = P(p.x, p.y, p.z);
@@ -1238,7 +1239,7 @@
                     const o = (f.cls === 'vista3d-solido' ? o1('ss:' + f.strato) : 1) * o1(LIVELLO_DEL_PEZZO[f.cls]) * (f.sfondo ? o1('immagine') : 1) * (f.prova ? o1('p:' + f.prova) : 1) * (f.strato ? o1('s:' + f.strato) : 1) * (f.traccia ? o1('t:' + f.traccia) : 1) * (f.giacitura ? o1('g:' + f.giacitura) : 1) * (f.disegno ? o1('d:' + f.disegno) : 1);
                     if (o < 1) f.op = o;
                 });
-                return { W, H, k, pezzi, sopra, colonne, elementi: elementiTavola, tutte: pezzi.concat(sopra) };
+                return { W, H, k, P, pezzi, sopra, colonne, elementi: elementiTavola, tutte: pezzi.concat(sopra) };
             }
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
@@ -1544,8 +1545,8 @@
                 c[2] += v * ce / vista3d.ex;
             }
             box3d.addEventListener('pointerdown', (e) => {
-                // Una sezione sotto il mouse (Seleziona): si trascina lei, la vista resta ferma.
-                if (e.button === 0 && !e.shiftKey && dita3d.size === 0 && iniziaSpostaTraccia3d(...puntoCanvas(e))) {
+                // Con le maniglie (strumento Sposta o ALT): l'elemento sotto il mouse si trascina, la vista resta ferma.
+                if (e.button === 0 && !e.shiftKey && dita3d.size === 0 && iniziaSposta3d(...puntoCanvas(e))) {
                     vista3d.mosso = 0;
                     if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
                     return;
@@ -1557,7 +1558,7 @@
                 if (box3d.setPointerCapture) box3d.setPointerCapture(e.pointerId);
             });
             box3d.addEventListener('pointermove', (e) => {
-                if (vista3d.spostaTraccia) { vista3d.mosso += 10; seguiSpostaTraccia3d(...puntoCanvas(e)); return; }
+                if (spostando3d()) { vista3d.mosso += 10; seguiSposta3d(...puntoCanvas(e)); return; }
                 if (dita3d.has(e.pointerId)) dita3d.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (vista3d.pizzico && dita3d.size === 2) {
                     const p = pizzicoDita(), prima = vista3d.pizzico;
@@ -1576,7 +1577,7 @@
                 ridisegna3d();
             });
             ['pointerup', 'pointercancel'].forEach(t => box3d.addEventListener(t, (e) => {
-                if (vista3d.spostaTraccia) { const st = vista3d.spostaTraccia; vista3d.spostaTraccia = null; if (st.mossa) fineSpostaTraccia(); return; }
+                if (spostando3d()) { fineSposta3d(); return; }
                 const eraMosso = vista3d.trascina || vista3d.pizzico;
                 dita3d.delete(e.pointerId);
                 vista3d.trascina = null; vista3d.pizzico = null;
@@ -1596,8 +1597,8 @@
                 if (vista3d.trascina || !ultimaScena3d) return;
                 if (vista3d.disegno) { seguiTracciaSezione3d(e); return; }
                 const c = box3d.querySelector('canvas'), [mx, my] = puntoCanvas(e);
-                const tr = areaMappa.strumento === 'sel' && tracciaSottoIlMouse3d(mx, my);
-                if (c) c.style.cursor = tr ? (tr.parte === 'tutta' ? 'move' : 'crosshair') : provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
+                const el = elementoDaSpostare3d(mx, my);
+                if (c) c.style.cursor = el ? 'move' : provaNelPunto(ultimaScena3d, mx, my) ? 'pointer' : 'grab';
             });
             box3d.addEventListener('keydown', (e) => {
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); return zoom3d(e.key === '+' ? 1.25 : 0.8); }

@@ -44,7 +44,7 @@
             // ---- Gli strumenti ----
             const SUGGERIMENTI_STRUMENTO = {
                 sel: '', orbita: 'Orbita: trascina per girare; i clic non scelgono niente.',
-                sposta: 'Sposta: tocca la prova da spostare, poi trascina il segnaposto nel punto nuovo.',
+                sposta: 'Sposta: trascina le maniglie (sezioni, prove, punti, vertici; un poligono anche da dentro). Con qualunque strumento: tieni premuto ALT.',
                 profilo: 'Profilo: due clic, inizio (A) e fine (A\'). Esc per lasciar perdere.',
                 misura: 'Distanza: clic sui punti; doppio clic o Invio per finire, Esc per togliere.',
                 area: 'Area: clic sui vertici; doppio clic o Invio per chiudere, Esc per togliere.',
@@ -64,12 +64,9 @@
                 }
                 if (!DISEGNA_COME_MISURA.includes(nome)) togliMisura();
                 if (nome !== 'profilo') togliProfilo2d();
-                if (nome === 'sposta' && mappaProgetto.scelta) {
-                    if (areaMappa.modo !== 'mappa') { modoAreaMappa('mappa'); scegliStrumentoMappa('sposta'); return; }
-                    mappaProgetto.spostando = mappaProgetto.scelta;
-                    disegnaProveMappa();
-                    renderSchedaProvaMappa();
-                }
+                // le maniglie compaiono (o spariscono) con lo strumento Sposta
+                if (nome !== 'sposta' && mappaProgetto.spostando) { mappaProgetto.spostando = null; renderSchedaProvaMappa(); }
+                if (areaMappaAperta()) { if (areaMappa.modo === 'mappa') { if (mappaProgetto.mappa) disegnaProveMappa(); } else if (datiVista3dCorrenti) renderVista3d(); }
                 if (mappaProgetto.mappa) mappaProgetto.mappa.doubleClickZoom[DISEGNA_COME_MISURA.includes(nome) ? 'disable' : 'enable']();
                 const lbl = document.getElementById('lblMappaProgetto'), testo = SUGGERIMENTI_STRUMENTO[nome] || '';
                 if (lbl.textContent !== testo) { lbl.textContent = testo; lbl.classList.remove('am-ravviva'); void lbl.offsetWidth; lbl.classList.add('am-ravviva'); }
@@ -216,8 +213,8 @@
                     return true;
                 }
                 if (s === 'sposta') {
-                    const id = provaNelPunto(ultimaScena3d, ...puntoCanvas(e));
-                    if (id) { scegliProvaMappa(id); scegliStrumentoMappa('sposta'); }
+                    // (si sposta trascinando le maniglie; un clic sceglie la prova, come Seleziona)
+                    scegliProvaMappa(provaNelPunto(ultimaScena3d, ...puntoCanvas(e)) || null);
                     return true;
                 }
                 return false;
