@@ -141,12 +141,8 @@ const $ = (app, id) => app.d.getElementById(id);
     const out = { senza: righe({}), con: righe({ mesh: true }), dopo: vista3d.livelli.mesh, spunta: !!document.getElementById('tavole3dMesh') };
     vista3d.livelli.mesh = prima; return out; })()`);
   t(`nelle tavole la mesh del modello non c'è (anche se nel 3D è accesa); si accende con «Mesh del modello» (${mesh.con} righe)`, mesh.senza === 0 && mesh.con > 50 && mesh.dopo === true && mesh.spunta);
-  const regole = app.E(`(() => {
-    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], z = document.getElementById('tavole3dPiantaZoom'), h = document.getElementById('tavole3dPiantaAltezza');
-    const auto = altezzaPiantaSezione(d, t, null, 1400, 0), mano = altezzaPiantaSezione(d, t, null, 1400, 0.25);
-    return { auto, mano, ci: !!(z && h && document.getElementById('tavole3dPiantaZoomReset')) };
-  })()`);
-  t(`la pianta della sezione 2D: zoom della foto e altezza della casella si regolano (a mano 25% = ${regole.mano} px, automatica ${regole.auto})`, regole.ci && regole.mano === 350 && regole.auto > 0);
+  const regole = app.E(`(() => { const d = datiVista3dCorrenti, t = tracceDelProgetto()[0]; return { auto: altezzaPiantaSezione(d, t, null, 1400, 0), mano: altezzaPiantaSezione(d, t, null, 1400, 0.25) }; })()`);
+  t(`la pianta della sezione 2D: altezza automatica (${regole.auto}) o scelta (25% = ${regole.mano} px)`, regole.mano === 350 && regole.auto > 0);
   t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
   const piantaGirata = app.E(`(() => {
     const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], W = 1400, h = altezzaPiantaSezione(d, t, null, W), ig = ingombroPiantaSezione(d, t);
@@ -243,11 +239,29 @@ const $ = (app, id) => app.d.getElementById(id);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
     && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false }));
-  $(app, 'tavole3dPiantaZoom').value = '200'; $(app, 'tavole3dPiantaZoom').dispatchEvent(new app.w.Event('input', { bubbles: true }));
-  $(app, 'tavole3dPiantaAltezza').value = '30'; $(app, 'tavole3dPiantaAltezza').dispatchEvent(new app.w.Event('input', { bubbles: true }));
-  t('zoom della foto e altezza della casella dai cursori, ricordati nel progetto', app.E('tavole3d.piantaZoom') === 2 && app.E('tavole3d.piantaAltezza') === 0.3 && app.E(`${P}.tavole3d.piantaZoom`) === 2 && app.E(`${P}.tavole3d.piantaAltezza`) === 0.3 && $(app, 'tavole3dPiantaZoomVal').textContent === '200%');
-  clic(app, $(app, 'tavole3dPiantaZoomReset'));
-  t('«Come all\'inizio»: zoom 100%, altezza automatica', app.E('tavole3d.piantaZoom') === 1 && app.E('tavole3d.piantaAltezza') === 0 && $(app, 'tavole3dPiantaAltezzaVal').textContent === 'automatica');
+  // La pianta della sezione 2D si regola col mouse sull'anteprima (per ogni sezione): trascinare sposta la
+  // foto, la rotella avvicina, il bordo esterno cambia l'altezza, doppio clic la rimette com'era.
+  const tr0 = app.E('tracceDelProgetto()[0].id'), cp = $(app, 'tavole3dPianta');
+  app.E(`tavole3d.piantaViva = { traccia: ${JSON.stringify(tr0)}, kSchermo: 2, scala: 1, W0: 1000, wP: 1000, hP: 200, sotto: true }; tavole3d.ridisegnaPianta = () => {}`);
+  const pe = (tipo, x, y, extra) => cp.dispatchEvent(new app.w.MouseEvent(tipo, Object.assign({ bubbles: true, clientX: x, clientY: y, button: 0 }, extra || {})));
+  cp.getBoundingClientRect = () => ({ left: 0, top: 0, right: 1000, bottom: 200, width: 1000, height: 200 });
+  pe('pointerdown', 500, 100); pe('pointermove', 540, 80); pe('pointerup', 540, 80);
+  const dopoTrascina = JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`)));
+  t('trascinando la foto si sposta (40 px a destra = 20 m indietro lungo la traccia, 20 px su = 10 m) e il progetto se lo ricorda', Math.abs(dopoTrascina.ds + 20) < 1e-9 && Math.abs(dopoTrascina.dn + 10) < 1e-9
+    && app.E(`${P}.tavole3d.piante[${JSON.stringify(tr0)}].ds`) === dopoTrascina.ds);
+  cp.dispatchEvent(new app.w.WheelEvent('wheel', { bubbles: true, cancelable: true, clientX: 500, clientY: 100, deltaY: -100 }));
+  t('la rotella avvicina, attorno al punto sotto il mouse (al centro: il centro non si sposta)', Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].zoom`) - 1.15) < 1e-9 && Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].ds`) - dopoTrascina.ds) < 1e-9);
+  pe('pointerdown', 500, 196); pe('pointermove', 500, 296); pe('pointerup', 500, 296);
+  t('dal bordo di sotto si cambia l\'altezza della casella (200 → 300 su 1000 di larghezza)', Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].alta`) - 0.3) < 1e-9
+    && app.E(`altezzaPiantaSezione(datiVista3dCorrenti, tracceDelProgetto()[0], null, 1400, tavole3d.piante[${JSON.stringify(tr0)}].alta)`) === 420);
+  const mg = $(app, 'tavole3dPiantaManiglia'), me = (tipo, x, y) => mg.dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, clientX: x, clientY: y, button: 0 }));
+  app.E(`tavole3d.piantaViva.hP = 300`);
+  me('pointerdown', 1000, 300); me('pointermove', 900, 340); me('pointerup', 900, 340);
+  const conManiglia = JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`)));
+  t('la maniglia sull\'angolo: larghezza (centrata: 100 px a sinistra = 200 in meno) e altezza insieme', Math.abs(conManiglia.larga - 0.8) < 1e-9 && Math.abs(conManiglia.alta - 0.34) < 1e-9
+    && app.E(`largaPianta(tavole3d.piante[${JSON.stringify(tr0)}])`) === 0.8 && /larghezza e altezza/.test(mg.title));
+  pe('dblclick', 500, 100);
+  t('doppio clic: com\'era all\'inizio (e niente cursori: si fa col mouse)', !app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`) && !$(app, 'tavole3dPiantaZoom') && !$(app, 'tavole3dPiantaAltezza'));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   const trascina = (x0, y0, dx, dy) => {
     const k = app.E('tavole3d.ultima.k'), tela = $(app, 'tavole3dTela'), ev = (tipo, x, y) => { const e = new app.w.MouseEvent(tipo, { bubbles: true, clientX: x * k, clientY: y * k, button: 0 }); tela.dispatchEvent(e); };
@@ -333,7 +347,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('rimessa: torna', svgSez().includes('>' + nomeTolta + '<'));
   const prima2 = caselle().length;
   $(app, 'tavole3dFascia').value = '0'; $(app, 'tavole3dFascia').dispatchEvent(new app.w.Event('input', { bubbles: true }));
-  t(`la distanza dalla traccia decide quali prove si possono mettere (${prima2} → ${caselle().length} a 0 m)`, caselle().length < prima2 && $(app, 'numFasciaSezione3d').value === '0');
+  t(`la distanza dalla traccia (un cursore, col valore scritto) decide quali prove si possono mettere (${prima2} → ${caselle().length} a 0 m)`, caselle().length < prima2 && $(app, 'numFasciaSezione3d').value === '0' && $(app, 'tavole3dFascia').type === 'range' && $(app, 'tavole3dFasciaVal').textContent === '0 m');
   $(app, 'tavole3dFascia').value = '25'; $(app, 'tavole3dFascia').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   clic(app, pagine()[0]);
   t('(sulle pagine 3D la scelta delle prove non c\'è)', $(app, 'tavole3dProveBox').hidden);

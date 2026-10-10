@@ -44,29 +44,69 @@
                 return [...varintSqlite(h), ...t, ...corpo];
             }
 
-            /** Una pagina foglia di tabella con le sue righe (in ordine di rowid). */
-            function paginaFogliaSqlite(righe, primaPagina) {
+            /** La cella di una riga di tabella: lunghezza del record, rowid, record. Il record deve stare in una
+             * pagina (niente pagine di trabocco): chi scrive divide i dati grandi su più righe. */
+            function cellaSqlite(r) {
+                const rec = recordSqlite(r.valori);
+                if (rec.length > PAGINA_SQLITE - 35) throw new Error('Una riga troppo grande per il GeoPackage.');
+                return [...varintSqlite(rec.length), ...varintSqlite(r.rowid), ...rec];
+            }
+            /** Una pagina foglia di tabella con le sue celle (in ordine di rowid). */
+            function paginaFogliaSqlite(righe, primaPagina, celle) {
                 const pg = new Uint8Array(PAGINA_SQLITE), dv = new DataView(pg.buffer), inizio = primaPagina ? 100 : 0;
+                celle = celle || righe.map(cellaSqlite);
                 let fine = PAGINA_SQLITE;
-                const puntatori = righe.map(r => {
-                    const rec = recordSqlite(r.valori), cella = [...varintSqlite(rec.length), ...varintSqlite(r.rowid), ...rec];
-                    fine -= cella.length;
-                    pg.set(cella, fine);
-                    return fine;
-                });
-                if (inizio + 8 + 2 * righe.length > fine) throw new Error('Troppi elementi per il GeoPackage (una tabella sta in 64 KB).');
+                const puntatori = celle.map(cella => { fine -= cella.length; pg.set(cella, fine); return fine; });
+                if (inizio + 8 + 2 * celle.length > fine) throw new Error('Troppi elementi per una pagina del GeoPackage.');
                 pg[inizio] = 0x0d;
-                dv.setUint16(inizio + 3, righe.length);
+                dv.setUint16(inizio + 3, celle.length);
                 dv.setUint16(inizio + 5, fine === PAGINA_SQLITE ? 0 : fine);
                 puntatori.forEach((p, i) => dv.setUint16(inizio + 8 + 2 * i, p));
                 return pg;
             }
+            /** Le righe di una tabella divise in pagine foglia (quante ne servono), con la chiave più alta di ognuna. */
+            function foglieSqlite(righe) {
+                const ordinate = righe.slice().sort((a, b) => a.rowid - b.rowid), gruppi = [];
+                let ora = [], usato = 8, chiave = null;
+                ordinate.forEach(r => {
+                    const c = cellaSqlite(r);
+                    if (ora.length && usato + c.length + 2 > PAGINA_SQLITE) { gruppi.push({ celle: ora, chiave }); ora = []; usato = 8; }
+                    ora.push(c); usato += c.length + 2; chiave = r.rowid;
+                });
+                gruppi.push({ celle: ora, chiave: chiave === null ? 0 : chiave });
+                return gruppi.map(g => ({ pagina: paginaFogliaSqlite(null, false, g.celle), chiave: g.chiave }));
+            }
+            /** La pagina interna (la radice) di una tabella su più foglie: i figli con la loro chiave più alta,
+             * l'ultimo a destra. */
+            function paginaInternaSqlite(figli, destra) {
+                const pg = new Uint8Array(PAGINA_SQLITE), dv = new DataView(pg.buffer);
+                let fine = PAGINA_SQLITE;
+                const puntatori = figli.map(f => {
+                    const cella = [(f.pagina >>> 24) & 255, (f.pagina >>> 16) & 255, (f.pagina >>> 8) & 255, f.pagina & 255, ...varintSqlite(f.chiave)];
+                    fine -= cella.length; pg.set(cella, fine); return fine;
+                });
+                if (12 + 2 * figli.length > fine) throw new Error('Troppi dati per il GeoPackage.');
+                pg[0] = 0x05;
+                dv.setUint16(3, figli.length);
+                dv.setUint16(5, fine === PAGINA_SQLITE ? 0 : fine);
+                dv.setUint32(8, destra);
+                puntatori.forEach((p, i) => dv.setUint16(12 + 2 * i, p));
+                return pg;
+            }
 
-            /** Il file SQLite: pagina 1 lo schema (sqlite_master), poi una pagina per tabella.
-             * tabelle: [{ nome, sql, righe: [{ rowid, valori }] }] */
+            /** Il file SQLite: pagina 1 lo schema (sqlite_master), poi ogni tabella: una pagina foglia, o una
+             * radice interna con le sue foglie. tabelle: [{ nome, sql, righe: [{ rowid, valori }] }] */
             function fileSqlite(tabelle) {
-                const schema = tabelle.map((t, i) => ({ rowid: i + 1, valori: ['table', t.nome, t.nome, i + 2, t.sql] }));
-                const pagine = [paginaFogliaSqlite(schema, true), ...tabelle.map(t => paginaFogliaSqlite(t.righe, false))];
+                const foglie = tabelle.map(t => foglieSqlite(t.righe));
+                let n = 2;
+                const radici = foglie.map(f => { const r = n; n += f.length > 1 ? f.length + 1 : 1; return r; });
+                const schema = tabelle.map((t, i) => ({ rowid: i + 1, valori: ['table', t.nome, t.nome, radici[i], t.sql] }));
+                const pagine = [paginaFogliaSqlite(schema, true)];
+                foglie.forEach((f, i) => {
+                    if (f.length === 1) { pagine.push(f[0].pagina); return; }
+                    const figli = f.map((x, j) => ({ pagina: radici[i] + 1 + j, chiave: x.chiave }));
+                    pagine.push(paginaInternaSqlite(figli.slice(0, -1), figli[figli.length - 1].pagina), ...f.map(x => x.pagina));
+                });
                 const p1 = pagine[0], dv = new DataView(p1.buffer);
                 p1.set(new TextEncoder().encode('SQLite format 3\0'), 0);
                 dv.setUint16(16, 1);                 // 1 = pagine da 65536 byte
@@ -84,79 +124,3 @@
                 pagine.forEach((p, i) => out.set(p, i * PAGINA_SQLITE));
                 return out;
             }
-
-            /** La geometria nel formato GeoPackage: intestazione «GP» con SRS e riquadro, poi WKB. */
-            function geometriaGpkg(punti, poligono) {
-                if (poligono) punti = punti.concat([punti[0]]); // l'anello si chiude sul primo vertice
-                const lin = punti.length > 1, n = (poligono ? 4 : 0) + (lin ? 4 + punti.length * 16 : 16);
-                const dv = new DataView(new ArrayBuffer(8 + 32 + 5 + n));
-                const xs = punti.map(p => p[0]), ys = punti.map(p => p[1]);
-                dv.setUint8(0, 0x47); dv.setUint8(1, 0x50); dv.setUint8(2, 0); dv.setUint8(3, 0x03); // little endian, riquadro xy
-                dv.setInt32(4, 4326, true);
-                [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)].forEach((v, i) => dv.setFloat64(8 + i * 8, v, true));
-                let o = 40;
-                dv.setUint8(o, 1); dv.setUint32(o + 1, poligono ? 3 : lin ? 2 : 1, true); o += 5;
-                if (poligono) { dv.setUint32(o, 1, true); o += 4; } // un anello
-                if (lin) { dv.setUint32(o, punti.length, true); o += 4; }
-                punti.forEach(p => { dv.setFloat64(o, p[0], true); dv.setFloat64(o + 8, p[1], true); o += 16; });
-                return new Uint8Array(dv.buffer);
-            }
-
-            /** Il GeoPackage del progetto: le tracce delle sezioni, le prove col GPS e i disegni (punti e poligoni). */
-            function geopackageSezioni(proj, d) {
-                const tracce = (proj.sezioniTracciate || []);
-                const disegni = proj.disegni || [], dPunti = disegni.filter(x => x.tipo === 'punto'), dPoligoni = disegni.filter(x => x.tipo === 'poligono');
-                const prove = proveFisiche(proveConCoordinate(proj));
-                const ora = new Date().toISOString().replace(/\.(\d{3})\d*Z$/, '.$1Z');
-                const tutti = tracce.flatMap(t => [[t.a.lng, t.a.lat], [t.b.lng, t.b.lat]]).concat(prove.map(s => [parseFloat(s.header.lng), parseFloat(s.header.lat)]), disegni.flatMap(x => x.punti.map(p => [p.lng, p.lat])));
-                const xs = tutti.map(p => p[0]), ys = tutti.map(p => p[1]);
-                const riquadro = tutti.length ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map(realeSqlite) : [null, null, null, null];
-                const progetto = proj.name || proj.comune || '';
-                return fileSqlite([
-                    { nome: 'gpkg_spatial_ref_sys', sql: 'CREATE TABLE gpkg_spatial_ref_sys (srs_name TEXT NOT NULL, srs_id INTEGER PRIMARY KEY, organization TEXT NOT NULL, organization_coordsys_id INTEGER NOT NULL, definition TEXT NOT NULL, description TEXT)',
-                        righe: [
-                            { rowid: -1, valori: ['Undefined cartesian SRS', null, 'NONE', -1, 'undefined', 'undefined cartesian coordinate reference system'] },
-                            { rowid: 0, valori: ['Undefined geographic SRS', null, 'NONE', 0, 'undefined', 'undefined geographic coordinate reference system'] },
-                            { rowid: 4326, valori: ['WGS 84 geodetic', null, 'EPSG', 4326, GPKG_WKT_4326, 'longitude/latitude coordinates in decimal degrees on the WGS 84 spheroid'] }
-                        ] },
-                    { nome: 'gpkg_contents', sql: "CREATE TABLE gpkg_contents (table_name TEXT NOT NULL, data_type TEXT NOT NULL, identifier TEXT, description TEXT DEFAULT '', last_change DATETIME NOT NULL, min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE, srs_id INTEGER)",
-                        righe: [
-                            { rowid: 1, valori: ['sezioni', 'features', 'sezioni', 'Tracce delle sezioni — ' + progetto, ora, ...riquadro, 4326] },
-                            { rowid: 2, valori: ['prove', 'features', 'prove', 'Prove DPSH — ' + progetto, ora, ...riquadro, 4326] },
-                            { rowid: 3, valori: ['disegni_punti', 'features', 'disegni_punti', 'Punti disegnati — ' + progetto, ora, ...riquadro, 4326] },
-                            { rowid: 4, valori: ['disegni_poligoni', 'features', 'disegni_poligoni', 'Poligoni disegnati — ' + progetto, ora, ...riquadro, 4326] }
-                        ] },
-                    { nome: 'gpkg_geometry_columns', sql: 'CREATE TABLE gpkg_geometry_columns (table_name TEXT NOT NULL, column_name TEXT NOT NULL, geometry_type_name TEXT NOT NULL, srs_id INTEGER NOT NULL, z TINYINT NOT NULL, m TINYINT NOT NULL)',
-                        righe: [
-                            { rowid: 1, valori: ['sezioni', 'geom', 'LINESTRING', 4326, 0, 0] },
-                            { rowid: 2, valori: ['prove', 'geom', 'POINT', 4326, 0, 0] },
-                            { rowid: 3, valori: ['disegni_punti', 'geom', 'POINT', 4326, 0, 0] },
-                            { rowid: 4, valori: ['disegni_poligoni', 'geom', 'POLYGON', 4326, 0, 0] }
-                        ] },
-                    { nome: 'sezioni', sql: 'CREATE TABLE sezioni (fid INTEGER PRIMARY KEY, geom LINESTRING, nome TEXT, inizio TEXT, fine TEXT, lunghezza_m REAL, direzione_gradi REAL, progetto TEXT)',
-                        righe: tracce.map((t, i) => {
-                            const s = d ? tracciaInScena(d, t) : null, [e1, e2] = estremiTraccia(t.nome);
-                            const az = s ? ((Math.atan2(s.b[0] - s.a[0], s.b[1] - s.a[1]) * 180 / Math.PI) + 360) % 360 : null;
-                            return { rowid: i + 1, valori: [null, geometriaGpkg([[t.a.lng, t.a.lat], [t.b.lng, t.b.lat]]), t.nome, e1, e2, s ? realeSqlite(+s.L.toFixed(2)) : null, az === null ? null : realeSqlite(+az.toFixed(1)), progetto] };
-                        }) },
-                    { nome: 'prove', sql: 'CREATE TABLE prove (fid INTEGER PRIMARY KEY, geom POINT, nome TEXT, quota_m REAL, progetto TEXT)',
-                        righe: prove.map((s, i) => {
-                            const q = quotaDellaProva(proj, s.header);
-                            return { rowid: i + 1, valori: [null, geometriaGpkg([[parseFloat(s.header.lng), parseFloat(s.header.lat)]]), nomeDpsh(s), q === null ? null : realeSqlite(+q.toFixed(2)), progetto] };
-                        }) },
-                    { nome: 'disegni_punti', sql: 'CREATE TABLE disegni_punti (fid INTEGER PRIMARY KEY, geom POINT, nome TEXT, colore TEXT, progetto TEXT)',
-                        righe: dPunti.map((x, i) => ({ rowid: i + 1, valori: [null, geometriaGpkg([[x.punti[0].lng, x.punti[0].lat]]), x.nome, x.colore, progetto] })) },
-                    { nome: 'disegni_poligoni', sql: 'CREATE TABLE disegni_poligoni (fid INTEGER PRIMARY KEY, geom POLYGON, nome TEXT, colore TEXT, area_m2 REAL, progetto TEXT)',
-                        righe: dPoligoni.map((x, i) => ({ rowid: i + 1, valori: [null, geometriaGpkg(x.punti.map(p => [p.lng, p.lat]), true), x.nome, x.colore, realeSqlite(+areaMetriQuadri(x.punti).toFixed(1)), progetto] })) }
-                ]);
-            }
-
-            document.getElementById('btnGpkgSezioni3d').addEventListener('click', () => {
-                const proj = state.projects[state.currentProjectId];
-                if (!proj) return;
-                if (!(proj.sezioniTracciate || []).length && !(proj.disegni || []).length) { appAlert('Prima traccia almeno una sezione (o disegna un punto o un poligono).'); return; }
-                try {
-                    const nome = (proj.name || 'progetto').replace(/[^\w\-]+/g, '_');
-                    scaricaBlobFile(new Blob([geopackageSezioni(proj, datiVista3dCorrenti)], { type: 'application/geopackage+sqlite3' }), `Sezioni_${nome}.gpkg`);
-                } catch (e) { appAlert(e.message); }
-            });

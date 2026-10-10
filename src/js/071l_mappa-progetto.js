@@ -70,57 +70,63 @@
                 if (vista3d.livelli.sezioni) (proj.sezioniTracciate || []).filter(t => !vista3d.tracceNascoste.has(t.id)).forEach(t => {
                     const st = stileLivello('t:' + t.id);
                     const linea = L.polyline([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]], { color: st.colore, weight: Math.max(st.spessore, 3), dashArray: trattoLeaflet(st.tratto), opacity: op('t:' + t.id), className: nuovo('t:' + t.id) ? 'am-entra' : '' }).addTo(m.livelli)
-                        .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome) + ' · trascinala per spostarla', { sticky: true })
+                        .bindTooltip('Sezione ' + escapeHtmlDidascalia(t.nome) + (modificaMappaAttiva() ? ' · trascinala per spostarla' : ''), { sticky: true })
                         .on('contextmenu', (e) => menuTracciaMappa(e.originalEvent, t));
-                    // SPOSTARLA IN TEMPO REALE: gli estremi si trascinano (A, A'), la linea pure (tutta).
-                    if (areaMappa.strumento === 'sel') {
+                    // SPOSTARLA IN TEMPO REALE, solo con le maniglie (strumento Sposta o ALT): gli estremi si
+                    // trascinano (A, A'), la linea pure (tutta).
+                    if (modificaMappaAttiva()) {
                         const maniglia = () => L.divIcon({ className: '', html: '<div class="mappa-traccia-maniglia"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
                         const estremi = [t.a, t.b].map((g, i) => L.marker([g.lat, g.lng], { icon: maniglia(), draggable: true, keyboard: false, title: 'Trascina per spostare ' + estremiTraccia(t.nome)[i] }).addTo(m.livelli));
                         const aggiorna = () => { linea.setLatLngs([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]); estremi[0].setLatLng([t.a.lat, t.a.lng]); estremi[1].setLatLng([t.b.lat, t.b.lng]); };
                         estremi.forEach((mk, i) => {
+                            mk.on('dragstart', () => trascinamentoMappa(true));
                             mk.on('drag', () => { const ll = mk.getLatLng(), g = { lat: ll.lat, lng: ll.lng }; spostaTraccia(t, i ? t.a : g, i ? g : t.b, false); linea.setLatLngs([[t.a.lat, t.a.lng], [t.b.lat, t.b.lng]]); });
-                            mk.on('dragend', () => { fineSpostaTraccia(); disegnaProveMappa(); });
+                            mk.on('dragend', () => { trascinamentoMappa(false); fineSpostaTraccia(); disegnaProveMappa(); });
                         });
                         linea.on('mousedown', (e) => {
                             L.DomEvent.stop(e);
                             const mappa = m.mappa, p0 = e.latlng, a0 = Object.assign({}, t.a), b0 = Object.assign({}, t.b);
                             mappa.dragging.disable();
+                            trascinamentoMappa(true);
                             const muovi = (ev) => { const dl = ev.latlng.lat - p0.lat, dn = ev.latlng.lng - p0.lng; spostaTraccia(t, { lat: a0.lat + dl, lng: a0.lng + dn }, { lat: b0.lat + dl, lng: b0.lng + dn }, true); aggiorna(); };
-                            const fine = () => { mappa.off('mousemove', muovi); mappa.off('mouseup', fine); mappa.dragging.enable(); fineSpostaTraccia(); disegnaProveMappa(); };
+                            const fine = () => { mappa.off('mousemove', muovi); mappa.off('mouseup', fine); mappa.dragging.enable(); trascinamentoMappa(false); fineSpostaTraccia(); disegnaProveMappa(); };
                             mappa.on('mousemove', muovi); mappa.on('mouseup', fine);
                         });
                     }
                     if (vista3d.etichette.sezioni) estremiTraccia(t.nome).forEach((n, i) => {
                         const p = i ? t.b : t.a;
-                        L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia et-${st.etichetta}">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
+                        L.marker([p.lat, p.lng], { interactive: false, opacity: op('t:' + t.id), icon: L.divIcon({ className: '', html: `<span class="mappa-progetto-nome-traccia et-${st.etichetta}" style="${cssEtichetta(st, 14)}">${escapeHtmlDidascalia(n)}</span>`, iconSize: [30, 16], iconAnchor: [15, 22] }) }).addTo(m.livelli);
                     });
                 });
                 disegniNellaMappa2d(m.livelli, nuovo);
                 // Un segnaposto per prova eseguita: un'interpretazione alternativa («3B») sta nello stesso punto.
                 proveFisiche(proveConCoordinate(proj)).filter(s => !vista3d.proveNascoste.has(s.id)).forEach(s => {
-                    const h = s.header, nr = !vista3d.etichette.prove ? '' : escapeHtmlDidascalia(String(h.provaNr || '?')), scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
+                    const h = s.header, nome = vista3d.etichette.prove ? nomeDpsh(s) : '', scelta = s.id === m.scelta, sp = scelta && spostamentoProva(h);
                     // Spostata a mano: dov'era prima, tratteggiato.
                     if (sp) {
                         const stile = { color: '#eab308', weight: 2, dashArray: '5 5', interactive: false };
                         L.circleMarker([sp.da.lat, sp.da.lng], { ...stile, radius: 8, fillOpacity: 0.15 }).addTo(m.livelli);
                         L.polyline([[sp.da.lat, sp.da.lng], [parseFloat(h.lat), parseFloat(h.lng)]], stile).addTo(m.livelli);
                     }
-                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: iconaProvaMappa(nr, scelta, stV), draggable: m.spostando === s.id, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
+                    // con le maniglie (strumento Sposta o ALT) ogni prova si trascina (poi la doppia conferma)
+                    const mobile = modificaMappaAttiva();
+                    const mk = L.marker([parseFloat(h.lat), parseFloat(h.lng)], { icon: iconaProvaMappa(nome, scelta, stV), draggable: mobile, zIndexOffset: scelta ? 1000 : 0, title: 'Prova ' + (h.provaNr || '?'), opacity: op('p:' + s.id) }).addTo(m.livelli);
                     mk.on('click', () => { scegliProvaMappa(s.id); if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sposta'); });
                     mk.on('contextmenu', (e) => menuProvaMappa(e.originalEvent, s.id));
-                    if (m.spostando === s.id) mk.on('dragend', () => spostaProvaDallaMappa(s.id, mk.getLatLng()));
+                    if (mobile) { mk.on('dragstart', () => trascinamentoMappa(true)); mk.on('dragend', () => { trascinamentoMappa(false); spostaProvaDallaMappa(s.id, mk.getLatLng()); }); }
                     const appena = nuovo('p:' + s.id), pin = mk.getElement && mk.getElement() && mk.getElement().firstElementChild;
                     if (pin && appena) pin.classList.add('entra');
                     else if (pin && scelta && m.pulsata !== s.id) pin.classList.add('pulsa');
                 });
                 m.pulsata = m.scelta;
                 m.visti = ora;
+                // le maniglie accese: la mappa lo fa vedere (le prove con l'anello)
+                m.mappa.getContainer().classList.toggle('mappa-modifica', modificaMappaAttiva());
             }
-            /** Il segnaposto di una prova con lo stile delle prove: colore (la scelta resta blu), bordo, grandezza. */
-            function iconaProvaMappa(nr, scelta, st) {
-                const w = Math.round((scelta ? 30 : 22) * st.dimensione);
-                const stile = `width:${w}px;height:${w}px;border-color:${st.contorno || '#fff'}${!scelta && st.colore ? `;background:${st.colore}` : ''}`;
-                return L.divIcon({ className: '', html: `<div class="${scelta ? 'gps-mia-prova-pin' : 'gps-altra-prova-pin'}" style="${stile}"><span style="font-size:${Math.round((scelta ? 12 : 10) * st.dimensione)}px">${nr}</span></div>`, iconSize: [w, w], iconAnchor: [w / 2, w] });
+            /** Il segnaposto di una prova con lo stile delle prove (simbolo ed etichetta, come nel GeoPackage);
+             * la prova scelta un po' più grande, con l'alone blu. */
+            function iconaProvaMappa(nome, scelta, st) {
+                return iconaSimbolo2d(scelta ? Object.assign({}, st, { dimensione: (st.dimensione || 1) * 1.3 }) : st, nome, scelta ? 'sim-scelta' : '');
             }
             function scegliProvaMappa(survId) {
                 mappaProgetto.scelta = survId;
@@ -140,7 +146,6 @@
                 }
                 await confermaSpostamentoProva({ lat: ll.lat, lng: ll.lng });
                 mappaProgetto.spostando = null;
-                if (areaMappa.strumento === 'sposta') scegliStrumentoMappa('sel');
                 disegnaProveMappa();
                 renderSchedaProvaMappa();
             }
@@ -272,11 +277,11 @@
                 if (!b || !id) return;
                 const azione = b.dataset.mappaAzione;
                 if (azione === 'chiudi') { scegliProvaMappa(null); return; }
-                // Spostare si fa sulla mappa 2D, trascinando il segnaposto: dal 3D ci si passa.
-                if (azione === 'sposta' && areaMappa.modo !== 'mappa') modoAreaMappa('mappa');
+                // «Sposta» accende lo strumento Sposta (le maniglie): si trascina il segnaposto, o la colonna nel 3D.
                 if (azione === 'sposta' || azione === 'annulla') {
+                    scegliStrumentoMappa(azione === 'sposta' ? 'sposta' : 'sel');
                     mappaProgetto.spostando = azione === 'sposta' ? id : null;
-                    disegnaProveMappa();
+                    if (areaMappa.modo === 'mappa') disegnaProveMappa(); else renderVista3d();
                     renderSchedaProvaMappa();
                     return;
                 }
