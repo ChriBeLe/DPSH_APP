@@ -493,7 +493,9 @@
                             survIds: selezionate.map(s => s.id),
                             includiIndice: includiIndiceScelto,
                             numeraPagine: numeraPagineScelto,
-                            includiIntroduzione: !!(projEsp && projEsp.introduzione && projEsp.introduzione.attiva)
+                            includiIntroduzione: !!(projEsp && projEsp.introduzione && projEsp.introduzione.attiva),
+                            includiTavole: !!(projEsp && projEsp.tavole3d && projEsp.tavole3d.nelReport && datiTavoleReport(projEsp)),
+                            onAvanzamento: (testo) => { if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = testo; }
                         });
                         if (!result) {
                             alert('Nessuna prova presente nel progetto da esportare.');
@@ -572,6 +574,7 @@
                     if (esportaPdfContext.formato === 'word') {
                         const risultato = await documentoStampaInDocx(fullDoc, {
                             qualitaJpeg: qualitaScelta,
+                            titolo,
                             onAvanzamento: (testo, quota) => {
                                 if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = testo;
                                 if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = (95 + Math.round(quota * 5)) + '%';

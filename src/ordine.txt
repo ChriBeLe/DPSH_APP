@@ -163,5 +163,8 @@ js/071s_simbologia.js
 js/071t_esporta-gis.js
 js/071s_confini-province.js
 js/071t_trova-dtm.js
+js/071q_strati-senza-vicoli-ciechi.js
+js/071r_tavole-nel-report.js
+js/071s_importa-da-word.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

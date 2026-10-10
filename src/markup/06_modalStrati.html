@@ -12,32 +12,9 @@
             <button class="btn-icon btn-icon-sm" id="btnCloseStrati"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div class="drawer-body">
-            <div class="info-collapsible">
-                <button type="button" class="info-collapsible-toggle">
-                    <svg class="ico"><use href="#i-info"/></svg>
-                    <span>Cosa sono i dati litologici condivisi?</span>
-                    <svg class="ico info-collapsible-chevron"><use href="#i-chevron-down"/></svg>
-                </button>
-                <div class="info-collapsible-body">
-                    <div class="info-collapsible-body-inner">
-                        Gli strati sono condivisi da tutte le prove dello stesso progetto/cantiere: modificarli qui li aggiorna ovunque.
-                    </div>
-                </div>
-            </div>
-
-            <div class="info-collapsible">
-                <button type="button" class="info-collapsible-toggle">
-                    <svg class="ico"><use href="#i-info"/></svg>
-                    <span>Come funzionano i parametri avanzati?</span>
-                    <svg class="ico info-collapsible-chevron"><use href="#i-chevron-down"/></svg>
-                </button>
-                <div class="info-collapsible-body">
-                    <div class="info-collapsible-body-inner">
-                        Per ogni strato con almeno un intervallo assegnato in questa prova, l'app calcola automaticamente Nspt, Nspt' (corretto in falda) e Rpd dai colpi DPSH, poi propone le formule di letteratura compatibili per <strong>angolo di attrito, coesione non drenata, moduli elastico/edometrico/di taglio, densità relativa e resistenza CPT equivalente</strong>. Scegli l'autore più adatto per ogni parametro nella card dello strato (o usa "Compila automaticamente"): le scelte sono salvate per strato e condivise tra tutte le prove del cantiere.
-                    </div>
-                </div>
-            </div>
-
+            <!-- La prova su cui si calcolano Nspt, Rpd e i candidati (gli strati sono del progetto,
+                 i valori di una prova): prima non lo diceva nessuno. Vedi renderProvaDiCalcoloStrati. -->
+            <div id="stratiProvaDiCalcolo"></div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn-action" id="btnOpenWizardFromStrati" style="flex:1; background: var(--accent); color: var(--on-accent); border: none; font-weight: 800; font-size: 12.5px; padding: 12px 8px; display:flex; align-items:center; justify-content:center; gap:6px;">
                     <svg class="ico"><use href="#i-sparkles"/></svg> Configurazione guidata
@@ -60,18 +37,14 @@
                 <svg class="ico" style="width:16px; height:16px; color: var(--text-muted); flex:0 0 auto; transform: rotate(-90deg);"><use href="#i-chevron-down"/></svg>
             </button>
 
-            <div class="info-collapsible">
-                <button type="button" class="info-collapsible-toggle">
-                    <svg class="ico"><use href="#i-download"/></svg>
-                    <span>Esportazione Parametri Avanzati</span>
-                    <svg class="ico info-collapsible-chevron"><use href="#i-chevron-down"/></svg>
-                </button>
-                <div class="info-collapsible-body">
-                    <div class="info-collapsible-body-inner">
-                        <div style="margin-bottom: 10px;">
-                            Esporta le tabelle di riepilogo e dettagliata per tutte le prove del progetto, con lo stesso formato e gli stessi colori del foglio di calcolo di riferimento.
-                        </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <!-- L'export dei parametri sta nella Consegna (Fase 5). Qui una porta verso di lei; i
+                 bottoni restano, nascosti, perché è la Consegna a premerli (data-parametri). -->
+            <button class="btn-action" id="btnStratiVaiConsegna" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; background: var(--bg-card-hover); border: 1px solid var(--border); padding: 10px 12px;">
+                <svg class="ico" style="width:18px; height:18px; flex:0 0 auto;"><use href="#i-download"/></svg>
+                <span style="flex:1; min-width:0; font-size:12.5px; font-weight:700;">Esporta i parametri avanzati</span>
+                <span style="font-size:11px; color: var(--text-muted);">nella Consegna</span>
+            </button>
+                        <div id="stratiExportNascosto" hidden style="display: none;">
                             <button class="btn-action" id="btnExportProcessingExcel" style="flex: 1; min-width: 130px; background: var(--success-soft); color: var(--success); border: 1px solid var(--success); font-weight: 700; font-size: 12px;">
                                 <svg class="ico"><use href="#i-file"/></svg> Excel
                             </button>
@@ -85,6 +58,30 @@
                                 <svg class="ico"><use href="#i-file"/></svg> Word
                             </button>
                         </div>
+
+            <!-- Le spiegazioni in fondo: prima stavano sopra gli strati, cioè sopra il contenuto. -->
+            <div class="info-collapsible">
+                <button type="button" class="info-collapsible-toggle">
+                    <svg class="ico"><use href="#i-info"/></svg>
+                    <span>Cosa sono i dati litologici condivisi?</span>
+                    <svg class="ico info-collapsible-chevron"><use href="#i-chevron-down"/></svg>
+                </button>
+                <div class="info-collapsible-body">
+                    <div class="info-collapsible-body-inner">
+                        Gli strati sono condivisi da tutte le prove dello stesso progetto/cantiere: modificarli qui li aggiorna ovunque.
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-collapsible">
+                <button type="button" class="info-collapsible-toggle">
+                    <svg class="ico"><use href="#i-info"/></svg>
+                    <span>Come funzionano i parametri avanzati?</span>
+                    <svg class="ico info-collapsible-chevron"><use href="#i-chevron-down"/></svg>
+                </button>
+                <div class="info-collapsible-body">
+                    <div class="info-collapsible-body-inner">
+                        Per ogni strato con almeno un intervallo assegnato in questa prova, l'app calcola automaticamente Nspt, Nspt' (corretto in falda) e Rpd dai colpi DPSH, poi propone le formule di letteratura compatibili per <strong>angolo di attrito, coesione non drenata, moduli elastico/edometrico/di taglio, densità relativa e resistenza CPT equivalente</strong>. Scegli l'autore più adatto per ogni parametro nella card dello strato (o usa "Compila automaticamente"): le scelte sono salvate per strato e condivise tra tutte le prove del cantiere.
                     </div>
                 </div>
             </div>

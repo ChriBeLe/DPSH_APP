@@ -76,6 +76,20 @@
                             ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === (intro.templateId || 'classico') ? 'selected' : ''}>${t.name}</option>`).join('')}
                         </select>
                     </div>`;
+                // LE TAVOLE 2D E 3D, ultima riga: un capitolo dopo le prove con le tavole scelte nella
+                // finestra «Tavole» del 3D (071r). Nasce spento, come il capitolo introduttivo; senza
+                // un modello 3D la riga dice cosa serve.
+                const tavoleDisponibili = !!datiTavoleReport(proj);
+                const rigaTavole = `
+                    <div style="display:flex; align-items:center; gap:6px; padding:7px 0 2px; margin-top:4px; border-top:1px dashed var(--border);">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 4px; cursor:${tavoleDisponibili ? 'pointer' : 'default'}; flex:1; min-width:0;">
+                            <input type="checkbox" id="chkEsportaPdfTavole" ${tavoleDisponibili && proj.tavole3d && proj.tavole3d.nelReport ? 'checked' : ''} ${tavoleDisponibili ? '' : 'disabled'} style="margin:0; flex-shrink:0;">
+                            <span style="flex:1; min-width:0;">
+                                <span style="font-weight:700; color:var(--accent-ink);">Tavole 2D e 3D</span>
+                                <span style="color:var(--text-muted);"> · ${tavoleDisponibili ? 'dopo le prove: quelle scelte in «Tavole» del 3D' : 'servono prove col GPS e con le letture'}</span>
+                            </span>
+                        </label>
+                    </div>`;
                 esportaPdfListaProve.innerHTML = rigaIntroduzione + tutte.map(s => {
                     const nome = `Prova N° ${(s.header && s.header.provaNr) || '?'}`;
                     const sotto = (s.header && s.header.interpretazioneDi) ? 'interpretazione alternativa' : ((s.header && s.header.localita) || '');
@@ -92,7 +106,7 @@
                                 ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === attuale ? 'selected' : ''}>${t.name}</option>`).join('')}
                             </select>
                         </div>`;
-                }).join('');
+                }).join('') + rigaTavole;
                 esportaPdfListaProve.querySelectorAll('.chk-esporta-pdf-prova').forEach(chk => {
                     chk.addEventListener('change', () => {
                         const id = chk.getAttribute('data-id');
@@ -110,6 +124,15 @@
                     chkIntro.addEventListener('change', () => {
                         intro.attiva = chkIntro.checked;
                         proj.updatedAt = Date.now();
+                        saveState();
+                        aggiornaStimaEsportazionePdf();
+                    });
+                }
+                const chkTavole = document.getElementById('chkEsportaPdfTavole');
+                if (chkTavole) {
+                    chkTavole.addEventListener('change', () => {
+                        if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
+                        proj.tavole3d.nelReport = chkTavole.checked;
                         saveState();
                         aggiornaStimaEsportazionePdf();
                     });

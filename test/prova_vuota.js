@@ -81,7 +81,7 @@ console.log('--- La prova sintetica e la riga di export sono cablate ---');
   // di finire direttamente nel template: il ripiego su "Prova N°" è lo stesso.
   t('l indice sa scrivere un etichetta diversa da "Prova N°"', /separaNumeroDaEtichetta\(r\.etichetta \|\| \('Prova N° ' \+ r\.numero\)\)/.test(src));
   t('e conta le SEZIONI, non le prove, per decidere se serve',
-     /const sezioniPreviste = survList\.length \+ \(\(opzioni && opzioni\.includiIntroduzione\) \? 1 : 0\);/.test(src));
+     /const sezioniPreviste = survList\.length \+ \(\(opzioni && opzioni\.includiIntroduzione\) \? 1 : 0\)[^;\n]*;/.test(src));
 
   t('nella schermata di export c e la riga del capitolo', src.includes('id="chkEsportaPdfIntroduzione"'));
   t('con un selettore di template suo, come le prove', src.includes('id="selEsportaPdfTemplateIntroduzione"'));

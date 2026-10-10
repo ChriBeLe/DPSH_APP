@@ -1457,7 +1457,18 @@
                     if (btnRemoveImg) btnRemoveImg.style.display = 'none';
                 }
                 const inputHeaderTextEl = document.getElementById('inputHeaderText');
-                if (inputHeaderTextEl) inputHeaderTextEl.value = (page.header && page.header.text) || '';
+                const chkTutta = document.getElementById('chkHeaderTuttaPagina');
+                if (chkTutta) {
+                    chkTutta.checked = !!(page.header && page.header.tuttaPagina);
+                    chkTutta.parentElement.style.display = page.header && page.header.imageDataUrl ? 'flex' : 'none';
+                }
+                if (inputHeaderTextEl) {
+                    inputHeaderTextEl.value = (page.header && page.header.text) || '';
+                    // Col testo formattato la riga semplice è solo da leggere: si cambia con «Testo
+                    // formattato», altrimenti scrivendoci si perderebbe la formattazione.
+                    inputHeaderTextEl.readOnly = !!(page.header && page.header.html);
+                    inputHeaderTextEl.title = inputHeaderTextEl.readOnly ? 'Testo formattato: si cambia con «Testo formattato…»' : '';
+                }
 
                 // Stesso ragionamento dell'intestazione qui sopra: mostra/nascondi è del TEMPLATE.
                 const chkFooter = document.getElementById('chkPageFooterEnabled');
@@ -1466,7 +1477,11 @@
                 if (chkFooter) chkFooter.checked = footerOn;
                 if (footerControls) footerControls.style.display = footerOn ? 'flex' : 'none';
                 const inputFooterTextEl = document.getElementById('inputFooterText');
-                if (inputFooterTextEl) inputFooterTextEl.value = (page.footer && page.footer.text) || '';
+                if (inputFooterTextEl) {
+                    inputFooterTextEl.value = (page.footer && page.footer.text) || '';
+                    inputFooterTextEl.readOnly = !!(page.footer && page.footer.html);
+                    inputFooterTextEl.title = inputFooterTextEl.readOnly ? 'Testo formattato: si cambia con «Testo formattato…»' : '';
+                }
                 // Impostazione del TEMPLATE, non della singola pagina (vedi
                 // templateEditorState.footerShowPageNumber) — non dipende più da "page" qui sopra.
 
@@ -1491,8 +1506,38 @@
                     const range = document.getElementById(`rangeMargine${cap}`);
                     const lbl = document.getElementById(`lblMargine${cap}`);
                     if (range && document.activeElement !== range) range.value = String(mrg[side]);
-                    if (lbl) lbl.textContent = `${mrg[side]}mm`;
+                    if (lbl && document.activeElement !== lbl) lbl.value = cmMargine(mrg[side]);
                 });
+                const campoDistanzaPiede = document.getElementById('inputDistanzaPiede');
+                if (campoDistanzaPiede && document.activeElement !== campoDistanzaPiede) campoDistanzaPiede.value = cmMargine(distanzaPiedeMm(mrg));
+                const campoDistanza = document.getElementById('inputDistanzaIntestazione');
+                if (campoDistanza && document.activeElement !== campoDistanza) campoDistanza.value = cmMargine(distanzaIntestazioneMm(mrg));
+                const nota = document.getElementById('notaMargineIntestazione');
+                if (nota) {
+                    const pagina = (templateEditorState.pages || [])[templateEditorState.activePageIdx || 0];
+                    const usato = margineConIntestazione(mrg, pagina && pagina.header, templateEditorState.headerEnabled).top;
+                    nota.hidden = !(usato > mrg[`top`] + 0.05);
+                    nota.textContent = nota.hidden ? '' : `L'intestazione è più alta del margine superiore: il foglio ne usa ${cmMargine(usato)} cm. Abbassa l'intestazione o alza il margine.`;
+                }
+                // La preimpostazione di Word che corrisponde ai margini di adesso, se ce n'è una.
+                document.querySelectorAll('[data-margini-preset]').forEach(b => {
+                    const p = MARGINI_WORD[b.dataset.marginiPreset];
+                    b.classList.toggle('attivo', ['top', 'bottom', 'left', 'right'].every(k => Math.abs(p[k] - mrg[k]) < 0.05));
+                });
+            }
+            /** I MARGINI DI WORD: le preimpostazioni del menu Layout › Margini (Word in italiano), in mm. */
+            const MARGINI_WORD = {
+                normale: { top: 25, bottom: 20, left: 20, right: 20 },
+                stretto: { top: 12.7, bottom: 12.7, left: 12.7, right: 12.7 },
+                moderato: { top: 25.4, bottom: 25.4, left: 19.1, right: 19.1 },
+                largo: { top: 25.4, bottom: 25.4, left: 50.8, right: 50.8 }
+            };
+            /** mm → «2,50» (centimetri con la virgola, come li scrive Word). */
+            function cmMargine(mm) { return (Math.round((Number(mm) || 0) * 10) / 100).toFixed(2).replace('.', ','); }
+            /** «2,5» / «2.5» / «2,5 cm» → mm; null se non è un numero. Tra 0 e 6 cm. */
+            function mmDaCm(testo) {
+                const v = parseFloat(String(testo || '').replace(',', '.'));
+                return isFinite(v) ? Math.max(0, Math.min(60, Math.round(v * 100) / 10)) : null;
             }
 
             /** Passo "First" del FLIP: posizione/dimensione di ogni blocco (o, con selettore
