@@ -19,7 +19,7 @@
              * `contenutoHtml` — usa un iframe nascosto per non essere influenzata dal tema/CSS della
              * finestra principale dell'app (completamente diverso da quello di stampa). Ritorna un
              * array di {html, mm} nello stesso ordine dei figli. */
-            function misuraFigliPerStampaMm(contenutoHtml, margins, rigaScale, fontScale, stileTesto) {
+            function misuraFigliPerStampaMm(contenutoHtml, margins, rigaScale, fontScale, stileTesto, larghezzaPct) {
                 return new Promise((resolve) => {
                     const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                     // LO STESSO CARATTERE E LA STESSA INTERLINEA DEL FOGLIO VERO. Se qui si
@@ -53,7 +53,7 @@
                     // in modo diverso e ogni altezza misurata sarebbe sbagliata in partenza (la
                     // radice di tutti gli sfasamenti di questa famiglia). Nessun padding verticale:
                     // qui si misurano solo le altezze dei figli, non si impagina.
-                    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${getReportPrintStyleBlock(mrg, stileTestoMisura)}</style></head><body style="margin:0;"><div id="misuraWrap" style="box-sizing:border-box; width:210mm; padding:0 ${mrg.right}mm 0 ${mrg.left}mm; background:#fff;${scalaStyle}">${contenutoHtml}</div></body></html>`);
+                    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${getReportPrintStyleBlock(mrg, stileTestoMisura)}</style></head><body style="margin:0;"><div id="misuraWrap" style="box-sizing:border-box; width:210mm; padding:0 ${(mrg.right + (210 - mrg.left - mrg.right) * (1 - Math.min(100, larghezzaPct || 100) / 100)).toFixed(3)}mm 0 ${mrg.left}mm; background:#fff;${scalaStyle}">${contenutoHtml}</div></body></html>`);
                     doc.close();
                     // Nessuna immagine/font esterno in queste tabelle (solo testo con Arial/system-ui,
                     // già disponibile): due giri di rAF bastano a garantire un layout stabile, senza

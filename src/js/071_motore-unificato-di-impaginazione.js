@@ -28,6 +28,12 @@
             // rigaOGruppoHaBypassMargini RIMOSSA insieme a tutto "ignora i limiti di pagina":
             // esisteva solo per propagare quel flag dalla riga ai suoi atomi. Nessun chiamante
             // rimasto (vedi impaginaBlocchiSuPagineFisiche, che non legge più bypassaMargini).
+            /** Quanta parte della riga occupa un blocco da solo (in %): tutta, se si allarga sullo
+             * spazio vuoto; se no la sua Larghezza (flexEntryCss). */
+            function larghezzaPctBlocco(blocco, cols) {
+                if (!blocco || blocco.espandiSuSpazioVuoto !== false) return 100;
+                return Math.min(100, Math.max(spanMinimoVoce(blocco), spanVoceInGriglia(blocco, cols)) / Math.max(1, cols) * 100);
+            }
             async function costruisciAtomiPaginaTemplate(pageDef, ctx, margins) {
                 const cols = pageDef.cols || 4;
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || pageDef.margins || {});
@@ -82,7 +88,17 @@
                             // effetto sul PDF — misura E resa finale ora usano la STESSA scala.
                             const rigaScaleBlocco = bloccoFlowable.rigaScale || 1;
                             const fontScaleBlocco = bloccoFlowable.fontScale || 1;
-                            const elementiMisurati = await misuraFigliPerStampaMm(contenuto, mrg, rigaScaleBlocco, fontScaleBlocco);
+                            // LA LARGHEZZA DEL BLOCCO (segnalato: nel Word, e prima ancora nel PDF, le
+                            // tabelle lunghe uscivano a tutta pagina mentre nel template erano più
+                            // strette). Gli atomi nascevano dal contenuto nudo, senza il riquadro del
+                            // blocco: larghezza e allineamento scelti nell'editor si perdevano. Ora
+                            // ogni atomo sta in un riquadro come quello della riga normale
+                            // (styleDimensioneVoce), e si misura a quella larghezza: più stretta
+                            // vuol dire più a capo, quindi righe più alte.
+                            const spanBlocco = spanVoceInGriglia(bloccoFlowable, cols);
+                            const larghezzaPct = larghezzaPctBlocco(bloccoFlowable, cols);
+                            const riquadro = html => larghezzaPct < 99.99 ? `<div style="display:flex;"><div style="${styleDimensioneVoce(bloccoFlowable, spanBlocco, cols)} min-width:0;">${html}</div></div>` : html;
+                            const elementiMisurati = await misuraFigliPerStampaMm(contenuto, mrg, rigaScaleBlocco, fontScaleBlocco, undefined, larghezzaPct);
                             const elementiFusi = fondiTitoliConSuccessivo(elementiMisurati);
                             // La scala va incorporata nell'HTML di OGNI atomo qui (non lasciata a un
                             // contenitore esterno più sotto): un atomo può finire su una pagina fisica
@@ -107,7 +123,7 @@
                             // riconoscere davvero un cambio di tabella, e le interruzioni manuali
                             // sotto sono scritte come "idBlocco:indice" invece del solo indice, così
                             // non si mescolano più tra blocchi diversi.
-                            elementiFusi.forEach(el => atomi.push({ html: `<div data-blocco="${bloccoFlowable.type}"${styleScalaBlocco}>${el.html}</div>`, mm: el.mm, categoriaIndex: el.categoriaIndex, blockId: bloccoFlowable.id }));
+                            elementiFusi.forEach(el => atomi.push({ html: riquadro(`<div data-blocco="${bloccoFlowable.type}"${styleScalaBlocco}>${el.html}</div>`), mm: el.mm, categoriaIndex: el.categoriaIndex, blockId: bloccoFlowable.id }));
                             if (Array.isArray(bloccoFlowable.categorieForzaPaginaPrima)) {
                                 bloccoFlowable.categorieForzaPaginaPrima.forEach(i => indiciForzati.add(`${bloccoFlowable.id}:${i}`));
                             }

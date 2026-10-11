@@ -113,7 +113,7 @@ console.log('--- La misura delle altezze usa lo stesso carattere del foglio ---'
   // in punti diversi e OGNI altezza misurata sarebbe sbagliata in partenza. E' la radice di
   // tutta la famiglia di sfasamenti che questo progetto ha gia' pagato una volta.
   t('la funzione che misura accetta lo stile del testo',
-     /function misuraFigliPerStampaMm\(contenutoHtml, margins, rigaScale, fontScale, stileTesto\)/.test(codice));
+     /function misuraFigliPerStampaMm\(contenutoHtml, margins, rigaScale, fontScale, stileTesto(, larghezzaPct)?\)/.test(codice));
   t('e lo passa al CSS di stampa che usa per misurare',
      /getReportPrintStyleBlock\(mrg, stileTestoMisura\)/.test(codice));
   t('ripiegando sullo stile dell editor aperto, non su uno inventato',

@@ -34,7 +34,8 @@
                 const fontScaleBlocco = blk.fontScale || 1;
                 let elementiMisurati;
                 try {
-                    elementiMisurati = await misuraFigliPerStampaMm(contenuto, mrg, rigaScaleBlocco, fontScaleBlocco);
+                    const pagina = (templateEditorState.pages || [])[templateEditorState.activePageIdx || 0];
+                    elementiMisurati = await misuraFigliPerStampaMm(contenuto, mrg, rigaScaleBlocco, fontScaleBlocco, undefined, larghezzaPctBlocco(blk, (pagina && pagina.cols) || 4));
                 } catch (e) {
                     // Mai bloccare l'editor per un errore di misurazione: nessun avviso è meglio di
                     // un avviso sbagliato.
