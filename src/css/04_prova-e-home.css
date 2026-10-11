@@ -999,6 +999,57 @@
         .margini-preimpostati button.attivo { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
         .nota-margine { font-size: 10.5px; line-height: 1.35; color: var(--avviso-testo); background: var(--warning-soft, rgba(250, 204, 21, 0.12)); border-radius: var(--radius-sm); padding: 6px 8px; margin: 4px 0; }
 
+        /* LA BARRA LATERALE DELL'EDITOR, A GRUPPI (034): titoli uguali, gruppi che si chiudono,
+           righe compatte. Un gruppo chiuso mostra nel titolo come sta (statoSez…). */
+        #templateEditorPaletteSidebar { font-size: 11.5px; }
+        .tpl-sez-titolo { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; margin: 0 0 8px; }
+        .tpl-sez { margin-top: 12px; border-top: 1px solid var(--border); }
+        .tpl-sez > summary { list-style: none; display: flex; align-items: center; gap: 6px; padding: 10px 0 8px; cursor: pointer; user-select: none;
+            font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+        .tpl-sez > summary::-webkit-details-marker { display: none; }
+        .tpl-sez > summary > span { flex: 1; min-width: 0; }
+        .tpl-sez > summary small { font-weight: 600; text-transform: none; letter-spacing: 0; opacity: .8; }
+        .tpl-sez > summary:hover { color: var(--text-main); }
+        .tpl-sez-freccia { width: 13px; height: 13px; flex-shrink: 0; transition: transform var(--mov-veloce, .15s); transform: rotate(-90deg); }
+        .tpl-sez[open] .tpl-sez-freccia { transform: none; }
+        .tpl-sez-stato { font-size: 10px; font-weight: 700; text-transform: none; letter-spacing: 0; color: var(--text-muted); white-space: nowrap; }
+        .tpl-sez-stato.acceso { color: var(--accent); }
+        .tpl-sez-stato.avviso { color: var(--avviso-testo, #b45309); }
+        .tpl-sez[open] .tpl-sez-stato { display: none; }
+        .tpl-sez-corpo { display: flex; flex-direction: column; gap: 8px; padding-bottom: 4px; }
+        .tpl-controlli { flex-direction: column; gap: 7px; padding-left: 10px; border-left: 2px solid var(--border); margin-left: 6px; }
+        .tpl-sottotitolo { font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-top: 2px; }
+        .tpl-sottotitolo small { font-weight: 500; }
+        .tpl-sottotitolo-riga { display: flex; align-items: center; justify-content: space-between; }
+        .tpl-riga { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-weight: 700; font-size: 11px; }
+        .tpl-riga > label { flex: 1; min-width: 0; white-space: nowrap; }
+        .tpl-campo-piccolo { width: 58px; padding: 4px 6px !important; font-size: 12px !important; }
+        .tpl-campo { font-size: 11.5px !important; padding: 6px 8px !important; }
+        .tpl-spunta { display: flex; align-items: center; gap: 7px; cursor: pointer; color: var(--text-main); line-height: 1.3; }
+        .tpl-spunta input { margin: 0; flex-shrink: 0; accent-color: var(--accent); }
+        .tpl-interruttore { font-weight: 700; }
+        .tpl-bt { width: 100%; font-size: 11px !important; padding: 7px 8px !important; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .tpl-bt .ico { width: 13px; height: 13px; }
+        .tpl-icona-bt { width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted);
+            display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+        .tpl-icona-bt .ico { width: 13px; height: 13px; }
+        .tpl-icona-bt:hover { color: var(--text-main); border-color: var(--text-muted); }
+        .tpl-icona-bt[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+        .tpl-chip { height: 24px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; }
+        .tpl-chip:hover { border-color: var(--accent); }
+        .tpl-nota { font-size: 10px; color: var(--text-muted); line-height: 1.35; }
+        /* i margini: etichetta, cursore e valore su una riga */
+        .tpl-margini { display: grid; grid-template-columns: 58px 1fr 46px; align-items: center; gap: 6px 5px; }
+        .tpl-margini label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+        .tpl-margini input[type=range] { width: 100%; min-width: 0; accent-color: var(--accent); margin: 0; }
+        .tpl-margini .margine-cm { width: 46px; padding: 3px 4px; }
+        .margini-preimpostati { margin-bottom: 0; }
+        .margini-preimpostati button { min-height: 28px; }
+        /* l'immagine dell'intestazione: anteprima col cestino sopra */
+        .tpl-immagine { position: relative; }
+        .tpl-immagine img { display: block; width: 100%; max-height: 48px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); background: #fff; }
+        .tpl-immagine .tpl-togli { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; color: var(--danger); background: var(--bg-card); }
+
         /* Intestazione e piè di pagina formattati sul foglio dell'editor: le stesse regole della
            stampa (getReportPrintStyleBlock), perché l'editor mostri quello che esce. */
         #templateEditorPageFrame .tpl-intestazione-testo p, #templateEditorPageFrame .tpl-piede-testo p { margin: 0; text-indent: 0; }

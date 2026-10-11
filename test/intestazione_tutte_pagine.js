@@ -31,7 +31,7 @@ const spunta = (app, el, v) => { el.checked = v; el.dispatchEvent(new app.w.Even
   await attesa(30);
   const testi = () => app.E('templateEditorState.pages.map(p => (p.header || {}).text)');
   const chk = $(app, 'chkHeaderTuttePagine');
-  t('la spunta «Usa per tutte le pagine» c\'è, sotto l\'intestazione, ed è spenta di base', !!chk && $(app, 'pageHeaderControls').contains(chk) && !chk.checked && /Usa per tutte le pagine/.test(chk.parentElement.textContent));
+  t('la spunta «Uguale su tutte le pagine» c\'è, sotto l\'intestazione, ed è spenta di base', !!chk && $(app, 'pageHeaderControls').contains(chk) && !chk.checked && /Uguale su tutte le pagine/.test(chk.parentElement.textContent));
 
   // Spenta: ogni pagina ha la sua.
   scrivi(app, $(app, 'inputHeaderText'), 'solo la prima');

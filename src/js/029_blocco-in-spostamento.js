@@ -1524,7 +1524,32 @@
                     const p = MARGINI_WORD[b.dataset.marginiPreset];
                     b.classList.toggle('attivo', ['top', 'bottom', 'left', 'right'].every(k => Math.abs(p[k] - mrg[k]) < 0.05));
                 });
+                aggiornaStatiSezioniTemplate();
             }
+            /** I titoli dei gruppi chiusi della barra laterale dicono come stanno: i margini (la
+             * preimpostazione di Word, o «su misura»; «da controllare» se l'intestazione sfora),
+             * l'intestazione e il piè di pagina accesi o spenti. */
+            function aggiornaStatiSezioniTemplate() {
+                const stato = (id, testo, cls) => { const el = document.getElementById(id); if (el) { el.textContent = testo; el.className = 'tpl-sez-stato' + (cls ? ' ' + cls : ''); } };
+                const nota = document.getElementById('notaMargineIntestazione');
+                const preset = document.querySelector('[data-margini-preset].attivo');
+                stato('statoSezFoglio', nota && !nota.hidden ? 'Da controllare' : preset ? preset.textContent.trim() : 'Su misura', nota && !nota.hidden ? 'avviso' : '');
+                stato('statoSezIntestazione', templateEditorState.headerEnabled ? 'Attiva' : 'Spenta', templateEditorState.headerEnabled ? 'acceso' : '');
+                stato('statoSezPiede', templateEditorState.footerEnabled ? 'Attivo' : 'Spento', templateEditorState.footerEnabled ? 'acceso' : '');
+            }
+            // I gruppi della barra laterale restano aperti o chiusi come li si è lasciati.
+            (() => {
+                const CHIAVE = 'dpsh_tpl_sezioni';
+                let mem = {};
+                try { mem = JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) { mem = {}; }
+                document.querySelectorAll('#templateEditorPaletteSidebar details[data-tpl-sez]').forEach(d => {
+                    if (typeof mem[d.dataset.tplSez] === 'boolean') d.open = mem[d.dataset.tplSez];
+                    d.addEventListener('toggle', () => {
+                        mem[d.dataset.tplSez] = d.open;
+                        try { localStorage.setItem(CHIAVE, JSON.stringify(mem)); } catch (e) { /* senza memoria va bene lo stesso */ }
+                    });
+                });
+            })();
             /** I MARGINI DI WORD: le preimpostazioni del menu Layout › Margini (Word in italiano), in mm. */
             const MARGINI_WORD = {
                 normale: { top: 25, bottom: 20, left: 20, right: 20 },
