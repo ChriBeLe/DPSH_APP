@@ -50,6 +50,11 @@
              * getReportTemplateIdPerProva/buildSurveyReportHtml in esportazione, quindi non serve
              * toccare nessuna logica di rendering. Il select NON è dentro il <label> della checkbox
              * per evitare che un click sul menu a tendina attivi/disattivi anche la spunta. */
+            /** Il foglio delle tavole, a parole («A3 orizzontale»), come scelto nella finestra «Tavole». */
+            function descriviFoglioTavole(proj) {
+                const f = Object.assign({ carta: 'A4', verso: 'o' }, (proj.tavole3d && proj.tavole3d.foglio) || {});
+                return `${f.carta} ${f.verso === 'v' ? 'verticale' : 'orizzontale'}`;
+            }
             function popolaListaProveEsportazionePdf(proj) {
                 if (!esportaPdfListaProve) return;
                 const tutte = proveInOrdine(proj); // l'ordine in cui escono nel documento
@@ -86,10 +91,13 @@
                             <input type="checkbox" id="chkEsportaPdfTavole" ${tavoleDisponibili && proj.tavole3d && proj.tavole3d.nelReport ? 'checked' : ''} ${tavoleDisponibili ? '' : 'disabled'} style="margin:0; flex-shrink:0;">
                             <span style="flex:1; min-width:0;">
                                 <span style="font-weight:700; color:var(--accent-ink);">Tavole 2D e 3D</span>
-                                <span style="color:var(--text-muted);"> · ${tavoleDisponibili ? 'dopo le prove: quelle scelte in «Tavole» del 3D' : 'servono prove col GPS e con le letture'}</span>
+                                <span style="color:var(--text-muted);"> · ${tavoleDisponibili ? `dopo le prove, un foglio ${descriviFoglioTavole(proj)} per tavola` : 'servono prove col GPS e con le letture'}</span>
                             </span>
                         </label>
-                    </div>`;
+                    </div>
+                    ${tavoleDisponibili ? `<div class="esp-sotto" style="padding-left:30px; margin:2px 0 4px;"><span class="esp-etichetta">Capitolo</span>
+                        <input type="text" id="inpEsportaPdfCapitoloTavole" class="form-control esp-select" value="${escapeHtmlDidascalia((proj.tavole3d && proj.tavole3d.capitolo) || 'Allegati grafici')}" list="lstCapitoloTavole" title="Il titolo del capitolo delle tavole nel documento e nell'indice: sotto ci sono «Modello 3D» e «Sezioni 2D»">
+                        <datalist id="lstCapitoloTavole"><option value="Allegati grafici"><option value="Tavole"><option value="Modellizzazione"><option value="Elaborati grafici"></datalist></div>` : ''}`;
                 esportaPdfListaProve.innerHTML = rigaIntroduzione + tutte.map(s => {
                     const nome = `Prova N° ${(s.header && s.header.provaNr) || '?'}`;
                     const sotto = (s.header && s.header.interpretazioneDi) ? 'interpretazione alternativa' : ((s.header && s.header.localita) || '');
@@ -128,6 +136,12 @@
                         aggiornaStimaEsportazionePdf();
                     });
                 }
+                const inpCapitolo = document.getElementById('inpEsportaPdfCapitoloTavole');
+                if (inpCapitolo) inpCapitolo.addEventListener('change', () => {
+                    if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
+                    proj.tavole3d.capitolo = inpCapitolo.value.trim() || 'Allegati grafici';
+                    saveState();
+                });
                 const chkTavole = document.getElementById('chkEsportaPdfTavole');
                 if (chkTavole) {
                     chkTavole.addEventListener('change', () => {

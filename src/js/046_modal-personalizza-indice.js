@@ -536,7 +536,7 @@
 <head>
     <meta charset="utf-8">
     <title>${titolo}</title>
-    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}</style>
+    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}${regolePagineTavole(pagesHtml)}</style>
 </head>
 <body>
     ${getIconSpriteHtml()}

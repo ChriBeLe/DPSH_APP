@@ -1,7 +1,8 @@
-// LE TAVOLE 2D E 3D NEL REPORT. Un capitolo «Tavole» dopo le prove, con le tavole scelte nella
-// finestra «Tavole» del 3D (le escluse restano fuori) e le loro inquadrature, due per foglio, coi
-// margini e l'intestazione del template della prima prova. Nella finestra di esportazione la riga
-// «Tavole 2D e 3D» lo accende; senza prove col GPS dice cosa serve.
+// LE TAVOLE 2D E 3D NEL REPORT. Un capitolo a sé dopo le prove («Allegati grafici», o come lo si
+// chiama), con due sottocapitoli, Modello 3D e Sezioni 2D: un foglio per tavola, nel formato scelto
+// nella finestra «Tavole» (A3 orizzontale in mezzo agli A4 verticali delle prove: pagine con nome nel
+// PDF, sezioni nel Word). L'indice raccoglie le prove sotto «Prove DPSH». Nella finestra di
+// esportazione la riga «Tavole 2D e 3D» lo accende; senza prove col GPS dice cosa serve.
 // (jsdom non disegna: la tela delle tavole qui è finta. Che le tavole si disegnino lo controlla
 // tavole_3d.js; qui si controlla come entrano nel documento.)
 const fs = require('fs');
@@ -32,32 +33,41 @@ const $ = (app, id) => app.d.getElementById(id);
   t('quelle escluse nella finestra «Tavole» restano fuori', !app.E(`datiTavoleReport(${P}).voci.some(v => v.id === 'iso-e')`));
   app.E(`${P}.tavole3d.escluse = []`);
 
-  const tpl = `{ margins: { top: 25, bottom: 20, left: 20, right: 20 }, headerEnabled: true, pages: [{ header: { text: 'Studio Rossi' } }] }`;
-  const cap = await app.E(`capitoloTavoleHtml(${P}, ${tpl})`);
+  // IL CAPITOLO: un foglio per tavola, nel formato scelto nella finestra «Tavole» (qui A3 orizzontale),
+  // in due sottocapitoli, Modello 3D e Sezioni 2D.
+  app.E(`${P}.tavole3d.foglio = { carta: 'A3', verso: 'o', scritte: 1.3 }`);
+  const cap = await app.E(`capitoloTavoleHtml(${P}, null)`);
   const div = app.d.createElement('div');
-  div.innerHTML = cap.html;
+  div.innerHTML = cap.sezioni.map(x => x.html).join('');
   const fogli = Array.from(div.querySelectorAll('.dpsh-sheet'));
   const n = voci.length;
-  t(`due tavole per foglio: ${n} tavole, ${Math.ceil(n / 2)} fogli`, fogli.length === Math.ceil(n / 2) && cap.pageCount === fogli.length && div.querySelectorAll('.tavola-report').length === n);
-  t('il primo foglio apre il capitolo «Tavole»', fogli[0].querySelector('.tavole-report-capitolo').textContent === 'Tavole' && !(fogli[1] && fogli[1].querySelector('.tavole-report-capitolo')));
-  t('ogni tavola ha numero e titolo veri, e la sua immagine', div.querySelector('.tavola-report-titolo').textContent === 'Tavola 1 · Modello · vista isometrica verso Nord'
+  t(`un foglio per tavola: ${n} tavole, ${fogli.length} fogli`, fogli.length === n && cap.pageCount === n);
+  t('i fogli sono A3 orizzontali, come nella finestra «Tavole»', fogli.every(f => f.getAttribute('data-formato-tavola') === 'A3o' && /width:420mm; height:297mm/.test(f.getAttribute('style'))));
+  t('sottocapitolo «Modello 3D» (e «Sezioni 2D» solo se ci sono sezioni)', cap.sezioni[0].etichetta === 'Modello 3D' && cap.sezioni[0].id === '__tavole3d__' && cap.sezioni.every(x => /^(Modello 3D|Sezioni 2D)$/.test(x.etichetta)));
+  t('ogni tavola ha numero e titolo veri, e la sua immagine', div.querySelector('.tavola-report-titolo').textContent === 'Tav. 1 — Modello · vista isometrica verso Nord'
     && div.querySelector('img').getAttribute('src') === 'data:image/jpeg;base64,TAVOLA_iso-n');
-  t('i fogli hanno i margini del template', fogli.every(f => /padding:25mm 20mm 20mm 20mm/.test(f.getAttribute('style'))));
-  t('e la sua intestazione', fogli.every(f => /Studio Rossi/.test((f.querySelector('[data-blocco="intestazione"]') || {}).textContent || '')));
-  const alt = parseFloat(/max-height:([\d.]+)mm/.exec(div.querySelector('img').getAttribute('style'))[1]);
-  t('ogni tavola sta in metà foglio (il foglio è rigido: non si taglia)', alt > 60 && 2 * (alt + 14) + 14 <= 297 - 25 - 20);
-  t('nel Word le tavole sono immagini', div.querySelector('img').parentElement.getAttribute('data-blocco') === 'immagine-libera');
+  t('l\'ancora dell\'indice sta dentro il primo foglio (fuori, fra formati diversi, sarebbe una pagina bianca)', !/^<a /.test(cap.sezioni[0].html) && fogli[0].querySelector('a#prova-report-__tavole3d__'));
+  t('in fondo il progetto e il numero della tavola', /Tav\. 1$/.test(fogli[0].querySelector('.tavola-report-piede').textContent.trim()));
+  t('nel Word la figura è un\'immagine', div.querySelector('img').parentElement.getAttribute('data-blocco') === 'immagine-libera');
+  const regole = app.E(`regolePagineTavole(${JSON.stringify(div.innerHTML)})`);
+  t('nel PDF ogni formato è una pagina con un nome (l\'A3 sta in mezzo agli A4 delle prove)', /@page tavolaA3o \{ size: 420mm 297mm; margin: 0; \}/.test(regole) && /\.dpsh-sheet\[data-formato-tavola="A3o"\] \{ page: tavolaA3o; \}/.test(regole) && app.E('regolePagineTavole("<div></div>")') === '');
+  t('e nel Word ogni foglio è una sezione col suo formato', /w:orient="landscape"/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'js', '071i_export-word.js'), 'utf8')));
 
-  // Il report di progetto: dopo le prove, una sezione «Tavole» nell'indice. (Le prove vere qui non si
-  // impaginano: jsdom non carica la cornice in cui si misurano. Ogni prova è un foglio finto.)
+  // Il report di progetto: dopo le prove il capitolo delle tavole; l'indice ha «Prove DPSH» con le prove
+  // sotto, e il capitolo delle tavole coi suoi due sottocapitoli e le tavole.
   app.E(`buildSurveyReportHtml = async (s) => ({ html: '<div class="dpsh-sheet"><div class="dpsh-sheet-inner">Prova ' + s.header.provaNr + '</div></div>', pageCount: 1 })`);
+  app.E(`${P}.tavole3d.capitolo = 'Allegati grafici'`);
   const rep = await app.E(`buildCompleteReportHtml(${JSON.stringify(pid)}, { includiIndice: true, includiTavole: true })`);
   const doc = app.d.createElement('div');
   doc.innerHTML = rep.pagesHtml;
   const tutti = Array.from(doc.querySelectorAll('.dpsh-sheet'));
-  const primoTavole = tutti.findIndex(f => f.querySelector('.tavole-report-capitolo'));
-  t('nel report le tavole vengono dopo le prove', primoTavole > 0 && tutti.slice(primoTavole).every(f => f.querySelector('.tavola-report')));
-  t('e l\'indice ha la voce «Tavole»', /Tavole/.test((doc.querySelector('.dpsh-sheet[data-sommario]') || {}).textContent || ''));
+  const primoTavole = tutti.findIndex(f => f.classList.contains('dpsh-tavola'));
+  t('nel report le tavole vengono dopo le prove', primoTavole > 0 && tutti.slice(primoTavole).every(f => f.classList.contains('dpsh-tavola')));
+  const righe = Array.from(doc.querySelectorAll('.dpsh-sheet[data-sommario] a[data-voce-indice]')).map(a => [a.getAttribute('data-livello'), a.querySelector('[data-testo-voce]').textContent.trim()]);
+  t('indice: «Prove DPSH» (1° livello) con le prove sotto (2°)', righe[0][0] === '1' && righe[0][1] === 'Prove DPSH' && righe[1][0] === '2' && /^Prova N° /.test(righe[1][1]));
+  const iCap = righe.findIndex(r => r[1] === 'Allegati grafici');
+  t('poi «Allegati grafici» (1°), «Modello 3D» (2°) e le tavole (3°)', iCap > 0 && righe[iCap][0] === '1' && righe[iCap + 1][1] === 'Modello 3D' && righe[iCap + 1][0] === '2' && righe[iCap + 2][0] === '3' && /^Tav\. 1/.test(righe[iCap + 2][1]));
+  t('e nel Word: le voci di capitolo e di sezione col loro livello', tutti[0 + 1].getAttribute('data-voce-capitolo-testo') === 'Prove DPSH' && tutti[primoTavole].getAttribute('data-voce-capitolo-testo') === 'Allegati grafici' && tutti[primoTavole].getAttribute('data-voce-livello') === '2');
 
   // La finestra di esportazione: la riga «Tavole 2D e 3D», spenta di base.
   app.E(`openExportModal('project', ${JSON.stringify(pid)})`);

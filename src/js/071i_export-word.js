@@ -951,16 +951,24 @@
                 }
                 // Una prova senza titoli: nell'indice c'è la sua riga («Prova N° 3»). In Word un campo
                 // VOCE DI SOMMARIO (TC), che non si vede, col segnalibro: il Sommario la ritrova.
-                if (foglio.hasAttribute('data-voce-testo')) {
-                    const [a, b] = segnalibroWord(ctx, foglio.getAttribute('data-voce-indice'));
-                    const voce = a + campoWord(` TC "${foglio.getAttribute('data-voce-testo').replace(/"/g, "'")}" \\l 1 `) + b;
+                // Il capitolo che raccoglie un gruppo di sezioni («Prove DPSH», le tavole): un'altra
+                // voce sullo stesso foglio, di primo livello, prima di quella della sezione.
+                const voci = [];
+                if (foglio.hasAttribute('data-voce-capitolo')) voci.push([foglio.getAttribute('data-voce-capitolo'), foglio.getAttribute('data-voce-capitolo-testo'), 1]);
+                if (foglio.hasAttribute('data-voce-testo')) voci.push([foglio.getAttribute('data-voce-indice'), foglio.getAttribute('data-voce-testo'), parseInt(foglio.getAttribute('data-voce-livello'), 10) || 1]);
+                if (voci.length) {
+                    const voce = voci.map(([indice, testo, livello]) => { const [a, b] = segnalibroWord(ctx, indice); return a + campoWord(` TC "${String(testo).replace(/"/g, "'")}" \\l ${livello} `) + b; }).join('');
                     corpo = /<w:p>/.test(corpo) ? corpo.replace(/<w:p>(<w:pPr>.*?<\/w:pPr>)?/, m => m + voce) : `<w:p>${voce}</w:p>` + corpo;
                 }
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
                 // Col piè di pagina del template il margine inferiore è quello vero (la sua fascia).
                 const sotto = partePiede ? tw(rf.bottom - ri.bottom) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
-                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, parteIntestazione)}${piedeInSezione(ctx, foglio, partePiede)}<w:pgSz w:w="11906" w:h="16838"/>`
+                // Il foglio della sezione è quello del foglio vero: le tavole A3 o orizzontali restano
+                // A3 o orizzontali anche in Word (una sezione per foglio, ognuna col suo formato).
+                const pgW = Math.round(rf.width / 96 * 1440 / 10) * 10, pgH = Math.round(rf.height / 96 * 1440 / 10) * 10;
+                const pgSz = Math.abs(pgW - 11906) < 30 && Math.abs(pgH - 16838) < 30 ? '<w:pgSz w:w="11906" w:h="16838"/>' : `<w:pgSz w:w="${pgW}" w:h="${pgH}"${pgW > pgH ? ' w:orient="landscape"' : ''}/>`;
+                const sezione = `<w:sectPr>${intestazioneInSezione(ctx, parteIntestazione)}${piedeInSezione(ctx, foglio, partePiede)}${pgSz}`
                     + `<w:pgMar w:top="${tw(ri.top - rf.top)}" w:right="${tw(rf.right - ri.right)}" w:bottom="${sotto}" w:left="${tw(ri.left - rf.left)}" w:header="${parteIntestazione ? parteIntestazione.distanzaTw : 0}" w:footer="${partePiede ? partePiede.distanzaTw : 0}" w:gutter="0"/>`
                     + `${numerazioneInSezione(ctx, foglio)}<w:cols w:space="0"/></w:sectPr>`;
                 return { xml: corpo, sezione };
