@@ -404,6 +404,7 @@
                     tpl.headerEnabled = !!templateEditorState.headerEnabled;
                     tpl.headerTutte = !!templateEditorState.headerTutte;
                     tpl.footerEnabled = !!templateEditorState.footerEnabled;
+                    if (templateEditorState.cartaIntestata) tpl.cartaIntestata = templateEditorState.cartaIntestata; else delete tpl.cartaIntestata;
                     saveState();
                     // Aggiorna anche lo snapshot "salvato" dell'editor: se l'utente ci torna dopo
                     // l'export non deve trovarsi un falso avviso "modifiche non salvate" per un
@@ -535,7 +536,7 @@
 <head>
     <meta charset="utf-8">
     <title>${titolo}</title>
-    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}</style>
+    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}</style>
 </head>
 <body>
     ${getIconSpriteHtml()}
@@ -553,7 +554,7 @@
          dentro ogni singolo foglio (.dpsh-sheet), non più in un wrapper condiviso + @page — è
          proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
          da cui nascevano le pagine bianche. -->
-    <div class="dpsh-sheet-stack">${pagesHtml}</div>
+    <div class="dpsh-sheet-stack">${marcaCartePrimaEAltre(pagesHtml)}</div>
     ${esportaPdfContext.formato === 'word' ? '' : getControlloImpaginazioneScriptTag(true)}
 </body>
 </html>`;

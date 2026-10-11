@@ -343,12 +343,28 @@
                     // legge, e la soluzione non e' cambiare colore, e' spostarla di due
                     // millimetri. Per questo lo scostamento e' per singola pin, non globale.
                     const dx = parseFloat(p.dx) || 0, dy = parseFloat(p.dy) || 0;
+                    if (p.stile && typeof svgFormaSimbolo === 'function') return htmlSimboloProvaMappa(p, q, testo, mostra, dx, dy, o);
                     return `<div data-pin-mappa="${p.numero !== undefined ? p.numero : ''}" style="position:absolute; left:${q.x.toFixed(1)}px; top:${q.y.toFixed(1)}px; transform:translate(-50%,-100%); pointer-events:none;">
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="#dc2626" stroke="#fff" stroke-width="1" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6)); display:block; margin:0 auto;"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8z"/><circle cx="12" cy="10" r="3" fill="#fff"/></svg>
                             ${p.numero !== undefined && p.numero !== '' ? `<div style="position:absolute; left:50%; top:7px; transform:translateX(-50%); color:#dc2626; font-size:9px; font-weight:800; line-height:1; pointer-events:none;">${escapeHtmlDidascalia(String(p.numero))}</div>` : ''}
                         </div>
                         ${mostra ? `<div data-pin-etichetta="${p.numero !== undefined ? p.numero : ''}" style="position:absolute; left:${(q.x + dx).toFixed(1)}px; top:${(q.y + dy).toFixed(1)}px; transform:translate(-50%, 2px); color:#fff; font-size:${misuraEtichetta}px; font-weight:800; white-space:nowrap; text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 0 3px rgba(0,0,0,0.6); pointer-events:none;">${escapeHtmlDidascalia(testo)}</div>` : ''}`;
                 }).join('');
+            }
+
+            /** LA PROVA COL SUO STILE (071o, 071s): il simbolo con la punta (o il centro) sul punto e
+             * l'etichetta dove la mette lo stile, più lo scostamento proprio di questa etichetta. La
+             * misura dell'etichetta scelta nel blocco, se c'è, vale sopra a quella dello stile. */
+            function htmlSimboloProvaMappa(p, q, testo, mostra, dx, dy, o) {
+                const st = o.misuraEtichetta ? Object.assign({}, p.stile, { etichettaDimensione: Math.max(6, Math.min(24, o.misuraEtichetta)) }) : p.stile;
+                const ig = ingombroSimbolo(st), pad = 2 + (st.spessore ?? 1.5), w = ig.S + 2 * pad, h = ig.sopra + ig.sotto + 2 * pad;
+                const num = p.numero !== undefined ? escapeHtmlDidascalia(String(p.numero)) : '';
+                const simbolo = `<div data-pin-mappa="${num}" style="position:absolute; left:${q.x.toFixed(1)}px; top:${q.y.toFixed(1)}px; width:0; height:0; pointer-events:none;">`
+                    + `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="position:absolute; left:${(-w / 2).toFixed(1)}px; top:${(-(ig.sopra + pad)).toFixed(1)}px; overflow:visible; filter:drop-shadow(0 1px 1.5px rgba(0,0,0,0.45));">${svgFormaSimbolo(st, w / 2, ig.sopra + pad)}</svg></div>`;
+                if (!mostra) return simbolo;
+                const pe = postoEtichetta(st), box = st.etichetta === 'sfondo' || st.etichetta === 'bordo';
+                const riquadro = box ? `background:rgba(15,23,42,0.82); padding:1px 5px; border-radius:4px;${st.etichetta === 'bordo' ? ' border:1px solid #fff;' : ''}` : '';
+                return simbolo + `<div data-pin-etichetta="${num}" style="position:absolute; left:${(q.x + pe.x + dx).toFixed(1)}px; top:${(q.y + pe.y + dy).toFixed(1)}px; transform:translate(${pe.tx},${pe.ty}); white-space:nowrap; line-height:1.15; font-family:Arial, sans-serif; pointer-events:none; ${cssEtichetta(st)};${box ? ' text-shadow:none;' : ''} ${riquadro}">${escapeHtmlDidascalia(testo)}</div>`;
             }
 
             /** La barra di scala, calcolata sui metri reali della finestra. */
@@ -547,7 +563,10 @@
                     .sort((a, b) => (parseInt(a.header && a.header.provaNr) || 0) - (parseInt(b.header && b.header.provaNr) || 0))
                     .map(su => ({
                         lat: su.header && su.header.lat, lng: su.header && su.header.lng,
-                        numero: (su.header && su.header.provaNr) || ''
+                        numero: (su.header && su.header.provaNr) || '',
+                        // Lo stile della prova (071o): nella figura del report lo stesso simbolo e la
+                        // stessa etichetta della mappa 2D, del 3D e del GeoPackage.
+                        stile: typeof stileLivello === 'function' && su.id ? stileLivello('p:' + su.id, proj) : null
                     }))
                     .filter(p => isFinite(parseFloat(p.lat)) && isFinite(parseFloat(p.lng)));
             }

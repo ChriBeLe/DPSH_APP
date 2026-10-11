@@ -26,8 +26,8 @@
             const NOMI_GRUPPI_STILE = { prove: 'Prove', sezioni: 'Sezioni', disegni: 'Disegnati' };
             const tipoStile = k => (k.startsWith('p:') ? 'prove' : k.startsWith('t:') ? 'traccia' : k.startsWith('d:') ? 'disegno' : k === 'sezioni' ? 'traccia' : k === 'disegni' ? 'disegno' : STILI_LIVELLO[k] ? k : null);
             /** Lo stile di un livello: quello di base del suo tipo, sopra lo stile del suo gruppo, sopra il suo. */
-            function stileLivello(k) {
-                const tipo = tipoStile(k), proj = state.projects[state.currentProjectId], def = STILI_LIVELLO[tipo].def(), stili = (proj && proj.stili) || {};
+            function stileLivello(k, progetto) {
+                const tipo = tipoStile(k), proj = progetto || state.projects[state.currentProjectId], def = STILI_LIVELLO[tipo].def(), stili = (proj && proj.stili) || {};
                 // il disegno ha già il suo colore (dato alla nascita)
                 if (tipo === 'disegno') { const x = disegniDelProgetto().find(y => 'd:' + y.id === k); if (x) { def.colore = x.colore; if (x.tipo === 'punto') Object.assign(def, { contorno: '#ffffff', spessore: 1.5 }); else def.etichettaPosizione = 'centro'; } }
                 const g = gruppoDiStile(k);

@@ -45,7 +45,7 @@
                         // — questa anteprima mostra sempre il template come documento a sé, mai come
                         // parte di un Report Completo multi-prova che l'editor non conosce comunque.
                         const isLastOfDoc = (idx === pages.length - 1);
-                        const risultatoPagina = await costruisciPagineTemplateUnificato(pageDef, ctx, pageDef.margins || margins, provaNr, isLastOfDoc, headerEnabled, footerEnabled);
+                        const risultatoPagina = await costruisciPagineTemplateUnificato(pageDef, ctx, pageDef.margins || margins, provaNr, isLastOfDoc, headerEnabled, footerEnabled, cartaDelTemplate(templateEditorState));
                         risultatiPerPagina.push(risultatoPagina);
                     }
                     const totalePagineFisiche = risultatiPerPagina.reduce((sum, r) => sum + r.pageCount, 0);
@@ -75,7 +75,7 @@
                     }
 
                     const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Anteprima di stampa reale</title>
-                        <style>${getReportPrintStyleBlock(margins, templateEditorState.stileTesto)}</style>
+                        <style>${getReportPrintStyleBlock(margins, templateEditorState.stileTesto)}${regoleCarteIntestate(pagineHtml)}</style>
                         <style>
                             /* Stile di SOLA ANTEPRIMA — mai usato dal vero export (vedi commento sopra
                                generaAnteprimaStampaReale): dà a ogni pagina fisica il proprio riquadro
@@ -97,7 +97,7 @@
                                 z-index:2;
                             }
                         </style>
-                        </head><body>${getIconSpriteHtml()}${pagineHtml}</body></html>`;
+                        </head><body>${getIconSpriteHtml()}${marcaCartePrimaEAltre(pagineHtml)}</body></html>`;
 
                     iframe.srcdoc = doc;
                 } catch (err) {

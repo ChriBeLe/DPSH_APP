@@ -1489,6 +1489,7 @@
                 const chkDistribuisci = document.getElementById('chkPageDistribuisciSpazio');
                 if (chkDistribuisci) chkDistribuisci.checked = !!page.distribuisciSpazioVerticale;
 
+                renderCartaEditor();
                 sincronizzaControlliMarginiSidebar();
             }
 

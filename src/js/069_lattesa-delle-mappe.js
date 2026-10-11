@@ -146,7 +146,7 @@
              * Limite noto: se una tabella molto lunga si spezza su più pagine fisiche per
              * l'impaginazione naturale del browser in stampa (classe "tbl-long"), quel conteggio non
              * lo sa in anticipo — caso raro, non gestito qui. */
-            function buildIndiceReportCompletoHtml(proj, righeIndice, stileIndice) {
+            function buildIndiceReportCompletoHtml(proj, righeIndice, stileIndice, carta, marginiCarta) {
                 // Righe cliccabili (richiesto esplicitamente: "l'indice dev'essere cliccabile nel
                 // pdf") — ogni riga è un vero <a href="#prova-report-{id}"> che punta all'ancora
                 // messa a inizio prova da buildSurveyReportHtml; text-decoration/color azzerati per
@@ -220,7 +220,10 @@
                 // leggere i margini veri del template (calcolaBudgetPaginaMm/marginiPaginaDiDefault)
                 // — innocuo finché i margini restavano quelli di default, ma una bomba a orologeria
                 // per il giorno in cui l'utente li avesse cambiati dalla barra laterale.
-                const maxHeightMmIndice = calcolaBudgetPaginaMm(null, false).areaStampabileMm.toFixed(2);
+                // Con la carta intestata l'indice sta nei margini del template (le zone libere della carta),
+                // non in quelli di base: finirebbe sopra la testata.
+                const mrgIndice = carta && marginiCarta ? Object.assign(marginiPaginaDiDefault(), marginiCarta) : null;
+                const maxHeightMmIndice = calcolaBudgetPaginaMm(mrgIndice, false).areaStampabileMm.toFixed(2);
                 // FOGLIO RIGIDO: anche l'indice è un foglio fisico come tutti gli altri, quindi usa
                 // esattamente la stessa struttura .dpsh-sheet/.dpsh-sheet-inner — se restasse un
                 // blocco a flusso libero sarebbe l'unico punto del documento ancora in grado di
@@ -247,7 +250,7 @@
                     usato += a;
                 });
                 return fogli.map((voci, k) => `
-                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}"${k ? ' data-sommario-seguito="1"' : ''} style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}"><div class="dpsh-sheet-inner">
+                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}"${k ? ' data-sommario-seguito="1"' : ''} style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}${mrgIndice ? ` padding:${mrgIndice.top}mm ${mrgIndice.right}mm ${mrgIndice.bottom}mm ${mrgIndice.left}mm;` : ''}">${htmlCartaNelFoglio(carta || null)}<div class="dpsh-sheet-inner">
                         ${k ? '' : `<h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${(st.titoloTesto || 'Indice')}</h1>`}
                         ${voci.join('')}
                     </div></div>`).join('');

@@ -59,6 +59,10 @@ markup/47c_esportaGis.html
 markup/47c_trovaDtm.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
+shell/04b_chiude-motore-apre-pdfjs.html
+vendor/pdfjs.min.js
+shell/04c_apre-pdfjs-worker.html
+vendor/pdfjs-worker.min.js
 shell/05_tra-motore-e-app.html
 js/000_avvio-stato-e-salvataggio.js
 js/001_fase-3-gps-live-fallback-foto-import-batch.js
@@ -163,6 +167,7 @@ js/071s_simbologia.js
 js/071t_esporta-gis.js
 js/071s_confini-province.js
 js/071t_trova-dtm.js
+js/071u_carta-intestata.js
 js/071q_strati-senza-vicoli-ciechi.js
 js/071r_tavole-nel-report.js
 js/071s_importa-da-word.js

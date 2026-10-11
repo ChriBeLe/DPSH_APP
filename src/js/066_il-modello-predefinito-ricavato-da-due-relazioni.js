@@ -1311,7 +1311,7 @@
                 // esattamente la stessa geometria dell'export, altrimenti la miniatura tornerebbe a
                 // mentire su come verrà stampata la pagina. Il salto pagina non è più deciso qui:
                 // lo impone la regola CSS .dpsh-sheet:last-child sull'ultimo foglio reale.
-                return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${paddingBottomMm}mm;">${corpo}</div></div>`;
+                return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${htmlCartaNelFoglio(cartaDelTemplate(typeof templateEditorState !== 'undefined' ? templateEditorState : null), pageIndex === 1)}${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${paddingBottomMm}mm;">${corpo}</div></div>`;
             }
 
             /** Il template assegnato a una prova: quello scelto esplicitamente sulla prova, altrimenti

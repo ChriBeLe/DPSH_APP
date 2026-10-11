@@ -294,6 +294,12 @@
                         break-inside: avoid;
                         page-break-inside: avoid;
                     }
+                    /* LA CARTA INTESTATA (071u): sotto al contenuto, sopra al bianco del foglio; si
+                       stampa anche con la «Grafica di sfondo» spenta. */
+                    .dpsh-sheet { isolation: isolate; }
+                    .dpsh-carta { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;
+                        background-repeat: no-repeat; background-position: center; background-size: 100% 100%;
+                        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     /* Area di contenuto = esattamente l'area stampabile (210-sx-dx per 297-sopra-sotto).
                        È il contenitore di riferimento del piè di pagina (position:absolute; bottom:0),
                        che così si appoggia sempre al bordo INTERNO del margine inferiore di QUESTO

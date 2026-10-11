@@ -144,6 +144,19 @@
                         <!-- Da una relazione già fatta: margini, intestazione, piè di pagina e stile del testo (071s). -->
                         <button type="button" class="btn-action tpl-bt" id="btnImportaDaWord" title="Prende margini, intestazione, piè di pagina e stile del testo da un documento Word (.docx) dell'ufficio"><svg class="ico"><use href="#i-upload"/></svg> Importa da un Word…</button>
                         <input type="file" id="fileImportaDaWord" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
+                        <!-- LA CARTA INTESTATA (071u): un PDF, un Word o un'immagine come sfondo di ogni foglio. -->
+                        <div class="tpl-sottotitolo">Carta intestata</div>
+                        <div class="tpl-carta" id="tplCartaAnteprima" hidden>
+                            <img id="imgCartaPrima" alt="Prima pagina della carta intestata">
+                            <img id="imgCartaAltre" alt="Pagine seguenti della carta intestata" hidden>
+                            <span id="lblCartaNome"></span>
+                        </div>
+                        <button type="button" class="btn-action tpl-bt" id="btnCaricaCarta" title="Un PDF, un Word (.docx) o un'immagine della carta intestata dell'ufficio: ogni foglio del report ci viene scritto sopra. Un PDF di due pagine: la prima per il primo foglio, la seconda per gli altri."><svg class="ico"><use href="#i-file"/></svg> Carica carta intestata…</button>
+                        <input type="file" id="fileCartaIntestata" accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" style="display: none;">
+                        <div class="tpl-riga">
+                            <button type="button" class="tpl-chip" id="btnCartaMargini" title="Margini sulle zone libere della carta: il testo non va sopra al logo o ai contatti" hidden>Margini dalla carta</button>
+                            <button type="button" class="tpl-chip tpl-chip-togli" id="btnTogliCarta" title="Togli la carta intestata" hidden>Togli</button>
+                        </div>
                         <!-- MARGINI COME IN WORD: in cm con la virgola, le preimpostazioni del menu Margini di
                              Word, il cursore per regolare a occhio. Stesso templateEditorState.margins delle
                              maniglie sul foglio (sincronizzaControlliMarginiSidebar). -->

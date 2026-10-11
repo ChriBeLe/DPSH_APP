@@ -174,7 +174,7 @@
                 return buildMappaInquadramentoHtml({
                     centro: mappa.centro, zoom, provider: 'esri-satellite',
                     larghezzaMm: 140, altezzaMm: 140,
-                    pin: [{ lat: parseFloat(lat), lng: parseFloat(lng), numero: provaNr }],
+                    pin: [{ lat: parseFloat(lat), lng: parseFloat(lng), numero: provaNr, stile: typeof stileLivello === 'function' ? stileLivello('p:#' + provaNr) : null }],
                     etichette: showLabels !== false,
                     opacitaToponimi: labelsOpacity,
                     ingrandimentoToponimi: passi,

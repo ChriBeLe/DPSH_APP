@@ -109,6 +109,17 @@ const $ = (app, id) => app.d.getElementById(id);
   t('pannelli: più trasparenti, col contorno scuro', pezzi('vista3d-pannello').every(f => f.fo === 0.2 && f.stroke === '#111111'));
   t('tutto resta nel progetto salvato', /"stili":\{/.test(app.w.localStorage.getItem('dpsh_app_state') || ''));
 
+  // La figura dell'inquadramento nel report: le prove con lo stesso simbolo e la stessa etichetta.
+  const fig = app.E(`(() => { const P = ${P}, ids = Object.keys(P.surveys);
+    P.stili = { ['p:' + ids[0]]: { simbolo: 'quadrato', colore: '#2563eb', etichettaPosizione: 'destra', etichetta: 'sfondo' } };
+    const punti = puntiProveDelProgetto(P), c = { lat: parseFloat(punti[0].lat), lng: parseFloat(punti[0].lng) };
+    return buildMappaInquadramentoHtml({ centro: c, zoom: 17, larghezzaMm: 160, altezzaMm: 110, pin: punti, etichette: false }); })()`);
+  const box = app.d.createElement('div'); box.innerHTML = fig;
+  const pin = Array.from(box.querySelectorAll('[data-pin-mappa]'));
+  t(`nel report: ogni prova col simbolo del suo stile (${pin.length}), non più il segnaposto rosso`, pin.length > 0 && pin.every(x => x.querySelector('svg polygon, svg circle')) && !/M12 2C7\.6 2 4 5\.6/.test(fig));
+  t('il simbolo proprio di una prova (quadrato blu) e la sua etichetta su sfondo, a destra', /fill="#2563eb"/.test(fig) && Array.from(box.querySelectorAll('[data-pin-etichetta]')).some(e => /background:rgba\(15,23,42/.test(e.getAttribute('style')) && /translate\(0,-50%\)/.test(e.getAttribute('style'))));
+  t('le altre col triangolo di base e «DPSH n» sopra', /fill="#dc2626"/.test(fig) && Array.from(box.querySelectorAll('[data-pin-etichetta]')).some(e => /^DPSH \d/.test(e.textContent) && /translate\(-50%,-100%\)/.test(e.getAttribute('style'))));
+
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`\n${ok} ok, ${ko} KO`);
