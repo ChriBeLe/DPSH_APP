@@ -354,6 +354,12 @@
                         foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true }));
                         document.getElementById('templateEditorHeaderZone').style.outline = '1px dashed #cbd5e1';
                     }
+                    // La carta intestata (071u), sotto a tutto: la prima pagina sulla prima del template.
+                    const vecchiaCarta = document.getElementById('templateEditorCarta');
+                    if (vecchiaCarta) vecchiaCarta.remove();
+                    const cartaEd = cartaDelTemplate(templateEditorState);
+                    aggiornaStileCarteEditor();
+                    if (foglioEditor && cartaEd) foglioEditor.insertAdjacentHTML('afterbegin', htmlCartaNelFoglio(cartaEd, (templateEditorState.activePageIdx || 0) === 0).replace('<div ', '<div id="templateEditorCarta" '));
                     // Il piè di pagina formattato, nella fascia del margine inferiore, come nell'export.
                     const vecchioPiede = document.getElementById('templateEditorFooterZone');
                     if (vecchioPiede) vecchioPiede.remove();

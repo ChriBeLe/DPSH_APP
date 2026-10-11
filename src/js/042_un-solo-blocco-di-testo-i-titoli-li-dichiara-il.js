@@ -467,6 +467,8 @@
                 if (titoliConvertiti > 0) console.info('Template: convertiti ' + titoliConvertiti + ' blocchi Titolo in blocchi Testo.');
                 const stileTesto = stileTestoDelTemplate(tpl);
                 templateEditorState = { templateId, pages, margins, stileTesto, footerShowPageNumber, headerEnabled, headerTutte, footerEnabled, activePageIdx: 0, ctx: null, manualZoom: null, pagesStripExpanded: true, undoStack: [], redoStack: [], redoStackScartato: [], previewMode: false, selectedBlockId: null, justSelectedAnimKey: null, pageSelectionMode: false, selectedPageIndices: [], gridGuidesVisible: false, pageHandlesVisible: false, previewProjectId: state.currentProjectId || null, previewSurveyId: null, flowSyncNecessario: true, avvisiOverflowPerBlocco: {}, verificaPagineReali: {} };
+                // La carta intestata (071u): del template, come i margini.
+                templateEditorState.cartaIntestata = tpl.cartaIntestata ? JSON.parse(JSON.stringify(tpl.cartaIntestata)) : null;
                 // Istantanea di riferimento per capire, alla chiusura, se ci sono modifiche non
                 // salvate (vedi templateEditorHasUnsavedChanges/richiediChiusuraTemplateEditor):
                 // stesso identico contenuto che salvaTemplateEditor scriverebbe sul template.
@@ -583,6 +585,7 @@
                 tpl.headerEnabled = !!templateEditorState.headerEnabled;
                 tpl.headerTutte = !!templateEditorState.headerTutte;
                 tpl.footerEnabled = !!templateEditorState.footerEnabled;
+                if (templateEditorState.cartaIntestata) tpl.cartaIntestata = templateEditorState.cartaIntestata; else delete tpl.cartaIntestata;
                 tpl.updatedAt = Date.now();
                 saveState();
                 chiudiTemplateEditor();
@@ -622,6 +625,7 @@
                     headerEnabled: !!templateEditorState.headerEnabled,
                     headerTutte: !!templateEditorState.headerTutte,
                     footerEnabled: !!templateEditorState.footerEnabled,
+                    cartaIntestata: templateEditorState.cartaIntestata || undefined,
                     createdAt: ora,
                     updatedAt: ora
                 };

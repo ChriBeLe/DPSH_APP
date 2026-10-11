@@ -132,7 +132,7 @@
              * con una riga sola o con dieci): sostituisce sia il vecchio buildPaginaRigheHtml sia il
              * ramo speciale per i blocchi flowable scritto nelle sessioni precedenti (ancora
              * presenti più sotto per ora, rimossi nella Fase 3 della riscrittura). */
-            async function costruisciPagineTemplateUnificato(pageDef, ctx, margins, provaNr, isLastOfDoc, headerEnabled, footerEnabled) {
+            async function costruisciPagineTemplateUnificato(pageDef, ctx, margins, provaNr, isLastOfDoc, headerEnabled, footerEnabled, carta) {
                 const { atomi, indiciForzati, margins: mrg } = await costruisciAtomiPaginaTemplate(pageDef, ctx, margins);
                 if (atomi.length === 0) return { pagine: [], pageCount: 0 };
                 // Fase A del piano di unificazione (vedi Piano_Riscrittura_Layout_Export.md e
@@ -185,7 +185,7 @@
                     // di pagina, fuori dal flusso, si disegna senza che il contenuto ci finisca
                     // sopra — e "bottom:0" del piè di pagina ora si appoggia al bordo interno del
                     // margine inferiore di QUESTO foglio, mai più al bordo di un blocco cresciuto.
-                    return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${riservaFooterMm}mm;">${corpo}</div></div>`;
+                    return `<div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMm}" data-tpl-page-label="${escapeHtmlDidascalia(pageLabel)}" style="font-family: var(--tpl-font, Arial, sans-serif);${stileSopra}">${htmlCartaNelFoglio(carta)}${intestazione}<div class="dpsh-sheet-inner" style="padding-bottom:${riservaFooterMm}mm;">${corpo}</div></div>`;
                 });
                 return { pagine, pageCount: pagine.length };
             }
@@ -553,7 +553,7 @@
                 // anche essere una figura, e comunque i riferimenti nel testo sono gia' risolti
                 // quando il documento viene consegnato al resto della catena.
                 const corpoNumerato = numeraFigureERisolviRiferimenti(corpoHtml);
-                let pagesHtml = (includiIndice ? buildIndiceReportCompletoHtml(proj, vociIndice, stileIndiceDelProgetto(proj)) : '') + corpoNumerato;
+                let pagesHtml = (includiIndice ? buildIndiceReportCompletoHtml(proj, vociIndice, stileIndiceDelProgetto(proj), cartaDelTemplate(state.reportTemplates[getReportTemplateIdPerProva(survList[0])]), (state.reportTemplates[getReportTemplateIdPerProva(survList[0])] || {}).margins) : '') + corpoNumerato;
                 // La numerazione arriva per ultima, quando il documento e' completo di indice:
                 // e' l'unico momento in cui il totale esiste davvero.
                 if (opzioni && opzioni.numeraPagine) pagesHtml = numeraPagineDocumento(pagesHtml);

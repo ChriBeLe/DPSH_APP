@@ -72,7 +72,7 @@
                 for (let i = 0; i < figure.length; i += 2) {
                     const capitolo = i === 0 ? 14 : 0;
                     const altezzaMm = Math.max(30, Math.min(larghezzaMm * ALTEZZA_TAVOLA_3D / LARGHEZZA_TAVOLA_3D, (utileMm - capitolo) / 2 - 14));
-                    fogli.push(`<div class="dpsh-sheet" data-tpl-page-label="Tavole" style="font-family: var(--tpl-font, Arial, sans-serif); padding:${mrgFoglio.top}mm ${mrgFoglio.right}mm ${mrgFoglio.bottom}mm ${mrgFoglio.left}mm; --margine-sotto:${mrgFoglio.bottom}mm;">${intestazione}`
+                    fogli.push(`<div class="dpsh-sheet" data-tpl-page-label="Tavole" style="font-family: var(--tpl-font, Arial, sans-serif); padding:${mrgFoglio.top}mm ${mrgFoglio.right}mm ${mrgFoglio.bottom}mm ${mrgFoglio.left}mm; --margine-sotto:${mrgFoglio.bottom}mm;">${htmlCartaNelFoglio(cartaDelTemplate(tpl))}${intestazione}`
                         + `<div class="dpsh-sheet-inner" style="padding-bottom:${riservaFooterMm}mm;">`
                         + (capitolo ? '<div class="tavole-report-capitolo">Tavole</div>' : '')
                         + figure.slice(i, i + 2).map(f => `<div class="tavola-report">`

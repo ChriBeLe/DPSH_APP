@@ -35,7 +35,8 @@
                     footerShowPageNumber: templateEditorState.footerShowPageNumber,
                     headerEnabled: templateEditorState.headerEnabled,
                     headerTutte: !!templateEditorState.headerTutte,
-                    footerEnabled: templateEditorState.footerEnabled
+                    footerEnabled: templateEditorState.footerEnabled,
+                    carta: (templateEditorState.cartaIntestata && templateEditorState.cartaIntestata.id) || null
                 });
             }
 

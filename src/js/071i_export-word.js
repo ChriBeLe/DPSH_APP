@@ -847,16 +847,19 @@
              * alle distanze del PDF. Le pagine con la stessa intestazione (di solito tutte) usano la
              * stessa parte: il logo sta nel file una volta sola. `distanzaTw` è la distanza
              * dell'intestazione dal bordo superiore, cioè «Intestazione: da bordo» di Word. */
-            async function intestazioneWord(ctx, intestazione, ri, rf) {
-                const chiave = intestazione.innerHTML;
+            async function intestazioneWord(ctx, intestazione, ri, rf, carta) {
+                const chiave = (intestazione ? intestazione.innerHTML : '') + '|' + (carta ? carta.length + carta.slice(-80) : '');
                 if (ctx.intestazioni.has(chiave)) return ctx.intestazioni.get(chiave);
                 // La fascia a tutta larghezza (data-tutta-pagina): un'immagine ANCORATA alla pagina,
                 // dietro al testo, come nella carta intestata fatta con Word. Nascosta con
                 // visibility (non display) perché il testo resti dov'è mentre si raccoglie il resto.
-                const fascia = intestazione.querySelector('img[data-tutta-pagina]');
-                const ancora = fascia ? immagineAncorataWord(ctx, fascia, rf) : '';
+                // La carta intestata (071u) è lo stesso, a pagina intera: in Word sta nell'intestazione
+                // dietro al testo, ed è così che Word stesso fa le carte intestate.
+                const fascia = intestazione ? intestazione.querySelector('img[data-tutta-pagina]') : null;
+                let ancora = carta ? ancoraWord(ctx, carta, 0, 0, rf.width, rf.height, 'Carta intestata') : '';
+                if (fascia) ancora += immagineAncorataWord(ctx, fascia, rf);
                 if (fascia) fascia.style.visibility = 'hidden';
-                const foglie = raccogliFoglieWord(ctx, intestazione, [], [intestazione]).filter(f => f.tipo !== 'vuoto');
+                const foglie = intestazione ? raccogliFoglieWord(ctx, intestazione, [], [intestazione]).filter(f => f.tipo !== 'vuoto') : [];
                 if (fascia) fascia.style.visibility = '';
                 if (!foglie.length && !ancora) return null;
                 const y0 = foglie.length ? Math.min(...foglie.map(f => f.r.y)) : rf.top;
@@ -882,19 +885,34 @@
                 const rapporto = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : r.width / Math.max(1, r.height);
                 const w = Math.min(r.width, r.height * rapporto), h = w / rapporto;
                 const x = r.left - rf.left + (r.width - w) / 2, y = r.top - rf.top;
+                return ancoraWord(ctx, img.getAttribute('src'), x, y, w, h, 'Intestazione');
+            }
+            /** Un'immagine (data URL) ancorata alla pagina, dietro al testo: x, y, w, h in px del foglio. */
+            function ancoraWord(ctx, src, x, y, w, h, etichetta) {
+                const m = /^data:image\/(png|jpe?g|gif);base64,/i.exec(src || '');
+                if (!m) return '';
                 const id = ctx.idDisegno++;
                 const estensione = m[1].toLowerCase() === 'jpg' ? 'jpeg' : m[1].toLowerCase();
                 const nome = `immagine${id}.${estensione}`;
-                ctx.media.push({ nome, bytes: dataUrlToUint8Array(img.getAttribute('src')).bytes, rid: 'rIdImg' + id, estensione });
+                ctx.media.push({ nome, bytes: dataUrlToUint8Array(src).bytes, rid: 'rIdImg' + id, estensione });
                 const cx = Math.round(w * PX_EMU), cy = Math.round(h * PX_EMU);
                 return `<w:r><w:rPr><w:noProof/></w:rPr><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="${251658240 + id}" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1">`
                     + `<wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>${Math.round(x * PX_EMU)}</wp:posOffset></wp:positionH>`
                     + `<wp:positionV relativeFrom="page"><wp:posOffset>${Math.round(y * PX_EMU)}</wp:posOffset></wp:positionV>`
-                    + `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="${id}" name="Intestazione ${id}"/>`
+                    + `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="${id}" name="${etichetta || 'Intestazione'} ${id}"/>`
                     + `<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>`
                     + `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${nome}"/><pic:cNvPicPr/></pic:nvPicPr>`
                     + `<pic:blipFill><a:blip r:embed="rIdImg${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`
                     + `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
+            }
+
+            /** La carta intestata di un foglio (071u): l'immagine dello sfondo, come data URL. */
+            function cartaDelFoglioWord(foglio) {
+                const el = Array.from(foglio.children).find(c => c.classList && c.classList.contains('dpsh-carta'));
+                if (!el) return null;
+                const bg = (foglio.ownerDocument.defaultView || window).getComputedStyle(el).backgroundImage || '';
+                const m = /url\(["']?(data:image\/[^"')]+)["']?\)/.exec(bg);
+                return m ? m[1] : null;
             }
 
             /** Il riferimento all'intestazione nella sezione. Una sezione senza riferimento in Word
@@ -921,7 +939,8 @@
                 // prima stava nel corpo, e il margine superiore di Word diventava la posizione del
                 // logo, pochi millimetri; un doppio clic in alto non apriva niente.
                 const intestazione = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'intestazione' && !nascostoWord(ctx, c));
-                const parteIntestazione = intestazione ? await intestazioneWord(ctx, intestazione, ri, rf) : null;
+                const carta = cartaDelFoglioWord(foglio);
+                const parteIntestazione = intestazione || carta ? await intestazioneWord(ctx, intestazione, ri, rf, carta) : null;
                 const piedeFoglio = Array.from(foglio.children).find(c => c.getAttribute('data-blocco') === 'piede' && !nascostoWord(ctx, c));
                 const partePiede = piedeFoglio ? await piedeTemplateWord(ctx, piedeFoglio, ri, rf) : null;
                 let corpo;

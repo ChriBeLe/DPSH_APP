@@ -113,7 +113,7 @@
                         const pageDef = template.pages[idx];
                         const isUltimaPaginaDati = (idx === template.pages.length - 1);
                         const isLastOfDoc = isUltimaPaginaDati && !paginaDatiHaSeguito;
-                        const risultatoPagina = await costruisciPagineTemplateUnificato(pageDef, ctx, pageDef.margins || template.margins, provaNr, isLastOfDoc, !!template.headerEnabled, !!template.footerEnabled);
+                        const risultatoPagina = await costruisciPagineTemplateUnificato(pageDef, ctx, pageDef.margins || template.margins, provaNr, isLastOfDoc, !!template.headerEnabled, !!template.footerEnabled, cartaDelTemplate(template));
                         paginaDatiHtml += risultatoPagina.pagine.join('');
                         paginaDatiCountReale += risultatoPagina.pageCount;
                     }
