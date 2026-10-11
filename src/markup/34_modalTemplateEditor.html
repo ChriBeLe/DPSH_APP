@@ -98,161 +98,137 @@
                  (position:fixed, .mobile-open) invece della colonna laterale fissa: aperta dal FAB
                  #btnTemplateEditorMobileAddBlock e chiusa da btnCloseMobilePalette o toccando fuori.
                  Su desktop il bottone di chiusura resta invisibile e il comportamento è invariato. -->
-            <div id="templateEditorPaletteSidebar" style="width: 178px; flex-shrink: 0; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; overflow-y: auto;">
+            <div id="templateEditorPaletteSidebar" style="width: 216px; flex-shrink: 0; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; overflow-y: auto;">
                 <button type="button" id="btnCloseMobilePalette" class="tpl-editor-mobile-palette-close" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
-                <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 8px;">Blocchi disponibili</div>
+                <!-- LA BARRA LATERALE, IN ORDINE (segnalato: «che bordello è diventato questo menù»).
+                     Prima: dieci titoli in fila, stessi pesi, comandi della pagina mescolati a quelli
+                     del template, ogni margine su due righe, l'intestazione con otto controlli uno
+                     sotto l'altro. Ora quattro gruppi per AMBITO — dal più frequente al più raro — e
+                     ognuno si chiude: Blocchi (sempre aperti), Questa pagina, Foglio (tutte le
+                     pagine), Intestazione, Piè di pagina. Un gruppo chiuso dice nel titolo come sta
+                     (i margini, «Attiva»/«Spenta»), così non serve aprirlo per saperlo. Gli id sono
+                     quelli di prima: la logica (029, 035, 071s…) non cambia. -->
+                <div class="tpl-sez-titolo">Blocchi</div>
                 <div id="templateEditorPalette" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;"></div>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 8px;">
-                    <span style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px;">Colonne pagina</span>
-                    <button type="button" id="btnToggleGridGuides" title="Mostra guide di colonne e righe sul foglio" aria-pressed="false" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg class="ico" style="width: 12px; height: 12px;"><use href="#i-table"/></svg></button>
-                </div>
-                <select id="selTemplateEditorCols" class="form-control" style="padding: 5px 6px; font-size: 12px; width: 100%;">
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="6">6</option>
-                </select>
+                <details class="tpl-sez" data-tpl-sez="pagina" open>
+                    <summary><span>Questa pagina</span><svg class="ico tpl-sez-freccia"><use href="#i-chevron-down"/></svg></summary>
+                    <div class="tpl-sez-corpo">
+                        <div class="tpl-riga">
+                            <label for="selTemplateEditorCols">Colonne</label>
+                            <select id="selTemplateEditorCols" class="form-control tpl-campo-piccolo">
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="6">6</option>
+                            </select>
+                            <button type="button" id="btnToggleGridGuides" class="tpl-icona-bt" title="Mostra guide di colonne e righe sul foglio" aria-pressed="false"><svg class="ico"><use href="#i-table"/></svg></button>
+                        </div>
+                        <!-- Spaziatura verticale distribuita: per pagina (le pagine foto restano compatte in alto). -->
+                        <label class="tpl-spunta" title="Se la pagina non è piena, distribuisce lo spazio vuoto in mezzo alle righe invece di lasciarlo tutto sopra al piè di pagina">
+                            <input type="checkbox" id="chkPageDistribuisciSpazio"> Distribuisci le righe sulla pagina
+                        </label>
+                        <!-- Riordina: solo pulizia strutturale (righe vuote, segnaposto orfani), annullabile. -->
+                        <button type="button" class="btn-action tpl-bt" id="btnRiordinaPagina" title="Rimuove righe vuote e segnaposto di rowSpan orfani rimasti da spostamenti precedenti — non tocca le larghezze dei blocchi"><svg class="ico"><use href="#i-reset"/></svg> Riordina pagina</button>
+                        <!-- Layout suggeriti: nascosti del tutto quando non c'è nulla da suggerire. -->
+                        <div id="templateEditorLayoutSuggestionsSection" style="display:none;">
+                            <div class="tpl-sottotitolo">Layout suggeriti</div>
+                            <div id="templateEditorLayoutSuggestions" style="display:flex; flex-direction:column; gap:6px;"></div>
+                        </div>
+                    </div>
+                </details>
 
-                <!-- Margini pagina (richiesto esplicitamente: "inseriscimi dei comandi più facili
-                     per controllare anche dalla barra al lato sinistro quanto i margini influiscono
-                     ... universale per tutto il template" — le maniglie sul foglio (vedi
-                     renderManigliePaginaEditor/attivaTrascinamentoManigliaPagina) restano invariate
-                     e continuano a funzionare, questi 4 slider scrivono/leggono lo STESSO identico
-                     templateEditorState.margins, mai un valore per-pagina: è già così che i margini
-                     funzionano in questo editor (unica fonte di verità condivisa da ogni pagina e
-                     dall'export, vedi costruisciPagineTemplateUnificato/buildPaginaHeaderFooterHtml),
-                     qui è solo un accesso più comodo e leggibile dello stesso stato, niente di
-                     nuovo architetturalmente. Vedi sincronizzaControlliMarginiSidebar per
-                     l'aggiornamento delle label quando i margini cambiano da altrove (es. maniglie
-                     sul foglio, doppio tocco di reset). -->
-                <!-- MARGINI COME IN WORD: in centimetri con la virgola, con le preimpostazioni del menu
-                     «Margini» di Word (Layout › Margini). Il cursore resta per regolare a occhio. -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 4px;">
-                    <span style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px;">Margini</span>
-                    <button type="button" id="btnResetMarginiTemplate" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg class="ico" style="width: 12px; height: 12px;"><use href="#i-undo"/></svg></button>
-                </div>
-                <div style="font-size: 9.5px; color: var(--text-muted); line-height: 1.35; margin-bottom: 8px;">Valgono per l'intero template, tutte le pagine insieme — non solo quella che stai guardando ora.</div>
-                <!-- Da una relazione già fatta: margini, intestazione, piè di pagina e stile del testo (071s). -->
-                <button type="button" class="btn-action" id="btnImportaDaWord" style="width: 100%; font-size: 11px; padding: 6px 8px; margin-bottom: 6px;" title="Prende margini, intestazione, piè di pagina e stile del testo da un documento Word (.docx) dell'ufficio">Importa da un Word…</button>
-                <input type="file" id="fileImportaDaWord" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
-                <div class="margini-preimpostati" id="marginiPreimpostati">
-                    <button type="button" data-margini-preset="normale" title="Superiore 2,5 · Inferiore 2 · Sinistro 2 · Destro 2 cm">Normale</button>
-                    <button type="button" data-margini-preset="stretto" title="1,27 cm su tutti i lati">Stretto</button>
-                    <button type="button" data-margini-preset="moderato" title="Superiore e inferiore 2,54 · Sinistro e destro 1,91 cm">Moderato</button>
-                    <button type="button" data-margini-preset="largo" title="Superiore e inferiore 2,54 · Sinistro e destro 5,08 cm">Largo</button>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 4px;">
-                    <div>
-                        <div class="margine-riga">
+                <details class="tpl-sez" data-tpl-sez="foglio" open>
+                    <summary><span>Foglio <small>tutte le pagine</small></span><b class="tpl-sez-stato" id="statoSezFoglio"></b><svg class="ico tpl-sez-freccia"><use href="#i-chevron-down"/></svg></summary>
+                    <div class="tpl-sez-corpo">
+                        <!-- Da una relazione già fatta: margini, intestazione, piè di pagina e stile del testo (071s). -->
+                        <button type="button" class="btn-action tpl-bt" id="btnImportaDaWord" title="Prende margini, intestazione, piè di pagina e stile del testo da un documento Word (.docx) dell'ufficio"><svg class="ico"><use href="#i-upload"/></svg> Importa da un Word…</button>
+                        <input type="file" id="fileImportaDaWord" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
+                        <!-- MARGINI COME IN WORD: in cm con la virgola, le preimpostazioni del menu Margini di
+                             Word, il cursore per regolare a occhio. Stesso templateEditorState.margins delle
+                             maniglie sul foglio (sincronizzaControlliMarginiSidebar). -->
+                        <div class="tpl-sottotitolo tpl-sottotitolo-riga">
+                            <span>Margini <small>(cm)</small></span>
+                            <button type="button" id="btnResetMarginiTemplate" class="tpl-icona-bt" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)"><svg class="ico"><use href="#i-undo"/></svg></button>
+                        </div>
+                        <div class="margini-preimpostati" id="marginiPreimpostati">
+                            <button type="button" data-margini-preset="normale" title="Superiore 2,5 · Inferiore 2 · Sinistro 2 · Destro 2 cm">Normale</button>
+                            <button type="button" data-margini-preset="stretto" title="1,27 cm su tutti i lati">Stretto</button>
+                            <button type="button" data-margini-preset="moderato" title="Superiore e inferiore 2,54 · Sinistro e destro 1,91 cm">Moderato</button>
+                            <button type="button" data-margini-preset="largo" title="Superiore e inferiore 2,54 · Sinistro e destro 5,08 cm">Largo</button>
+                        </div>
+                        <div class="tpl-margini">
                             <label for="lblMargineTop">Superiore</label>
-                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineTop" class="margine-cm" data-margine-side="top" value="1,40" aria-label="Margine superiore in centimetri"> cm</span>
-                        </div>
-                        <input type="range" id="rangeMargineTop" data-margine-side="top" min="0" max="60" step="0.5" value="14" style="width:100%; accent-color:var(--accent);">
-                    </div>
-                    <div>
-                        <div class="margine-riga">
+                            <input type="range" id="rangeMargineTop" data-margine-side="top" min="0" max="60" step="0.5" value="14" aria-label="Margine superiore">
+                            <input type="text" inputmode="decimal" id="lblMargineTop" class="margine-cm" data-margine-side="top" value="1,40" aria-label="Margine superiore in centimetri">
                             <label for="lblMargineBottom">Inferiore</label>
-                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineBottom" class="margine-cm" data-margine-side="bottom" value="1,40" aria-label="Margine inferiore in centimetri"> cm</span>
-                        </div>
-                        <input type="range" id="rangeMargineBottom" data-margine-side="bottom" min="0" max="60" step="0.5" value="14" style="width:100%; accent-color:var(--accent);">
-                    </div>
-                    <div>
-                        <div class="margine-riga">
+                            <input type="range" id="rangeMargineBottom" data-margine-side="bottom" min="0" max="60" step="0.5" value="14" aria-label="Margine inferiore">
+                            <input type="text" inputmode="decimal" id="lblMargineBottom" class="margine-cm" data-margine-side="bottom" value="1,40" aria-label="Margine inferiore in centimetri">
                             <label for="lblMargineLeft">Sinistro</label>
-                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineLeft" class="margine-cm" data-margine-side="left" value="1,20" aria-label="Margine sinistro in centimetri"> cm</span>
-                        </div>
-                        <input type="range" id="rangeMargineLeft" data-margine-side="left" min="0" max="60" step="0.5" value="12" style="width:100%; accent-color:var(--accent);">
-                    </div>
-                    <div>
-                        <div class="margine-riga">
+                            <input type="range" id="rangeMargineLeft" data-margine-side="left" min="0" max="60" step="0.5" value="12" aria-label="Margine sinistro">
+                            <input type="text" inputmode="decimal" id="lblMargineLeft" class="margine-cm" data-margine-side="left" value="1,20" aria-label="Margine sinistro in centimetri">
                             <label for="lblMargineRight">Destro</label>
-                            <span class="margine-valore"><input type="text" inputmode="decimal" id="lblMargineRight" class="margine-cm" data-margine-side="right" value="1,20" aria-label="Margine destro in centimetri"> cm</span>
+                            <input type="range" id="rangeMargineRight" data-margine-side="right" min="0" max="60" step="0.5" value="12" aria-label="Margine destro">
+                            <input type="text" inputmode="decimal" id="lblMargineRight" class="margine-cm" data-margine-side="right" value="1,20" aria-label="Margine destro in centimetri">
                         </div>
-                        <input type="range" id="rangeMargineRight" data-margine-side="right" min="0" max="60" step="0.5" value="12" style="width:100%; accent-color:var(--accent);">
+                        <!-- Se l'intestazione è più alta del margine superiore, il foglio usa di più: lo si dice. -->
+                        <div id="notaMargineIntestazione" class="nota-margine" hidden></div>
                     </div>
-                </div>
-                <!-- Se l'intestazione è più alta del margine superiore, il foglio usa di più: lo si dice
-                     qui (sincronizzaControlliMarginiSidebar), invece di cambiarlo in silenzio. -->
-                <div id="notaMargineIntestazione" class="nota-margine" hidden></div>
+                </details>
 
-                <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Intestazione</div>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; margin-bottom: 6px;" title="Vale per l'intero template, non solo per questa pagina: se attiva, l'intestazione compare su ogni pagina.">
-                    <input type="checkbox" id="chkPageHeaderEnabled"> Mostra intestazione (tutte le pagine)
-                </label>
-                <div id="pageHeaderControls" style="display: none; flex-direction: column; gap: 5px;">
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer;" title="Immagine, testo e altezza dell'intestazione uguali su ogni pagina: cambiandoli su una pagina cambiano su tutte, e le pagine nuove li prendono già.">
-                        <input type="checkbox" id="chkHeaderTuttePagine"> Usa per tutte le pagine
-                    </label>
-                    <!-- «Intestazione: da bordo» di Word: dove comincia l'intestazione. Vale per il template. -->
-                    <div class="margine-riga" title="La distanza tra il bordo superiore del foglio e l'intestazione. Vale per tutte le pagine del template.">
-                        <label for="inputDistanzaIntestazione">Distanza dal bordo</label>
-                        <span class="margine-valore"><input type="text" inputmode="decimal" id="inputDistanzaIntestazione" class="margine-cm" value="0,30" aria-label="Distanza dell'intestazione dal bordo in centimetri"> cm</span>
+                <details class="tpl-sez" data-tpl-sez="intestazione">
+                    <summary><span>Intestazione</span><b class="tpl-sez-stato" id="statoSezIntestazione"></b><svg class="ico tpl-sez-freccia"><use href="#i-chevron-down"/></svg></summary>
+                    <div class="tpl-sez-corpo">
+                        <label class="tpl-spunta tpl-interruttore" title="Vale per l'intero template: se attiva, l'intestazione compare su ogni pagina.">
+                            <input type="checkbox" id="chkPageHeaderEnabled"> Mostra l'intestazione
+                        </label>
+                        <div id="pageHeaderControls" class="tpl-controlli" style="display: none;">
+                            <div class="tpl-sottotitolo">Immagine</div>
+                            <div class="tpl-immagine">
+                                <img id="previewHeaderImage" alt="Immagine dell'intestazione" style="display: none;">
+                                <button type="button" id="btnRemoveHeaderImage" class="tpl-icona-bt tpl-togli" title="Rimuovi l'immagine" aria-label="Rimuovi l'immagine" style="display: none;"><svg class="ico"><use href="#i-trash"/></svg></button>
+                            </div>
+                            <button type="button" class="btn-action tpl-bt" id="btnUploadHeaderImage"><svg class="ico"><use href="#i-image"/></svg> Carica immagine</button>
+                            <input type="file" id="fileHeaderImage" accept="image/*" style="display: none;">
+                            <label class="tpl-spunta" title="L'immagine va da bordo a bordo del foglio e parte dal bordo superiore, come la fascia di una carta intestata">
+                                <input type="checkbox" id="chkHeaderTuttaPagina"> A tutta larghezza (fascia)
+                            </label>
+                            <div class="tpl-sottotitolo">Testo</div>
+                            <input type="text" id="inputHeaderText" class="form-control tpl-campo" placeholder="Testo (opzionale)">
+                            <!-- Grassetto, colori, più righe, allineamento: lo stesso editor dei blocchi Testo. -->
+                            <button type="button" class="btn-action tpl-bt" id="btnFormattaIntestazione"><svg class="ico"><use href="#i-type"/></svg> Testo formattato…</button>
+                            <div class="tpl-sottotitolo">Posizione</div>
+                            <div class="tpl-riga" title="La distanza tra il bordo superiore del foglio e l'intestazione. Vale per tutte le pagine del template.">
+                                <label for="inputDistanzaIntestazione">Dal bordo</label>
+                                <span class="margine-valore"><input type="text" inputmode="decimal" id="inputDistanzaIntestazione" class="margine-cm" value="0,30" aria-label="Distanza dell'intestazione dal bordo in centimetri"> cm</span>
+                                <button type="button" class="tpl-chip" id="btnDistanzaIntestazioneWord" title="Come in Word: 1,25 cm dal bordo">Word</button>
+                            </div>
+                            <label class="tpl-spunta" title="Immagine, testo e altezza dell'intestazione uguali su ogni pagina: cambiandoli su una pagina cambiano su tutte, e le pagine nuove li prendono già.">
+                                <input type="checkbox" id="chkHeaderTuttePagine"> Uguale su tutte le pagine
+                            </label>
+                        </div>
                     </div>
-                    <button type="button" class="btn-action" id="btnDistanzaIntestazioneWord" style="font-size: 11px; padding: 6px 8px;">Come in Word (1,25 cm)</button>
-                    <button type="button" class="btn-action" id="btnUploadHeaderImage" style="font-size: 11px; padding: 6px 8px;">Carica immagine</button>
-                    <input type="file" id="fileHeaderImage" accept="image/*" style="display: none;">
-                    <img id="previewHeaderImage" style="display: none; max-width: 100%; max-height: 40px; border-radius: 4px; border: 1px solid var(--border); object-fit: contain;">
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer;" title="L'immagine va da bordo a bordo del foglio e parte dal bordo superiore, come la fascia di una carta intestata">
-                        <input type="checkbox" id="chkHeaderTuttaPagina"> Immagine a tutta larghezza
-                    </label>
-                    <button type="button" class="btn-action" id="btnRemoveHeaderImage" style="display: none; font-size: 10.5px; padding: 5px 8px; color: var(--danger);">Rimuovi immagine</button>
-                    <input type="text" id="inputHeaderText" class="form-control" placeholder="Testo sotto l'immagine (opzionale)" style="font-size: 11px; padding: 5px 6px;">
-                    <!-- Il testo con grassetto, colori, più righe e allineamento: lo stesso editor dei blocchi Testo. -->
-                    <button type="button" class="btn-action" id="btnFormattaIntestazione" style="font-size: 11px; padding: 6px 8px;">Testo formattato…</button>
-                </div>
+                </details>
 
-                <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Piè di pagina</div>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; margin-bottom: 6px;" title="Vale per l'intero template, non solo per questa pagina: se attivo, il piè di pagina compare su ogni pagina.">
-                    <input type="checkbox" id="chkPageFooterEnabled"> Mostra piè di pagina (tutte le pagine)
-                </label>
-                <div id="pageFooterControls" style="display: none; flex-direction: column; gap: 5px;">
-                    <input type="text" id="inputFooterText" class="form-control" placeholder="Testo piè di pagina" style="font-size: 11px; padding: 5px 6px;">
-                    <!-- Grassetto, colori, più righe, i contatti su più colonne (una tabella): nel margine inferiore. -->
-                    <button type="button" class="btn-action" id="btnFormattaPiede" style="font-size: 11px; padding: 6px 8px;">Testo formattato…</button>
-                    <div class="margine-riga" title="La distanza tra il bordo inferiore del foglio e il piè di pagina formattato. Vale per tutte le pagine del template.">
-                        <label for="inputDistanzaPiede">Distanza dal bordo</label>
-                        <span class="margine-valore"><input type="text" inputmode="decimal" id="inputDistanzaPiede" class="margine-cm" value="0,30" aria-label="Distanza del piè di pagina dal bordo in centimetri"> cm</span>
+                <details class="tpl-sez" data-tpl-sez="piede">
+                    <summary><span>Piè di pagina</span><b class="tpl-sez-stato" id="statoSezPiede"></b><svg class="ico tpl-sez-freccia"><use href="#i-chevron-down"/></svg></summary>
+                    <div class="tpl-sez-corpo">
+                        <label class="tpl-spunta tpl-interruttore" title="Vale per l'intero template: se attivo, il piè di pagina compare su ogni pagina.">
+                            <input type="checkbox" id="chkPageFooterEnabled"> Mostra il piè di pagina
+                        </label>
+                        <div id="pageFooterControls" class="tpl-controlli" style="display: none;">
+                            <input type="text" id="inputFooterText" class="form-control tpl-campo" placeholder="Testo del piè di pagina">
+                            <!-- Grassetto, colori, più righe, i contatti su più colonne (una tabella). -->
+                            <button type="button" class="btn-action tpl-bt" id="btnFormattaPiede"><svg class="ico"><use href="#i-type"/></svg> Testo formattato…</button>
+                            <div class="tpl-riga" title="La distanza tra il bordo inferiore del foglio e il piè di pagina formattato. Vale per tutte le pagine del template.">
+                                <label for="inputDistanzaPiede">Dal bordo</label>
+                                <span class="margine-valore"><input type="text" inputmode="decimal" id="inputDistanzaPiede" class="margine-cm" value="0,30" aria-label="Distanza del piè di pagina dal bordo in centimetri"> cm</span>
+                            </div>
+                            <!-- Il numero di pagina è del DOCUMENTO, non del template: si sceglie all'esportazione. -->
+                            <div class="tpl-nota">Il numero di pagina non si imposta più qui: si sceglie all'esportazione.</div>
+                        </div>
                     </div>
-                    <!-- L'INTERRUTTORE DEL NUMERO DI PAGINA E' STATO TOLTO DA QUI.
-                         Stava nel template, ma un template descrive UNA prova: la numerazione e'
-                         una proprieta' del DOCUMENTO, e un template che dice "numera" mentre un
-                         altro dice di no produrrebbe un fascicolo con la numerazione a chiazze.
-                         Per giunta l'export lo ignorava del tutto: l'interruttore c'era, e non
-                         faceva niente. Ora la scelta e' una sola, nella schermata di
-                         esportazione, e vale per tutte le pagine o per nessuna. -->
-                    <div style="font-size: 9.5px; color: var(--text-muted); line-height: 1.4; padding-left: 2px;">
-                        Il numero di pagina non si imposta piu' qui: e' una scelta del documento intero, nella schermata di esportazione.
-                    </div>
-                </div>
-
-                <!-- Spaziatura verticale distribuita (richiesta esplicitamente: "SI ASSOLUTAMENTE
-                     DA IMPLEMENTARE"): per pagina (come intestazione/piè di pagina), non globale —
-                     le pagine foto vogliono restare compatte in alto, invece una pagina "dati" con
-                     poche righe può approfittarne per riempire il foglio in modo più bilanciato
-                     invece di lasciare tutto il vuoto ammassato sopra al piè di pagina. Vedi
-                     renderTemplateEditorCanvas/buildPaginaRigheHtml per il meccanismo (entrambi
-                     condividono la stessa tecnica, per restare coerenti tra editor e stampa). -->
-                <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Spaziatura</div>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer;" title="Se la pagina non è piena, distribuisce lo spazio vuoto in mezzo alle righe invece di lasciarlo tutto sopra al piè di pagina">
-                    <input type="checkbox" id="chkPageDistribuisciSpazio"> Distribuisci righe sulla pagina
-                </label>
-
-                <!-- "Riordina automatico" (richiesto esplicitamente, "proviamolo"): SOLO pulizia
-                     strutturale (righe vuote, segnaposto di rowSpan orfani) — non tocca MAI le
-                     larghezze, quello è compito di "Bilancia riga" nel menu del blocco (vedi
-                     riordinaAutomaticoPagina). Annullabile come ogni altra modifica. -->
-                <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Sistema la pagina</div>
-                <button type="button" class="btn-action" id="btnRiordinaPagina" style="width: 100%; font-size: 11px; padding: 6px 8px;" title="Rimuove righe vuote e segnaposto di rowSpan orfani rimasti da spostamenti precedenti — non tocca le larghezze dei blocchi"><svg class="ico"><use href="#i-reset"/></svg> Riordina pagina</button>
-
-                <!-- Layout aurei (richiesto esplicitamente): coppie di blocchi ricorrenti rilevate
-                     sulla pagina attiva (vedi rilevaPatternLayoutPagina/renderSuggerimentiLayoutEditor)
-                     — nascosta del tutto quando non c'è nulla da suggerire. Un solo tocco affianca o
-                     ribilancia una coppia nota invece di richiedere un trascinamento manuale preciso. -->
-                <div id="templateEditorLayoutSuggestionsSection" style="display:none;">
-                    <div style="font-size: 9.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin: 16px 0 8px;">Layout suggeriti</div>
-                    <div id="templateEditorLayoutSuggestions" style="display:flex; flex-direction:column; gap:6px;"></div>
-                </div>
+                </details>
             </div>
 
             <!-- L'intera pagina A4 deve stare sempre visibile in un colpo d'occhio (mai da
