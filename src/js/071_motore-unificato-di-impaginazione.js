@@ -277,39 +277,48 @@
                 const doc = new DOMParser().parseFromString('<div id="r">' + (corpoHtml || '') + '</div>', 'text/html');
                 const fogli = Array.from(doc.getElementById('r').querySelectorAll('.dpsh-sheet'));
                 const voci = [];
-                let foglioCorrente = 0;
+                let foglioCorrente = 0, capitoloPrima = null;
                 (sezioni || []).forEach(sez => {
                     const primoFoglio = foglioCorrente;
                     const ultimoFoglio = foglioCorrente + (sez.pageCount || 1);
+                    const pagina = k => k + 1 + (offsetPagine || 0);
+                    // IL CAPITOLO CHE RACCOGLIE PIU' SEZIONI (segnalato: «le prove sono un capitolo
+                    // ciascuna anche nell'indice»). Le prove stanno sotto «Prove DPSH», le tavole
+                    // sotto il loro capitolo: una voce di primo livello in testa al gruppo, e tutto
+                    // quello che c'e' dentro scende di un livello. Nel documento non c'e' un titolo
+                    // in piu' (i fogli restano quelli): la voce punta al primo foglio del gruppo.
+                    if (sez.capitolo && sez.capitolo !== capitoloPrima && fogli[primoFoglio]) {
+                        fogli[primoFoglio].setAttribute('data-voce-capitolo', String(voci.length));
+                        fogli[primoFoglio].setAttribute('data-voce-capitolo-testo', sez.capitolo);
+                        voci.push({ etichetta: sez.capitolo, livello: 1, id: sez.id, pagina: pagina(primoFoglio) });
+                    }
+                    capitoloPrima = sez.capitolo || null;
+                    const giu = sez.capitolo ? 1 : 0;
+                    // Una sezione con la sua voce sempre (le tavole: «Modello 3D», poi le tavole sotto).
+                    const conVoce = !!sez.voceSempre;
+                    const voceSezione = () => {
+                        if (fogli[primoFoglio]) {
+                            fogli[primoFoglio].setAttribute('data-voce-indice', String(voci.length));
+                            fogli[primoFoglio].setAttribute('data-voce-testo', sez.etichetta || ('Prova N° ' + sez.numero));
+                            if (giu) fogli[primoFoglio].setAttribute('data-voce-livello', String(1 + giu));
+                        }
+                        voci.push({ etichetta: sez.etichetta || ('Prova N° ' + sez.numero), livello: 1 + giu, id: sez.id, numero: sez.numero, pagina: pagina(primoFoglio) });
+                    };
+                    if (conVoce) voceSezione();
                     const titoli = [];
                     for (let k = primoFoglio; k < ultimoFoglio && k < fogli.length; k++) {
                         fogli[k].querySelectorAll('[data-titolo-indice]').forEach(el => {
                             const testo = (el.textContent || '').replace(/\s+/g, ' ').trim();
                             if (!testo) return;
+                            const livello = Math.min(3, (parseInt(el.getAttribute('data-titolo-indice'), 10) || 1) + giu + (conVoce ? 1 : 0));
+                            // Il livello vero nel documento (il Word ne fa il livello del titolo).
+                            el.setAttribute('data-titolo-indice', String(livello));
                             el.setAttribute('data-voce-indice', String(voci.length + titoli.length));
-                            titoli.push({
-                                etichetta: testo,
-                                livello: parseInt(el.getAttribute('data-titolo-indice'), 10) || 1,
-                                id: sez.id,
-                                pagina: k + 1 + (offsetPagine || 0)
-                            });
+                            titoli.push({ etichetta: testo, livello, id: sez.id, pagina: pagina(k) });
                         });
                     }
-                    if (titoli.length > 0) {
-                        voci.push.apply(voci, titoli);
-                    } else {
-                        if (fogli[primoFoglio]) {
-                            fogli[primoFoglio].setAttribute('data-voce-indice', String(voci.length));
-                            fogli[primoFoglio].setAttribute('data-voce-testo', sez.etichetta || ('Prova N° ' + sez.numero));
-                        }
-                        voci.push({
-                            etichetta: sez.etichetta || ('Prova N° ' + sez.numero),
-                            livello: 1,
-                            id: sez.id,
-                            numero: sez.numero,
-                            pagina: primoFoglio + 1 + (offsetPagine || 0)
-                        });
-                    }
+                    if (titoli.length > 0) voci.push.apply(voci, titoli);
+                    else if (!conVoce) voceSezione();
                     foglioCorrente = ultimoFoglio;
                 });
                 return { voci, html: doc.getElementById('r').innerHTML };
@@ -472,6 +481,7 @@
                 return r.innerHTML;
             }
 
+            const CAPITOLO_PROVE = 'Prove DPSH', CAPITOLO_TAVOLE = 'Allegati grafici';
             async function buildCompleteReportHtml(projId, opzioni) {
                 if (!projId || !state.projects[projId]) return null;
                 const proj = state.projects[projId];
@@ -540,6 +550,8 @@
                     sezioni.push({
                         numero,
                         id: surv.id,
+                        // Le prove sono sottocapitoli di «Prove DPSH» (vedi raccogliVociIndice).
+                        capitolo: CAPITOLO_PROVE,
                         html: fieldResult.html,
                         pageCount: fieldResult.pageCount
                     });
@@ -550,7 +562,10 @@
                 if (opzioni && opzioni.includiTavole) {
                     const tplPrima = state.reportTemplates[getReportTemplateIdPerProva(survList[0])];
                     const tavole = await capitoloTavoleHtml(proj, tplPrima, opzioni.onAvanzamento);
-                    if (tavole) sezioni.push({ numero: '', id: '__tavole__', etichetta: 'Tavole', html: tavole.html, pageCount: tavole.pageCount });
+                    // Un capitolo a sé («Allegati grafici», o come lo si è chiamato) con due
+                    // sottocapitoli, Modello 3D e Sezioni 2D, e sotto ciascuno le sue tavole.
+                    const capitolo = (opzioni.capitoloTavole || (proj.tavole3d && proj.tavole3d.capitolo) || CAPITOLO_TAVOLE).trim() || CAPITOLO_TAVOLE;
+                    if (tavole) tavole.sezioni.forEach(t => sezioni.push(Object.assign({ numero: '', capitolo, voceSempre: true }, t)));
                 }
 
                 // Pagina indice: se inclusa sta davanti a tutto ma NON si conta: la numerazione

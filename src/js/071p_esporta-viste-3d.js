@@ -598,6 +598,12 @@
                 T3('tavole3dPiantaPos').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pianta === tavole3d.pianta)));
                 const el = mem.elementi || {};
                 [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa'], ['tavole3dSpigoli', 'spigoli'], ['tavole3dMesh', 'mesh']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
+                // Lo sfondo, la mappa di base e l'esagerazione scelti qui (o dal template) l'ultima volta.
+                const op = mem.opzioni || {};
+                if (op.sfondo) { tavole3d.sfondo = op.sfondo; T3('tavole3dSfondo').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sfondo === op.sfondo))); }
+                if (typeof op.basemap === 'boolean') { T3('tavole3dBasemap').checked = op.basemap; sel.disabled = !op.basemap; }
+                if (op.ex) T3('tavole3dEsag').value = op.ex;
+                renderTemplateTavole3d();
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
@@ -1211,3 +1217,47 @@
                     });
                 });
             })();
+
+            // ---- I template di tavole (071r): Applica, Salva come template, Elimina ----
+            function renderTemplateTavole3d(scelto) {
+                const sel = T3('tavole3dTemplate'), esc = escapeHtmlDidascalia;
+                if (!sel) return;
+                const prima = scelto || sel.value || 'tav_standard';
+                sel.innerHTML = elencoTemplateTavole().map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+                sel.value = templateTavole(prima) ? prima : 'tav_standard';
+                const t = templateTavole(sel.value);
+                T3('tavole3dEliminaTemplate').hidden = !t || !!t.builtIn;
+            }
+            T3('tavole3dTemplate').addEventListener('change', () => renderTemplateTavole3d());
+            T3('tavole3dApplicaTemplate').addEventListener('click', () => {
+                const t = templateTavole(T3('tavole3dTemplate').value), d = datiVista3dCorrenti;
+                if (!t || !d) return;
+                salvaMemoriaTavole3d();
+                const mem = memoriaTavole3d();
+                Object.assign(mem, memoriaConTemplate(mem, t, vociEsportazione3d(d)));
+                apriTavole3d();
+                renderTemplateTavole3d(t.id);
+                mostraToast(`Template «${t.name}» applicato`);
+            });
+            T3('tavole3dSalvaTemplate').addEventListener('click', async () => {
+                const nome = await appPrompt('', 'Le mie tavole', { title: 'Salva come template di tavole', label: 'Nome del template', okLabel: 'Salva' });
+                if (!nome || !nome.trim()) return;
+                salvaMemoriaTavole3d();
+                if (!state.tavoleTemplates) state.tavoleTemplates = {};
+                const gia = Object.values(state.tavoleTemplates).find(t => t.name === nome.trim());
+                const id = gia ? gia.id : 'tav_' + Date.now().toString(36);
+                state.tavoleTemplates[id] = { id, name: nome.trim(), regole: regoleDallaMemoria(memoriaTavole3d(), tavole3d.voci), aggiornato: Date.now() };
+                saveState();
+                renderTemplateTavole3d(id);
+                mostraToast(gia ? `Template «${nome.trim()}» aggiornato` : `Template «${nome.trim()}» salvato`);
+            });
+            T3('tavole3dEliminaTemplate').addEventListener('click', async () => {
+                const t = templateTavole(T3('tavole3dTemplate').value);
+                if (!t || t.builtIn) return;
+                const ok = await appDialog(`Eliminare il template di tavole «${t.name}»? I progetti che lo usano nel report tornano alle impostazioni della finestra «Tavole».`, { confirm: true, title: 'Elimina template', danger: true, okLabel: 'Elimina' });
+                if (!ok) return;
+                delete state.tavoleTemplates[t.id];
+                Object.values(state.projects || {}).forEach(p => { if (p.tavole3d && p.tavole3d.templateReport === t.id) delete p.tavole3d.templateReport; });
+                saveState();
+                renderTemplateTavole3d('tav_standard');
+            });

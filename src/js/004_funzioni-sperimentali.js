@@ -152,6 +152,8 @@
                     state.indiceTemplates = { ...state.indiceTemplates, ...parsed.indiceTemplates };
                 }
                 if (!state.indiceTemplates) state.indiceTemplates = {};
+                // I template delle tavole (071r): le impostazioni della finestra «Tavole» da riusare.
+                if (parsed.tavoleTemplates && typeof parsed.tavoleTemplates === 'object') state.tavoleTemplates = parsed.tavoleTemplates;
                 if (!state.indiceTemplates.idx_classico) {
                     state.indiceTemplates.idx_classico = { id: 'idx_classico', name: 'Classico', builtIn: true, mostraPagina: true, font: 'Times New Roman', divisore: 'punti', gutter: false, numero: { pt: 11, peso: 700 }, titolo: { pt: 20, peso: 800 }, titoloTesto: 'Indice', pagina: { pt: 11, peso: 400 }, coloreTesto: '#1e293b', coloreDivisore: '#cbd5e1',
                         livelli: { h1: { pt: 13, rientroMm: 0, peso: 700, corsivo: false }, h2: { pt: 11.5, rientroMm: 6, peso: 400, corsivo: false }, h3: { pt: 10.5, rientroMm: 12, peso: 400, corsivo: true } } };
