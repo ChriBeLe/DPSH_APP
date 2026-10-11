@@ -1197,3 +1197,17 @@
             window.addEventListener('resize', () => { if (!T3('tavole3d').hidden) ridisegnaTavola3d(); });
             // Da dove si apre: il tasto «Tavole» della mappa del progetto e quello della scheda Sezioni.
             T3('btnTavole3d').addEventListener('click', () => apriTavole3d(false));
+
+            // I gruppi dei comandi delle tavole restano aperti o chiusi come li si è lasciati.
+            (() => {
+                const CHIAVE = 'dpsh_tavole_gruppi';
+                let mem = {};
+                try { mem = JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) { mem = {}; }
+                document.querySelectorAll('#tavole3d details[data-tavole-gruppo]').forEach(d => {
+                    if (typeof mem[d.dataset.tavoleGruppo] === 'boolean') d.open = mem[d.dataset.tavoleGruppo];
+                    d.addEventListener('toggle', () => {
+                        mem[d.dataset.tavoleGruppo] = d.open;
+                        try { localStorage.setItem(CHIAVE, JSON.stringify(mem)); } catch (e) { /* senza memoria va bene lo stesso */ }
+                    });
+                });
+            })();

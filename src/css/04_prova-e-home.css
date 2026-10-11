@@ -852,7 +852,23 @@
         .tavole-viste .tavole-rbt[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
         .tavole-viste b:not(:empty)::before { content: '· '; font-weight: 600; }
         .tavole-aiuto { flex: 1; min-width: 200px; font-size: 11px; color: var(--text-muted); text-align: right; }
-        .tavole-comandi { display: flex; flex-direction: column; gap: 12px; padding: 6px 14px 14px; border-left: 1px solid var(--border); overflow-y: auto; }
+        .tavole-comandi { display: flex; flex-direction: column; gap: 8px; padding: 6px 14px 14px; border-left: 1px solid var(--border); overflow: hidden; min-height: 0; }
+        /* i comandi a gruppi richiudibili; Esporta sempre in fondo, fuori dallo scorrimento */
+        .tavole-comandi-corpo { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; margin: 0 -6px; padding: 0 6px; }
+        .tavole-gruppo { border-top: 1px solid var(--border); }
+        .tavole-gruppo:first-child { border-top: none; }
+        .tavole-gruppo > summary { list-style: none; display: flex; align-items: center; gap: 6px; padding: 11px 0 9px; cursor: pointer; user-select: none;
+            font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+        .tavole-gruppo > summary::-webkit-details-marker { display: none; }
+        .tavole-gruppo > summary > span { flex: 1; }
+        .tavole-gruppo > summary:hover { color: var(--text-main); }
+        .tavole-gruppo-freccia { width: 14px; height: 14px; transition: transform .15s; transform: rotate(-90deg); }
+        .tavole-gruppo[open] .tavole-gruppo-freccia { transform: none; }
+        .tavole-gruppo-corpo { display: flex; flex-direction: column; gap: 12px; padding-bottom: 14px; }
+        .tavole-comandi-piede { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .tavole-comandi-piede .t-didascalia:empty { display: none; }
+        /* quello che non vale per la pagina scelta (la pianta e le prove, solo per le sezioni 2D) non si vede */
+        .tavole-comandi [hidden] { display: none !important; }
         .tavole-comandi-testa { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
         .tavole-campo { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
         .tavole-campo.tavole-riga { flex-direction: row; align-items: center; justify-content: space-between; }
@@ -863,7 +879,7 @@
         .tavole-spunta { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .tavole-spunta input { width: 16px; height: 16px; accent-color: var(--accent); }
         .tavole-avviso { color: var(--warning, #b45309); }
-        .tavole-azioni { margin-top: auto; display: flex; gap: 8px; }
+        .tavole-azioni { display: flex; gap: 8px; }
         .tavole-azioni .bt { flex: 1; }
         @media (max-width: 900px) {
             .tavole-anteprima { padding: 0; }
@@ -1063,3 +1079,31 @@
         #templateEditorPageFrame .tpl-intestazione-testo p, #templateEditorPageFrame .tpl-piede-testo p { margin: 0; text-indent: 0; }
         #templateEditorPageFrame .tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         #templateEditorPageFrame .tpl-piede-testo td, #templateEditorPageFrame .tpl-piede-testo th { border: none; padding: 0 1.5mm; vertical-align: top; }
+
+        /* LA FINESTRA DI ESPORTAZIONE DEL REPORT (029): sezioni con lo stesso titolo, righe uguali */
+        .esp-corpo { margin-top: 12px; display: flex; flex-direction: column; gap: 14px; }
+        .esp-sez { display: flex; flex-direction: column; gap: 8px; }
+        .esp-titolo { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; }
+        .esp-titolo b { font-size: 12px; color: var(--text-main); letter-spacing: 0; }
+        .esp-titolo-azioni { display: flex; gap: 10px; text-transform: none; letter-spacing: 0; }
+        .esp-link { font: inherit; font-size: 11px; font-weight: 700; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
+        .esp-link-tenue { color: var(--text-muted); }
+        .esp-lista { display: flex; flex-direction: column; gap: 2px; max-height: 210px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px; background: var(--bg-main); }
+        .esp-riga-template, .esp-sotto { display: flex; align-items: center; gap: 6px; }
+        .esp-sotto { padding-left: 28px; margin-top: -2px; }
+        .esp-etichetta { font-size: 11px; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+        .esp-select { flex: 1; min-width: 0; padding: 5px 6px !important; font-size: 11.5px !important; }
+        .esp-chip { flex-shrink: 0; white-space: nowrap; font: inherit; font-size: 11px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
+        .esp-icona { flex-shrink: 0; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; }
+        .esp-icona .ico { width: 14px; height: 14px; }
+        .esp-spunta { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; color: var(--text-main); cursor: pointer; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 10px; }
+        .esp-spunta input { margin: 0; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
+        .esp-spunta small { color: var(--text-muted); font-weight: 500; font-size: 11.5px; }
+        .esp-cursore { width: 100%; accent-color: var(--accent); }
+        .esp-estremi { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: -4px; }
+        .esp-stima { display: flex; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 10px 12px; }
+        .esp-stima > div { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+        .esp-stima > div + div { border-left: 1px solid var(--accent); }
+        .esp-stima b { font-weight: 800; font-size: 16px; color: var(--accent-ink); }
+        .esp-stima span { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+        .esp-genera { width: 100%; padding: 12px !important; font-weight: 800 !important; font-size: 13.5px !important; background: var(--accent) !important; color: var(--on-accent) !important; border: none !important; }

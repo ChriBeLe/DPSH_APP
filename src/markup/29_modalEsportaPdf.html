@@ -5,7 +5,7 @@
          generare, poi una barra di avanzamento durante la generazione vera e propria — vedi
          apriEsportazionePdfModal/avviaGenerazioneEsportazionePdf. -->
     <div class="modal-overlay" id="modalEsportaPdfOverlay"></div>
-    <div class="modal" id="modalEsportaPdf" style="max-width:420px;">
+    <div class="modal" id="modalEsportaPdf" style="max-width:460px;">
         <!-- .modal-header non è mai esistita come classe in questo file (solo .modal-title, vedi
              tutte le altre modali) e #i-close non esiste nello sprite icone (solo #i-x): senza
              flex/gap la riga titolo+chiudi collassava e l'icona non si vedeva, lasciando solo un
@@ -21,80 +21,59 @@
             </span>
             <button class="btn-icon" id="btnCloseEsportaPdfModal" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div id="esportaPdfBodyOpzioni" style="margin-top:14px;">
-            <div id="esportaPdfListaProveWrap" style="display:none; margin-bottom:12px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
-                    <div style="font-size:9.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">Prove da includere</div>
-                    <div style="display:flex; gap:8px;">
-                        <button type="button" id="btnEsportaPdfSelezionaTutte" style="font-size:10.5px; font-weight:700; color:var(--accent); background:none; border:none; cursor:pointer; padding:0;">Tutte</button>
-                        <button type="button" id="btnEsportaPdfDeselezionaTutte" style="font-size:10.5px; font-weight:700; color:var(--text-muted); background:none; border:none; cursor:pointer; padding:0;">Nessuna</button>
-                    </div>
+        <!-- IN ORDINE (come la barra dell'editor del template): tre sezioni, dal «cosa» al «come» —
+             Contenuto (capitolo introduttivo, prove col loro template, tavole), Impaginazione (indice,
+             numeri di pagina), Immagini (qualità delle foto) — e in fondo la stima e Genera. Gli id
+             sono quelli di prima: il 045 non cambia. -->
+        <div id="esportaPdfBodyOpzioni" class="esp-corpo">
+            <section id="esportaPdfListaProveWrap" class="esp-sez" style="display:none;">
+                <div class="esp-titolo"><span>Contenuto del documento</span>
+                    <span class="esp-titolo-azioni">
+                        <button type="button" id="btnEsportaPdfSelezionaTutte" class="esp-link">Tutte</button>
+                        <button type="button" id="btnEsportaPdfDeselezionaTutte" class="esp-link esp-link-tenue">Nessuna</button>
+                    </span></div>
+                <div id="esportaPdfListaProve" class="esp-lista"></div>
+                <!-- Lo stesso template a TUTTE le prove in un clic; il menu di ogni riga resta per l'eccezione. -->
+                <div class="esp-riga-template">
+                    <span class="esp-etichetta">Template per tutte</span>
+                    <select id="selEsportaPdfTemplateBulk" class="form-control esp-select"></select>
+                    <button type="button" id="btnEsportaPdfApplicaTemplateTutte" class="esp-chip">Applica a tutte</button>
+                    <button type="button" class="esp-icona" id="btnEsportaPdfGestisciTemplate" title="Gestisci template" aria-label="Gestisci template"><svg class="ico"><use href="#i-settings"/></svg></button>
                 </div>
-                <div id="esportaPdfListaProve" style="display:flex; flex-direction:column; gap:4px; max-height:190px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px;"></div>
-                <!-- Fusa qui dentro la vecchia schermata separata "TEMPLATE REPORT PDF (PER PROVA)"
-                     (richiesto esplicitamente: tenere pulita la schermata di scelta dei formati),
-                     più la scelta massiva richiesta esplicitamente ("permettimi di selezionare in
-                     un colpo solo un unico template"): il select qui applica lo stesso template a
-                     TUTTE le prove del progetto in un click, il select per riga (dentro
-                     popolaListaProveEsportazionePdf) resta per l'eccezione singola. -->
-                <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
-                    <select id="selEsportaPdfTemplateBulk" class="form-control" style="flex:1; min-width:0; padding:5px 6px; font-size:11px;"></select>
-                    <button type="button" id="btnEsportaPdfApplicaTemplateTutte" style="font-size:10.5px; font-weight:700; color:var(--accent-ink); background:var(--accent-soft); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:5px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">Applica a tutte</button>
-                    <button type="button" class="btn-icon" id="btnEsportaPdfGestisciTemplate" title="Gestisci template" style="background:transparent; border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-muted); cursor:pointer; padding:4px 6px; flex-shrink:0;"><svg class="ico" style="width:14px; height:14px;"><use href="#i-settings"/></svg></button>
+            </section>
+
+            <section class="esp-sez">
+                <div class="esp-titolo"><span>Impaginazione</span></div>
+                <label id="esportaPdfIndiceRow" class="esp-spunta" style="display:none;">
+                    <input type="checkbox" id="chkEsportaPdfIndice">
+                    <span>Indice all'inizio <small>— cliccabile nel PDF</small></span>
+                </label>
+                <!-- I template indice (state.indiceTemplates), popolati in JS: si mostra con l'indice. -->
+                <div id="esportaPdfIndiceStileRow" class="esp-sotto" style="display:none;">
+                    <span class="esp-etichetta">Stile</span>
+                    <select id="selEsportaPdfIndiceStile" class="form-control esp-select"></select>
+                    <button type="button" id="btnEsportaPdfIndicePersonalizza" class="esp-chip">Personalizza…</button>
                 </div>
+                <!-- LA NUMERAZIONE E' UNA SCELTA DEL DOCUMENTO, NON DEL TEMPLATE: vale per tutte le pagine o
+                     per nessuna, e il totale e' quello vero perche' si conta a documento finito. -->
+                <label id="esportaPdfNumeriRow" class="esp-spunta">
+                    <input type="checkbox" id="chkEsportaPdfNumeriPagina">
+                    <span>Numera le pagine <small>— «Pagina X di Y» in fondo a ogni foglio</small></span>
+                </label>
+            </section>
+
+            <section class="esp-sez">
+                <div class="esp-titolo"><span>Qualità delle foto (JPEG)</span><b id="lblEsportaPdfQualitaValore">80%</b></div>
+                <input type="range" id="rangeEsportaPdfQualita" min="30" max="100" step="5" value="80" class="esp-cursore">
+                <div class="esp-estremi"><span>File più leggero</span><span>Qualità originale</span></div>
+            </section>
+
+            <div class="esp-stima">
+                <div><b id="lblEsportaPdfPagineStima">–</b><span>Pagine (stima)</span></div>
+                <div><b id="lblEsportaPdfPesoStima">–</b><span>Peso stimato</span></div>
             </div>
 
-            <!-- Spunta "Includi tabelle Parametri Avanzati" RIMOSSA (richiesto esplicitamente: "non
-                 serve a un cazzo"): ogni export in ambito progetto è sempre il Report Completo
-                 (Riepilogo/Dettagliata/Allegato inclusi), nessuna scelta più possibile. -->
-
-            <label id="esportaPdfIndiceRow" style="display:none; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--text-main); cursor:pointer; margin-bottom:8px; background:var(--bg-main); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 10px;">
-                <input type="checkbox" id="chkEsportaPdfIndice" style="margin:0; flex-shrink:0;">
-                <span style="flex:1;">Includi indice (cliccabile) all'inizio del PDF</span>
-            </label>
-            <!-- Elenco dei template indice reali (libreria state.indiceTemplates), popolato in JS —
-                 vedi apriEsportazionePdfModal. Stessa riga mostra/nascondi di esportaPdfIndiceRow
-                 qui sopra. -->
-            <div id="esportaPdfIndiceStileRow" style="display:none; align-items:center; gap:8px; font-size:11.5px; margin:0 0 12px; padding:0 2px;">
-                <span style="color:var(--text-muted); flex-shrink:0;">Stile:</span>
-                <select id="selEsportaPdfIndiceStile" style="flex:1; min-width:0; padding:5px 7px; font-size:11.5px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-main); color:var(--text-main);"></select>
-                <button type="button" id="btnEsportaPdfIndicePersonalizza" style="font-size:11px; font-weight:700; color:var(--accent-ink); background:var(--accent-soft); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:6px 9px; cursor:pointer; white-space:nowrap; flex-shrink:0;">Personalizza…</button>
-            </div>
-
-            <!-- LA NUMERAZIONE E' UNA SCELTA DEL DOCUMENTO, NON DEL TEMPLATE. Stava
-                 nell'editor dei template — dove pero' l'export la ignorava del tutto — e
-                 comunque li' avrebbe potuto valere per una prova e non per un'altra: un
-                 fascicolo con la numerazione a chiazze. Qui vale per tutte le pagine o per
-                 nessuna, e il totale e' quello vero perche' si conta a documento finito. -->
-            <label id="esportaPdfNumeriRow" style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--text-main); cursor:pointer; margin-bottom:12px; background:var(--bg-main); border:1px solid var(--border); border-radius:var(--radius-sm); padding:9px 10px;">
-                <input type="checkbox" id="chkEsportaPdfNumeriPagina" style="margin:0; flex-shrink:0;">
-                <span style="flex:1;">Numera le pagine <span style="color:var(--text-muted); font-weight:500;">— «Pagina X di Y» in fondo a ogni foglio</span></span>
-            </label>
-
-            <div style="margin-bottom:14px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; font-size:9.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px;">
-                    <span>Qualità foto (JPEG)</span>
-                    <span id="lblEsportaPdfQualitaValore" style="color:var(--text-main); font-size:12px;">80%</span>
-                </div>
-                <input type="range" id="rangeEsportaPdfQualita" min="30" max="100" step="5" value="80" style="width:100%;">
-                <div style="display:flex; justify-content:space-between; font-size:9.5px; color:var(--text-muted); margin-top:2px;">
-                    <span>File più leggero</span>
-                    <span>Qualità originale</span>
-                </div>
-            </div>
-
-            <div style="display:flex; gap:10px; background:var(--accent-soft); border:1px solid var(--accent); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">
-                <div style="flex:1; text-align:center;">
-                    <div id="lblEsportaPdfPagineStima" style="font-weight:800; font-size:16px; color:var(--accent-ink);">–</div>
-                    <div style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">Pagine (stima)</div>
-                </div>
-                <div style="flex:1; text-align:center; border-left:1px solid var(--accent);">
-                    <div id="lblEsportaPdfPesoStima" style="font-weight:800; font-size:16px; color:var(--accent-ink);">–</div>
-                    <div style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">Peso stimato</div>
-                </div>
-            </div>
-
-            <button type="button" id="btnEsportaPdfGenera" class="btn-action" style="width:100%; padding:12px; font-weight:800; font-size:13.5px; background:var(--accent); color:var(--on-accent); border:none;">
+            <button type="button" id="btnEsportaPdfGenera" class="btn-action esp-genera">
                 <svg class="ico"><use href="#i-print"/></svg> Genera PDF
             </button>
         </div>

@@ -41,75 +41,106 @@
                     <span class="tavole-aiuto" id="tavole3dAiuto">Trascina per girare · tasto destro o Maiusc per spostare · rotella per avvicinare · doppio clic: di nuovo inquadrata</span>
                 </div>
             </div>
+            <!-- I COMANDI, A GRUPPI (come la barra dell'editor del template): prima quello che vale per
+                 la pagina scelta, poi il foglio e il file, poi cosa si vede nella figura. Ogni gruppo si
+                 chiude e se lo ricorda; Esporta resta sempre in fondo, a portata. Gli id sono quelli di
+                 prima: il 071p non cambia. -->
             <aside class="tavole-comandi" aria-label="Esportazione">
                 <div class="tavole-comandi-testa"><b>Esporta le tavole</b>
                     <button type="button" class="chiudi-x" id="tavole3dChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button></div>
-                <div class="tavole-campo"><span>Formato</span>
-                    <div class="tavole-scelte" id="tavole3dFormato" role="radiogroup">
-                        <button type="button" data-formato="pdf" aria-pressed="true">PDF unico</button>
-                        <button type="button" data-formato="png" aria-pressed="false">Immagini PNG</button>
-                        <button type="button" data-formato="jpg" aria-pressed="false">Immagini JPG</button>
-                    </div></div>
-                <div class="tavole-campo"><span>Sfondo</span>
-                    <div class="tavole-scelte" id="tavole3dSfondo" role="radiogroup">
-                        <button type="button" data-sfondo="chiaro" aria-pressed="true">Chiaro</button>
-                        <button type="button" data-sfondo="scuro" aria-pressed="false">Scuro</button>
-                    </div></div>
-                <div class="tavole-campo" id="tavole3dPiantaBox" hidden><span>Ubicazione della sezione (pianta dal satellite)</span>
-                    <div class="tavole-scelte" id="tavole3dPiantaPos" role="radiogroup">
-                        <button type="button" data-pianta="sotto" aria-pressed="true">Sotto</button>
-                        <button type="button" data-pianta="sopra" aria-pressed="false">Sopra</button>
-                        <button type="button" data-pianta="no" aria-pressed="false">Nessuna</button>
-                    </div>
-                    <span class="t-didascalia">Si regola sull'anteprima, per ogni sezione: <b>trascina</b> la foto per spostarla, <b>rotella</b> per lo zoom, trascina la <b>maniglia</b> sull'angolo per cambiarne larghezza e altezza (o il bordo esterno, solo l'altezza); doppio clic: com'era. Serve la mappa di base. <button type="button" class="btn-link" id="tavole3dPiantaZoomReset">Com'era all'inizio</button></span></div>
-                <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione (distanza dalla traccia)</span>
-                    <label class="tavole-campo tavole-riga tavole-opacita-foto" title="Le prove entro questa distanza dalla traccia si proiettano sulla sezione">Entro <span><input type="range" id="tavole3dFascia" min="0" max="200" step="1" value="25" aria-label="Distanza massima delle prove dalla traccia, in metri"> <b id="tavole3dFasciaVal" style="white-space: nowrap">25 m</b></span></label>
-                    <div id="tavole3dProve" class="tavole-prove"></div>
-                    <span class="t-didascalia">Togli la spunta per lasciarla fuori (vale anche nella scheda Sezioni).</span></div>
-                <div class="tavole-campo"><span>Foglio</span>
-                    <div class="tavole-scelte" id="tavole3dCarta" role="radiogroup">
-                        <button type="button" data-carta="A4" aria-pressed="true">A4</button>
-                        <button type="button" data-carta="A3" aria-pressed="false">A3</button>
-                    </div>
-                    <div class="tavole-scelte" id="tavole3dVerso" role="radiogroup">
-                        <button type="button" data-verso="o" aria-pressed="true">Orizzontale</button>
-                        <button type="button" data-verso="v" aria-pressed="false">Verticale</button>
-                    </div></div>
-                <div class="tavole-campo"><span>Grandezza delle scritte</span>
-                    <div class="tavole-scelte" id="tavole3dScritte" role="radiogroup">
-                        <button type="button" data-scritte="1" aria-pressed="false">Piccole</button>
-                        <button type="button" data-scritte="1.3" aria-pressed="true">Medie</button>
-                        <button type="button" data-scritte="1.6" aria-pressed="false">Grandi</button>
-                        <button type="button" data-scritte="2" aria-pressed="false">Molto grandi</button>
-                    </div></div>
-                <div class="tavole-campo tavole-titolo"><span>Titolo di questa pagina</span>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dConTitolo" checked> Con il titolo</label>
-                    <input type="text" id="tavole3dTitolo" class="form-control" aria-label="Titolo della pagina" placeholder="automatico">
-                    <input type="text" id="tavole3dSottotitolo" class="form-control" aria-label="Sottotitolo della pagina" placeholder="Sottotitolo (se ti serve)">
-                    <span class="tavole-titolo-azioni"><button type="button" class="btn-link" id="tavole3dTitoloAuto" title="Torna al titolo automatico">Automatico</button>
-                        <button type="button" class="btn-link" id="tavole3dTitoliTutte" title="Titolo sì o no come questa, su tutte le pagine">Così su tutte</button></span></div>
-                <label class="tavole-spunta"><input type="checkbox" id="tavole3dBasemap" checked> Mappa di base sul terreno</label>
-                <select id="tavole3dFornitore" class="form-control" aria-label="Mappa di base"></select>
-                <div class="tavole-campo"><span>Elementi della tavola</span>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dLegenda" checked> Legenda</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dBussola" checked> Bussola (Nord sulla figura)</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dScala" checked> Scala metrica</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordPianta" checked> Nord sulla pianta (sezioni 2D)</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dSpigoli" checked> Spigoli del modello</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dMesh"> Mesh del modello (le righe dei triangoli)</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dTagliaMappa"> Ritaglia anche la mappa (sezioni 3D)</label>
-                    <label class="tavole-spunta"><input type="checkbox" id="tavole3dFotoSopra"> Foto satellitare sopra il modello (trasparente)</label>
-                    <label class="tavole-campo tavole-riga tavole-opacita-foto">Opacità della foto <span><input type="range" id="tavole3dOpacitaFoto" min="10" max="100" step="5" value="50"> <b id="tavole3dOpacitaFotoVal">50%</b></span></label>
-                    <span class="t-didascalia">Legenda, bussola, scala e freccia sul terreno si trascinano nell'anteprima. <button type="button" class="btn-link" id="tavole3dRiposiziona">Rimettili al loro posto</button></span>
+                <div class="tavole-comandi-corpo">
+                    <details class="tavole-gruppo" data-tavole-gruppo="pagina" open>
+                        <summary><span>Questa pagina</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
+                        <div class="tavole-gruppo-corpo">
+                            <div class="tavole-campo tavole-titolo"><span>Titolo di questa pagina</span>
+                                <label class="tavole-spunta"><input type="checkbox" id="tavole3dConTitolo" checked> Con il titolo</label>
+                                <input type="text" id="tavole3dTitolo" class="form-control" aria-label="Titolo della pagina" placeholder="automatico">
+                                <input type="text" id="tavole3dSottotitolo" class="form-control" aria-label="Sottotitolo della pagina" placeholder="Sottotitolo (se ti serve)">
+                                <span class="tavole-titolo-azioni"><button type="button" class="btn-link" id="tavole3dTitoloAuto" title="Torna al titolo automatico">Automatico</button>
+                                    <button type="button" class="btn-link" id="tavole3dTitoliTutte" title="Titolo sì o no come questa, su tutte le pagine">Così su tutte</button></span></div>
+                            <div class="tavole-campo" id="tavole3dPiantaBox" hidden><span>Ubicazione della sezione (pianta dal satellite)</span>
+                                <div class="tavole-scelte" id="tavole3dPiantaPos" role="radiogroup">
+                                    <button type="button" data-pianta="sotto" aria-pressed="true">Sotto</button>
+                                    <button type="button" data-pianta="sopra" aria-pressed="false">Sopra</button>
+                                    <button type="button" data-pianta="no" aria-pressed="false">Nessuna</button>
+                                </div>
+                                <span class="t-didascalia">Si regola sull'anteprima, per ogni sezione: <b>trascina</b> la foto per spostarla, <b>rotella</b> per lo zoom, trascina la <b>maniglia</b> sull'angolo per cambiarne larghezza e altezza (o il bordo esterno, solo l'altezza); doppio clic: com'era. Serve la mappa di base. <button type="button" class="btn-link" id="tavole3dPiantaZoomReset">Com'era all'inizio</button></span></div>
+                            <div class="tavole-campo" id="tavole3dProveBox" hidden><span>Prove in questa sezione (distanza dalla traccia)</span>
+                                <label class="tavole-campo tavole-riga tavole-opacita-foto" title="Le prove entro questa distanza dalla traccia si proiettano sulla sezione">Entro <span><input type="range" id="tavole3dFascia" min="0" max="200" step="1" value="25" aria-label="Distanza massima delle prove dalla traccia, in metri"> <b id="tavole3dFasciaVal" style="white-space: nowrap">25 m</b></span></label>
+                                <div id="tavole3dProve" class="tavole-prove"></div>
+                                <span class="t-didascalia">Togli la spunta per lasciarla fuori (vale anche nella scheda Sezioni).</span></div>
+                        </div>
+                    </details>
+                    <details class="tavole-gruppo" data-tavole-gruppo="foglio" open>
+                        <summary><span>Foglio e file</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
+                        <div class="tavole-gruppo-corpo">
+                            <div class="tavole-campo"><span>Formato</span>
+                                <div class="tavole-scelte" id="tavole3dFormato" role="radiogroup">
+                                    <button type="button" data-formato="pdf" aria-pressed="true">PDF unico</button>
+                                    <button type="button" data-formato="png" aria-pressed="false">Immagini PNG</button>
+                                    <button type="button" data-formato="jpg" aria-pressed="false">Immagini JPG</button>
+                                </div></div>
+                            <div class="tavole-campo"><span>Foglio</span>
+                                <div class="tavole-scelte" id="tavole3dCarta" role="radiogroup">
+                                    <button type="button" data-carta="A4" aria-pressed="true">A4</button>
+                                    <button type="button" data-carta="A3" aria-pressed="false">A3</button>
+                                </div>
+                                <div class="tavole-scelte" id="tavole3dVerso" role="radiogroup">
+                                    <button type="button" data-verso="o" aria-pressed="true">Orizzontale</button>
+                                    <button type="button" data-verso="v" aria-pressed="false">Verticale</button>
+                                </div></div>
+                            <div class="tavole-campo"><span>Grandezza delle scritte</span>
+                                <div class="tavole-scelte" id="tavole3dScritte" role="radiogroup">
+                                    <button type="button" data-scritte="1" aria-pressed="false">Piccole</button>
+                                    <button type="button" data-scritte="1.3" aria-pressed="true">Medie</button>
+                                    <button type="button" data-scritte="1.6" aria-pressed="false">Grandi</button>
+                                    <button type="button" data-scritte="2" aria-pressed="false">Molto grandi</button>
+                                </div></div>
+                            <div class="tavole-campo"><span>Sfondo</span>
+                                <div class="tavole-scelte" id="tavole3dSfondo" role="radiogroup">
+                                    <button type="button" data-sfondo="chiaro" aria-pressed="true">Chiaro</button>
+                                    <button type="button" data-sfondo="scuro" aria-pressed="false">Scuro</button>
+                                </div></div>
+                        </div>
+                    </details>
+                    <details class="tavole-gruppo" data-tavole-gruppo="mappa">
+                        <summary><span>Mappa di base</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
+                        <div class="tavole-gruppo-corpo">
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dBasemap" checked> Mappa di base sul terreno</label>
+                            <select id="tavole3dFornitore" class="form-control" aria-label="Mappa di base"></select>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dFotoSopra"> Foto satellitare sopra il modello (trasparente)</label>
+                            <label class="tavole-campo tavole-riga tavole-opacita-foto">Opacità della foto <span><input type="range" id="tavole3dOpacitaFoto" min="10" max="100" step="5" value="50"> <b id="tavole3dOpacitaFotoVal">50%</b></span></label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dTagliaMappa"> Ritaglia anche la mappa (sezioni 3D)</label>
+                        </div>
+                    </details>
+                    <details class="tavole-gruppo" data-tavole-gruppo="modello">
+                        <summary><span>Modello 3D</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
+                        <div class="tavole-gruppo-corpo">
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dSpigoli" checked> Spigoli del modello</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dMesh"> Mesh del modello (le righe dei triangoli)</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dFantasma" checked> Spigoli del pezzo tagliato (tratteggio)</label>
+                            <label class="tavole-campo tavole-riga"><span>Esagerazione verticale</span><input type="number" id="tavole3dEsag" class="form-control" min="1" max="50" step="1"></label>
+                        </div>
+                    </details>
+                    <details class="tavole-gruppo" data-tavole-gruppo="elementi">
+                        <summary><span>Elementi della tavola</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
+                        <div class="tavole-gruppo-corpo">
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dLegenda" checked> Legenda</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dBussola" checked> Bussola (Nord sulla figura)</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordTerreno" checked> Freccia del Nord sul terreno</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dScala" checked> Scala metrica</label>
+                            <label class="tavole-spunta"><input type="checkbox" id="tavole3dNordPianta" checked> Nord sulla pianta (sezioni 2D)</label>
+                            <span class="t-didascalia">Legenda, bussola, scala e freccia sul terreno si trascinano nell'anteprima. <button type="button" class="btn-link" id="tavole3dRiposiziona">Rimettili al loro posto</button></span>
+                        </div>
+                    </details>
                 </div>
-                <label class="tavole-campo tavole-riga"><span>Esagerazione verticale</span><input type="number" id="tavole3dEsag" class="form-control" min="1" max="50" step="1"></label>
-                <p class="t-didascalia" id="tavole3dRiepilogo"></p>
-                <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
-                <div class="tavole-azioni">
-                    <button type="button" class="bt" id="tavole3dAnnulla">Annulla</button>
-                    <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
+                <div class="tavole-comandi-piede">
+                    <p class="t-didascalia" id="tavole3dRiepilogo"></p>
+                    <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
+                    <div class="tavole-azioni">
+                        <button type="button" class="bt" id="tavole3dAnnulla">Annulla</button>
+                        <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
+                    </div>
                 </div>
             </aside>
         </div>
