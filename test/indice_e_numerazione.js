@@ -165,7 +165,7 @@ console.log('--- A QUALE figura: per ruolo, per blocco, o la seguente ---');
 
 console.log('--- Il cablaggio ---');
 t('l interruttore non e piu nel template', !src.includes('id="chkFooterPageNumber"'));
-t('e l editor lo dice, invece di lasciare un vuoto', /non si imposta piu.{0,4} qui/.test(src));
+t('e l editor lo dice, invece di lasciare un vuoto', /non si imposta pi[uù].{0,4} qui/.test(src));
 t('la scelta e nella schermata di esportazione', src.includes('id="chkEsportaPdfNumeriPagina"'));
 t('NASCE SPENTA', /numeraPagine: false/.test(src));
 t('e arriva davvero alla costruzione del documento', /numeraPagine: numeraPagineScelto/.test(src));
