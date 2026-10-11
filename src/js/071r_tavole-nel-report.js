@@ -7,13 +7,67 @@
 
             /** Le tavole da mettere nel report; null se il progetto non ha un modello 3D (nessuna
              * prova col GPS e con le letture) o se nella finestra sono state escluse tutte. */
+            // ---- I TEMPLATE DELLE TAVOLE ----
+            // Non le inquadrature di un cantiere (altrove non vorrebbero dire niente) ma le REGOLE:
+            // quali pagine (il modello verso Nord e verso Est, le sezioni 3D, le sezioni 2D), il
+            // foglio, le scritte, cosa si vede (legenda, bussola, scala, spigoli, mesh...), la mappa
+            // di base, la pianta sotto le sezioni. Si salvano dalla finestra «Tavole» e valgono in
+            // ogni progetto; il report completo li usa anche se la finestra non è mai stata aperta.
+            const TEMPLATE_TAVOLE_BASE = { id: 'tav_standard', name: 'Standard · A3 orizzontale', builtIn: true, regole: {
+                foglio: { carta: 'A3', verso: 'o', scritte: 1.3 }, sfondo: 'chiaro', basemap: true, opacitaFoto: 0.5, pianta: 'sotto',
+                elementi: { legenda: true, bussola: true, nordTerreno: true, scala: true, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false },
+                tipi: { 'iso-n': true, 'iso-e': true, sez3d: true, sez2d: true } } };
+            function elencoTemplateTavole() {
+                return [TEMPLATE_TAVOLE_BASE].concat(Object.values(state.tavoleTemplates || {}).sort((a, b) => String(a.name).localeCompare(String(b.name))));
+            }
+            const templateTavole = id => elencoTemplateTavole().find(t => t.id === id) || null;
+            /** Una pagina rientra fra quelle che il template vuole? */
+            const tipoNelTemplate = (tipi, v) => v.tipo === 'iso' ? (tipi || {})[v.id] !== false : (tipi || {})[v.tipo] !== false;
+            /** La memoria delle tavole di un progetto con le regole di un template sopra: le
+             * inquadrature, i titoli scritti a mano, le piante regolate e l'ordine restano. */
+            function memoriaConTemplate(mem, tpl, voci) {
+                const r = tpl.regole, el = Object.assign({}, TEMPLATE_TAVOLE_BASE.regole.elementi, r.elementi || {});
+                const m = Object.assign({}, mem);
+                m.foglio = Object.assign({ carta: 'A4', verso: 'o', scritte: 1.3 }, r.foglio || {});
+                m.elementi = el;
+                m.pianta = r.pianta || 'sotto';
+                m.opacitaFoto = r.opacitaFoto || 0.5;
+                m.escluse = (voci || []).filter(v => !tipoNelTemplate(r.tipi, v)).map(v => v.id);
+                m.opzioni = Object.assign({}, mem.opzioni || {}, {
+                    sfondo: r.sfondo || 'chiaro', basemap: !!r.basemap, legenda: el.legenda, nordTerreno: el.nordTerreno, fantasma: el.fantasma,
+                    fotoSopra: !!r.basemap && el.fotoSopra, spigoli: el.spigoli, mesh: el.mesh, tagliaMappa: el.tagliaMappa, opacitaFoto: m.opacitaFoto,
+                    scritte: m.foglio.scritte, elementi: { bussola: el.bussola, scala: el.scala }, nordPianta: el.nordPianta, pianta: m.pianta,
+                    piante: mem.piante || (mem.opzioni && mem.opzioni.piante) || {}, posizioni: mem.posizioni || (mem.opzioni && mem.opzioni.posizioni) || {}
+                }, r.ex ? { ex: r.ex } : {});
+                return m;
+            }
+            /** Le regole della finestra «Tavole» com'è adesso, per salvarle come template. */
+            function regoleDallaMemoria(mem, voci) {
+                const o = mem.opzioni || {}, esc = new Set(mem.escluse || []);
+                const presente = tipo => { const vv = voci.filter(v => v.tipo === tipo); return !vv.length || vv.some(v => !esc.has(v.id)); };
+                return {
+                    foglio: Object.assign({ carta: 'A4', verso: 'o', scritte: 1.3 }, mem.foglio || {}), sfondo: o.sfondo || 'chiaro', basemap: !!o.basemap,
+                    opacitaFoto: mem.opacitaFoto || o.opacitaFoto || 0.5, pianta: mem.pianta || 'sotto', ex: o.ex || null,
+                    elementi: Object.assign({}, TEMPLATE_TAVOLE_BASE.regole.elementi, mem.elementi || {}),
+                    tipi: { 'iso-n': !esc.has('iso-n'), 'iso-e': !esc.has('iso-e'), sez3d: presente('sez3d'), sez2d: presente('sez2d') }
+                };
+            }
+
+            /** Le tavole da mettere nel report; null se il progetto non ha un modello 3D (nessuna
+             * prova col GPS e con le letture) o se sono state escluse tutte. Con un template scelto
+             * per il report valgono le sue regole; se la finestra «Tavole» non è mai stata aperta,
+             * quelle del template di base (così il capitolo c'è comunque). */
             function datiTavoleReport(proj) {
                 let d = null;
                 try { d = proj ? datiVista3d(proj) : null; } catch (e) { d = null; }
                 if (!d) return null;
-                const mem = proj.tavole3d || {};
+                let mem = proj.tavole3d || {};
+                const tutte = vociEsportazione3d(d);
+                const maiAperta = !mem.foglio && !mem.opzioni && !Array.isArray(mem.escluse);
+                const tpl = mem.templateReport ? templateTavole(mem.templateReport) : (maiAperta ? TEMPLATE_TAVOLE_BASE : null);
+                if (tpl) mem = memoriaConTemplate(mem, tpl, tutte);
                 const escluse = new Set(mem.escluse || []);
-                let voci = vociEsportazione3d(d).filter(v => !escluse.has(v.id));
+                let voci = tutte.filter(v => !escluse.has(v.id));
                 // nell'ordine scelto nella finestra (le pagine nuove in fondo)
                 if (Array.isArray(mem.ordine)) { const o = mem.ordine, p = v => { const k = o.indexOf(v.id); return k < 0 ? o.length : k; }; voci = voci.map((v, i) => [v, i]).sort((a, b) => p(a[0]) - p(b[0]) || a[1] - b[1]).map(x => x[0]); }
                 return voci.length ? { d, voci, mem } : null;

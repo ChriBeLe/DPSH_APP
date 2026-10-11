@@ -52,7 +52,8 @@
              * per evitare che un click sul menu a tendina attivi/disattivi anche la spunta. */
             /** Il foglio delle tavole, a parole («A3 orizzontale»), come scelto nella finestra «Tavole». */
             function descriviFoglioTavole(proj) {
-                const f = Object.assign({ carta: 'A4', verso: 'o' }, (proj.tavole3d && proj.tavole3d.foglio) || {});
+                const dt = datiTavoleReport(proj);
+                const f = Object.assign({ carta: 'A4', verso: 'o' }, (dt && dt.mem.foglio) || (proj.tavole3d && proj.tavole3d.foglio) || {});
                 return `${f.carta} ${f.verso === 'v' ? 'verticale' : 'orizzontale'}`;
             }
             function popolaListaProveEsportazionePdf(proj) {
@@ -91,13 +92,18 @@
                             <input type="checkbox" id="chkEsportaPdfTavole" ${tavoleDisponibili && proj.tavole3d && proj.tavole3d.nelReport ? 'checked' : ''} ${tavoleDisponibili ? '' : 'disabled'} style="margin:0; flex-shrink:0;">
                             <span style="flex:1; min-width:0;">
                                 <span style="font-weight:700; color:var(--accent-ink);">Tavole 2D e 3D</span>
-                                <span style="color:var(--text-muted);"> · ${tavoleDisponibili ? `dopo le prove, un foglio ${descriviFoglioTavole(proj)} per tavola` : 'servono prove col GPS e con le letture'}</span>
+                                <span style="color:var(--text-muted);" id="lblEsportaPdfTavoleDesc"> · ${tavoleDisponibili ? `dopo le prove, un foglio ${descriviFoglioTavole(proj)} per tavola` : 'servono prove col GPS e con le letture'}</span>
                             </span>
                         </label>
                     </div>
                     ${tavoleDisponibili ? `<div class="esp-sotto" style="padding-left:30px; margin:2px 0 4px;"><span class="esp-etichetta">Capitolo</span>
                         <input type="text" id="inpEsportaPdfCapitoloTavole" class="form-control esp-select" value="${escapeHtmlDidascalia((proj.tavole3d && proj.tavole3d.capitolo) || 'Allegati grafici')}" list="lstCapitoloTavole" title="Il titolo del capitolo delle tavole nel documento e nell'indice: sotto ci sono «Modello 3D» e «Sezioni 2D»">
-                        <datalist id="lstCapitoloTavole"><option value="Allegati grafici"><option value="Tavole"><option value="Modellizzazione"><option value="Elaborati grafici"></datalist></div>` : ''}`;
+                        <datalist id="lstCapitoloTavole"><option value="Allegati grafici"><option value="Tavole"><option value="Modellizzazione"><option value="Elaborati grafici"></datalist></div>
+                    <div class="esp-sotto" style="padding-left:30px; margin:0 0 4px;"><span class="esp-etichetta">Regole</span>
+                        <select id="selEsportaPdfTemplateTavole" class="form-control esp-select" title="Quali tavole, su che foglio e con cosa: come le hai lasciate nella finestra «Tavole» di questo progetto, oppure un template di tavole">
+                            <option value="">Come nella finestra «Tavole»</option>
+                            ${elencoTemplateTavole().map(t => `<option value="${escapeHtmlDidascalia(t.id)}"${proj.tavole3d && proj.tavole3d.templateReport === t.id ? ' selected' : ''}>Template: ${escapeHtmlDidascalia(t.name)}</option>`).join('')}
+                        </select></div>` : ''}`;
                 esportaPdfListaProve.innerHTML = rigaIntroduzione + tutte.map(s => {
                     const nome = `Prova N° ${(s.header && s.header.provaNr) || '?'}`;
                     const sotto = (s.header && s.header.interpretazioneDi) ? 'interpretazione alternativa' : ((s.header && s.header.localita) || '');
@@ -136,6 +142,15 @@
                         aggiornaStimaEsportazionePdf();
                     });
                 }
+                const selTplTavole = document.getElementById('selEsportaPdfTemplateTavole');
+                if (selTplTavole) selTplTavole.addEventListener('change', () => {
+                    if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
+                    if (selTplTavole.value) proj.tavole3d.templateReport = selTplTavole.value; else delete proj.tavole3d.templateReport;
+                    saveState();
+                    const desc = document.getElementById('lblEsportaPdfTavoleDesc');
+                    if (desc) desc.textContent = ` · dopo le prove, un foglio ${descriviFoglioTavole(proj)} per tavola`;
+                    aggiornaStimaEsportazionePdf();
+                });
                 const inpCapitolo = document.getElementById('inpEsportaPdfCapitoloTavole');
                 if (inpCapitolo) inpCapitolo.addEventListener('change', () => {
                     if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };

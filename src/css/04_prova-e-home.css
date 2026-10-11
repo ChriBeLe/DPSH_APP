@@ -869,6 +869,8 @@
         .tavole-comandi-piede .t-didascalia:empty { display: none; }
         /* quello che non vale per la pagina scelta (la pianta e le prove, solo per le sezioni 2D) non si vede */
         .tavole-comandi [hidden] { display: none !important; }
+        .tavole-template { display: flex; gap: 6px; }
+        .tavole-template select { flex: 1; min-width: 0; }
         .tavole-comandi-testa { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
         .tavole-campo { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); }
         .tavole-campo.tavole-riga { flex-direction: row; align-items: center; justify-content: space-between; }

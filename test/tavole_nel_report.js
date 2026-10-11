@@ -87,6 +87,31 @@ const $ = (app, id) => app.d.getElementById(id);
   await attesa(40);
   t('senza prove col GPS la riga dice cosa serve e non si accende', $(app, 'chkEsportaPdfTavole').disabled && /servono prove col GPS/.test($(app, 'chkEsportaPdfTavole').parentElement.textContent));
 
+  // I TEMPLATE DI TAVOLE: le regole (non le inquadrature), da riusare in ogni progetto.
+  app.E(`Object.values(${P}.surveys).forEach((s, i) => { s.header.lat = 40.1968 + i * 0.0003; s.header.lng = 17.993 + i * 0.0004; })`);
+  app.E(`delete ${P}.tavole3d`);
+  t('mai aperta la finestra «Tavole»: il report usa il template di base (A3 orizzontale, tutte le pagine)', app.E(`JSON.stringify(datiTavoleReport(${P}).mem.foglio)`) === '{"carta":"A3","verso":"o","scritte":1.3}' && app.E(`datiTavoleReport(${P}).voci.length`) === voci.length);
+  app.E(`${P}.tavole3d = { regola: { 'iso-n': { dAz: 0.3 } }, escluse: ['iso-e'], foglio: { carta: 'A4', verso: 'v', scritte: 1 }, opzioni: { sfondo: 'scuro', basemap: false, mesh: true } }`);
+  const regoleTpl = JSON.parse(app.E(`JSON.stringify(regoleDallaMemoria(${P}.tavole3d, vociEsportazione3d(datiVista3d(${P}))))`));
+  t('le regole di un progetto: foglio, sfondo, pagine (qui senza la vista verso Est)', regoleTpl.foglio.carta === 'A4' && regoleTpl.foglio.verso === 'v' && regoleTpl.sfondo === 'scuro' && regoleTpl.tipi['iso-e'] === false && regoleTpl.tipi['iso-n'] === true);
+  app.E(`state.tavoleTemplates = { tav_prova: { id: 'tav_prova', name: 'Prova', regole: ${JSON.stringify(regoleTpl)} } }; ${P}.tavole3d = { regola: { 'iso-n': { dAz: 0.7 } }, titoli: { 'iso-n': { testo: 'Mio titolo' } }, templateReport: 'tav_prova' }; saveState();`);
+  const dt = JSON.parse(app.E(`JSON.stringify((d => ({ foglio: d.mem.foglio, voci: d.voci.map(v => v.id), sfondo: d.mem.opzioni.sfondo, reg: d.mem.regola })) (datiTavoleReport(${P})))`));
+  t('scelto per il report, il template decide pagine, foglio e sfondo…', dt.foglio.verso === 'v' && !dt.voci.includes('iso-e') && dt.voci.includes('iso-n') && dt.sfondo === 'scuro');
+  t('…e le inquadrature e i titoli del progetto restano', dt.reg['iso-n'].dAz === 0.7 && app.E(`titoliTavolaReport(datiTavoleReport(${P}).mem, { id: 'iso-n', tipo: 'iso', titolo: 'x' }).titolo`) === 'Mio titolo');
+  t('i template si salvano con l\'app', /"tavoleTemplates":\{"tav_prova"/.test(app.w.localStorage.getItem('dpsh_app_state') || ''));
+  t('nella finestra «Tavole»: Applica, Salva come template, Elimina', ['tavole3dTemplate', 'tavole3dApplicaTemplate', 'tavole3dSalvaTemplate', 'tavole3dEliminaTemplate'].every(id => $(app, id)));
+  app.E(`openExportModal('project', ${JSON.stringify(pid)})`);
+  clic(app, $(app, 'btnOptExportCompletePdf'));
+  await attesa(40);
+  const selT = $(app, 'selEsportaPdfTemplateTavole');
+  t('nell\'esportazione si sceglie: come nella finestra «Tavole» o un template', !!selT && selT.value === 'tav_prova' && Array.from(selT.options).some(o => o.value === '') && Array.from(selT.options).some(o => o.value === 'tav_standard'));
+  selT.value = ''; selT.dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('e la scelta resta nel progetto', app.E(`${P}.tavole3d.templateReport`) === undefined && /un foglio A3 orizzontale per tavola/.test($(app, 'lblEsportaPdfTavoleDesc').textContent));
+  const cap2 = $(app, 'inpEsportaPdfCapitoloTavole');
+  cap2.value = 'Modellizzazione'; cap2.dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('il titolo del capitolo delle tavole si scrive lì', app.E(`${P}.tavole3d.capitolo`) === 'Modellizzazione');
+  app.E('chiudiEsportazionePdfModal()');
+
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log(app.errori.join('\n'));
   console.log(`\n${ok} ok, ${ko} KO`);
