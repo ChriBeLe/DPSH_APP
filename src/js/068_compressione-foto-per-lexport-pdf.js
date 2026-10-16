@@ -163,15 +163,18 @@
                     .tpl-intestazione-testo p { margin: 0; text-indent: 0; }
                     /* Le tabelle dell'intestazione (dal Word: logo, studio, titolo dell'intervento): i bordi
                        e gli sfondi li porta ogni cella; qui niente bordi di serie. */
-                    .tpl-block-richtext.tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
-                    .tpl-block-richtext.tpl-intestazione-testo table td, .tpl-block-richtext.tpl-intestazione-testo table th { border: none; background: none; padding: 0.8mm 1.5mm; text-align: inherit; font-weight: inherit; }
+                    .tpl-block-richtext.tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: auto; margin: 0; }
+                    .tpl-block-richtext.tpl-intestazione-testo table td, .tpl-block-richtext.tpl-intestazione-testo table th { border: none; background: none; padding: 0.8mm 1.5mm; text-align: inherit; font-weight: inherit; font-size: inherit; line-height: inherit; color: inherit; }
                     .tpl-intestazione-testo img, .tpl-piede-testo img { max-width: 100%; height: auto; vertical-align: middle; }
                     /* Il piè di pagina formattato (htmlPiedeNelMargine): righe strette, e una tabella senza
                        bordi per i contatti su più colonne, come nella carta intestata di Word. */
                     .tpl-piede-testo p { margin: 0; text-indent: 0; }
                     /* Più specifiche delle regole delle tabelle del testo (bordi, a sinistra), che vengono dopo. */
-                    .tpl-block-richtext.tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
-                    .tpl-block-richtext.tpl-piede-testo table td, .tpl-block-richtext.tpl-piede-testo table th { border: none; background: none; padding: 0 1.5mm; vertical-align: top; text-align: inherit; font-weight: inherit; }
+                    /* Larghezze delle colonne dalle celle di tutte le righe (layout auto): con «fixed» contava solo la prima, e una cella unita in testa (Direttore Tecnico) le rendeva tutte uguali. */
+                    .tpl-block-richtext.tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: auto; margin: 0; }
+                    .tpl-block-richtext.tpl-piede-testo table td, .tpl-block-richtext.tpl-piede-testo table th { border: none; background: none; padding: 0 1.5mm; vertical-align: top; text-align: inherit; font-weight: inherit; font-size: inherit; line-height: inherit; color: inherit; }
+                    /* Niente righe alternate (quelle delle tabelle dei dati): nel Word non ci sono. */
+                    .tpl-block-richtext.tpl-piede-testo table tr, .tpl-block-richtext.tpl-intestazione-testo table tr { background: none; }
                     /* Il capitolo Tavole (071r): due tavole per foglio, titolo e sottotitolo veri. */
                     .tavole-report-capitolo { font-size: 16pt; font-weight: 700; line-height: 1.2; margin: 0 0 4mm; color: #0f172a; }
                     .tavola-report { margin: 0 0 5mm; }

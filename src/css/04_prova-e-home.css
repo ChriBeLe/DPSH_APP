@@ -1065,6 +1065,7 @@
         .margini-preimpostati button { min-height: 28px; }
         /* la carta intestata (071u): le due pagine in miniatura */
         .tpl-carta { display: flex; align-items: flex-end; gap: 6px; flex-wrap: wrap; }
+        .tpl-carta[hidden] { display: none; }
         .tpl-carta img { width: 64px; aspect-ratio: 210 / 297; object-fit: fill; border-radius: 3px; border: 1px solid var(--border); background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .tpl-carta span { flex-basis: 100%; font-size: 10.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tpl-chip-togli { color: var(--danger); }
@@ -1079,7 +1080,7 @@
         /* Intestazione e piè di pagina formattati sul foglio dell'editor: le stesse regole della
            stampa (getReportPrintStyleBlock), perché l'editor mostri quello che esce. */
         #templateEditorPageFrame .tpl-intestazione-testo p, #templateEditorPageFrame .tpl-piede-testo p { margin: 0; text-indent: 0; }
-        #templateEditorPageFrame .tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #templateEditorPageFrame .tpl-piede-testo table { width: 100%; border-collapse: collapse; table-layout: auto; }
         #templateEditorPageFrame .tpl-piede-testo td, #templateEditorPageFrame .tpl-piede-testo th { border: none; padding: 0 1.5mm; vertical-align: top; }
 
         /* LA FINESTRA DI ESPORTAZIONE DEL REPORT (029): sezioni con lo stesso titolo, righe uguali */
@@ -1109,6 +1110,9 @@
         .esp-stima b { font-weight: 800; font-size: 16px; color: var(--accent-ink); }
         .esp-stima span { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
         .esp-genera { width: 100%; padding: 12px !important; font-weight: 800 !important; font-size: 13.5px !important; background: var(--accent) !important; color: var(--on-accent) !important; border: none !important; }
-        #templateEditorPageFrame .tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #templateEditorPageFrame .tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: auto; }
         #templateEditorPageFrame .tpl-intestazione-testo td, #templateEditorPageFrame .tpl-intestazione-testo th { border: none; padding: 0.8mm 1.5mm; }
         #templateEditorPageFrame .tpl-intestazione-testo img, #templateEditorPageFrame .tpl-piede-testo img { max-width: 100%; height: auto; vertical-align: middle; }
+        /* Il controllo dei dati: accanto a ogni anomalia, il tasto per andare a correggerla (004c). */
+        .integrita-riga { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+        .integrita-vai { flex: none; background: none; border: none; padding: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }

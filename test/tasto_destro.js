@@ -77,6 +77,11 @@ const scegli = (app, testo) => clic(app, Array.from(app.d.querySelectorAll('#men
   const vb = voci(app);
   t('blocco: tasto destro dà un menu con modifica, impostazioni, sposta, elimina (non il pannello intero)',
     ['Modifica il testo', 'Impostazioni del blocco', 'Sposta su un\'altra pagina', 'Elimina il blocco'].every(x => vb.some(v => v.includes(x))) && !app.d.getElementById('templateEditorBlockMenu'));
+  // Esc col menu aperto chiude il menu, non l'editor sotto.
+  app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await attesa(30);
+  t('Esc chiude solo il menu, l\'editor del template resta aperto', !$(app, 'menuRiga').classList.contains('open') && $(app, 'modalTemplateEditor').classList.contains('open'));
+  destro(app, blocco);
   scegli(app, 'Modifica il testo');
   await attesa(60);
   t('«Modifica il testo…» apre l\'editor del testo del blocco', $(app, 'modalTplTextEditor').classList.contains('open'));

@@ -83,6 +83,23 @@
                 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const EMU_MM = 1 / 36000;
                 const tipoImmagine = n => /\.png$/i.test(n) ? 'image/png' : /\.jpe?g$/i.test(n) ? 'image/jpeg' : /\.gif$/i.test(n) ? 'image/gif' : null;
+                // GLI STILI DEI PARAGRAFI («Piè di pagina», «Informazioni di contatto»…): allineamento,
+                // colore e corpo che il paragrafo non scrive da sé vengono dal suo stile (e da quelli su
+                // cui si basa), poi dai valori di base del documento. Senza, il piè della carta
+                // intestata usciva nero e più piccolo invece che grigio e a 11 pt come nel Word.
+                const xmlStili = xml('word/styles.xml');
+                const elStili = xmlStili ? Array.from(xmlStili.getElementsByTagName('w:style')) : [];
+                const stiliPerId = new Map(elStili.map(s => [s.getAttribute('w:styleId'), s]));
+                const idNormale = (elStili.find(s => s.getAttribute('w:type') === 'paragraph' && /^(1|true)$/.test(s.getAttribute('w:default') || '')) || { getAttribute: () => null }).getAttribute('w:styleId');
+                const baseDoc = xmlStili && xmlStili.getElementsByTagName('w:docDefaults')[0];
+                const daStile = (id, tag, attr) => {
+                    for (let s = stiliPerId.get(id || idNormale), giri = 0; s && giri < 20; giri++) {
+                        const v = attrW(figliW(s, tag)[0], attr);
+                        if (v != null) return v;
+                        s = stiliPerId.get(attrW(figliW(s, 'basedOn')[0], 'val'));
+                    }
+                    return attrW(figliW(baseDoc, tag)[0], attr);
+                };
                 const parteInHtml = (radice, rel, salta) => {
                     const pAntenato = el => { let x = el.parentNode; while (x && x.nodeName !== 'w:p') x = x.parentNode; return x; };
                     const nascosto = el => { let x = el.parentNode; while (x) { if (x.nodeName === 'w:del') return true; x = x.parentNode; } return false; };
@@ -96,7 +113,10 @@
                         return { html: `<img src="${uint8ArrayToDataUrl(per.get(parte), tipo)}" style="width: ${(Math.round(w * 10) / 10)}mm">`, h };
                     };
                     const paragrafo = (p) => {
-                        const jc = attrW(figliW(figliW(p, 'pPr')[0], 'jc')[0], 'val');
+                        const pPr = figliW(p, 'pPr')[0];
+                        const idStile = attrW(figliW(pPr, 'pStyle')[0], 'val');
+                        const jc = attrW(figliW(pPr, 'jc')[0], 'val') || daStile(idStile, 'jc', 'val');
+                        const coloreStile = daStile(idStile, 'color', 'val'), szStile = daStile(idStile, 'sz', 'val');
                         const allinea = { center: 'center', right: 'right', end: 'right', both: 'justify' }[jc];
                         let corpo = '', altImg = 0;
                         figliW(p, 'r').filter(r => pAntenato(r) === p && !nascosto(r)).forEach(r => {
@@ -112,8 +132,8 @@
                                 }
                             });
                             if (!pezzo) return;
-                            const colore = attrW(figliW(rPr, 'color')[0], 'val');
-                            const sz = Number(attrW(figliW(rPr, 'sz')[0], 'val'));
+                            const colore = attrW(figliW(rPr, 'color')[0], 'val') || coloreStile;
+                            const sz = Number(attrW(figliW(rPr, 'sz')[0], 'val') || szStile);
                             const stile = [colore && /^[0-9A-Fa-f]{6}$/.test(colore) && colore !== '000000' ? `color: #${colore}` : '', sz ? `font-size: ${sz / 2}pt` : ''].filter(Boolean).join('; ');
                             if (stile) pezzo = `<span style="${stile}">${pezzo}</span>`;
                             if (figliW(rPr, 'u').some(x => attrW(x, 'val') !== 'none')) pezzo = `<u>${pezzo}</u>`;
@@ -123,7 +143,8 @@
                         });
                         const testo = corpo.replace(/<img[^>]*>/g, '').replace(/<[^>]+>/g, '').replace(/&emsp;/g, ' ').trim();
                         if (!testo && !altImg) return null;
-                        return { html: `<p${allinea ? ` style="text-align: ${allinea}"` : ''}>${corpo}</p>`, h: Math.max(testo ? 4.5 : 0, altImg) };
+                        const riga = (Number(szStile) || 22) / 2 * 0.3528 * 1.2;
+                        return { html: `<p${allinea ? ` style="text-align: ${allinea}"` : ''}>${corpo}</p>`, h: Math.max(testo ? Math.max(4.5, riga) : 0, altImg) };
                     };
                     const bordoVero = el => el && ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].some(l => { const b = figliW(el, l)[0]; const v = b && attrW(b, 'val'); return v && v !== 'none' && v !== 'nil'; });
                     const tabella = (tbl) => {
@@ -148,6 +169,8 @@
                         });
                         const righe = trs.map((tr, iRiga) => {
                             let colonna = 0, altRiga = 0;
+                            // L'altezza minima della riga (trHeight) va sulle celle: il <tr> nell'editor non tiene lo stile.
+                            const minima = mmDaTwip(Number(attrW(figliW(figliW(tr, 'trPr')[0], 'trHeight')[0], 'val')) || 0);
                             const celle = figliW(tr, 'tc').filter(tc => tc.parentNode === tr).map(tc => {
                                 const tcPr = figliW(tc, 'tcPr')[0];
                                 const span = Number(attrW(figliW(tcPr, 'gridSpan')[0], 'val')) || 1;
@@ -164,13 +187,20 @@
                                 const va = { center: 'middle', bottom: 'bottom' }[attrW(figliW(tcPr, 'vAlign')[0], 'val')] || 'top';
                                 const dentro = blocchi(tc);
                                 altRiga = Math.max(altRiga, dentro.h);
-                                const stile = [larga ? `width: ${larga.toFixed(1)}%` : '', conBordo ? 'border: 0.5pt solid #000000' : '', fondo && /^[0-9A-Fa-f]{6}$/.test(fondo) && fondo.toUpperCase() !== 'FFFFFF' ? `background-color: #${fondo}` : '', `vertical-align: ${va}`].filter(Boolean).join('; ');
+                                const stile = [larga ? `width: ${larga.toFixed(1)}%` : '', minima > 1 && rowspan === 1 ? `height: ${minima}mm` : '', conBordo ? 'border: 0.5pt solid #000000' : '', fondo && /^[0-9A-Fa-f]{6}$/.test(fondo) && fondo.toUpperCase() !== 'FFFFFF' ? `background-color: #${fondo}` : '', `vertical-align: ${va}`].filter(Boolean).join('; ');
                                 return `<td${span > 1 ? ` colspan="${span}"` : ''}${rowspan > 1 ? ` rowspan="${rowspan}"` : ''} style="${stile}">${dentro.html || '<p></p>'}</td>`;
                             }).join('');
-                            altezza += Math.max(4.5, altRiga) + 1;
+                            altezza += Math.max(4.5, altRiga + 1, minima);
                             return `<tr>${celle}</tr>`;
                         });
-                        return { html: `<table style="width: 100%"${bordiTabella ? ' data-bordi="1"' : ''}><tbody>${righe.join('')}</tbody></table>`, h: altezza };
+                        // La larghezza e il rientro della tabella: la carta intestata spesso la allarga oltre i
+                        // margini (rientro negativo), perché i contatti stiano su una riga per colonna.
+                        const tblW = figliW(tblPr, 'tblW')[0], tblInd = figliW(tblPr, 'tblInd')[0];
+                        const wTab = Number(attrW(tblW, 'w')) || 0, ind = attrW(tblInd, 'type') === 'dxa' ? Number(attrW(tblInd, 'w')) || 0 : 0;
+                        const mm1 = v => Math.round(v * 10) / 10;
+                        const larghezza = wTab && attrW(tblW, 'type') === 'dxa' ? `width: ${mm1(mmDaTwip(wTab))}mm` : wTab && attrW(tblW, 'type') === 'pct' ? `width: ${mm1(wTab / 50)}%` : 'width: 100%';
+                        const stileTab = larghezza + (ind ? `; margin-left: ${mm1(mmDaTwip(ind))}mm` : '');
+                        return { html: `<table style="${stileTab}"${bordiTabella ? ' data-bordi="1"' : ''}><tbody>${righe.join('')}</tbody></table>`, h: altezza };
                     };
                     const blocchi = (contenitore) => {
                         let html = '', h = 0;
@@ -186,7 +216,13 @@
                     const r = blocchi(radice.documentElement);
                     const testoSemplice = r.html.replace(/<\/(p|td)>/g, ' · ').replace(/<img[^>]*>/g, '').replace(/<[^>]+>/g, '').replace(/&emsp;/g, ' ')
                         .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s*·\s*(·\s*)+/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '').replace(/\s+/g, ' ').trim();
-                    return { html: r.html, altezzaMm: Math.round(r.h * 10) / 10, testo: testoSemplice, tabella: /<table/.test(r.html), immagini: (r.html.match(/<img/g) || []).length };
+                    // Word chiude sempre una tabella con un paragrafo: se in fondo alla parte è vuoto, è una
+                    // riga bianca sotto la tabella che alza il piè dal bordo. Se ne tiene la misura.
+                    const figli = Array.from(radice.documentElement.childNodes).filter(n => n.nodeType === 1);
+                    const ultimo = figli[figli.length - 1], prima = figli[figli.length - 2];
+                    const rigaVuotaMm = ultimo && ultimo.nodeName === 'w:p' && prima && prima.nodeName === 'w:tbl' && !paragrafo(ultimo)
+                        ? Math.round((Number(daStile(attrW(figliW(figliW(ultimo, 'pPr')[0], 'pStyle')[0], 'val'), 'sz', 'val')) || 22) / 2 * 0.3528 * 1.2 * 10) / 10 : 0;
+                    return { html: r.html, altezzaMm: Math.round(r.h * 10) / 10, testo: testoSemplice, tabella: /<table/.test(r.html), immagini: (r.html.match(/<img/g) || []).length, rigaVuotaMm };
                 };
 
                 let intestazione = null;
@@ -216,7 +252,7 @@
                 const pF = parteDi('footer');
                 if (pF && per.has(pF)) {
                     const contenuto = parteInHtml(xml(pF), relazioni(pF), null);
-                    if (contenuto.html) piede = { testo: contenuto.testo, html: contenuto.html, altezzaMm: contenuto.altezzaMm, tabella: contenuto.tabella, numeroPagina: /\bPAGE\b/.test(testo(pF)) };
+                    if (contenuto.html) piede = { testo: contenuto.testo, html: contenuto.html, altezzaMm: contenuto.altezzaMm, tabella: contenuto.tabella, numeroPagina: /\bPAGE\b/.test(testo(pF)), rigaVuotaMm: contenuto.rigaVuotaMm };
                 }
 
                 // Lo stile: «Normal» e «heading 1–3» per nome (l'id cambia con la lingua di Word),
@@ -311,8 +347,11 @@
                 if (l.piede) {
                     templateEditorState.footerEnabled = true;
                     const ft = { text: l.piede.testo };
-                    if (l.piede.html) { ft.html = l.piede.html; ft.heightMm = Math.max(5, Math.ceil(l.piede.altezzaMm + 1)); }
-                    templateEditorState.pages.forEach(p => { p.footer = Object.assign({}, p.footer, ft); });
+                    if (l.piede.html) { ft.html = l.piede.html; ft.heightMm = Math.max(5, Math.ceil(l.piede.altezzaMm)); }
+                    // La riga vuota sotto la tabella: il piè sta più su del bordo di tanto (la distanza resta quella del Word).
+                    if (l.piede.html && l.piede.rigaVuotaMm) ft.rigaSottoMm = l.piede.rigaVuotaMm;
+                    if (l.piede.html) ft.daWord = true;
+                    templateEditorState.pages.forEach(p => { p.footer = Object.assign({}, p.footer, ft); if (!ft.rigaSottoMm) delete p.footer.rigaSottoMm; if (!ft.daWord) delete p.footer.daWord; });
                 }
                 if (l.stile) {
                     const nuovo = {};

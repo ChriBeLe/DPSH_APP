@@ -32,6 +32,14 @@
 
             const menuRiga = document.getElementById('menuRiga');
             function chiudiMenuRiga() { menuRiga.classList.remove('open'); }
+            // Esc col menu aperto chiude SOLO il menu (prima chiudeva anche la finestra sotto, per
+            // esempio l'editor del template intero). In cattura, prima degli altri Esc.
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape' || !menuRiga.classList.contains('open')) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                chiudiMenuRiga();
+            }, true);
             // Il menu del tasto destro, dove sta il mouse: un titolo e le voci
             // [etichetta, icona, tasto, azione, pericolo], o '-' per una riga di separazione.
             let vociMenuContesto = [];
