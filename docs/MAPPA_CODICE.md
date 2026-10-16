@@ -466,360 +466,365 @@ finestre: `#modalVista3d`
 `bloccoInSpostamento`, `avviaSpostamentoBlocco`, `annullaSpostamentoBlocco`, `eliminaBloccoInSpostamento`, `posaBloccoQui`, `avvisaSeBloccoContinuaSuPiuPagine`, `renderBarraSpostamento`, `evidenziaVoceSpostamentoNellaPalette`, `aprTendinaPaletteSeMobile`, `portaBloccoInVista`, `apriTendinaPaletteMobile`, `chiudiTendinaPaletteMobile`, `aggiornaIconaFabPalette`, `paginaGenerataDalProgramma`, `inserisciBloccoInPagina`, `catturaRettangoliEditor`, `calcolaPosizioneDropEditor`, `stimaAltezzaPerLarghezza`, `valutaQualitaPiazzamento`, `applicaMagneteDropEditor`, `messaggioQualitaDrop`, `applicaStatoQualitaGhost`, `mostraIndicatoreDropEditor`, `nascondiIndicatoreDropEditor`, `hostFloatingUiEditor`, `costruisciContenutoGhostTrascinamento`, `misuraDimensioneNaturaleGhost`, `creaGhostTrascinamentoEditor`, `posizionaGhostTrascinamentoEditor`, `rimuoviGhostTrascinamentoEditor`, `avviaTrascinamentoEditor`, `mostraCestinoTrascinamento`, `nascondiCestinoTrascinamento`, `aggiornaCestinoTrascinamento`, `avviaAutoScrollViewportEditor`, `avviaAutoScrollBordoEditor`, `fermaAutoScrollBordoEditor`, `gestisciSpostamentoEditor`, `terminaTrascinamentoEditor`, `tipiBloccoGiaUsatiNelTemplate`, `renderTemplateEditorPalette`, `mostraAnteprimaPaletteHover`, `nascondiAnteprimaPaletteHover`, `renderTemplateEditorPageControls`, `sincronizzaControlliMarginiSidebar`, `aggiornaStatiSezioniTemplate`, `cmMargine`, `mmDaCm`, `catturaRectBlocchiPerFlip`, `applicaFlipBlocchi`
 
 ### `src/js/030_guardia-contro-le-misure-degeneri.js`
-1309 righe · in `dist/DPSH.html` dalla riga 22257
+1316 righe · in `dist/DPSH.html` dalla riga 22257
 
 `filtraCategorieHtmlFlowable`, `costruisciHtmlBloccoEditor`, `renderaGruppoRowSpanEditor`, `renderTemplateEditorCanvas`, `selezionaBloccoEditor`, `deselezionaBloccoEditor`, `attivaGestureTapBloccoEditor`, `attivaChipSpostamentoBlocco`, `attivaDoppioTapResetSlider`, `confiniTaglioBlocco`, `mostraAnteprimaTaglio`, `nascondiAnteprimaTaglio`, `inserisciInterruzioneNelTesto`, `togliInterruzioneNelTesto`, `attivaManigliaScalaBlocco`
 
 ### `src/js/031_basi-del-carattere-per-i-blocchi-tabellari.js`
-124 righe · in `dist/DPSH.html` dalla riga 23566
+124 righe · in `dist/DPSH.html` dalla riga 23573
 
 `baseFontBloccoTabellare`, `suddividiGruppoCategorie`, `ptDaFontScale`, `fontScaleDaPt`, `intervalloPtBlocco`
 
 ### `src/js/032_controllo-numerico-condiviso.js`
-80 righe · in `dist/DPSH.html` dalla riga 23690
+80 righe · in `dist/DPSH.html` dalla riga 23697
 
 `htmlSpiegazione`, `htmlInterruttore`, `htmlControlloNumerico`
 
 ### `src/js/033_schede-del-menu-del-blocco.js`
-638 righe · in `dist/DPSH.html` dalla riga 23770
+638 righe · in `dist/DPSH.html` dalla riga 23777
 
 `spostaRimuoviNelMenuAltro`, `schedaDiSezione`, `fasciaDiSezioneMenu`, `riordinaSezioniAFasce`, `organizzaMenuInSchede`, `attivaTrasparenzaMenuDuranteRegolazione`, `collegaControlloNumerico`, `larghezzaRigaUtileMm`, `etichettaLarghezzaBlocco`, `attivaManigliaColspanBlocco`, `mostraEtichettaManigliaBlocco`, `nascondiEtichettaManigliaBlocco`, `catturaBordiAltriBlocchiEditor`, `mostraGuidaAllineamentoEditor`, `nascondiGuidaAllineamentoEditor`, `catturaBordiVerticaliAltriBlocchiEditor`, `mostraGuidaAllineamentoOrizzontaleEditor`, `nascondiGuidaAllineamentoOrizzontaleEditor`, `chiudiMenuBloccoEditor`
 
 ### `src/js/034_avvisi-che-non-restano-indietro.js`
-2499 righe · in `dist/DPSH.html` dalla riga 24408
+2499 righe · in `dist/DPSH.html` dalla riga 24415
 
 `idBloccoMenuAperto`, `firmaMisureBlocco`, `riallineaMenuBloccoAMisureNuove`, `tagliEPaginePerBlocco`, `condensaBloccoPerPagineMinime`, `riapplicaDivisioneAutomatica`, `riapplicaDivisioniAutomaticheTemplate`, `collassaMenuBloccoEditor`, `mostraBollicinaMenuBlocco`, `rimuoviBollicinaMenuBlocco`, `gestisciClickFuoriMenuBlocco`, `bilanciaRigaBlocco`, `riordinaAutomaticoPagina`, `apriMenuBloccoEditor`
 
 ### `src/js/035_editor-di-testo-per-i-blocchi-titolo-testo-richi.js`
-782 righe · in `dist/DPSH.html` dalla riga 26907
+782 righe · in `dist/DPSH.html` dalla riga 26914
 
 `bloccoPiedeEditor`, `bloccoIntestazioneEditor`, `editorAttivo`, `dopoComandoTesto`, `collegaComandoTesto`, `pannelloDelPulsante`, `chiudiTuttiIPannelliTesto`, `creaEditorTesto`, `aggiornaSegnapostoTestoTemplate`, `apriTplTextEditor`, `chiudiTplTextEditor`, `posizionaMenuBloccoEditor`, `applicaAltezzaMenuMobile`, `attivaRidimensionamentoMenuMobile`, `portaBloccoSopraIlMenu`, `attivaTrascinamentoMenuBloccoEditor`, `trovaRigaRealeInEccesso`, `rigaContieneBloccoBloccato`, `rigaHaBloccoGenuinamenteBloccato`, `spostaBlocchiInEccessoAllaPaginaSuccessiva`, `gestisciInserimentoBloccoNuovoConOverflow`
 
 ### `src/js/036_blocchi-flowable-allegato-formule-di-correlazion.js`
-98 righe · in `dist/DPSH.html` dalla riga 27689
+98 righe · in `dist/DPSH.html` dalla riga 27696
 
 `trovaBloccoEPaginaPerId`, `paginaOrigineBlocco`, `coloreCategoriaBlocco`, `elencoSegmentiPaginaBlocco`
 
 ### `src/js/037_fase-c-avvisi-di-overflow-reali.js`
-117 righe · in `dist/DPSH.html` dalla riga 27787
+117 righe · in `dist/DPSH.html` dalla riga 27794
 
 `calcolaAvvisiOverflowGruppiCategoria`, `ricalcolaAvvisiOverflowTuttiBlocchi`
 
 ### `src/js/038_fase-d-riconciliazione-editor-export.js`
-704 righe · in `dist/DPSH.html` dalla riga 27904
+704 righe · in `dist/DPSH.html` dalla riga 27911
 
 `verificaPagineOrigineControMotoreReale`, `costruisciRigaContinuazionePagina`, `miniaturaPaginaContinuazione`, `sincronizzaFlussiBlocchiLunghi`, `mostraToastTemplateEditor`, `mostraLineaFinePaginaA4`, `adattaScalaEditorCanvas`, `impostaZoomEditorTemplate`, `adattaLarghezzaEditorTemplate`, `reimpostaZoomEditorTemplateAutomatico`, `aggiornaBottoneAnteprimaPulita`, `aggiornaBottoneFullscreenPreview`
 
 ### `src/js/039_fase-b-anteprima-di-stampa-reale.js`
-974 righe · in `dist/DPSH.html` dalla riga 28608
+974 righe · in `dist/DPSH.html` dalla riga 28615
 
 `generaAnteprimaStampaReale`, `apriAnteprimaStampaReale`, `chiudiAnteprimaStampaReale`, `zoomAttualeEditorTemplate`, `neutralizzaIdentificatoriMiniatura`, `renderTemplateEditorPagesStrip`, `attivaModalitaSelezionePagine`, `togglePaginaSelezionata`, `esciModalitaSelezionePagine`, `eliminaPagineSelezionateEditor`, `gestisciSpostamentoPaginaEditor`, `mostraIndicatoreRiordinoPagine`, `nascondiIndicatoreRiordinoPagine`, `terminaRiordinoPagineEditor`, `impostaAnteprimePagineEspanse`, `aggiornaAnteprimePagineDopoCambioAltezza`, `cambiaPaginaEditor`, `eliminaPaginaEditor`, `aggiungiPaginaEditor`, `salvaUndoSnapshotEditor`, `scartaUltimoSnapshotEditor`, `undoTemplateEditor`, `redoTemplateEditor`, `ripristinaPagineEditor`, `aggiornaBottoneUndoEditor`, `marginiPaginaDiDefault`
 
 ### `src/js/040_lo-stile-del-testo-in-un-posto-solo.js`
-42 righe · in `dist/DPSH.html` dalla riga 29582
+42 righe · in `dist/DPSH.html` dalla riga 29589
 
 `istantaneaTemplate`
 
 ### `src/js/041_le-eccezioni-di-stile-dichiarate.js`
-43 righe · in `dist/DPSH.html` dalla riga 29624
+43 righe · in `dist/DPSH.html` dalla riga 29631
 
 `eccezioniDiStile`, `riportaAlloStileDelDocumento`
 
 ### `src/js/042_un-solo-blocco-di-testo-i-titoli-li-dichiara-il.js`
-1627 righe · in `dist/DPSH.html` dalla riga 29667
+1627 righe · in `dist/DPSH.html` dalla riga 29674
 
 `risolviTagInStampa`, `figuraBersagliataNelTemplate`, `cambiaTipoTagNelBlocco`, `marcaTitoliPerIndice`, `convertiBloccoTitoloInTesto`, `convertiTitoliDelTemplate`, `stileTestoDiDefault`, `stileTestoDelTemplate`, `pilaFont`, `cssVariabiliStileTesto`, `stileIndiceDiDefault`, `getIndiceTemplateIdPerProgetto`, `stileIndiceDelProgetto`, `cssVariabiliStileIndice`, `separaNumeroDaEtichetta`, `numeriGerarchiciDiRighe`, `calcolaBudgetPaginaMm`, `apriTemplateEditor`, `chiudiTemplateEditor`, `templateEditorHasUnsavedChanges`, `richiediChiusuraTemplateEditor`, `salvaTemplateEditor`, `salvaTemplateEditorComeCopia`, `chiudiAlToccoFuori`, `renderTemplateEditorPreviewProjectSelector`, `renderTemplateEditorPreviewSurveySelector`, `aggiornaAvvisoTemplateEditorPreviewSurvey`, `aggiornaBottoneGridGuides`, `renderGrigliaGuidaEditor`, `attivaLongPressManigliePagina`, `nascondiManigliePaginaEditor`, `renderManigliePaginaEditor`, `resettaManigliaPagina`, `attivaTrascinamentoManigliaPagina`, `impostaDistanzaIntestazione`, `rehydrateProjectPhotosForExport`, `segnapostoFoto`, `placeholderizzaFotoProgetto`, `assemblaBlobConSegnaposto`, `contaFotoSenzaImmagine`, `avvisaFotoMancantiNelBackup`, `scaricaBlobJson`, `exportProjectJSON`, `statoConFotoPerExport`, `exportSingleJSON`
 
 ### `src/js/043_supporto-zip-nativo.js`
-442 righe · in `dist/DPSH.html` dalla riga 31294
+442 righe · in `dist/DPSH.html` dalla riga 31301
 
 `ZIP_CRC32_TABLE`, `zipCrc32`, `zipDosDateTime`, `buildZipBlob`, `readZipStoreOnly`, `dataUrlToUint8Array`, `uint8ArrayToDataUrl`, `extFromMime`, `mimeFromZipExt`, `cloneProjectMetaSenzaFoto`, `leggiDataUrlFoto`, `respiraUnAttimo`, `estraiFotoProgettoPerZip`, `reidrataProgettoDaZip`, `scaricaBlobFile`, `exportProjectZip`, `exportProjectPhotos`, `exportGlobalZip`, `importProjectsFromZip`
 
 ### `src/js/044_fase-1-importazione-progetti-da-file-json.js`
-320 righe · in `dist/DPSH.html` dalla riga 31736
+320 righe · in `dist/DPSH.html` dalla riga 31743
 
 `normalizeImportedJsonToProjects`, `importProjectsFromJSON`, `salvaImmaginiImportate`, `controllaFotoImportate`, `testoAnomalieImportate`, `testoFotoAssentiNelFile`, `handleImportJsonFile`
 
 ### `src/js/044a_librerie-che-viaggiano-col-progetto.js`
-237 righe · in `dist/DPSH.html` dalla riga 32056
+237 righe · in `dist/DPSH.html` dalla riga 32063
 
 `contenutoVoceLibreria`, `templateReportEffettivo`, `templateIndiceEffettivo`, `templateIntroduzioneEffettivo`, `stratiDelProgetto`, `librerieUsateDa`, `nomeLiberoInLibreria`, `accogliLibrerie`, `estraiLibrerieDalFile`, `testoLibrerieAccolte`, `riallineaProgettoAperto`, `nomeFileProgetto`
 
 ### `src/js/044b_pacchetto-di-progetto.js`
-565 righe · in `dist/DPSH.html` dalla riga 32293
+565 righe · in `dist/DPSH.html` dalla riga 32300
 
 `nomeDispositivo`, `impostaNomeDispositivo`, `suQuestoDispositivo`, `idImmaginiNelHtml`, `immaginiDelProgetto`, `leggiImmagineArchiviata`, `prefissoDataUrl`, `byteDaDataUrl`, `dataUrlDaByte`, `estensioneDaPrefisso`, `improntaProgetto`, `impronteImmaginiQui`, `conteggiProgetto`, `correzioniDelProgetto`, `formaSalvataProgetto`, `stimaPacchetto`, `formattaMegabyte`, `creaPacchettoProgetto`, `vociSonoUnPacchetto`, `leggiPacchetto`, `confrontaConPresente`, `nomeCopiaDaPacchetto`, `applicaPacchetto`
 
 ### `src/js/044c_finestre-porta-e-ricevi.js`
-270 righe · in `dist/DPSH.html` dalla riga 32858
+270 righe · in `dist/DPSH.html` dalla riga 32865
 
 `plurale`, `maiuscolaIniziale`, `numeriPassaggioHtml`, `apriPortaProgetto`, `chiudiPortaProgetto`, `creaEScaricaPacchetto`, `cambiaNomeDispositivo`, `apriRiceviProgetto`, `chiudiRiceviProgetto`, `testoConfrontoRicevi`, `renderRiceviProgetto`, `renderBottoniRicevi`, `confermaRicevi`
 
 ### `src/js/045_esportazione-pdf.js`
-419 righe · in `dist/DPSH.html` dalla riga 33128
+419 righe · in `dist/DPSH.html` dalla riga 33135
 
 `descriviFoglioTavole`, `popolaListaProveEsportazionePdf`, `impostaTemplateReportProva`, `popolaSelettoreTemplateBulkEsportazionePdf`, `elencoProveSelezionateEsportazionePdf`, `stimaPagineProva`, `stimaByteFotoOriginale`, `fattoreDimensioneJpeg`, `formattaBytesEsportazione`, `aggiornaStimaEsportazionePdf`, `apriEsportazionePdfModal`, `chiudiEsportazionePdfModal`
 
 ### `src/js/046_modal-personalizza-indice.js`
-1494 righe · in `dist/DPSH.html` dalla riga 33547
+1494 righe · in `dist/DPSH.html` dalla riga 33554
 
 `applicaZoomIndicePers`, `adattaZoomIndicePers`, `apriModalPersonalizzaIndice`, `chiudiModalPersonalizzaIndice`, `etichetteIndiceAnteprima`, `righeIndiceAnteprima`, `aggiornaAnteprimaIndicePersonalizza`, `renderModalPersonalizzaIndice`, `sincronizzaTemplateEditorConStatoSalvato`, `avviaGenerazioneEsportazionePdf`, `getBulkImportStartDepth`, `openBulkImportModal`, `closeBulkImportModal`, `parseBulkImportNumbers`, `updateBulkImportCount`, `openNewProjectModal`, `closeNewProjectModal`, `openNewSurveyModal`, `closeNewSurveyModal`, `cancelNewSurveyModal`, `confirmNewSurvey`, `exportProjectKML`, `exportSingleSurveyKML`, `exportProjectExcel`, `setupLongPress`, `openPhotoDB`, `savePhotoToIDB`, `salvaFotoConGaranzia`
 
 ### `src/js/047_spazio-occupato-e-foto-orfane.js`
-166 righe · in `dist/DPSH.html` dalla riga 35041
+166 righe · in `dist/DPSH.html` dalla riga 35048
 
 `elencaContenutoIDB`, `idFotoAncoraInUso`, `idImmaginiNoteAncoraInUso`, `formattaByte`, `calcolaSpazioOccupato`, `eliminaFotoOrfane`, `svuotaDatabaseImmagini`
 
 ### `src/js/048_copie-automatiche.js`
-363 righe · in `dist/DPSH.html` dalla riga 35207
+363 righe · in `dist/DPSH.html` dalla riga 35214
 
 `openCopieDB`, `firmaTesto`, `riassuntoStatoPerCopia`, `copieDaEliminare`, `aggiornaIdProtettiDalleCopie`, `caricaIndiceCopieAutomatiche`, `potaCopieAutomatiche`, `scriviCopiaAutomatica`, `copiaPrimaDi`, `leggiCopiaAutomatica`, `ripristinaProgettoDaCopia`, `formattaQuandoCopia`, `testoSicuro`, `apriCronologia`, `chiudiCronologia`, `renderCronologia`, `aggiornaRiepilogoCopieEBackup`, `registraBackupCompleto`
 
 ### `src/js/049_confronto-tra-prove.js`
-649 righe · in `dist/DPSH.html` dalla riga 35570
+649 righe · in `dist/DPSH.html` dalla riga 35577
 
 `colonnaStratigrafica`, `serieConfrontoProva`, `massimoTondo`, `proveConfrontabili`, `apriConfrontoProve`, `chiudiConfrontoProve`, `datiConfronto`, `disegnoConfronto`, `svgDaDisegno`, `testoWinAnsi`, `larghezzaTestoPdf`, `coloreRgbPdf`, `pdfDaDisegno`, `renderConfrontoProve`, `disegnoConfrontoPerFile`, `scaricaConfronto`, `aggiornaPannelloSpazio`, `avvisaFotoNonSalvate`, `getPhotoFromIDB`, `deletePhotoFromIDB`, `saveNoteImageToIDB`, `getNoteImageFromIDB`, `deleteNoteImageFromIDB`
 
 ### `src/js/050_note-di-progetto-pagina-unica-di-appunti-per-pro.js`
-571 righe · in `dist/DPSH.html` dalla riga 36219
+571 righe · in `dist/DPSH.html` dalla riga 36226
 
 `creaEditorNote`, `aggiornaSegnapostoNota`, `htmlNotaCorrente`, `immagineSelezionataNota`, `aggiornaStatoBarraNote`, `comandoBloccoNota`, `getProjNotes`, `censisciVocabolarioNota`, `invariantiNota`, `confrontaInvariantiNota`, `ripuliscoHtmlIncollatoNota`, `convertiNotaAlNuovoSchema`, `diagnosticaMigrazioneNote`, `rehydrateNoteImagesInDom`, `rehydrateNoteImagesInHtmlString`
 
 ### `src/js/051_la-barretta-sulla-selezione.js`
-55 righe · in `dist/DPSH.html` dalla riga 36790
+55 righe · in `dist/DPSH.html` dalla riga 36797
 
 `nascondiBollaSelezione`, `aggiornaBollaSelezione`
 
 ### `src/js/052_ricerca-nelle-note.js`
-404 righe · in `dist/DPSH.html` dalla riga 36845
+404 righe · in `dist/DPSH.html` dalla riga 36852
 
 `pluginRicercaNote`, `ricalcolaRicercaNota`, `vaiAOccorrenzaNota`, `cercaNelleAltreNote`, `renderAltreNoteTrovate`, `apriRicercaNote`, `chiudiRicercaNote`, `aggiornaRicercaNote`, `preparaNotaPerIlMotore`, `renderRigaConversioneNota`, `apriNoteProgetto`, `salvaNoteProgettoCorrente`, `salvaNoteSeInSospeso`, `chiudiNoteProgetto`, `noteDelProgettoCorrente`, `inserisciImmagineDataUrlNellaNota`, `inserisciImmagineNellaNota`
 
 ### `src/js/053_il-menu-della-chiocciola.js`
-528 righe · in `dist/DPSH.html` dalla riga 37249
+528 righe · in `dist/DPSH.html` dalla riga 37256
 
 `inserisciTabellaNellaNota`, `aggiornaBarraTabellaNota`, `aggiornaPulsanteAllineamento`, `applicaEvidenziatoreNota`
 
 ### `src/js/054_selettore-foto-del-progetto-riusato-per-inserire.js`
-77 righe · in `dist/DPSH.html` dalla riga 37777
+77 righe · in `dist/DPSH.html` dalla riga 37784
 
 `raccogliFotoProgetto`, `chiudiSelettoreFotoProgetto`, `apriSelettoreFotoProgetto`
 
 ### `src/js/055_dimensione-rimozione-di-unimmagine-gia-nella-not.js`
-178 righe · in `dist/DPSH.html` dalla riga 37854
+178 righe · in `dist/DPSH.html` dalla riga 37861
 
 `nascondiBarraImmagineNota`, `aggiornaBarraImmagineNota`, `leggiStileImmagineNota`, `componiStileImmagineNota`, `aggiornaAttributiImmagineNota`
 
 ### `src/js/056_la-schermata-di-composizione-dellinquadramento.js`
-217 righe · in `dist/DPSH.html` dalla riga 38032
+217 righe · in `dist/DPSH.html` dalla riga 38039
 
 `impostazioniMappaDaBlocco`, `testoEtichettaComposizione`, `testoEtichettaInsetComposizione`, `disegnaComposizione`, `scambiaElementoComposizione`, `aggiornaNordComposizione`, `aggiornaScalaComposizione`
 
 ### `src/js/057_un-cronometro-dentro-lapp.js`
-390 righe · in `dist/DPSH.html` dalla riga 38249
+390 righe · in `dist/DPSH.html` dalla riga 38256
 
 `oraPrecisa`, `misura`, `riportaMisura`, `rif`, `rifTutti`, `aggiornaBarraComposizione`, `apriComposizioneMappa`, `chiudiComposizioneMappa`
 
 ### `src/js/058_il-pannello-dello-stile-del-testo.js`
-439 righe · in `dist/DPSH.html` dalla riga 38639
+439 righe · in `dist/DPSH.html` dalla riga 38646
 
 ### `src/js/059_ritaglio-delle-immagini-uno-strumento-solo-per-t.js`
-274 righe · in `dist/DPSH.html` dalla riga 39078
+274 righe · in `dist/DPSH.html` dalla riga 39085
 
 `proporzioneRitaglio`, `limitaRiquadroRitaglio`, `applicaProporzioneRitaglio`, `ridisegnaRitaglio`, `angoliRiquadroRitaglio`, `puntoRitaglio`, `apriRitaglioImmagine`, `chiudiRitaglio`, `ritagliaImmagineArchiviata`
 
 ### `src/js/060_strumento-di-disegno-un-piccolo-editor-di-forme.js`
-859 righe · in `dist/DPSH.html` dalla riga 39352
+859 righe · in `dist/DPSH.html` dalla riga 39359
 
 `nuovoStatoDisegno`, `riquadroForma`, `angoliRiquadro`, `formaSelezionata`, `percorsoRettangolo`, `tracciaPercorsoForma`, `disegnaTesto`, `disegnaForma`, `ridisegnaCanvasNota`, `getNoteDrawPoint`, `formaSottoIlPunto`, `manigliaSottoIlPunto`, `selezionaForma`, `aggiornaBarraFormaDisegno`, `applicaColoreDisegno`, `aggiornaPastiglieColoreDisegno`, `renderNoteDrawColors`, `etichettaSfondoDisegno`, `impostaSfondoDisegno`, `evidenziaScelteSfondoDisegno`, `usaImmagineComeSfondoDisegno`, `finalizzaPoligonoCorrente`, `chiediTestoDisegno`, `aggiornaStrumentoDisegno`, `apriStrumentoDisegno`, `chiudiStrumentoDisegno`, `noteHtmlToPlainText`
 
 ### `src/js/061_la-mappa-provider-geometria-finestra-continua.js`
-1711 righe · in `dist/DPSH.html` dalla riga 40211
+1711 righe · in `dist/DPSH.html` dalla riga 40218
 
 `wmsDisponibili`, `ETICHETTE_MAPPA_URL`, `tessereXDaLng`, `tessereYDaLat`, `lngDaTessereX`, `latDaTessereY`, `calcolaTessereFinestra`, `htmlTessereFinestra`, `puntoNellaFinestra`, `riquadroGeograficoFinestra`, `inquadraturaPerPunti`, `testoEtichettaAutomatica`, `inquadraturaSicura`, `convertiInquadramentoVecchio`, `htmlPinMappa`, `htmlSimboloProvaMappa`, `htmlBarraScalaMappa`, `posizioneElementoMappa`, `htmlNordMappa`, `htmlInsetRegionaleMappa`, `puntiProveDelProgetto`, `buildMappaInquadramentoHtml`, `noteHtmlToMarkdown`, `scaricaBlob`, `nomeFileNotaCorrente`, `documentoNotaStampa`, `parseExifGps`, `parseExifData`, `parseExifDateStr`, `handlePhotoFileSelected`, `renderPhotoGallery`, `openPhotoPreview`, `closePhotoPreview`, `backToPhotosModalFromPreview`, `deletePhoto`, `openEditModal`, `origineIntervallo`, `closeModal`, `openQuickFaldaModal`, `closeQuickFaldaModal`, `openStratiModal`, `closeStratiModal`
 
 ### `src/js/062_fase-2-riconoscimento-automatico-degli-strati.js`
-202 righe · in `dist/DPSH.html` dalla riga 41922
+202 righe · in `dist/DPSH.html` dalla riga 41929
 
 `openStratiChoiceModal`, `closeStratiChoiceModal`, `updateAutoStratiPreview`, `openAutoStratiParamsModal`, `closeAutoStratiParamsModal`, `handleOpenAutoStrati`, `buildInquadramentoSatellitareHtml`
 
 ### `src/js/063_pagina-prova-replica-fedele-del-layout-di-riferi.js`
-899 righe · in `dist/DPSH.html` dalla riga 42124
+899 righe · in `dist/DPSH.html` dalla riga 42131
 
 `arricchisciLogsConNsptRpd`, `tintaDatiProva`, `disposizioneSchede`, `buildDatiBoxHtml`, `buildColpiNsptTableHtml`, `scalaAssePulita`, `profonditaAsseAutomatica`, `spezzaEtichettaInRighe`, `disponiEtichetteSenzaSovrapposizioni`, `legendaGrafico`, `profonditaMassimaProgetto`, `profonditaAsseEffettiva`, `larghezzaBloccoGraficoPx`, `buildStratigrafiaColpiRpdSvg`
 
 ### `src/js/064_motore-di-rendering-dei-template-di-report.js`
-209 righe · in `dist/DPSH.html` dalla riga 43023
+209 righe · in `dist/DPSH.html` dalla riga 43030
 
 `generatoreCasualeDaSeme`, `espandiAlternativeTesto`, `elencoItaliano`, `formattaCoordinateProve`, `valoriDellaProva`, `valoriCantiere`
 
 ### `src/js/065_i-tag-il-registro.js`
-351 righe · in `dist/DPSH.html` dalla riga 43232
+351 righe · in `dist/DPSH.html` dalla riga 43239
 
 `eRiferimentoFigura`, `bersaglioFigura`, `etichettaBersaglioFigura`, `tagFigureDisponibili`, `etichettaVuotaFigura`, `etichettaTag`, `tagPerTipo`, `progettoPerTag`, `aggiornaPastiglieTag`, `nomeProgettoPerAvviso`, `scriviDatoCantiere`, `valoriCantiereConCorrezioni`, `applicaSegnapostiTesto`, `generaTestoDaModello`, `contaDatiMancanti`
 
 ### `src/js/066_il-modello-predefinito-ricavato-da-due-relazioni.js`
-1330 righe · in `dist/DPSH.html` dalla riga 43583
+1330 righe · in `dist/DPSH.html` dalla riga 43590
 
 `bloccoHaFontRegolabile`, `limitiFontScaleBlocco`, `scalaMinimaBlocco`, `scambiaOrdineInRiga`, `dividiLarghezzaRigaEvenmente`, `trovaBloccoPerTipoInPagina`, `rilevaPatternLayoutPagina`, `applicaPatternLayoutEditor`, `renderSuggerimentiLayoutEditor`, `segmentiTesto`, `eBloccoSpezzabile`, `indiciForzatiBlocco`, `stileGrigliaTabellaBlocco`, `elencoCategorieBlocco`, `escapeHtmlDidascalia`, `avvolgiConDidascalia`, `avvolgiScopeFlowable`, `applicaInterruzioniPaginaManualiCategoria`, `buildBlockContentHtml`, `distanzaIntestazioneMm`, `respiroIntestazioneMm`, `dimensioniImmagineDataUrl`, `altezzaIntestazioneMm`, `margineConIntestazione`, `distanzaPiedeMm`, `altezzaPiedeMm`, `htmlPiedeNelMargine`, `htmlIntestazioneNelMargine`, `buildPaginaHeaderFooterHtml`, `buildContenutoVoceStampa`, `buildGruppoRowSpanHtmlStampa`, `buildRigheSottoinsiemeHtml`, `buildPaginaRigheHtml`, `getReportTemplateIdPerProva`
 
 ### `src/js/067_generatore-html-per-singola-prova.js`
-160 righe · in `dist/DPSH.html` dalla riga 44913
+160 righe · in `dist/DPSH.html` dalla riga 44920
 
 `buildSurveyReportHtml`, `getIconSpriteHtml`
 
 ### `src/js/068_compressione-foto-per-lexport-pdf.js`
-535 righe · in `dist/DPSH.html` dalla riga 45073
+535 righe · in `dist/DPSH.html` dalla riga 45080
 
 `comprimiImmagineDataUrl`, `risolviEComprimiFotoUrl`, `cssFontIncorporati`, `cssRegoleFoglio`, `cssAnteprimaComeStampa`, `cssContenutoTesto`, `getReportPrintStyleBlock`, `getControlloImpaginazioneScriptTag`
 
 ### `src/js/069_lattesa-delle-mappe.js`
-292 righe · in `dist/DPSH.html` dalla riga 45608
+292 righe · in `dist/DPSH.html` dalla riga 45615
 
 `buildIndiceReportCompletoHtml`, `buildSelezioneReportHtml`
 
 ### `src/js/070_impaginazione-reale-di-riepilogo-dettagliata-all.js`
-217 righe · in `dist/DPSH.html` dalla riga 45900
+217 righe · in `dist/DPSH.html` dalla riga 45907
 
 `misuraFigliPerStampaMm`, `fondiTitoliConSuccessivo`, `impaginaBlocchiSuPagineFisiche`
 
 ### `src/js/071_motore-unificato-di-impaginazione.js`
-802 righe · in `dist/DPSH.html` dalla riga 46117
+802 righe · in `dist/DPSH.html` dalla riga 46124
 
 `larghezzaPctBlocco`, `costruisciAtomiPaginaTemplate`, `costruisciPagineTemplateUnificato`, `provaSinteticaIntroduzione`, `raccogliVociIndice`, `numeraFigureERisolviRiferimenti`, `numeraPagineDocumento`, `buildCompleteReportHtml`, `downloadAllSurveyPhotosJpg`, `openSurveyPhotosModal`, `closeSurveyPhotosModal`, `handleGalleryBatchFiles`
 
 ### `src/js/071a_barre-del-pc.js`
-72 righe · in `dist/DPSH.html` dalla riga 46919
+72 righe · in `dist/DPSH.html` dalla riga 46926
 
 `renderPc`, `apriDalLato`
 
 ### `src/js/071b_registro-sul-pc.js`
-113 righe · in `dist/DPSH.html` dalla riga 46991
+132 righe · in `dist/DPSH.html` dalla riga 46998
 
 `segnaRigaScelta`, `scegliRiga`, `righeVisibili`, `staScrivendo`, `chiudiMenuRiga`, `apriMenuContesto`, `apriMenuRiga`, `apriMenuProgetto`, `apriMenuProva`
 
 ### `src/js/071c_palette-e-scorciatoie.js`
-128 righe · in `dist/DPSH.html` dalla riga 47104
+128 righe · in `dist/DPSH.html` dalla riga 47130
 
 `comandiPc`, `voceHtml`, `renderPalette`, `apriFinestraPc`, `apriPalette`, `eseguiVocePalette`, `apriScorciatoie`
 
 ### `src/js/071d_contatore-sul-pc.js`
-21 righe · in `dist/DPSH.html` dalla riga 47232
+21 righe · in `dist/DPSH.html` dalla riga 47258
 
 `interruttoreContatorePc`
 
 ### `src/js/071e_guida-rapida-pc.js`
-54 righe · in `dist/DPSH.html` dalla riga 47253
+54 righe · in `dist/DPSH.html` dalla riga 47279
 
 `mostraPassoGuida`, `apriGuidaRapida`, `chiudiGuidaRapida`, `forseGuidaRapida`
 
 ### `src/js/071f_terreno-dtm.js`
-444 righe · in `dist/DPSH.html` dalla riga 47307
+444 righe · in `dist/DPSH.html` dalla riga 47333
 
 `utmDaGeo`, `geoDaUtm`, `puntoNelCrs`, `crsDaEpsg`, `leggiAsciiGrid`, `tagTiff`, `lzwTiff`, `inflateZlib`, `leggiGeoTiff`, `proveConCoordinate`, `ritaglioDtmPerProgetto`, `ritaglioDaSorgente`, `quoteDtm`, `quotaDtm`, `quotaDtmXY`, `quotaDellaProva`, `formattaMetri`, `renderTerreno`, `apriTerreno`, `chiediFileDtm`
 
 ### `src/js/071g_sezione.js`
-413 righe · in `dist/DPSH.html` dalla riga 47751
+413 righe · in `dist/DPSH.html` dalla riga 47777
 
 `proveDellaSezione`, `nomeDpsh`, `datiSezione`, `occorrenzeFasce`, `correlazioniSezione`, `pathColpi`, `svgSezione`, `renderSezione`, `ridisegnaSezione`, `apriSezione`, `htmlFumettoProva`, `apriFumettoProva`, `chiudiFumetti`
 
 ### `src/js/071h_vista-3d.js`
-2478 righe · in `dist/DPSH.html` dalla riga 48164
+2478 righe · in `dist/DPSH.html` dalla riga 48190
 
 `triangolaDelaunay`, `datiVista3d`, `datiVista3dSenzaDtm`, `latiDelleProve`, `modelloCorrelazione`, `modelloSolido`, `involucroModello`, `colonnaSolido`, `splineSolido`, `ritagliaPoligono`, `dentroPoligono`, `areaPoligono`, `poligonoConvesso`, `triangoliPoligono`, `triangoliniPoligono`, `stratoAProfondita`, `google3d`, `sceltaSfondo3d`, `salvaSceltaSfondo3d`, `sfondoPerScena`, `caricaImmagine3d`, `scena3d`, `svgDaScena`, `vociLegenda3d`, `impaginaLegenda3d`, `conLegenda3d`, `disegnaScena`, `provaNelPunto`, `renderVista3d`, `apriVista3d`, `vistaIniziale3d`, `ridisegna3d`, `pizzicoDita`, `sposta3d`, `puntoCanvas`, `zoom3d`, `accendiSolido3d`, `livelliChiusi3d`, `righeLivelli3d`, `gruppoChiuso3d`, `renderLivelli3d`, `movimentoRidotto3d`, `dissolvenza3d`, `accendiLivello3d`, `etichetteLivello3d`, `inquadraLivello3d`, `menuQui`, `menuOpacita3d`, `menuLivello3d`, `gradi`, `direzioneVista3d`, `nomeDirezione`, `sincronizzaCursori3d`, `vaiAVista3d`, `giri`, `segnoGradi`, `bussola3d`, `avviaMoto3d`, `riempiSceltaSfondo3d`, `aggiornaStatoSfondo3d`, `cambiaSfondo3d`, `sincronizzaFoto3d`, `conSolido`, `nomeFileProgetto3d`, `svgVista3dDaScaricare`, `modelloObj`
 
 ### `src/js/071i_export-word.js`
-1151 righe · in `dist/DPSH.html` dalla riga 50642
+1151 righe · in `dist/DPSH.html` dalla riga 50668
 
 `xmlTesto`, `tw`, `coloreWord`, `primaFamiglia`, `nuovoContestoWord`, `nascostoWord`, `decoratoWord`, `soloInLineaWord`, `testoVisibileWord`, `rettangoloContenuto`, `ritagliaWord`, `rettangoloWord`, `raccogliFoglieWord`, `fogliaTestoWord`, `paragrafoVuotoWord`, `cellaVuotaWord`, `tblPrWord`, `tabellaDisposizioneWord`, `chiudiCellaWord`, `immagineInLineaWord`, `rasterizzaWord`, `proprietaRunWord`, `testoTrasformato`, `runDelParagrafoWord`, `altezzaRigaWord`, `righeDelTestoWord`, `stringiRunWord`, `marcatoreElencoWord`, `paragrafoWord`, `bordiWord`, `marginiCellaWord`, `sfondoEffettivoWord`, `contenutoWord`, `scatolaWord`, `tabellaWord`, `dividiWord`, `fogliaWord`, `impaginaWord`, `campoWord`, `segnalibroWord`, `sommarioWord`, `piedeWord`, `piedeInSezione`, `piedeTemplateWord`, `numerazioneInSezione`, `intestazioneWord`, `immagineAncorataWord`, `ancoraWord`, `cartaDelFoglioWord`, `intestazioneInSezione`, `partiIntestazioneWord`, `foglioWord`, `chiusuraSezioneWord`, `incorporaImmaginiWord`, `pacchettoDocxWord`, `segmentiWord`, `flussoWord`, `documentoStampaInDocx`
 
 ### `src/js/071j_sezioni-tracciate.js`
-607 righe · in `dist/DPSH.html` dalla riga 51793
+607 righe · in `dist/DPSH.html` dalla riga 51819
 
 `tracceDelProgetto`, `estremiTraccia`, `prossimoNomeTraccia`, `tracciaInScena`, `tracceNellaScena3d`, `puntoAlSuolo3d`, `clicTracciaSezione3d`, `seguiTracciaSezione3d`, `creaGrigliaSezioni3d`, `contornoPerGriglia3d`, `creaGrigliaAssi3d`, `tagliaSullaTraccia3d`, `agganciaTaglioAllaGriglia3d`, `spostaTraccia`, `fineSpostaTraccia`, `tracciaSottoIlMouse3d`, `iniziaSpostaTraccia3d`, `seguiSpostaTraccia3d`, `tracciaDalTaglio3d`, `datiSezioneTracciata`, `svgSezioneTracciata`, `renderElencoSezioni3d`, `renderVistaSezioneTracciata`, `mappaSatelliteTraccia`, `paginaPdfSezione`, `esportaPdfSezioni`
 
 ### `src/js/071k_geopackage.js`
-126 righe · in `dist/DPSH.html` dalla riga 52400
+126 righe · in `dist/DPSH.html` dalla riga 52426
 
 `realeSqlite`, `varintSqlite`, `recordSqlite`, `cellaSqlite`, `paginaFogliaSqlite`, `foglieSqlite`, `paginaInternaSqlite`, `fileSqlite`
 
 ### `src/js/071l_mappa-progetto.js`
-291 righe · in `dist/DPSH.html` dalla riga 52526
+291 righe · in `dist/DPSH.html` dalla riga 52552
 
 `schedaProvaMappaHtml`, `renderSchedaProvaMappa`, `disegnaProveMappa`, `iconaProvaMappa`, `scegliProvaMappa`, `spostaProvaDallaMappa`, `SFONDI_2D`, `livelloSfondo2d`, `sfondoMappaProgetto`, `sfondo2dAcceso`, `mostraMappa2d`, `inquadraTutteMappa2d`, `mostraProvaSullaMappa`, `vaiAllaProva2d`, `modificaDatiDallaMappa`, `apriMappaProgetto`, `chiudiMappaProgetto`
 
 ### `src/js/071m_area-mappa.js`
-565 righe · in `dist/DPSH.html` dalla riga 52817
+565 righe · in `dist/DPSH.html` dalla riga 52843
 
 `areaMappaAperta`, `modoAreaMappa`, `infoAreaMappa`, `coordinateAreaMappa`, `misuraAreaMappa`, `scegliStrumentoMappa`, `areaMetriQuadri`, `testoMisura`, `metriPrecisi`, `togliMisura`, `disegnaMisura2d`, `misuraNellaScena3d`, `finisciMisura`, `togliProfilo2d`, `disegnaProfilo2d`, `clicStrumentoMappa2d`, `clicStrumentoMappa3d`, `agganciaMappa2d`, `vociProvaMappa`, `menuProvaMappa`, `menuTracciaMappa`, `vociTracciaMappa`, `mostraSchedaComandi`, `scriveInUnCampo`, `caricaRotazioneMappa`, `pannelli`, `elPannello`, `telefonoMappa`, `salvaPannelli`, `applicaPannelli`, `riduciPannello`, `chiudiPannello`, `trascinaPillola`, `aggiornaBussola2d`, `giraMappa2d`, `angoloBussola2d`
 
 ### `src/js/071n_disegni.js`
-105 righe · in `dist/DPSH.html` dalla riga 53382
+105 righe · in `dist/DPSH.html` dalla riga 53408
 
 `disegniDelProgetto`, `creaDisegno`, `salvaPoligonoDisegnato`, `testoDisegno`, `centroDisegno`, `disegniNellaMappa2d`, `disegniNellaScena3d`, `menuDisegno`, `vociDisegno`
 
 ### `src/js/071o_stili-livelli.js`
-184 righe · in `dist/DPSH.html` dalla riga 53487
+184 righe · in `dist/DPSH.html` dalla riga 53513
 
 `etichettaDi`, `gruppoDiStile`, `tipoStile`, `stileLivello`, `stileProprio`, `togliStiliPropri`, `campiStile`, `trattoDash`, `trattoLeaflet`, `salvaStile`, `chiudiStileLivello`, `apriStileLivello`
 
 ### `src/js/071p_esporta-viste-3d.js`
-1263 righe · in `dist/DPSH.html` dalla riga 53671
+1263 righe · in `dist/DPSH.html` dalla riga 53697
 
 `vociEsportazione3d`, `conVista3dTemporanea`, `vistaBaseVoce3d`, `vistaPronta3dTavola`, `versoDaAz3d`, `ingombroScena3d`, `spostaCentroDiPixel3d`, `scenaVoce3d`, `puntoTerrenoTavola3d`, `mosaicoSfondo3d`, `sfondoEsportabile3d`, `MEZZO_ESTESO_3D`, `sfondoEstesoEsportabile3d`, `mezzoVisibile3d`, `conSfondoEsportabile3d`, `telaSezione2d`, `immagineDaSvg3d`, `ingombroPiantaSezione`, `scalaPiantaSezione`, `altezzaPiantaSezione`, `largaPianta`, `disegnaPiantaTraccia3d`, `telaVoce3d`, `byteDaTela3d`, `pdfDaTavole3d`, `T3`, `foglioTavole3d`, `altoTitoloPdf3d`, `misureTavola3d`, `memoriaTavole3d`, `opzioniTavole3d`, `sfondoEstesoAnteprima3d`, `tipoTavola3d`, `versoTavola3d`, `spostaPagina3d`, `ordinaPagine3d`, `sottotitoloTavola3d`, `apriTavole3d`, `chiudiTavole3d`, `salvaMemoriaTavole3d`, `titoloTavola3d`, `aggiornaTitoloVista3d`, `renderProveTavola3d`, `aggiornaTastiVista3d`, `scegliVistaTavola3d`, `renderElencoTavole3d`, `disegnaMiniaturaTavola3d`, `aggiornaContoTavole3d`, `mostraTavola3d`, `regolaTavola3d`, `ridisegnaTavola3d`, `aggiornaMiniaturaScelta3d`, `esportaTavole3d`, `pagElenco`, `sottoMeta3d`, `sceltaTasti3d`, `regolaPianta3d`, `sulBordoPianta3d`, `finePianta3d`, `lasciaPianta3d`, `lasciaManiglia3d`, `rimettiPianta3d`, `dopoProveTavola3d`, `titoloScelta3d`, `dopoTitolo3d`, `puntoTavola3d`, `elementoSotto3d`, `fineTrascina3d`, `renderTemplateTavole3d`
 
 ### `src/js/071q_perimetro-modello.js`
-322 righe · in `dist/DPSH.html` dalla riga 54934
+322 righe · in `dist/DPSH.html` dalla riga 54960
 
 `disegnoPerimetro`, `puntiPerimetroModello`, `perimetroModelloXY`, `usaPerimetroModello`, `renderPerimetroModello3d`, `leggiZipQualsiasi`, `crsDaWkt`, `leggiGeoJson`, `leggiKml`, `leggiShp`, `nomiDaDbf`, `leggiGeoPackage`, `wkbPoligoni`, `poligoniDaFile`, `importaPerimetro`
 
 ### `src/js/071r_sposta-sulla-mappa.js`
-174 righe · in `dist/DPSH.html` dalla riga 55256
+174 righe · in `dist/DPSH.html` dalla riga 55282
 
 `modificaMappaAttiva`, `aggiornaManiglieMappa`, `trascinamentoMappa`, `lasciaAlt`, `dopoModificaDisegno`, `manigliaDisegno2d`, `maniglieDisegno2d`, `schermoDalSuolo3d`, `maniglieNellaScena3d`, `elementoDaSpostare3d`, `iniziaSposta3d`, `seguiSposta3d`, `fineSposta3d`, `spostando3d`
 
 ### `src/js/071s_simbologia.js`
-84 righe · in `dist/DPSH.html` dalla riga 55430
+84 righe · in `dist/DPSH.html` dalla riga 55456
 
 `ingombroSimbolo`, `svgFormaSimbolo`, `svgSimboloRiquadro`, `cssEtichetta`, `postoEtichetta`, `iconaSimbolo2d`, `simboloScena3d`, `etichettaScena3d`
 
 ### `src/js/071t_esporta-gis.js`
-423 righe · in `dist/DPSH.html` dalla riga 55514
+423 righe · in `dist/DPSH.html` dalla riga 55540
 
 `rgbColore`, `coloreQgis`, `coloreKml`, `xmlEsc`, `wkb`, `coord`, `wkbPunto`, `wkbLinea`, `wkbPoligono`, `wkbMultiTriangoli`, `gpkgGeom`, `wktUtm`, `proprietaQml`, `simboloQml`, `simboloPuntoQml`, `trattoQml`, `simboloLineaQml`, `simboloPoligonoQml`, `etichetteQml`, `documentoQml`, `categorieQml`, `etichettePerRegolaQml`, `renderer3dQml`, `contaLivelloGis`, `zonaUtmProgetto`, `superficiModello3d`, `geopackageGis`, `pngSimbolo`, `documentoKmlGis`, `G`, `apriEsportaGis`, `renderEsportaGis`, `salvaSceltaGis`, `nel3d`, `esportaGis`
 
 ### `src/js/071s_confini-province.js`
-119 righe · in `dist/DPSH.html` dalla riga 55937
+119 righe · in `dist/DPSH.html` dalla riga 55963
 
 ### `src/js/071t_trova-dtm.js`
-725 righe · in `dist/DPSH.html` dalla riga 56056
+725 righe · in `dist/DPSH.html` dalla riga 56082
 
 `anelliProvincia`, `dentroAnello`, `distanzaDaAnelloKm`, `provinceDelPunto`, `zonaUtmNaturale`, `luogoDelleProve`, `riquadroUtm`, `metriInteri`, `gradi6`, `codiciEpsgUtm`, `tessereCopernicus`, `pixelMercatore`, `tessereTerrarium`, `fontiPerLuogo`, `dettagliFonteDtm`, `schedaDtmTesto`, `linkCercaDtm`, `areaDtmGeojson`, `ascDaDtm`, `epsgDelDtm`, `erroreReteDtm`, `chiediInReteDtm`, `pixelDaPng`, `sorgenteTerrarium`, `geoTiffInRete`, `sorgenteCopernicus`, `unisciQuery`, `testoWcs`, `scopriWcs`, `urlGetCoverage`, `sorgenteWcs`, `dtmDaFonte`, `TD`, `renderTrovaDtm`, `apriTrovaDtm`, `chiudiTrovaDtm`, `caricaFonteDtm`, `scaricaFonteDtm`, `copiaTestoDtm`, `nomeFileDtm`, `datiScheda`
 
 ### `src/js/071u_carta-intestata.js`
-443 righe · in `dist/DPSH.html` dalla riga 56781
+443 righe · in `dist/DPSH.html` dalla riga 56807
 
 `cartaDelTemplate`, `htmlCartaNelFoglio`, `regoleCarta`, `regoleCarteIntestate`, `marcaCartePrimaEAltre`, `aggiornaStileCarteEditor`, `caricaPdfjs`, `telaCarta`, `pagineCartaDaPdf`, `pagineCartaDaImmagine`, `pagineCartaDaWord`, `marginiDallaCarta`, `cartaDaFile`, `renderCartaEditor`, `applicaMarginiCarta`, `caricaCartaNelTemplate`
 
 ### `src/js/071q_strati-senza-vicoli-ciechi.js`
-94 righe · in `dist/DPSH.html` dalla riga 57224
+94 righe · in `dist/DPSH.html` dalla riga 57250
 
 `nomeProva`, `nomeProvaAperta`, `testoSicuroStrati`, `proveDelProgettoConStrato`, `htmlStratoSenzaDati`, `renderProvaDiCalcoloStrati`, `calcolaSullaProva`, `vaiAdAssegnareIntervalli`
 
 ### `src/js/071r_tavole-nel-report.js`
-154 righe · in `dist/DPSH.html` dalla riga 57318
+154 righe · in `dist/DPSH.html` dalla riga 57344
 
 `elencoTemplateTavole`, `templateTavole`, `tipoNelTemplate`, `memoriaConTemplate`, `regoleDallaMemoria`, `datiTavoleReport`, `titoliTavolaReport`, `foglioTavolaReport`, `opzioniTavolaReport`, `regolePagineTavole`, `capitoloTavoleHtml`
 
 ### `src/js/071s_importa-da-word.js`
-364 righe · in `dist/DPSH.html` dalla riga 57472
+364 righe · in `dist/DPSH.html` dalla riga 57498
 
 `leggiZipCompresso`, `decomprimiDeflate`, `mmDaTwip`, `attrW`, `figliW`, `letturaDaWord`, `riepilogoLetturaWord`, `applicaLetturaWord`, `importaDaWordNelTemplate`
 
+### `src/js/071v_tasto-destro.js`
+130 righe · in `dist/DPSH.html` dalla riga 57862
+
+`azioneDelMenuStrato`, `apriMenuStrato`, `premiNelMenuDelBlocco`, `apriMenuBloccoPc`, `apriMenuIntestazionePc`, `apriMenuPiedePc`, `apriMenuPaginaPc`, `apriMenuTemplateLibreria`
+
 ### `src/js/072_fase-3-modal-fallback-gps-foto.js`
-932 righe · in `dist/DPSH.html` dalla riga 57836
+932 righe · in `dist/DPSH.html` dalla riga 57992
 
 `ensureLeafletLoaded`, `showPhotoGpsFallbackStep`, `openPhotoGpsFallbackModal`, `closePhotoGpsFallbackModal`, `applyGpsToFallbackPhoto`, `openPhotoGpsMapPicker`, `scriviDatoProgettoCorrente`, `aggiornaPannelloBetaT`, `openDrawer`, `closeDrawer`, `openCantiereInfoModal`, `closeCantiereInfoModal`, `chiudiMenuAzioni`, `impostaTastoRegistraVisibile`, `linearScrollBy`, `animateViewSwap`, `exportGlobalJSONBackup`, `importGlobalJSONBackup`, `importGlobalZipBackup`, `renderThemeHuePicker`, `exportCsvFallback`
 
 ### `src/shell/06_fine.html`
-3 righe · in `dist/DPSH.html` dalla riga 58768
+3 righe · in `dist/DPSH.html` dalla riga 58924

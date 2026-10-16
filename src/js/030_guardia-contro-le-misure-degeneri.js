@@ -791,6 +791,10 @@
                     const ora = Date.now();
                     if (ultimoTapSelezioneBlocco.blockId === blockId && (ora - ultimoTapSelezioneBlocco.t) < 350) {
                         ultimoTapSelezioneBlocco = { blockId: null, t: 0 };
+                        // Sul PC il doppio clic su un testo lo apre da scrivere, come in Word; le
+                        // impostazioni del blocco stanno nel tasto destro (071v).
+                        const blkDoppio = suPc() && trovaBloccoPerIdOvunque(blockId);
+                        if (blkDoppio && (blkDoppio.type === 'testo' || blkDoppio.type === 'titolo')) { apriTplTextEditor(blockId); return; }
                         apriMenuBloccoEditor(blockId);
                         triggerVibrate(12);
                     } else {
@@ -802,6 +806,9 @@
                 bodyEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     if (templateEditorState.previewMode) return;
+                    // Sul PC il tasto destro dà le azioni del blocco in un menu dove sta il mouse
+                    // (071v); il pannello delle impostazioni è una delle voci.
+                    if (suPc()) { e.stopPropagation(); apriMenuBloccoPc(e, blockId); return; }
                     // Su Android il tocco prolungato manda anche contextmenu: il menu è già aperto.
                     const menu = document.getElementById('templateEditorBlockMenu');
                     if (menu && menu.dataset.blockId === blockId) return;
