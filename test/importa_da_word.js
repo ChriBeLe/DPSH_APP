@@ -73,11 +73,13 @@ const docx = zipCompresso({
     /^data:image\/png;base64,/.test(l.intestazione.immagine) && l.intestazione.larghezzaMm === 204.5 && l.intestazione.altezzaMm === 25.8);
   t('il testo dell\'intestazione, con grassetto, colore e centratura',
     l.intestazione.html === '<p style="text-align: center"><strong><span style="color: #1E40AF">Studio Rossi</span></strong> &amp; associati</p>');
-  t('il piè di pagina: la versione semplice in una riga', l.piede.testo === 'Direttore Tecnico · Eurisko S.R.L. · Via Parini, 30, 73100 Lecce' && l.piede.tabella);
+  t('il piè di pagina: la versione semplice in una riga', l.piede.testo === 'Direttore Tecnico · Eurisko S.R.L. · Via Parini, 30 · 73100 Lecce' && l.piede.tabella);
+  // Le larghezze stanno sulle celle: il motore dell'editor non conserva il <colgroup>.
   t('e quella formattata: la tabella resta tabella, con le larghezze delle colonne e la cella unita',
-    l.piede.html === '<table><colgroup><col style="width: 40.0%"><col style="width: 60.0%"></colgroup><tbody>'
-      + '<tr><td colspan="2"><p><strong>Direttore Tecnico</strong></p></td></tr>'
-      + '<tr><td><p>Eurisko S.R.L.</p></td><td><p>Via Parini, 30</p><p>73100 Lecce</p></td></tr></tbody></table>' && l.piede.righe === 3);
+    l.piede.html === '<table style="width: 100%"><tbody>'
+      + '<tr><td colspan="2" style="width: 100.0%; vertical-align: top"><p><strong>Direttore Tecnico</strong></p></td></tr>'
+      + '<tr><td style="width: 40.0%; vertical-align: top"><p>Eurisko S.R.L.</p></td><td style="width: 60.0%; vertical-align: top"><p>Via Parini, 30</p><p>73100 Lecce</p></td></tr></tbody></table>'
+    && l.piede.altezzaMm === 15.5);
   t('lo stile: Calibri 11, interlinea 1,5, 8 pt dopo, giustificato, titoli 18 / 12 / 11',
     JSON.stringify(l.stile) === JSON.stringify({ font: 'Calibri', fontNelWord: 'Calibri', corpoPt: 11, interlinea: 1.5, spazioParagrafoPt: 8, allineamento: 'justify', h1Pt: 18, h2Pt: 12, h3Pt: 11 }));
   const righe = app.E('riepilogoLetturaWord')(l);
@@ -93,7 +95,7 @@ const docx = zipCompresso({
   app.E('applicaLetturaWord')(l);
   const S = 'templateEditorState';
   t('margini e distanze di intestazione e piè di pagina nel template', app.E(`JSON.stringify(${S}.margins)`) === JSON.stringify({ top: 25, bottom: 12.5, left: 28.6, right: 20, header: 10, footer: 2 }));
-  t('intestazione e piè di pagina accesi, uguali su tutte le pagine', app.E(`${S}.headerEnabled && ${S}.headerTutte && ${S}.footerEnabled && ${S}.pages.every(p => p.header.html && p.footer.html && /<table>/.test(p.footer.html) && p.footer.heightMm === 14.5)`));
+  t('intestazione e piè di pagina accesi, uguali su tutte le pagine', app.E(`${S}.headerEnabled && ${S}.headerTutte && ${S}.footerEnabled && ${S}.pages.every(p => p.header.html && p.footer.html && /<table /.test(p.footer.html) && p.footer.heightMm === 17)`));
   t('la fascia più larga del testo diventa «a tutta larghezza», alta quanto a tutta pagina (26 mm + la riga)',
     app.E(`${S}.pages[0].header.tuttaPagina === true && ${S}.pages[0].header.heightMm === 26 + 5`));
   t('lo stile del testo del template', app.E(`${S}.stileTesto.corpoPt === 11 && ${S}.stileTesto.spazioParagrafoPt === 8 && ${S}.stileTesto.h1Pt === 18 && ${S}.stileTesto.interlinea === 1.5`));
@@ -108,10 +110,10 @@ const docx = zipCompresso({
 
   // Il piè di pagina formattato sta nel margine inferiore, come in Word.
   const piede = app.E(`htmlPiedeNelMargine(${S}.pages[0].footer, ${S}.margins)`);
-  t('sul foglio il piè di pagina formattato sta in fondo, nel margine, alla sua distanza dal bordo', /data-blocco="piede"[^>]*bottom:0; left:28\.6mm; right:20mm; height:18\.5mm;[^>]*padding:2mm 0 2mm/.test(piede) && /<table>/.test(piede));
+  t('sul foglio il piè di pagina formattato sta in fondo, nel margine, alla sua distanza dal bordo', /data-blocco="piede"[^>]*bottom:0; left:28\.6mm; right:20mm; height:21mm;[^>]*padding:2mm 0 2mm/.test(piede) && /<table /.test(piede));
   const mrgP = app.E(`margineConIntestazione(${S}.margins, null, false, ${S}.pages[0].footer, true)`);
-  t('il margine inferiore si allarga quanto il piè di pagina (14,5 + 0,2 + 0,2 cm) e non gli si riserva altro spazio nel testo',
-    mrgP.bottom === 18.5 && app.E(`calcolaBudgetPaginaMm(margineConIntestazione(${S}.margins, null, false, ${S}.pages[0].footer, true), true).riservaFooterMm`) === 0
+  t('il margine inferiore si allarga quanto il piè di pagina (1,7 + 0,2 + 0,2 cm) e non gli si riserva altro spazio nel testo',
+    mrgP.bottom === 21 && app.E(`calcolaBudgetPaginaMm(margineConIntestazione(${S}.margins, null, false, ${S}.pages[0].footer, true), true).riservaFooterMm`) === 0
     && app.E(`calcolaBudgetPaginaMm(${S}.margins, true).riservaFooterMm`) === 8);
   const foglioP = app.E(`buildPaginaRigheHtml(${S}.pages[0], ${S}.ctx || computeEditorPreviewCtx(), 1, 1, true, ${S}.margins, '1', false, false, true)`);
   t('nel foglio del report il piè di pagina formattato, non la riga semplice', /data-blocco="piede"/.test(foglioP) && !/data-blocco="pie"/.test(foglioP));
@@ -140,6 +142,61 @@ const docx = zipCompresso({
   const anc = app.E('immagineAncorataWord')(ctx, img, { left: 0, top: 0 });
   t('nel Word la fascia è un\'immagine ancorata alla pagina, dietro al testo', /<wp:anchor [^>]*behindDoc="1"/.test(anc) && /<wp:positionH relativeFrom="page">/.test(anc) && /<wp:positionV relativeFrom="page">/.test(anc));
   t('coi byte originali del Word (non ridisegnata)', ctx.media.length === 1 && Buffer.from(ctx.media[0].bytes).equals(PNG) && ctx.media[0].nome === 'immagine3.png');
+
+  // UN'INTESTAZIONE A TABELLA (logo | studio | titolo dell'intervento) diventa testo modificabile.
+  {
+    const docx2 = zipCompresso({
+      'word/document.xml': `<?xml version="1.0"?><w:document ${W}><w:body><w:p/><w:sectPr><w:headerReference w:type="default" r:id="rIdH"/>`
+        + `<w:pgMar w:top="1701" w:right="1134" w:bottom="1134" w:left="1134" w:header="709" w:footer="709" w:gutter="0"/></w:sectPr></w:body></w:document>`,
+      'word/_rels/document.xml.rels': `<?xml version="1.0"?><Relationships ${REL}><Relationship Id="rIdH" Type="h" Target="header1.xml"/></Relationships>`,
+      'word/header1.xml': `<?xml version="1.0"?><w:hdr ${W}><w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>`
+        + `<w:tblGrid><w:gridCol w:w="2000"/><w:gridCol w:w="6000"/></w:tblGrid><w:tr>`
+        + `<w:tc><w:tcPr><w:vMerge w:val="restart"/><w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline><wp:extent cx="900000" cy="450000"/><a:graphic><a:graphicData><a:blip r:embed="rId1"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:tc>`
+        + `<w:tc><w:tcPr><w:shd w:val="clear" w:fill="DDEEFF"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>RELAZIONE GEOLOGICA</w:t></w:r></w:p>`
+        + `<w:p><w:r><w:t>Impianto BESS di Galatone</w:t></w:r></w:p></w:tc></w:tr>`
+        + `<w:tr><w:tc><w:tcPr><w:vMerge/></w:tcPr><w:p/></w:tc><w:tc><w:p><w:r><w:t>Committente: Rossi</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:p/></w:hdr>`,
+      'word/_rels/header1.xml.rels': `<?xml version="1.0"?><Relationships ${REL}><Relationship Id="rId1" Type="i" Target="media/logo.png"/></Relationships>`,
+      'word/media/logo.png': PNG
+    });
+    const l2 = await app.E('letturaDaWord')(new app.w.Uint8Array(docx2));
+    const h2 = l2.intestazione;
+    t('un\'intestazione a tabella diventa una tabella di testo, non un\'immagine', h2 && !h2.immagine && h2.tabella && /^<table style="width: 100%" data-bordi="1">/.test(h2.html));
+    t('il logo resta nella sua cella, centrato, con la sua misura (2,5 cm), e la cella unita in verticale tiene le due righe', /<td rowspan="2" style="width: 25\.0%; border: 0\.5pt solid #000000; vertical-align: middle"><p style="text-align: center"><img src="data:image\/png;base64,[^"]+" style="width: 25mm"><\/p><\/td>/.test(h2.html));
+    t('il titolo dell\'intervento è testo: grassetto, corpo 14 pt, la cella col suo sfondo', /<td style="width: 75\.0%; border: 0\.5pt solid #000000; background-color: #DDEEFF; vertical-align: top"><p><strong><span style="font-size: 14pt">RELAZIONE GEOLOGICA<\/span><\/strong><\/p><p>Impianto BESS di Galatone<\/p><\/td>/.test(h2.html));
+    t('la riga sotto ha solo la sua cella: quella unita non si ripete', /<tr><td style="width: 75\.0%; border: 0\.5pt solid #000000; vertical-align: top"><p>Committente: Rossi<\/p><\/td><\/tr>/.test(h2.html));
+    t('il riepilogo lo dice', /tabella, un'immagine \(il logo\), il testo «RELAZIONE GEOLOGICA · Impianto BESS di Galatone · Committent…» — come testo modificabile/.test(app.E('riepilogoLetturaWord')(l2)[1]));
+    // I tag nell'intestazione: «Denominazione dell'intervento» si riempie col progetto.
+    const conTag = '<table style="width: 100%" data-bordi="1"><tbody><tr><td><p><span data-tag="denominazioneIntervento" class="dpsh-tag"></span></p></td></tr></tbody></table>';
+    const pid = app.E("Object.keys(state.projects).find(id => /Nard/.test(state.projects[id].name))");
+    app.E(`state.projects[${JSON.stringify(pid)}].denominazioneIntervento = 'Ampliamento della Scuola Via Roma'`);
+    t('nell\'intestazione i tag si riempiono coi dati del progetto (il titolo dell\'intervento)',
+      /Ampliamento della Scuola Via Roma/.test(app.E(`htmlIntestazioneNelMargine({ html: ${JSON.stringify(conTag)} }, {}, { ctx: { projId: ${JSON.stringify(pid)} } })`)));
+    t('e anche nel piè di pagina', /Ampliamento della Scuola Via Roma/.test(app.E(`htmlPiedeNelMargine({ html: ${JSON.stringify(conTag)} }, {}, { ctx: { projId: ${JSON.stringify(pid)} } })`)));
+    // Aperta nell'editor di testo, la tabella tiene bordi, sfondo, larghezze e il logo.
+    app.E('applicaLetturaWord')(l2);
+    app.E('apriTplTextEditor(ID_INTESTAZIONE_EDITOR)');
+    await attesa(80);
+    const riaperta = app.E('editorTesto.getHTML()');
+    t('aperta nell\'editor di testo la tabella tiene bordi, sfondo, larghezze e il logo',
+      /data-bordi="1"/.test(riaperta) && /background-color: (#DDEEFF|rgb\(221, 238, 255\))/i.test(riaperta) && /width: 75(\.0)?%/.test(riaperta) && /<img src="data:image\/png/.test(riaperta));
+    app.E('chiudiTplTextEditor()');
+
+    // «Rendi modificabile dal Word…» della carta intestata: l'intestazione modificabile prende il
+    // posto dell'immagine di sfondo.
+    app.E(`templateEditorState.cartaIntestata = { id: 'carta1', nome: 'carta.docx', prima: 'data:image/jpeg;base64,AAAA', altre: null }; renderCartaEditor()`);
+    t('con la carta intestata c\'è «Rendi modificabile dal Word…»', !app.d.getElementById('btnCartaModificabile').hidden);
+    app.E('importaAlPostoDellaCarta = true');
+    const file = new app.w.File([docx2], 'carta.docx');
+    if (!file.arrayBuffer) file.arrayBuffer = async () => docx2.buffer.slice(docx2.byteOffset, docx2.byteOffset + docx2.length);
+    const lavoro = app.E('importaDaWordNelTemplate')(file);
+    await attesa(60);
+    const dlg = app.dialogo();
+    t('il riepilogo dice che la carta si toglie', !!dlg && /La carta intestata \(l'immagine di sfondo\) si toglie/.test(dlg.testo));
+    if (dlg) clic(app, dlg.ok);
+    await lavoro;
+    await attesa(20);
+    t('applicato: niente più carta, intestazione a tabella modificabile', !app.E('templateEditorState.cartaIntestata') && /data-bordi="1"/.test(app.E('templateEditorState.pages[0].header.html')));
+  }
 
   // Un file che non è un Word.
   let errore = '';

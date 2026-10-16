@@ -1034,7 +1034,7 @@
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
                 const fascia = Math.max(mrg.bottom, altezzaPiedeMm(ft) + distanzaPiedeMm(mrg) + 2);
                 return `<div data-blocco="piede"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; bottom:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:2mm 0 ${distanzaPiedeMm(mrg)}mm; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden;">`
-                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${ft.html || ''}</div></div>`;
+                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx && ft.html ? risolviTagInStampa(ft.html, extra.ctx) : (ft.html || '')}</div></div>`;
             }
 
             /** L'intestazione disegnata nella fascia del margine superiore: un riquadro assoluto dentro
@@ -1057,7 +1057,7 @@
                         ${hd.html
                             // IL TESTO FORMATTATO (scritto con l'editor dei blocchi Testo): grassetto,
                             // colori, più righe, allineamento. Di base centrato, come la riga semplice.
-                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${hd.html}</div>`
+                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx ? risolviTagInStampa(hd.html, extra.ctx) : hd.html}</div>`
                             : hd.text ? `<div style="${testoLati} font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
                     </div>`;
             }
@@ -1296,7 +1296,7 @@
                 // costruisciPagineTemplateUnificato qui sopra, invece di ricalcolare a mano —
                 // coerenza garantita tra miniatura editor ed export vero.
                 const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled, pageDef.footer, footerEnabled);
-                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg) : '');
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg, { ctx }) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg, { ctx }) : '');
                 // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
                 // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
                 // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un

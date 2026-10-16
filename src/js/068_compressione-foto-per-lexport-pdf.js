@@ -161,6 +161,11 @@
                     /* Nell'intestazione le righe stanno strette, come in quella di Word: niente spazio tra i
                        paragrafi e niente rientro, che sono del corpo del documento. */
                     .tpl-intestazione-testo p { margin: 0; text-indent: 0; }
+                    /* Le tabelle dell'intestazione (dal Word: logo, studio, titolo dell'intervento): i bordi
+                       e gli sfondi li porta ogni cella; qui niente bordi di serie. */
+                    .tpl-block-richtext.tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
+                    .tpl-block-richtext.tpl-intestazione-testo table td, .tpl-block-richtext.tpl-intestazione-testo table th { border: none; background: none; padding: 0.8mm 1.5mm; text-align: inherit; font-weight: inherit; }
+                    .tpl-intestazione-testo img, .tpl-piede-testo img { max-width: 100%; height: auto; vertical-align: middle; }
                     /* Il piè di pagina formattato (htmlPiedeNelMargine): righe strette, e una tabella senza
                        bordi per i contatti su più colonne, come nella carta intestata di Word. */
                     .tpl-piede-testo p { margin: 0; text-indent: 0; }

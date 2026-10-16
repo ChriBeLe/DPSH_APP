@@ -351,7 +351,7 @@
                     if (vecchia) vecchia.remove();
                     if (foglioEditor && templateEditorState.headerEnabled && page.header) {
                         const mrgH = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
-                        foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true }));
+                        foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true, ctx }));
                         document.getElementById('templateEditorHeaderZone').style.outline = '1px dashed #cbd5e1';
                     }
                     // La carta intestata (071u), sotto a tutto: la prima pagina sulla prima del template.
@@ -365,7 +365,7 @@
                     if (vecchioPiede) vecchioPiede.remove();
                     if (foglioEditor && templateEditorState.footerEnabled && page.footer && page.footer.html) {
                         const mrgP = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
-                        foglioEditor.insertAdjacentHTML('beforeend', htmlPiedeNelMargine(page.footer, mrgP, { id: 'templateEditorFooterZone', classe: 'tpl-editor-footer-zone' }));
+                        foglioEditor.insertAdjacentHTML('beforeend', htmlPiedeNelMargine(page.footer, mrgP, { id: 'templateEditorFooterZone', classe: 'tpl-editor-footer-zone', ctx }));
                         document.getElementById('templateEditorFooterZone').style.outline = '1px dashed #cbd5e1';
                     }
                 }

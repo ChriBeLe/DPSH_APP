@@ -1109,3 +1109,6 @@
         .esp-stima b { font-weight: 800; font-size: 16px; color: var(--accent-ink); }
         .esp-stima span { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
         .esp-genera { width: 100%; padding: 12px !important; font-weight: 800 !important; font-size: 13.5px !important; background: var(--accent) !important; color: var(--on-accent) !important; border: none !important; }
+        #templateEditorPageFrame .tpl-intestazione-testo table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #templateEditorPageFrame .tpl-intestazione-testo td, #templateEditorPageFrame .tpl-intestazione-testo th { border: none; padding: 0.8mm 1.5mm; }
+        #templateEditorPageFrame .tpl-intestazione-testo img, #templateEditorPageFrame .tpl-piede-testo img { max-width: 100%; height: auto; vertical-align: middle; }
