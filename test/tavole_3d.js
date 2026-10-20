@@ -260,6 +260,11 @@ const $ = (app, id) => app.d.getElementById(id);
   const conManiglia = JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`)));
   t('la maniglia sull\'angolo: larghezza (centrata: 100 px a sinistra = 200 in meno) e altezza insieme', Math.abs(conManiglia.larga - 0.8) < 1e-9 && Math.abs(conManiglia.alta - 0.34) < 1e-9
     && app.E(`largaPianta(tavole3d.piante[${JSON.stringify(tr0)}])`) === 0.8 && /larghezza e altezza/.test(mg.title));
+  const lato = (dir, x0, y0, x1, y1) => { const m = app.w.document.querySelector(`.tavole-pianta-maniglia[data-dir="${dir}"]`), ev = (tipo, x, y) => m.dispatchEvent(new app.w.MouseEvent(tipo, { bubbles: true, clientX: x, clientY: y, button: 0 })); app.E(`Object.assign(tavole3d.piantaViva, { wP: 800, hP: 340 })`); ev('pointerdown', x0, y0); ev('pointermove', x1, y1); ev('pointerup', x1, y1); return JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`))); };
+  const sx = lato('-1,0', 100, 300, 50, 400);
+  t('8 maniglie; quella del lato sinistro cambia solo la larghezza (50 px a sinistra = 100 in più)', app.w.document.querySelectorAll('.tavole-pianta-maniglia').length === 8 && Math.abs(sx.larga - 0.9) < 1e-9 && Math.abs(sx.alta - 0.34) < 1e-9);
+  const su = lato('0,-1', 500, 100, 900, 60);
+  t('quella di sopra cambia solo l\'altezza (40 px su = 40 in più)', Math.abs(su.larga - 0.9) < 1e-9 && Math.abs(su.alta - 0.38) < 1e-9);
   pe('dblclick', 500, 100);
   t('doppio clic: com\'era all\'inizio (e niente cursori: si fa col mouse)', !app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`) && !$(app, 'tavole3dPiantaZoom') && !$(app, 'tavole3dPiantaAltezza'));
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = true; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
