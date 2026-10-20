@@ -151,6 +151,7 @@ js/071c_palette-e-scorciatoie.js
 js/071d_contatore-sul-pc.js
 js/071e_guida-rapida-pc.js
 js/071f_terreno-dtm.js
+js/071fs_sistema-di-riferimento.js
 js/071g_sezione.js
 js/071h_vista-3d.js
 js/071i_export-word.js

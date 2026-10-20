@@ -1533,7 +1533,7 @@ ${contenuto}
                     const quotaTerreno = quotaDellaProva(state.projects[state.currentProjectId], state.header);
                     const altStr = quotaTerreno !== null ? ` | Quota dal DTM: ${numeroConVirgola(quotaTerreno, 1)} m s.l.m.`
                         : (state.header.alt ? ` | Quota GPS: ${Math.round(state.header.alt)} m` : '');
-                    lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${altStr}`;
+                    lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${testoCoordSr(lat, lng)}${altStr}`;
                     lblModalGpsStatus.style.color = 'var(--accent)';
                 } else {
                     lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> GPS non ancora acquisito: rilevalo o inserisci latitudine e longitudine.`;
@@ -1541,6 +1541,7 @@ ${contenuto}
                 }
                 aggiornaApriInMappe();
                 aggiornaSpostaProva();
+                aggiornaCampiSr();
             }
 
             /** Gli indirizzi per aprire un punto nelle mappe. `geo:` è lo standard Android (apre la

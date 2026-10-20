@@ -52,6 +52,7 @@
             function applyGpsCoordsToModal(lat, lng, sourceLabel) {
                 if (numModalGpsLat) numModalGpsLat.value = lat;
                 if (numModalGpsLng) numModalGpsLng.value = lng;
+                aggiornaCampiSr();
                 triggerVibrate([40, 40]);
                 if (lblModalGpsStatus) {
                     lblModalGpsStatus.innerHTML = `${ico('check')} ${sourceLabel}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
