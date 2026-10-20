@@ -572,6 +572,7 @@
                 const esc = escapeHtmlDidascalia;
                 TD('trovaDtmEsito').innerHTML = esito ? `<div class="riga-avviso${esito.errore ? ' pericolo' : ''}" role="${esito.errore ? 'alert' : 'status'}">${esc(esito.testo)}</div>` : '';
                 TD('trovaDtmRitaglio').hidden = !(proj && proj.dtm);
+                TD('trovaDtmTogli').hidden = !(proj && proj.dtm);
                 ['trovaDtmCopia', 'trovaDtmScheda', 'trovaDtmArea'].forEach(id => { TD(id).disabled = !luogo; });
                 document.querySelectorAll('#trovaDtm [data-tipo-dtm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tipoDtm === trovaDtm.tipo)));
                 if (!luogo) {
@@ -715,6 +716,16 @@
             TD('trovaDtmRitaglio').addEventListener('click', () => {
                 const proj = state.projects[trovaDtm.projId];
                 if (proj && proj.dtm) scaricaBlob(ascDaDtm(proj.dtm), 'text/plain', `DTM_${nomeFileDtm(proj)}_EPSG${epsgDelDtm(proj.dtm)}.asc`);
+            });
+
+            TD('trovaDtmTogli').addEventListener('click', () => {
+                const proj = state.projects[trovaDtm.projId], vecchio = proj && proj.dtm, fatto = trovaDtm.fatto;
+                if (!vecchio) return;
+                delete proj.dtm;
+                saveState();
+                fatto();
+                renderTrovaDtm();
+                showUndoBanner('DTM tolto dal progetto', () => { proj.dtm = vecchio; saveState(); fatto(); if (!TD('trovaDtm').hidden) renderTrovaDtm(); });
             });
 
             // Da «Terreno e sezioni» e dal bottone DTM della mappa del progetto.
