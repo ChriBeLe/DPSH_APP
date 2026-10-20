@@ -141,17 +141,16 @@ const $ = (app, id) => app.d.getElementById(id);
     const out = { senza: righe({}), con: righe({ mesh: true }), dopo: vista3d.livelli.mesh, spunta: !!document.getElementById('tavole3dMesh') };
     vista3d.livelli.mesh = prima; return out; })()`);
   t(`nelle tavole la mesh del modello non c'è (anche se nel 3D è accesa); si accende con «Mesh del modello» (${mesh.con} righe)`, mesh.senza === 0 && mesh.con > 50 && mesh.dopo === true && mesh.spunta);
-  const regole = app.E(`(() => { const d = datiVista3dCorrenti, t = tracceDelProgetto()[0]; return { auto: altezzaPiantaSezione(d, t, null, 1400, 0), mano: altezzaPiantaSezione(d, t, null, 1400, 0.25) }; })()`);
+  const regole = app.E(`(() => { const d = datiVista3dCorrenti, t = tracceDelProgetto()[0]; return { auto: altezzaPiantaSezione(d, t, { xa: 58, xb: 1378 }, 1400, 0), mano: altezzaPiantaSezione(d, t, { xa: 58, xb: 1378 }, 1400, 0.25) }; })()`);
   t(`la pianta della sezione 2D: altezza automatica (${regole.auto}) o scelta (25% = ${regole.mano} px)`, regole.mano === 350 && regole.auto > 0);
   t(`la mappa ritagliata è un blocco: la faccia del taglio sotto la mappa, fino a un piano sotto, coi suoi spigoli (${blocco.con.facce} pezzi), senza ritaglio niente`, blocco.senza.facce === 0 && blocco.con.facce > 10 && blocco.con.linee > 4);
   const piantaGirata = app.E(`(() => {
-    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], W = 1400, h = altezzaPiantaSezione(d, t, null, W), ig = ingombroPiantaSezione(d, t);
-    const k = Math.min(W / (ig.s1 - ig.s0), h / (ig.n1 - ig.n0)), sc = (ig.s0 + ig.s1) / 2, nc = (ig.n0 + ig.n1) / 2;
-    const dentro = d.prove.filter(p => { const [s, n] = ig.sn(p.x, p.y), X = W / 2 + (s - sc) * k, Y = h / 2 - (n - nc) * k; return X > 0 && X < W && Y > 0 && Y < h; }).length;
+    const d = datiVista3dCorrenti, t = tracceDelProgetto()[0], W = 1400, asse = { xa: 58, xb: 1378 }, h = altezzaPiantaSezione(d, t, asse, W), ig = ingombroPiantaSezione(d, t);
+    const { k, sc } = scalaPiantaSezione(ig, 0, W, {}, asse), X = s => W / 2 + (s - sc) * k;
     const [sb, nb] = ig.sn(...tracciaInScena(d, t).b);
-    return { h, dentro, tutte: d.prove.length, orizzontale: Math.abs(nb) < 1e-6 && sb > 0 };
+    return { h, xA: X(0), xB: X(ig.L), orizzontale: Math.abs(nb) < 1e-6 && sb > 0 };
   })()`);
-  t(`la pianta della sezione 2D: foto girata con la traccia in orizzontale (A a sinistra) e riadattata: si vedono tutte le prove (${piantaGirata.dentro}/${piantaGirata.tutte}), alta ${piantaGirata.h} su 1400`, piantaGirata.orizzontale && piantaGirata.dentro === piantaGirata.tutte && piantaGirata.h >= 1400 * 0.14 && piantaGirata.h <= 1400 * 0.34);
+  t(`la pianta della sezione 2D: foto girata con la traccia in orizzontale, A e A' sopra A e A' della sezione (${piantaGirata.xA.toFixed(1)} e ${piantaGirata.xB.toFixed(1)}), alta ${piantaGirata.h} su 1400`, piantaGirata.orizzontale && Math.abs(piantaGirata.xA - 58) < 1e-6 && Math.abs(piantaGirata.xB - 1378) < 1e-6 && piantaGirata.h >= 1400 * 0.14 && piantaGirata.h <= 1400 * 0.34);
   const segue = app.E(`(() => {
     const d = datiVista3dCorrenti, v = vociEsportazione3d(d)[0], out = [];
     [1, 2.5, 6].forEach(z => { const sc = scenaVoce3d(v, d, 1400, 860, { reg: { zoom: z }, legenda: false }), e = sc.elementi.nordTerreno; out.push(e ? { w: e.x1 - e.x0, h: e.y1 - e.y0, dentro: e.x0 >= 0 && e.x1 <= 1400 && e.y0 >= 0 && e.y1 <= 860 } : null); });
