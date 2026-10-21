@@ -705,6 +705,7 @@
         .am-stato { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--text-muted); min-width: 0; overflow: hidden; }
         .am-chip { white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: var(--bg-sunken); }
         .am-chip:empty { display: none; }
+        .am-sr { width: auto; max-width: 15em; padding: 1px 6px; font-size: 11px; height: auto; }
         .am-chip[hidden] { display: none; }
         #lblAreaMappaMisura { background: rgba(250, 204, 21, 0.18); color: var(--text-main); font-weight: 700; }
         .am-mono { font-family: var(--font-mono); }

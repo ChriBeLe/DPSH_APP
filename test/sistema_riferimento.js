@@ -40,6 +40,16 @@ const STATO_V0 = fs.readFileSync(path.join(__dirname, 'dati', 'stato_v0.json'), 
   t('incollata una riga «DPSH4 <tab> E,N»: riconosciuta', Math.abs(inc.x - 471989.364) < 0.002 && Math.abs(inc.y - 4115634.032) < 0.002 && $('numModalGpsE').value === '471989.364');
   t('anche «E N» con la virgola dei decimali', !!app.E(`geoDaTestoUtm('471719,85 4115631,13', { zona: 33 })`) && !app.E(`geoDaTestoUtm('41.84, 12.56', { zona: 33 })`));
 
+  app.E(`closeAnyOpenModal(); apriVista3d('mappa')`);
+  await attesa(80);
+  t('nella mappa del progetto c\'è lo stesso menu, sul sistema del progetto', $('selSrMappa').value === '25833');
+  app.E('coordinateAreaMappa(37.186697, 14.68138)');
+  t(`le coordinate sotto il mouse nel sistema (${$('lblAreaMappaCoord').textContent})`, /^E 471\.?719,\d+ N 4\.?115\.?631,\d+$/.test($('lblAreaMappaCoord').textContent));
+  $('selSrMappa').value = '4326';
+  $('selSrMappa').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  app.E('coordinateAreaMappa(37.186697, 14.68138)');
+  t('cambiato dalla mappa: vale per il progetto e per la finestra GPS', app.E(`state.projects[${JSON.stringify(pid)}].sr`) === 4326 && $('selSrProgetto').value === '4326' && $('lblAreaMappaCoord').textContent === '37.186697, 14.681380');
+
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`\n${ok} ok, ${ko} KO`);
