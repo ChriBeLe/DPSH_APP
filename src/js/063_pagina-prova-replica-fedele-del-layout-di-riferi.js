@@ -766,6 +766,17 @@
                         svg += `<text x="${panelA_gridX + stripW / 2}" y="${y1 + h / 2 + fSpessore * 0.36}" font-size="${fSpessore}" font-weight="800" text-anchor="middle" fill="#ffffff" stroke="#0f172a" stroke-width="${Math.max(1.2, fSpessore * 0.24)}" paint-order="stroke fill" stroke-linejoin="round">${fmtIT(se.profonditaA - se.profonditaDa, 1)}</text>`;
                     }
                 });
+                // Il rifiuto escluso dai calcoli non è in stratiEff: si disegna a parte, alto un
+                // intervallo, con la litologia ereditata (o quella dello strato sopra).
+                logsCalc.forEach((log, idx) => {
+                    if (!intervalloSoloGrafico(log)) return;
+                    let id = null;
+                    for (let i = idx; i >= 0 && !id; i--) id = logsCalc[i].lithology;
+                    const se = stratiEff.find(x => x.id === id) || stratiEff.filter(x => x.profonditaA <= log.start + 1e-6).pop();
+                    if (!se || !se.strato) return;
+                    const y1 = yScale(log.start);
+                    svg += `<rect x="${panelA_gridX}" y="${y1}" width="${stripW}" height="${Math.max(0.5, yScale(log.end) - y1)}" fill="${riempimentoDi(se.strato)}" stroke="#0f172a" stroke-width="0.6"/>`;
+                });
 
                 if (faldaGrafico.presente) {
                     const yFalda1 = yScale(faldaGrafico.da), yFalda2 = yScale(faldaGrafico.a);
@@ -849,7 +860,7 @@
 
                 const buildStaircasePath = (xScale, getVal) => {
                     let d = '';
-                    logsCalc.forEach((log, i) => {
+                    logsCalc.filter(log => !intervalloSoloGrafico(log)).forEach((log, i) => {
                         const x = xScale(getVal(log));
                         const y1 = yScale(log.start), y2 = yScale(log.end);
                         d += (i === 0 ? `M ${x} ${y1} ` : `L ${x} ${y1} `) + `L ${x} ${y2} `;
@@ -868,7 +879,15 @@
 
                 logsCalc.forEach(log => {
                     const yMid = (yScale(log.start) + yScale(log.end)) / 2 + fPunto * 0.36;
-                    svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${intervalloSoloGrafico(log) ? 'Rifiuto' : (log.colpi || 0)}</text>`;
+                    if (!intervalloSoloGrafico(log)) {
+                        svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${log.colpi || 0}</text>`;
+                        return;
+                    }
+                    // Rettangolo indicativo: largo quanto i colpi se ci sono, altrimenti un quinto del pannello.
+                    const xFine = log.colpi > 0 ? xScaleB(log.colpi) : panelB_gridX + panelB_gridW * 0.2;
+                    const y1 = yScale(log.start);
+                    svg += `<rect x="${panelB_gridX}" y="${y1}" width="${Math.max(1, xFine - panelB_gridX)}" height="${Math.max(0.5, yScale(log.end) - y1)}" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.2"/>`;
+                    svg += `<text x="${xFine + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">Rifiuto</text>`;
                 });
                 puntiRpd.forEach(p => {
                     svg += `<text x="${p.x + 3}" y="${p.y + fPunto * 0.36}" font-size="${fPunto}" font-weight="700" fill="#dc2626">${Math.round(p.rpd || 0)}</text>`;
