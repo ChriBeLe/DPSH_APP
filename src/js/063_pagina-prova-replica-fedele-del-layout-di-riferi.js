@@ -286,15 +286,16 @@
                 // lì il perché): senza questo, spegnere la griglia dal menu non avrebbe effetto su
                 // questa tabella, perché un bordo scritto in linea vince sulla regola "th,td".
                 const bordoCella = 'border-top:var(--tpl-bordo-h, 1px solid #cbd5e1);border-bottom:var(--tpl-bordo-h, 1px solid #cbd5e1);border-left:var(--tpl-bordo-v, 1px solid #cbd5e1);border-right:var(--tpl-bordo-v, 1px solid #cbd5e1);';
-                const righe = logsCalc.map((log, i) => `
+                // Il rifiuto escluso resta in tabella come segnalazione, senza valori calcolati.
+                const righe = logsCalc.map((log, i) => { const rif = intervalloSoloGrafico(log); return `
                     <tr style="${i % 2 === 1 ? 'background:#EAF3FB;' : ''}">
                         <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${log.asta || 1}</td>
                         <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-family:monospace;">${fmtIT(log.end, 1)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${log.colpi || 0}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${fmtIT(log.nsptGrezzo, 2)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${fmtIT(log.nsptFalda, 2)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${fmtIT(log.rpd, 2)}</td>
-                    </tr>`).join('');
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${rif ? 'Rifiuto' : (log.colpi || 0)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${rif ? '—' : fmtIT(log.nsptGrezzo, 2)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${rif ? '—' : fmtIT(log.nsptFalda, 2)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${rif ? '—' : fmtIT(log.rpd, 2)}</td>
+                    </tr>`; }).join('');
                 // th con background/color PROPRI in linea (bug segnalato esplicitamente: un <th>
                 // senza colore proprio, solo con lo sfondo sul <tr> genitore come qui prima, va in
                 // balìa della regola generica th{...} del foglio di stampa — vedi
@@ -765,6 +766,22 @@
                         svg += `<text x="${panelA_gridX + stripW / 2}" y="${y1 + h / 2 + fSpessore * 0.36}" font-size="${fSpessore}" font-weight="800" text-anchor="middle" fill="#ffffff" stroke="#0f172a" stroke-width="${Math.max(1.2, fSpessore * 0.24)}" paint-order="stroke fill" stroke-linejoin="round">${fmtIT(se.profonditaA - se.profonditaDa, 1)}</text>`;
                     }
                 });
+                // Il rifiuto escluso dai calcoli non è in stratiEff: si disegna a parte, alto un
+                // intervallo, con la litologia ereditata (o quella dello strato sopra) e una X sopra,
+                // lo stesso segno del tasto «Rifiuto».
+                const bandeRifiuto = [];
+                logsCalc.forEach((log, idx) => {
+                    if (!intervalloSoloGrafico(log)) return;
+                    let id = null;
+                    for (let i = idx; i >= 0 && !id; i--) id = logsCalc[i].lithology;
+                    const se = stratiEff.find(x => x.id === id) || stratiEff.filter(x => x.profonditaA <= log.start + 1e-6).pop();
+                    if (!se || !se.strato) return;
+                    const y1 = yScale(log.start), y2 = yScale(log.end);
+                    svg += `<rect x="${panelA_gridX}" y="${y1}" width="${stripW}" height="${Math.max(0.5, y2 - y1)}" fill="${riempimentoDi(se.strato)}" stroke="#0f172a" stroke-width="0.6"/>`;
+                    const cx = panelA_gridX + stripW / 2, cy = (y1 + y2) / 2, r = Math.min(y2 - y1, stripW) * 0.3;
+                    svg += `<path d="M ${cx - r} ${cy - r} L ${cx + r} ${cy + r} M ${cx + r} ${cy - r} L ${cx - r} ${cy + r}" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>`;
+                    bandeRifiuto.push({ y1, y2 });
+                });
 
                 if (faldaGrafico.presente) {
                     const yFalda1 = yScale(faldaGrafico.da), yFalda2 = yScale(faldaGrafico.a);
@@ -807,9 +824,14 @@
                         const h = righe.length * rigaLegenda;
                         voci.push({ righe, lit, h, yIdeale: (y1 + y2) / 2 - h / 2 });
                     });
+                    bandeRifiuto.forEach(b => voci.push({ righe: ['Rifiuto'], lit: null, h: rigaLegenda, yIdeale: (b.y1 + b.y2) / 2 - rigaLegenda / 2 }));
                     voci.sort((a, b) => a.yIdeale - b.yIdeale);
                     disponiEtichetteSenzaSovrapposizioni(voci, padTop + 2, padTop + chartH, 2.5);
                     voci.forEach(v => {
+                        if (!v.lit) {
+                            svg += `<text x="${legendX}" y="${v.y + fNome}" font-size="${fNome}" font-weight="700" fill="#0f172a">Rifiuto</text>`;
+                            return;
+                        }
                         svg += `<rect x="${legendX}" y="${v.y + 0.8}" width="${swatch}" height="${swatch}" fill="${riempimentoDi(v.lit)}" stroke="#0f172a" stroke-width="0.5"/>`;
                         const tspan = v.righe.map((r, i) =>
                             `<tspan x="${textX}" dy="${i === 0 ? 0 : rigaLegenda}">${escapeHtmlDidascalia(r)}</tspan>`).join('');
@@ -857,17 +879,20 @@
                 };
                 svg += `<path d="${buildStaircasePath(xScaleB, l => l.colpi || 0)}" fill="none" stroke="#1d4ed8" stroke-width="1.4"/>`;
 
-                const puntiRpd = logsCalc.map(log => ({
+                const puntiRpd = logsCalc.filter(log => !intervalloSoloGrafico(log)).map(log => ({
                     x: xScaleC(log.rpd || 0),
-                    y: (yScale(log.start) + yScale(log.end)) / 2
+                    y: (yScale(log.start) + yScale(log.end)) / 2,
+                    rpd: log.rpd
                 }));
                 svg += `<path d="${puntiRpd.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}" fill="none" stroke="#dc2626" stroke-width="1.4"/>`;
                 puntiRpd.forEach(p => { svg += `<circle cx="${p.x}" cy="${p.y}" r="1.6" fill="#dc2626"/>`; });
 
-                logsCalc.forEach((log, i) => {
+                logsCalc.forEach(log => {
                     const yMid = (yScale(log.start) + yScale(log.end)) / 2 + fPunto * 0.36;
-                    svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${log.colpi || 0}</text>`;
-                    svg += `<text x="${puntiRpd[i].x + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#dc2626">${Math.round(log.rpd || 0)}</text>`;
+                    svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${intervalloSoloGrafico(log) ? 'Rifiuto' : (log.colpi || 0)}</text>`;
+                });
+                puntiRpd.forEach(p => {
+                    svg += `<text x="${p.x + 3}" y="${p.y + fPunto * 0.36}" font-size="${fPunto}" font-weight="700" fill="#dc2626">${Math.round(p.rpd || 0)}</text>`;
                 });
 
                 // ---------- CARTIGLIO DELLA LEGENDA IN BASSO ----------

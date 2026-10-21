@@ -958,9 +958,9 @@ ${contenuto}
                                     <div class="swipe-content" data-index="${actualIdx}">
                                         <div style="font-family: var(--font-mono); font-weight: 600;">${startVal.toFixed(2)} - ${endVal.toFixed(2)}m</div>
                                         <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--accent);">${colpiVal}</div>
-                                        <div class="col-nspt-value">${fmtIT(log.nsptGrezzo, 1)}</div>
-                                        <div class="col-nspt-value">${fmtIT(log.nsptFalda, 1)}</div>
-                                        <div class="col-nspt-value" style="color: var(--success); font-weight: 700;">${fmtIT(log.rpd, 1)}</div>
+                                        <div class="col-nspt-value">${intervalloSoloGrafico(log) ? 'Rifiuto' : fmtIT(log.nsptGrezzo, 1)}</div>
+                                        <div class="col-nspt-value">${intervalloSoloGrafico(log) ? '—' : fmtIT(log.nsptFalda, 1)}</div>
+                                        <div class="col-nspt-value" style="color: var(--success); font-weight: 700;">${intervalloSoloGrafico(log) ? '—' : fmtIT(log.rpd, 1)}</div>
                                     </div>
                                 </div>
                             </td>
@@ -1189,7 +1189,7 @@ ${contenuto}
                                   fill="${barFill}" fill-opacity="0.92" stroke="${litObj.color}" stroke-width="1.2" rx="3" ry="3" class="chart-rect-bar">
                                 <title>Intervallo ${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m: ${log.colpi} colpi | Litologia: ${litObj.name} (Tocca per dettaglio)</title>
                             </rect>
-                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${log.colpi}</text>
+                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${intervalloSoloGrafico(log) ? 'Rifiuto' : log.colpi}</text>
                     `;
 
                     if (log.note) {
@@ -1353,7 +1353,7 @@ ${contenuto}
             });
 
             // NOTE RAPIDE TAGS CON CONFERMA
-            document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {
+            document.querySelectorAll('.btn-tag[data-note]:not(.btn-modal-tag)').forEach(tagBtn => {
                 tagBtn.addEventListener('click', async (e) => {
                     const noteText = e.currentTarget.getAttribute('data-note');
                     if (state.logs.length === 0) {
@@ -1362,8 +1362,12 @@ ${contenuto}
                     }
                     if (await appConfirm(`Vuoi aggiungere la nota "${noteText}" a questo intervallo?`)) {
                         const last = state.logs[state.logs.length - 1];
+                        const misuraPrima = misuraDiIntervallo(last);
                         last.note = last.note ? `${last.note}, ${noteText}` : noteText;
-                        segnaIntervalloModificato(last);
+                        if (noteText === 'Rifiuto') {
+                            last.rifiutoSoloGrafico = await appDialog('Escludere questo intervallo da tabelle e calcoli? Resterà solo nel grafico, con la scritta «Rifiuto» al posto dei colpi.', { confirm: true, okLabel: 'Solo grafico', cancelLabel: 'Consideralo' });
+                        }
+                        segnaIntervalloModificato(last, misuraPrima);
                         triggerVibrate(30);
                         updateUI();
                         saveState();

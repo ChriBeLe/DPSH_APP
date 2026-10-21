@@ -71,6 +71,11 @@
                 }
                 return stratiArr.find(s => s.id === currentLitId) || stratiArr[0];
             }
+            /** Intervallo con nota «Rifiuto» che l'utente ha scelto di non considerare: resta nel
+             * grafico (con la scritta «Rifiuto»), ma esce da tabelle, totali e calcoli. */
+            function intervalloSoloGrafico(log){
+                return !!(log && log.rifiutoSoloGrafico && /rifiuto/i.test(log.note || ''));
+            }
             function getLogsPerStratoIn(stratoId, logsArr, stratiArr){
                 if(!logsArr || logsArr.length === 0) return [];
                 return logsArr.filter((log, idx) => {
@@ -89,7 +94,7 @@
                 const betaT = betaTStrumento(instrument, stepCm);
                 const risultati = [];
                 for(const strato of stratiArr){
-                    const logsStrato = getLogsPerStratoIn(strato.id, logsArr, stratiArr);
+                    const logsStrato = getLogsPerStratoIn(strato.id, logsArr, stratiArr).filter(l => !intervalloSoloGrafico(l));
                     if(logsStrato.length === 0) continue;
                     let sommaGrezzo=0, sommaFalda=0, sommaRpd=0;
                     let profonditaDa=Infinity, profonditaA=-Infinity;
