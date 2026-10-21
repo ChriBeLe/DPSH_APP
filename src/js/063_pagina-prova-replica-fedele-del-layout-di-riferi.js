@@ -280,22 +280,22 @@
              * come nel report di riferimento, intestazione con lo stesso azzurro delle altre
              * tabelle colorate dell'app (COLORI_EXPORT.intestazione). */
             function buildColpiNsptTableHtml(logsCalc){
-                logsCalc = logsCalc.filter(l => !intervalloSoloGrafico(l));
                 const C = COLORI_EXPORT;
                 const fit = autoFitTabellaRighe(logsCalc.length, 34);
                 // Bordi a quattro lati separati, pilotati dalle stesse variabili di bordoExp (vedi
                 // lì il perché): senza questo, spegnere la griglia dal menu non avrebbe effetto su
                 // questa tabella, perché un bordo scritto in linea vince sulla regola "th,td".
                 const bordoCella = 'border-top:var(--tpl-bordo-h, 1px solid #cbd5e1);border-bottom:var(--tpl-bordo-h, 1px solid #cbd5e1);border-left:var(--tpl-bordo-v, 1px solid #cbd5e1);border-right:var(--tpl-bordo-v, 1px solid #cbd5e1);';
-                const righe = logsCalc.map((log, i) => `
+                // Il rifiuto escluso resta in tabella come segnalazione, senza valori calcolati.
+                const righe = logsCalc.map((log, i) => { const rif = intervalloSoloGrafico(log); return `
                     <tr style="${i % 2 === 1 ? 'background:#EAF3FB;' : ''}">
                         <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${log.asta || 1}</td>
                         <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-family:monospace;">${fmtIT(log.end, 1)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${log.colpi || 0}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${fmtIT(log.nsptGrezzo, 2)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${fmtIT(log.nsptFalda, 2)}</td>
-                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${fmtIT(log.rpd, 2)}</td>
-                    </tr>`).join('');
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${rif ? 'Rifiuto' : (log.colpi || 0)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${rif ? '—' : fmtIT(log.nsptGrezzo, 2)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella}">${rif ? '—' : fmtIT(log.nsptFalda, 2)}</td>
+                        <td style="padding:${fit.padding}; text-align:center; ${bordoCella} font-weight:700;">${rif ? '—' : fmtIT(log.rpd, 2)}</td>
+                    </tr>`; }).join('');
                 // th con background/color PROPRI in linea (bug segnalato esplicitamente: un <th>
                 // senza colore proprio, solo con lo sfondo sul <tr> genitore come qui prima, va in
                 // balìa della regola generica th{...} del foglio di stampa — vedi
