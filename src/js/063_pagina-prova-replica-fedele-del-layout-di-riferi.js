@@ -280,6 +280,7 @@
              * come nel report di riferimento, intestazione con lo stesso azzurro delle altre
              * tabelle colorate dell'app (COLORI_EXPORT.intestazione). */
             function buildColpiNsptTableHtml(logsCalc){
+                logsCalc = logsCalc.filter(l => !intervalloSoloGrafico(l));
                 const C = COLORI_EXPORT;
                 const fit = autoFitTabellaRighe(logsCalc.length, 34);
                 // Bordi a quattro lati separati, pilotati dalle stesse variabili di bordoExp (vedi
@@ -857,17 +858,20 @@
                 };
                 svg += `<path d="${buildStaircasePath(xScaleB, l => l.colpi || 0)}" fill="none" stroke="#1d4ed8" stroke-width="1.4"/>`;
 
-                const puntiRpd = logsCalc.map(log => ({
+                const puntiRpd = logsCalc.filter(log => !intervalloSoloGrafico(log)).map(log => ({
                     x: xScaleC(log.rpd || 0),
-                    y: (yScale(log.start) + yScale(log.end)) / 2
+                    y: (yScale(log.start) + yScale(log.end)) / 2,
+                    rpd: log.rpd
                 }));
                 svg += `<path d="${puntiRpd.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}" fill="none" stroke="#dc2626" stroke-width="1.4"/>`;
                 puntiRpd.forEach(p => { svg += `<circle cx="${p.x}" cy="${p.y}" r="1.6" fill="#dc2626"/>`; });
 
-                logsCalc.forEach((log, i) => {
+                logsCalc.forEach(log => {
                     const yMid = (yScale(log.start) + yScale(log.end)) / 2 + fPunto * 0.36;
-                    svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${log.colpi || 0}</text>`;
-                    svg += `<text x="${puntiRpd[i].x + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#dc2626">${Math.round(log.rpd || 0)}</text>`;
+                    svg += `<text x="${xScaleB(log.colpi || 0) + 3}" y="${yMid}" font-size="${fPunto}" font-weight="700" fill="#1d4ed8">${intervalloSoloGrafico(log) ? 'Rifiuto' : (log.colpi || 0)}</text>`;
+                });
+                puntiRpd.forEach(p => {
+                    svg += `<text x="${p.x + 3}" y="${p.y + fPunto * 0.36}" font-size="${fPunto}" font-weight="700" fill="#dc2626">${Math.round(p.rpd || 0)}</text>`;
                 });
 
                 // ---------- CARTIGLIO DELLA LEGENDA IN BASSO ----------

@@ -27,7 +27,7 @@
                 // Profondità al millimetro: la scheda le mostra a due decimali e le riscrive così,
                 // e 0,6000000000000001 → 0,6 non è una modifica di nessuno.
                 const mm = (v) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) : v;
-                return JSON.stringify([mm(log.start), mm(log.end), log.colpi, log.note || '', log.lithology || '']);
+                return JSON.stringify([mm(log.start), mm(log.end), log.colpi, log.note || '', log.lithology || '', !!log.rifiutoSoloGrafico]);
             }
 
             /** Segna la modifica, se c'è stata. `prima` è misuraDiIntervallo() presa prima di cambiarlo. */

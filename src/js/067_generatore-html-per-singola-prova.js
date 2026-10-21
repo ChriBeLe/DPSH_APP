@@ -14,7 +14,7 @@
                 const provaNr = h.provaNr || '1';
 
                 const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                 const hasGps = !!(h.lat && h.lng);
                 const gpsText = hasGps ? `${parseFloat(h.lat).toFixed(6)}°, ${parseFloat(h.lng).toFixed(6)}° (Acc: ±${h.acc ? parseFloat(h.acc).toFixed(1) : 'N.D.'}m)` : 'Non acquisite';
 
