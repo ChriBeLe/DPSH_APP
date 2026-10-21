@@ -155,6 +155,7 @@
                         <input type="file" id="fileCartaIntestata" accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" style="display: none;">
                         <div class="tpl-riga">
                             <button type="button" class="tpl-chip" id="btnCartaMargini" title="Margini sulle zone libere della carta: il testo non va sopra al logo o ai contatti" hidden>Margini dalla carta</button>
+                            <button type="button" class="tpl-chip" id="btnCartaModificabile" title="Dal Word della carta intestata: intestazione e piè di pagina come testo modificabile (tabelle, logo, titolo dell'intervento) al posto dell'immagine di sfondo" hidden>Rendi modificabile dal Word…</button>
                             <button type="button" class="tpl-chip tpl-chip-togli" id="btnTogliCarta" title="Togli la carta intestata" hidden>Togli</button>
                         </div>
                         <!-- MARGINI COME IN WORD: in cm con la virgola, le preimpostazioni del menu Margini di
@@ -210,6 +211,7 @@
                             <input type="text" id="inputHeaderText" class="form-control tpl-campo" placeholder="Testo (opzionale)">
                             <!-- Grassetto, colori, più righe, allineamento: lo stesso editor dei blocchi Testo. -->
                             <button type="button" class="btn-action tpl-bt" id="btnFormattaIntestazione"><svg class="ico"><use href="#i-type"/></svg> Testo formattato…</button>
+                            <div class="tpl-nota" id="notaTitoloIntervento">Il titolo dell'intervento che cambia da solo: nel testo, tasto <b>@</b> › «Denominazione dell'intervento». Si riempie col progetto del report.</div>
                             <div class="tpl-sottotitolo">Posizione</div>
                             <div class="tpl-riga" title="La distanza tra il bordo superiore del foglio e l'intestazione. Vale per tutte le pagine del template.">
                                 <label for="inputDistanzaIntestazione">Dal bordo</label>

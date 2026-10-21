@@ -32,6 +32,14 @@
 
             const menuRiga = document.getElementById('menuRiga');
             function chiudiMenuRiga() { menuRiga.classList.remove('open'); }
+            // Esc col menu aperto chiude SOLO il menu (prima chiudeva anche la finestra sotto, per
+            // esempio l'editor del template intero). In cattura, prima degli altri Esc.
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape' || !menuRiga.classList.contains('open')) return;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                chiudiMenuRiga();
+            }, true);
             // Il menu del tasto destro, dove sta il mouse: un titolo e le voci
             // [etichetta, icona, tasto, azione, pericolo], o '-' per una riga di separazione.
             let vociMenuContesto = [];
@@ -57,21 +65,40 @@
             // Progetti (barra laterale, Home) e prove (barra laterale, schermata Progetto).
             function apriMenuProgetto(e, id) {
                 const p = state.projects[id];
+                // Tutte le azioni del progetto qui, senza passare dalla finestra del ⋯: ogni voce preme
+                // il suo comando di quella finestra (stessi controlli e conferme).
+                const azione = (idBottone) => () => { projectActionsContext = { projId: id }; const b = document.getElementById(idBottone); if (b) b.click(); };
                 apriMenuContesto(e, p.name || p.comune || 'Progetto', [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(id)],
+                    ['Note del progetto', 'i-note', '', azione('btnProjActNote')],
                     ['Consegna', 'i-download', '', () => openExportModal('project', id)],
+                    ['Confronta le prove', 'i-chart', '', azione('btnProjActConfronta')],
                     ['Terreno e sezioni', 'i-map', '', () => { apriDalLato(id); apriTerreno(); }],
                     '-',
-                    ['Note, stato, copia, elimina…', 'i-more', '', () => openProjectActionsModal(id)]
+                    ['Porta su un altro dispositivo', 'i-upload', '', azione('btnProjActPorta')],
+                    ['Duplica il progetto', 'i-duplica', '', azione('btnProjActDuplicate')],
+                    ['Cronologia (copie automatiche)', 'i-undo', '', azione('btnProjActCronologia')],
+                    ['Stato del progetto…', 'i-check', '', () => openProjectActionsModal(id)],
+                    '-',
+                    ['Elimina il progetto', 'i-trash', '', azione('btnProjActDelete'), true]
                 ]);
             }
             function apriMenuProva(e, survId) {
                 const s = state.projects[state.currentProjectId].surveys[survId];
+                // Foto, GPS e falda sono della prova aperta: prima la si apre.
+                const nella = (fn) => () => { apriDalLato(null, survId); fn(); };
                 apriMenuContesto(e, 'Prova ' + ((s.header || {}).provaNr || '?'), [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(null, survId)],
                     ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
                     ['Dati della prova', 'i-file', '', () => openSurveySettingsModal(survId, 'dati')],
-                    ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')]
+                    ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')],
+                    ['Foto', 'i-camera', '', nella(() => openSurveyPhotosModal())],
+                    ['Posizione GPS', 'i-pin', '', nella(() => openGpsModal())],
+                    ['Falda', 'i-droplet', '', nella(() => openQuickFaldaModal())],
+                    ['Strati e parametri', 'i-stack', '', nella(() => openStratiModal())],
+                    '-',
+                    ['Duplica come interpretazione', 'i-duplica', '', () => duplicaProvaComeInterpretazione(survId)],
+                    ['Elimina la prova', 'i-trash', '', () => openDeleteSurveyModal(survId), true]
                 ]);
             }
             document.addEventListener('contextmenu', (e) => {

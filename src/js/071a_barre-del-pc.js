@@ -34,13 +34,13 @@
                 });
                 document.getElementById('pcLato').innerHTML = righe.join('');
 
-                document.getElementById('pcStatoAiuto').textContent = {
+                document.getElementById('pcStatoAiuto').textContent = ({
                     home: 'Clic su un progetto per aprirlo · tasto destro: le sue azioni',
                     project: 'Clic su una prova per aprirla · tasto destro: le sue azioni',
                     field: state.settings.contatoreSuPc === true
                         ? 'Contatore: Spazio un colpo · Backspace toglie · Invio registra · F2 modifica la riga scelta · C spegne'
                         : 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
-                }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
+                }[vista] || '') + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · Ctrl Z annulla · ? guida · DPSH ' + APP_VERSIONE;
                 if (vista === 'field') forseGuidaRapida();
             }

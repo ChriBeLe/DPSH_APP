@@ -72,11 +72,14 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   const destro = (el) => el.dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
   const voci = () => [...$(app, 'menuRiga').querySelectorAll('[data-voce]')].map(b => b.textContent);
   destro($(app, 'homeProjectsContainer').querySelector('[data-id]'));
-  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Consegna|Terreno e sezioni|Note, stato, copia, elimina…');
+  // Tutte le azioni direttamente nel menu (071b), senza passare dalla finestra «Note, stato, copia, elimina…».
+  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open')
+    && voci().join('|') === 'Apri|Note del progetto|Consegna|Confronta le prove|Terreno e sezioni|Porta su un altro dispositivo|Duplica il progetto|Cronologia (copie automatiche)|Stato del progetto…|Elimina il progetto');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
   t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
   destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
-  t('tasto destro su una prova: Apri, Mostra sulla mappa, Dati, Strumento', voci().join('|') === 'Apri|Mostra sulla mappa|Dati della prova|Strumento');
+  t('tasto destro su una prova: Apri, Mostra sulla mappa, Dati, Strumento, e poi foto, GPS, falda, strati, duplica, elimina',
+    voci().join('|') === 'Apri|Mostra sulla mappa|Dati della prova|Strumento|Foto|Posizione GPS|Falda|Strati e parametri|Duplica come interpretazione|Elimina la prova');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="2"]'));
   t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
   app.E('closeAnyOpenModal()');

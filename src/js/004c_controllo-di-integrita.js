@@ -213,6 +213,7 @@
              * «Nuove» vuol dire diverse dall'ultima volta che l'avviso è stato mostrato (la firma sta
              * in una chiave a parte di localStorage): una prova con un buco voluto, per esempio dopo
              * aver eliminato un intervallo in mezzo, non deve far ricomparire l'avviso a ogni avvio. */
+            let integritaApertaAllaProssima = false;
             async function controllaIntegritaDopoAvvio() {
                 if (caricamentoDati.esito !== 'ok') return null;
                 const esito = await verificaIntegritaConFoto(state);
@@ -224,12 +225,45 @@
                 try { vista = localStorage.getItem('dpsh_integrita_segnalata'); } catch (e) { ignoraErrore('controllaIntegritaDopoAvvio', e); }
                 if (vista === firma) return esito;
                 try { localStorage.setItem('dpsh_integrita_segnalata', firma); } catch (e) { ignoraErrore('controllaIntegritaDopoAvvio', e); }
+                // «Mostrami dove»: la Consegna del progetto, con l'elenco aperto e un tasto accanto a
+                // ogni anomalia per andare a correggerla (prima l'avviso finiva in «Ho capito»).
+                const conProgetto = anomalie.find(a => a.projId && state.projects[a.projId]);
                 appDialog(`Il controllo dei dati salvati ha trovato ${anomalie.length === 1 ? 'un\'anomalia' : anomalie.length + ' anomalie'}. `
                     + `Non ho corretto niente da solo: controlla questi punti.\n\n${elencoAnomalie(anomalie, 8)}\n\n`
-                    + `Questo avviso ricompare solo se cambia qualcosa. L'elenco completo è anche nella finestra Esporta del progetto.`,
-                    { title: 'Controllo dei dati', okLabel: 'Ho capito', icona: 'alert', coloreIcona: 'var(--warning)' });
+                    + `Questo avviso ricompare solo se cambia qualcosa. L'elenco completo, con i tasti per andare a correggere, è nella Consegna del progetto.`,
+                    { title: 'Controllo dei dati', okLabel: 'Ho capito', extraLabel: conProgetto ? 'Mostrami dove' : null, icona: 'alert', coloreIcona: 'var(--warning)' })
+                    .then(r => {
+                        if (r !== 'extra' || !conProgetto) return;
+                        integritaApertaAllaProssima = true;
+                        if (conProgetto.projId !== state.currentProjectId) openProject(conProgetto.projId);
+                        openExportModal('project', conProgetto.projId);
+                    });
                 return esito;
             }
+
+            /** NIENTE VICOLO CIECO: accanto a ogni anomalia il tasto per andare dove la si corregge
+             * (le foto della prova, le note, la prova), con i comandi che ci sono già (Elimina foto
+             * col suo Annulla, e così via). L'app continua a non correggere niente da sola. */
+            function tastoVaiAnomalia(a) {
+                if (!a.projId || !state.projects[a.projId]) return '';
+                const dove = a.tipo === 'foto-mancante' || a.tipo === 'foto-doppia' ? 'foto' : a.tipo === 'immagine-nota-mancante' ? 'note' : a.survId ? 'prova' : null;
+                if (!dove || (dove !== 'note' && !(state.projects[a.projId].surveys || {})[a.survId])) return '';
+                const etichetta = { foto: 'Apri le foto', note: 'Apri le note', prova: 'Apri la prova' }[dove];
+                return `<button type="button" class="integrita-vai" data-integrita-vai="${dove}" data-proj="${testoSicuro(a.projId)}" data-surv="${testoSicuro(a.survId || '')}">${etichetta}</button>`;
+            }
+            document.addEventListener('click', (e) => {
+                const b = e.target.closest && e.target.closest('[data-integrita-vai]');
+                if (!b) return;
+                const pid = b.dataset.proj, sid = b.dataset.surv, dove = b.dataset.integritaVai;
+                if (!state.projects[pid]) return;
+                if (typeof closeExportModal === 'function') closeExportModal();
+                if (typeof closeBackupChoiceModal === 'function') closeBackupChoiceModal();
+                if (dove === 'note') return apriNoteProgetto(pid);
+                saveState();
+                if (pid !== state.currentProjectId || sid !== state.currentSurveyId) syncProjectToActiveState(pid, sid);
+                switchView('field');
+                if (dove === 'foto') openSurveyPhotosModal();
+            });
 
             /** Il riquadro «Controllo dei dati» nelle finestre di export: rosso se qualcosa non torna,
              * altrimenti niente (il promemoria dei dati mancanti ha già il suo riquadro). Non blocca. */
@@ -241,15 +275,17 @@
                 let anomalie = [];
                 try { anomalie = (await verificaIntegritaConFoto(stato)).anomalie; } catch (e) { ignoraErrore('renderIntegritaPrimaExport', e); }
                 if (anomalie.length === 0) return;
+                const aperta = integritaApertaAllaProssima;
+                integritaApertaAllaProssima = false;
                 box.innerHTML = `
-                    <details style="background: var(--danger-soft); border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 9px 11px;">
+                    <details${aperta ? ' open' : ''} style="background: var(--danger-soft); border: 1px solid var(--danger); border-radius: var(--radius-sm); padding: 9px 11px;">
                         <summary style="cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; list-style: none;">
                             <span style="color: var(--danger); display: inline-flex;">${ico('alert')}</span>
                             <span style="flex: 1;">Controllo dei dati: ${anomalie.length === 1 ? '1 anomalia' : anomalie.length + ' anomalie'}</span>
                             <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Vedi</span>
                         </summary>
                         <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 9px; font-size: 11.5px; color: var(--text-main); line-height: 1.4;">
-                            ${anomalie.map(a => `<div>${testoSicuro(a.testo)}</div>`).join('')}
+                            ${anomalie.map(a => `<div class="integrita-riga"><span>${testoSicuro(a.testo)}</span>${tastoVaiAnomalia(a)}</div>`).join('')}
                             <div style="font-size: 10.5px; color: var(--text-muted);">Nel file finiscono così come sono: l'app non le corregge da sola.</div>
                         </div>
                     </details>`;
