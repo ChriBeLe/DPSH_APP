@@ -1,6 +1,6 @@
 // LA SCHERMATA PROGETTO (Fase 5, punto 1) e il tasto indietro.
 //  - dalla prova «‹» porta al Progetto; dal Progetto «‹ Progetti» alla Home;
-//  - dalla Home «Apri» porta ancora all'ultima prova (decisione H);
+//  - dalla Home la card porta alla schermata del progetto (home_progetti.js);
 //  - il Progetto elenca le prove con profondità, intervalli, spie e avvisi; toccarne una la apre;
 //  - «Riprendi», Nuova prova, Dati, Strati, Note, Consegna, ⋯;
 //  - indietro (popstate): prova → progetto → Home.
@@ -33,6 +33,14 @@ const vista = app => app.E('state.uiState.currentView');
   await attesa(60);
   t('«‹» nella prova porta al Progetto', vista(app) === 'project' && visibile(app, 'viewProject') && !visibile(app, 'viewField') && !visibile(app, 'testataProva'));
   t('col nome del progetto', $(app, 'lblProgettoNome').textContent === proj.name);
+  const testa = $(app, 'btnProgettoDati');
+  t('il nome sta nel riquadro che si tocca, con l\'etichetta «Modifica»', testa.contains($(app, 'lblProgettoNome')) && /Modifica/.test(testa.querySelector('.modifica-dati').textContent));
+  const prima = (a, b) => !!(a.compareDocumentPosition(b) & app.w.Node.DOCUMENT_POSITION_FOLLOWING);
+  t('i tasti (Strati, Note, Terreno, Consegna) stanno prima dell\'elenco delle prove',
+    ['btnProgettoStrati', 'btnProgettoNote', 'btnProgettoTerreno', 'btnProgettoConsegna'].every(id => prima($(app, id), $(app, 'listaProveProgetto'))));
+  clic(app, testa);
+  t('toccare il nome apre i dati del progetto', $(app, 'modalSurveySettings').classList.contains('open'));
+  app.E('closeSurveySettingsModal()');
   const righe = [...$(app, 'listaProveProgetto').querySelectorAll('.prova-riga')];
   t('una riga per ogni prova', righe.length === Object.keys(proj.surveys).length);
   const s1 = Object.values(proj.surveys).find(s => s.logs && s.logs.length);
