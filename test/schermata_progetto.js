@@ -98,6 +98,16 @@ const vista = app => app.E('state.uiState.currentView');
   clic(app, $(app, 'btnProgettoAiProgetti'));
   await attesa(60);
   t('«‹ Progetti» porta alla Home', vista(app) === 'home');
+
+  console.log('--- I dati del progetto giusto, anche cambiando progetto dalla Home ---');
+  const altro = app.E(`Object.keys(state.projects).find(id => id !== ${JSON.stringify(pid)})`);
+  clic(app, [...$(app, 'viewHome').querySelectorAll('.card-progetto-apri')].find(b => b.dataset.id === altro));
+  await attesa(60);
+  clic(app, $(app, 'btnProgettoDati'));
+  t('toccare il nome mostra i dati di QUESTO progetto, non di quello aperto prima',
+    $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'txtNomeProgetto').value === app.E(`state.projects[${JSON.stringify(altro)}].name`)
+    && $(app, 'txtComune').value === app.E(`state.projects[${JSON.stringify(altro)}].surveys[state.currentSurveyId].header.comune`));
+  app.E('closeSurveySettingsModal()');
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

@@ -116,9 +116,12 @@
                 if (survId !== state.currentSurveyId) {
                     saveState();
                     syncProjectToActiveState(state.currentProjectId, survId);
-                    updateUI();
                     saveState();
                 }
+                // I campi si riempiono in updateUI, che gira solo dentro la prova: aperta dalla scheda
+                // del progetto (o dalla barra del PC, dopo aver cambiato progetto) la finestra
+                // mostrerebbe ancora i dati del progetto aperto prima.
+                updateUI();
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
                 if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;

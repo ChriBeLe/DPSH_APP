@@ -434,10 +434,15 @@
                     const haGps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
                     const falda = parseFloat(h.faldaDa);
                     const n = avvisi.get(s.id) || 0;
+                    const nFoto = (s.photos || []).length, nStrati = logs.filter(l => l && l.lithology).length;
+                    // Sul PC le stesse cose in colonne (una tabella che si confronta riga per riga); sul
+                    // telefono la riga riassunta sotto il nome. Il CSS mostra l'una o l'altra.
+                    const cella = (valore, vuota) => `<span class="prova-cella${vuota ? ' vuota' : ''}">${valore}</span>`;
                     return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${s.id}">
                         <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
                         <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
-                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${(s.photos || []).length} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${nFoto} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                        ${cella(numeroConVirgola(fondo) + ' m')}${cella(logs.length, !logs.length)}${cella(haGps ? '<svg class="ico"><use href="#i-check"/></svg>' : '—', !haGps)}${cella(nFoto, !nFoto)}${cella(nStrati, !nStrati)}${cella(isFinite(falda) ? numeroConVirgola(falda) + ' m' : '—', !isFinite(falda))}
                         <span class="prova-riga-stato${n ? ' avviso' : ''}">${n ? n + (n === 1 ? ' avviso' : ' avvisi') : 'Pronta'}</span>
                     </button>`;
                 }).join('');

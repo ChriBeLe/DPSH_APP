@@ -262,10 +262,10 @@
             </button>
             <button type="button" class="bt bt-principale bt-campo" id="btnProgettoRiprendi"></button>
             <div class="progetto-accessi">
-                <button type="button" class="card" id="btnProgettoStrati"><svg class="ico"><use href="#i-stack"/></svg><strong>Strati</strong><span>litologia e parametri</span></button>
-                <button type="button" class="card" id="btnProgettoNote"><svg class="ico"><use href="#i-note"/></svg><strong>Note</strong><span>appunti e immagini</span></button>
-                <button type="button" class="card" id="btnProgettoTerreno"><svg class="ico"><use href="#i-map"/></svg><strong>Terreno e sezioni</strong><span id="lblProgettoTerreno">DTM, quote, sezione, 3D</span></button>
-                <button type="button" class="card accento" id="btnProgettoConsegna"><svg class="ico"><use href="#i-download"/></svg><strong>Consegna</strong><span>report, Excel, KML, foto</span></button>
+                <button type="button" class="card" id="btnProgettoStrati" title="Strati: litologia e parametri"><svg class="ico"><use href="#i-stack"/></svg><strong>Strati</strong><span>litologia e parametri</span></button>
+                <button type="button" class="card" id="btnProgettoNote" title="Note: appunti e immagini"><svg class="ico"><use href="#i-note"/></svg><strong>Note</strong><span>appunti e immagini</span></button>
+                <button type="button" class="card" id="btnProgettoTerreno" title="Terreno e sezioni: DTM, quote, sezione, 3D"><svg class="ico"><use href="#i-map"/></svg><strong>Terreno e sezioni</strong><span id="lblProgettoTerreno">DTM, quote, sezione, 3D</span></button>
+                <button type="button" class="card accento" id="btnProgettoConsegna" title="Consegna: report, Excel, KML, foto"><svg class="ico"><use href="#i-download"/></svg><strong>Consegna</strong><span>report, Excel, KML, foto</span></button>
             </div>
             <div class="registro-testata">
                 <div class="registro-testata-sx">
@@ -282,6 +282,8 @@
                     <span class="t-didascalia">Trascina le prove dalla maniglia o spostale con le frecce: il report e l'indice le mettono in quest'ordine.</span>
                     <button type="button" class="bt-link" id="btnOrdinePerNumero">Ordine crescente</button>
                 </div>
+                <!-- Le intestazioni delle colonne: solo sul PC, dove le prove sono una tabella. -->
+                <div class="prove-colonne" aria-hidden="true"><span></span><span>Prova</span><span>Profondità</span><span>Intervalli</span><span>GPS</span><span>Foto</span><span>Strati</span><span>Falda</span><span>Stato</span></div>
                 <div id="listaProveProgetto"></div>
                 <button type="button" class="bt-link accento" id="btnProgettoNuovaProva"><svg class="ico"><use href="#i-plus"/></svg>Nuova prova</button>
             </div>
