@@ -660,6 +660,7 @@
                         // sopra — due blocchi grafico nello stesso template possono volerle diverse
                         // (es. uno di dettaglio sui primi metri e uno d'insieme).
                         return buildStratigrafiaColpiRpdSvg(raw.stratiEff, raw.logsCalc, raw.provaNr, larghezzaGrafico, {
+                            strati: raw.strati,
                             profonditaAsseM: profonditaAsseEffettiva(blockObj, ctx),
                             altezza: blockObj && blockObj.altezzaScalaGrafico,
                             fontPt: blockObj && blockObj.fontSizePt,

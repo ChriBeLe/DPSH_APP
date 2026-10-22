@@ -30,7 +30,7 @@
                 const stratiEff = stratiEffettiviProva(logs, strati, inst, passoCm, falda);
                 const datiBoxHtml = buildDatiBoxHtml(provaNr, comune, localita, committente, dateStr, inst, passoCm, falda, stratiEff);
                 const colpiTableHtml = buildColpiNsptTableHtml(logsCalc);
-                const stratigrafiaChartHtml = stratiEff.length > 0 ? buildStratigrafiaColpiRpdSvg(stratiEff, logsCalc, provaNr, LARGH_GRAFICO_DEFAULT_PX, { falda }) : '';
+                const stratigrafiaChartHtml = stratiEff.length > 0 ? buildStratigrafiaColpiRpdSvg(stratiEff, logsCalc, provaNr, LARGH_GRAFICO_DEFAULT_PX, { falda, strati }) : '';
 
                 // Tabelle Riepilogo/Dettagliata/Allegato (parametri avanzati): stessi dati e
                 // stesse funzioni già usate dall'export "Elaborazione Dati Speciali", ora
@@ -91,7 +91,7 @@
                     const figureIndexPerBlocco = calcolaIndiciFigulaPerBlocco(template.pages);
                     const gpsInfo = hasGps ? { lat: h.lat, lng: h.lng, provaNr } : null;
                     const datiBoxRawParams = { numero: provaNr, comune, localita, committente, dateStr, inst, passoCm, falda, stratiEff };
-                    const stratigrafiaChartRawParams = { stratiEff, logsCalc, provaNr };
+                    const stratigrafiaChartRawParams = { stratiEff, logsCalc, provaNr, strati };
                     const larghezzaUtileMm = calcolaBudgetPaginaMm(template && template.margins, template && template.footerEnabled).larghezzaUtileMm;
                     const ctx = { provaNr, gpsInfo, larghezzaUtileMm, datiBoxHtml, datiBoxRawParams, colpiTableHtml, stratigrafiaChartHtml, stratigrafiaChartRawParams, mapSatelliteHtml, tabellaRiepilogoHtml, tabellaDettagliataHtml, allegatoHtml, photoUrls, immagineIndexPerBlocco, figureIndexPerBlocco,
                         // Il progetto: senza, i tag del testo escono fra parentesi quadre in una

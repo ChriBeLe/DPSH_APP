@@ -737,8 +737,8 @@
                 stratiEff.forEach(se => { if (se.strato) litIdsUsed.add(se.strato.id); });
                 svg += '<defs>';
                 const litDisegnate = new Set();
-                stratiEff.forEach(se => {
-                    const lit = se.strato;
+                // opzioni.strati: anche la litologia del solo rifiuto, che non è in stratiEff
+                stratiEff.map(se => se.strato).concat((opzioni.strati || []).filter(s => litIdsUsed.has(s.id))).forEach(lit => {
                     if (!lit || litDisegnate.has(lit.id)) return;
                     litDisegnate.add(lit.id);
                     svg += getSvgPatternDef(lit.pattern || 'none', `exp-strat-pat-${lit.id}`, lit.color);
@@ -775,12 +775,13 @@
                     let id = null;
                     for (let i = idx; i >= 0 && !id; i--) id = logsCalc[i].lithology;
                     const se = stratiEff.find(x => x.id === id) || stratiEff.filter(x => x.profonditaA <= log.start + 1e-6).pop();
-                    if (!se || !se.strato) return;
+                    const lit = (opzioni.strati || []).find(s => s.id === id) || (se && se.strato);
+                    if (!lit) return;
                     const y1 = yScale(log.start), y2 = yScale(log.end);
-                    svg += `<rect x="${panelA_gridX}" y="${y1}" width="${stripW}" height="${Math.max(0.5, y2 - y1)}" fill="${riempimentoDi(se.strato)}" stroke="#0f172a" stroke-width="0.6"/>`;
+                    svg += `<rect x="${panelA_gridX}" y="${y1}" width="${stripW}" height="${Math.max(0.5, y2 - y1)}" fill="${riempimentoDi(lit)}" stroke="#0f172a" stroke-width="0.6"/>`;
                     const cx = panelA_gridX + stripW / 2, cy = (y1 + y2) / 2, r = Math.min(y2 - y1, stripW) * 0.3;
                     svg += `<path d="M ${cx - r} ${cy - r} L ${cx + r} ${cy + r} M ${cx + r} ${cy - r} L ${cx - r} ${cy + r}" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>`;
-                    bandeRifiuto.push({ y1, y2, lit: se.strato });
+                    bandeRifiuto.push({ y1, y2, lit });
                 });
 
                 if (faldaGrafico.presente) {
