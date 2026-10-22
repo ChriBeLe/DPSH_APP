@@ -56,7 +56,7 @@
                     return switchView('field');
                 }
                 const surv = ultimaProvaUsata(state.projects[id]);
-                if (!surv) return openProject(id); // la ripara creando la prima prova
+                if (!surv) return openProject(id, 'project'); // la ripara creando la prima prova
                 if (id !== state.currentProjectId) { saveState(); syncProjectToActiveState(id, surv); }
                 switchView('project');
             }
