@@ -495,6 +495,8 @@
                 }
 
                 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                // Le intestazioni delle colonne: solo sul PC, dove i progetti sono una tabella.
+                homeProjectsContainer.insertAdjacentHTML('beforeend', '<div class="progetti-colonne" aria-hidden="true"><span>Progetto</span><span>Luogo</span><span>Prove</span><span>Ultima modifica</span></div>');
                 visibili.forEach(projId => {
                     const proj = state.projects[projId];
                     const survList = Object.values(proj.surveys || {});

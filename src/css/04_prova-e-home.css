@@ -282,6 +282,12 @@
         .pc-spia.manca { opacity: .4; }
         .pc-avviso { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
         .pc-stato-progetto { font-weight: 700; }
+        /* Sulla Home: i filtri per stato (pallino, nome, quanti) e gli strumenti. */
+        .pc-lato .pc-filtro { display: flex; align-items: center; gap: var(--sp-2); }
+        .pc-filtro > i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+        .pc-filtro .ico { flex: none; width: 16px; height: 16px; color: var(--text-muted); }
+        .pc-filtro-n { flex: none; font-size: 12px; font-weight: 400; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .pc-lato-sezione { margin-top: var(--sp-4); }
         .pc-stato-progetto i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; vertical-align: 1px; }
         .menu-contesto { position: fixed; top: 0; right: auto; z-index: 350; transform-origin: top left; } /* sopra anche la mappa del progetto */
         .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
@@ -1148,7 +1154,7 @@
            Ogni schermata ha una testata su una riga sola: a sinistra cosa è, a destra cosa ci si fa,
            con l'azione principale in fondo a destra. Le prove sono una tabella. Sul telefono niente
            cambia: le celle della tabella e le intestazioni restano nascoste. */
-        .prova-cella, .prove-colonne { display: none; }
+        .prova-cella, .prove-colonne, .progetti-colonne { display: none; }
         @media (min-width: 1024px) {
             :root { --h-bottone: var(--h-bottone-pc); --h-bottone-campo: 40px; --fs-schermata: 24px; --fs-campo: 15px; }
             main { max-width: 1600px; padding: var(--sp-6) var(--sp-8); }
@@ -1158,32 +1164,35 @@
             /* ---- Home: titolo | cerca | Ricevi, Nuovo progetto | template, archivio ---- */
             /* switchView scrive display: flex sull'elemento: la griglia vince solo quando la schermata si vede. */
             #viewHome:not([style*="none"]) { display: grid !important; width: 100%; }
-            .home { grid-template-columns: minmax(170px, 1fr) minmax(160px, 340px) auto auto; align-items: center; gap: var(--sp-3); }
+            .home { grid-template-columns: minmax(170px, 1fr) minmax(160px, 340px) auto; align-items: center; gap: var(--sp-3); }
             .home-testata { display: contents; }
             .home-ricerca:not([style*="none"]) { display: contents !important; }
             .home-titoli { grid-column: 1; grid-row: 1; white-space: nowrap; }
-            .home-azioni { grid-column: 4; grid-row: 1; }
+            /* Filtri per stato, template e archivio stanno nella barra laterale. */
+            .home-azioni, #filtroStatoProgetti { display: none !important; }
             .home-ricerca .campo-cerca { grid-column: 2; grid-row: 1; }
             .campo-cerca .ico { top: 9px; }
             .home-comandi { grid-column: 3; grid-row: 1; display: flex; }
             .home-comandi .bt { min-height: var(--h-bottone); font-size: var(--fs-testo); padding: 0 var(--sp-4); white-space: nowrap; }
             #btnHomeNewProject { order: 1; }
-            #homePromemoriaBackup, #filtroStatoProgetti, #homeProjectsContainer { grid-column: 1 / -1; }
-            #filtroStatoProgetti .pillola { flex: 0 0 auto; padding: 0 var(--sp-4); }
+            #homePromemoriaBackup, #homeProjectsContainer { grid-column: 1 / -1; }
             /* I progetti: un elenco a righe, colonne allineate (nome e stato | luogo | numeri | data). */
             .home-progetti:has(.card-progetto) { gap: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
             .home-progetti .card-progetto { border: none; border-radius: 0; box-shadow: none; background: transparent; }
-            .home-progetti .card-progetto + .card-progetto { border-top: 1px solid var(--border); }
+            .home-progetti .card-progetto { border-top: 1px solid var(--border); }
+            /* Intestazioni e righe: stesse colonne; i 44 px in fondo sono il ⋯. */
+            .home-progetti { --colonne-progetti: minmax(0, 2fr) minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 2fr); }
+            .home-progetti:has(.card-progetto) .progetti-colonne { display: grid; grid-template-columns: var(--colonne-progetti); gap: var(--sp-4); padding: var(--sp-2) calc(44px + var(--sp-2)) var(--sp-2) var(--sp-4); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
             .card-progetto:hover { background: var(--bg-card-hover); }
-            .card-progetto-apri { min-height: 52px; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 2fr); align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
+            .card-progetto-apri { min-height: 52px; display: grid; grid-template-columns: var(--colonne-progetti); align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
             .card-progetto-nome { font-size: var(--fs-testo); }
             .card-progetto-numeri, .card-progetto-data { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .card-progetto-numeri { color: var(--text-muted); }
             .card-progetto-altro { flex-basis: 44px; width: 44px; min-height: 0; }
             /* Sotto i 1280 la data lascia il posto (resta nel menu del tasto destro e nella barra). */
             @media (max-width: 1279px) {
-                .card-progetto-apri { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.4fr) auto; }
-                .card-progetto-data { display: none; }
+                .home-progetti { --colonne-progetti: minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1fr); }
+                .card-progetto-data, .progetti-colonne > :nth-child(4) { display: none; }
             }
 
             /* ---- Progetto: nome e dati | Riprendi | ⋯; sotto gli strumenti; poi la tabella ---- */
