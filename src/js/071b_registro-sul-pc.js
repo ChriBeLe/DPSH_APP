@@ -57,21 +57,38 @@
             // Progetti (barra laterale, Home) e prove (barra laterale, schermata Progetto).
             function apriMenuProgetto(e, id) {
                 const p = state.projects[id];
+                // Lo stato si cambia da qui: un clic sullo stato già scelto lo toglie, come nel ⋯.
+                const segnaStato = (stato) => {
+                    if (p.stato === stato) delete p.stato; else p.stato = stato;
+                    saveState();
+                    renderHomeProjects();
+                    if (state.uiState.currentView === 'project' && state.currentProjectId === id) renderSchermataProgetto();
+                };
                 apriMenuContesto(e, p.name || p.comune || 'Progetto', [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(id)],
-                    ['Consegna', 'i-download', '', () => openExportModal('project', id)],
+                    ['Dati del progetto', 'i-edit', '', () => { apriDalLato(id); openCantiereInfoModal(); }],
+                    ['Note', 'i-note', '', () => apriNoteProgetto(id)],
+                    ['Strati', 'i-stack', '', () => { apriDalLato(id); openStratiModal(); }],
                     ['Terreno e sezioni', 'i-map', '', () => { apriDalLato(id); apriTerreno(); }],
+                    ['Consegna', 'i-download', '', () => openExportModal('project', id)],
                     '-',
-                    ['Note, stato, copia, elimina…', 'i-more', '', () => openProjectActionsModal(id)]
+                    ...STATI_PROGETTO.map(st => [st.etichetta, p.stato === st.id ? 'i-check' : 'i-tag', '', () => segnaStato(st.id)]),
+                    '-',
+                    ['Copia, backup, elimina…', 'i-more', '', () => openProjectActionsModal(id)]
                 ]);
             }
             function apriMenuProva(e, survId) {
                 const s = state.projects[state.currentProjectId].surveys[survId];
+                const correggi = tipo => () => apriProvaPerCorreggere(state.currentProjectId, survId, tipo);
                 apriMenuContesto(e, 'Prova ' + ((s.header || {}).provaNr || '?'), [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(null, survId)],
-                    ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
-                    ['Dati della prova', 'i-file', '', () => openSurveySettingsModal(survId, 'dati')],
-                    ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')]
+                    ['Dati della prova', 'i-edit', '', () => openSurveySettingsModal(survId, 'dati')],
+                    ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')],
+                    '-',
+                    ['Posizione GPS', 'i-pin', '', correggi('gps')],
+                    ['Foto', 'i-camera', '', correggi('foto')],
+                    ['Falda', 'i-droplet', '', correggi('falda')],
+                    ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)]
                 ]);
             }
             document.addEventListener('contextmenu', (e) => {
@@ -80,6 +97,9 @@
                 const prova = e.target.closest('#pcLato [data-prova], #listaProveProgetto [data-surv]');
                 if (progetto) apriMenuProgetto(e, progetto.dataset.progetto || progetto.dataset.id);
                 else if (prova) apriMenuProva(e, prova.dataset.prova || prova.dataset.surv);
+                // Anche sui titoli: il nome del progetto nella sua schermata, «Prova N» nella prova.
+                else if (e.target.closest('#btnProgettoDati')) apriMenuProgetto(e, state.currentProjectId);
+                else if (e.target.closest('#btnOpenSurveyDrawer')) apriMenuProva(e, state.currentSurveyId);
             });
             menuRiga.addEventListener('click', (e) => {
                 const b = e.target.closest('[data-voce]');

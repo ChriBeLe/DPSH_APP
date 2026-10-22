@@ -72,16 +72,37 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   const destro = (el) => el.dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
   const voci = () => [...$(app, 'menuRiga').querySelectorAll('[data-voce]')].map(b => b.textContent);
   destro($(app, 'homeProjectsContainer').querySelector('[data-id]'));
-  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Consegna|Terreno e sezioni|Note, stato, copia, elimina…');
+  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Dati del progetto|Note|Strati|Terreno e sezioni|Consegna|In corso|Da elaborare|Consegnato|Copia, backup, elimina…');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
   t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
   destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
-  t('tasto destro su una prova: Apri, Mostra sulla mappa, Dati, Strumento', voci().join('|') === 'Apri|Mostra sulla mappa|Dati della prova|Strumento');
-  clic(app, $(app, 'menuRiga').querySelector('[data-voce="2"]'));
+  t('tasto destro su una prova: Apri, Dati, Strumento, GPS, Foto, Falda, Mappa', voci().join('|') === 'Apri|Dati della prova|Strumento|Posizione GPS|Foto|Falda|Mostra sulla mappa');
+  clic(app, $(app, 'menuRiga').querySelector('[data-voce="1"]'));
   t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
   app.E('closeAnyOpenModal()');
   clic(app, $(app, 'pcBtnImpostazioni'));
   t('Impostazioni apre il cassetto', $(app, 'drawerMenu').classList.contains('open'));
+
+  console.log('--- Le voci della barra: spie e tasto destro ---');
+  app.E('closeDrawer()');
+  await attesa(80); // chiudere il cassetto torna indietro nella cronologia
+  app.E(`apriDalLato(${JSON.stringify(idProg)})`);
+  await attesa(30);
+  const vocePrima = $(app, 'pcLato').querySelector('[data-prova]'), datiPrima = app.E(`(() => { const s = state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}]; return { foto: (s.photos || []).length, strati: s.logs.filter(l => l.lithology).length }; })()`);
+  t('sotto ogni prova le spie: GPS, foto, strati, falda', ['#i-pin', '#i-camera', '#i-stack', '#i-droplet'].every(i => vocePrima.querySelector(`.pc-voce-info use[href="${i}"]`))
+    && vocePrima.querySelector('.pc-voce-info use[href="#i-camera"]').closest('.pc-spia').textContent === String(datiPrima.foto)
+    && vocePrima.querySelector('.pc-voce-info use[href="#i-stack"]').closest('.pc-spia').textContent === String(datiPrima.strati));
+  t('e la profondità raggiunta', / m$/.test(vocePrima.querySelector('.pc-voce-prof').textContent));
+  app.E(`state.projects[${JSON.stringify(idProg)}].stato = 'consegnato'; renderPc()`);
+  t('sotto il progetto: stato e numero di prove', /^Consegnato · \d+ prov[ae]/.test($(app, 'pcLato').querySelector(`[data-progetto="${idProg}"] .pc-voce-info`).textContent.trim()));
+  $(app, 'pcLato').querySelector(`[data-progetto="${idProg}"]`).dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  const vociProgetto = [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
+  t('tasto destro sul progetto: dati, note, strati e stato', ['Dati del progetto', 'Note', 'Strati', 'In corso', 'Consegnato'].every(v => vociProgetto.includes(v)));
+  [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].find(b => b.textContent.trim() === 'Consegnato').click();
+  t('lo stato scelto di nuovo si toglie', app.E(`state.projects[${JSON.stringify(idProg)}].stato`) === undefined);
+  $(app, 'btnProgettoDati').dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  t('tasto destro anche sul nome del progetto', $(app, 'menuRiga').classList.contains('open') && $(app, 'menuRiga').querySelector('.menu-contesto-titolo').textContent === nome);
+  app.E('chiudiMenuRiga()');
 
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
