@@ -280,6 +280,9 @@
         .pc-spia { flex: none; display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
         .pc-spia .ico { width: 13px; height: 13px; }
         .pc-spia.manca { opacity: .4; }
+        /* La miniatura del profilo, a destra delle due righe della prova. */
+        .pc-lato .pc-prova.pc-voce:has(.pc-profilo) { display: grid; grid-template-columns: minmax(0, 1fr) 40px; column-gap: var(--sp-2); align-content: center; }
+        .pc-prova .pc-profilo { grid-column: 2; grid-row: 1 / span 2; width: 40px; height: 30px; align-self: center; fill: var(--text-muted); background: var(--bg-main); border-radius: 3px; }
         .pc-avviso { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
         .pc-stato-progetto { font-weight: 700; }
         /* Sulla Home: i filtri per stato (pallino, nome, quanti) e gli strumenti. */

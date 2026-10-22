@@ -76,6 +76,7 @@
                             const falda = parseFloat(h.faldaDa);
                             const nNote = logs.filter(l => l && String(l.note || '').trim()).length;
                             const daControllare = avvisi.get(sv.id) || [];
+                            const profilo = miniProfilo(logs, fondo);
                             righe.push(`<button type="button" class="pc-voce pc-prova" data-prova="${esc(sv.id)}" title="${esc(['Prova ' + provaNr(sv), ...daControllare.map(a => '• ' + a.testo), 'Tasto destro: azioni'].join('\n'))}"${vista === 'field' && sv.id === state.currentSurveyId ? ' aria-current="page"' : ''}>
                             <span class="pc-voce-riga"><span class="pc-voce-nome">Prova ${esc(provaNr(sv))}</span>${daControllare.length ? `<i class="pc-avviso" aria-label="${daControllare.length} da controllare"></i>` : ''}<span class="pc-voce-prof">${numeroConVirgola(fondo)} m</span></span>
                             <span class="pc-voce-riga pc-voce-info">${[
@@ -84,7 +85,7 @@
                                 spia('i-stack', nStrati, !nStrati, nStrati + (nStrati === 1 ? ' strato' : ' strati')),
                                 spia('i-droplet', isFinite(falda) ? numeroConVirgola(falda) : '', !isFinite(falda), isFinite(falda) ? 'Falda a ' + numeroConVirgola(falda) + ' m' : 'Falda non impostata'),
                                 nNote ? spia('i-note', nNote, false, nNote + (nNote === 1 ? ' intervallo con nota' : ' intervalli con nota')) : ''
-                            ].join('')}</span>
+                            ].join('')}</span>${profilo}
                         </button>`);
                         });
                     });
@@ -100,6 +101,22 @@
                 }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · Ctrl Z annulla · ? guida · DPSH ' + APP_VERSIONE;
                 if (vista === 'field') forseGuidaRapida();
+            }
+
+            /** La forma della prova in piccolo, come il grafico del Registro: la profondità scende,
+             * i colpi vanno a destra, ogni barra col colore del suo strato. Vuota senza intervalli. */
+            function miniProfilo(logs, fondo) {
+                if (!logs.length || !(fondo > 0)) return '';
+                const L = 40, A = 30;
+                const maxColpi = Math.max(1, ...logs.map(l => Number(l.colpi) || 0));
+                const colori = new Map((state.strati || []).map(st => [st.id, st.color]));
+                let colore = null;
+                const barre = logs.slice().sort((a, b) => a.start - b.start).map(l => {
+                    if (l.lithology) colore = colori.get(l.lithology) || null;
+                    const y = l.start / fondo * A, h = Math.max(0.6, (l.end - l.start) / fondo * A);
+                    return `<rect x="0" y="${y.toFixed(2)}" width="${((Number(l.colpi) || 0) / maxColpi * L).toFixed(2)}" height="${h.toFixed(2)}"${colore ? ` fill="${colore}"` : ''}/>`;
+                }).join('');
+                return `<svg class="pc-profilo" viewBox="0 0 ${L} ${A}" preserveAspectRatio="none" aria-hidden="true">${barre}</svg>`;
             }
 
             document.getElementById('pcPercorso').addEventListener('click', (e) => {

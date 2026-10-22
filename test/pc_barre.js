@@ -109,6 +109,7 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
     && vocePrima.querySelector('.pc-voce-info use[href="#i-camera"]').closest('.pc-spia').textContent === String(datiPrima.foto)
     && vocePrima.querySelector('.pc-voce-info use[href="#i-stack"]').closest('.pc-spia').textContent === String(datiPrima.strati));
   t('e la profondità raggiunta', / m$/.test(vocePrima.querySelector('.pc-voce-prof').textContent));
+  t('e la miniatura del profilo: una barra per intervallo', vocePrima.querySelectorAll('.pc-profilo rect').length === app.E(`state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}].logs.length`));
   app.E(`state.projects[${JSON.stringify(idProg)}].stato = 'consegnato'; renderPc()`);
   t('sotto il progetto: stato e numero di prove', /^Consegnato · \d+ prov[ae]/.test($(app, 'pcLato').querySelector(`[data-progetto="${idProg}"] .pc-voce-info`).textContent.trim()));
   $(app, 'pcLato').querySelector(`[data-progetto="${idProg}"]`).dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
