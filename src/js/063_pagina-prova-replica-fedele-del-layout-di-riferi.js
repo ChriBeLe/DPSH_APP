@@ -780,7 +780,7 @@
                     svg += `<rect x="${panelA_gridX}" y="${y1}" width="${stripW}" height="${Math.max(0.5, y2 - y1)}" fill="${riempimentoDi(se.strato)}" stroke="#0f172a" stroke-width="0.6"/>`;
                     const cx = panelA_gridX + stripW / 2, cy = (y1 + y2) / 2, r = Math.min(y2 - y1, stripW) * 0.3;
                     svg += `<path d="M ${cx - r} ${cy - r} L ${cx + r} ${cy + r} M ${cx + r} ${cy - r} L ${cx - r} ${cy + r}" stroke="#0f172a" stroke-width="1.6" stroke-linecap="round"/>`;
-                    bandeRifiuto.push({ y1, y2 });
+                    bandeRifiuto.push({ y1, y2, lit: se.strato });
                 });
 
                 if (faldaGrafico.presente) {
@@ -824,14 +824,14 @@
                         const h = righe.length * rigaLegenda;
                         voci.push({ righe, lit, h, yIdeale: (y1 + y2) / 2 - h / 2 });
                     });
-                    bandeRifiuto.forEach(b => voci.push({ righe: ['Rifiuto'], lit: null, h: rigaLegenda, yIdeale: (b.y1 + b.y2) / 2 - rigaLegenda / 2 }));
+                    bandeRifiuto.forEach(b => {
+                        const righe = spezzaEtichettaInRighe(b.lit.name ? `${b.lit.name} - Rifiuto` : 'Rifiuto', charsPerRiga, 4);
+                        const h = righe.length * rigaLegenda;
+                        voci.push({ righe, lit: b.lit, h, yIdeale: (b.y1 + b.y2) / 2 - h / 2 });
+                    });
                     voci.sort((a, b) => a.yIdeale - b.yIdeale);
                     disponiEtichetteSenzaSovrapposizioni(voci, padTop + 2, padTop + chartH, 2.5);
                     voci.forEach(v => {
-                        if (!v.lit) {
-                            svg += `<text x="${legendX}" y="${v.y + fNome}" font-size="${fNome}" font-weight="700" fill="#0f172a">Rifiuto</text>`;
-                            return;
-                        }
                         svg += `<rect x="${legendX}" y="${v.y + 0.8}" width="${swatch}" height="${swatch}" fill="${riempimentoDi(v.lit)}" stroke="#0f172a" stroke-width="0.5"/>`;
                         const tspan = v.righe.map((r, i) =>
                             `<tspan x="${textX}" dy="${i === 0 ? 0 : rigaLegenda}">${escapeHtmlDidascalia(r)}</tspan>`).join('');
