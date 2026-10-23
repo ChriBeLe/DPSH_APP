@@ -351,7 +351,7 @@
                     if (vecchia) vecchia.remove();
                     if (foglioEditor && templateEditorState.headerEnabled && page.header) {
                         const mrgH = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
-                        foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true }));
+                        foglioEditor.insertAdjacentHTML('afterbegin', htmlIntestazioneNelMargine(page.header, mrgH, { id: 'templateEditorHeaderZone', classe: 'tpl-editor-header-zone', anche_vuota: true, ctx }));
                         document.getElementById('templateEditorHeaderZone').style.outline = '1px dashed #cbd5e1';
                     }
                     // La carta intestata (071u), sotto a tutto: la prima pagina sulla prima del template.
@@ -365,7 +365,7 @@
                     if (vecchioPiede) vecchioPiede.remove();
                     if (foglioEditor && templateEditorState.footerEnabled && page.footer && page.footer.html) {
                         const mrgP = Object.assign(marginiPaginaDiDefault(), templateEditorState.margins || {});
-                        foglioEditor.insertAdjacentHTML('beforeend', htmlPiedeNelMargine(page.footer, mrgP, { id: 'templateEditorFooterZone', classe: 'tpl-editor-footer-zone' }));
+                        foglioEditor.insertAdjacentHTML('beforeend', htmlPiedeNelMargine(page.footer, mrgP, { id: 'templateEditorFooterZone', classe: 'tpl-editor-footer-zone', ctx }));
                         document.getElementById('templateEditorFooterZone').style.outline = '1px dashed #cbd5e1';
                     }
                 }
@@ -791,6 +791,10 @@
                     const ora = Date.now();
                     if (ultimoTapSelezioneBlocco.blockId === blockId && (ora - ultimoTapSelezioneBlocco.t) < 350) {
                         ultimoTapSelezioneBlocco = { blockId: null, t: 0 };
+                        // Sul PC il doppio clic su un testo lo apre da scrivere, come in Word; le
+                        // impostazioni del blocco stanno nel tasto destro (071v).
+                        const blkDoppio = suPc() && trovaBloccoPerIdOvunque(blockId);
+                        if (blkDoppio && (blkDoppio.type === 'testo' || blkDoppio.type === 'titolo')) { apriTplTextEditor(blockId); return; }
                         apriMenuBloccoEditor(blockId);
                         triggerVibrate(12);
                     } else {
@@ -802,6 +806,9 @@
                 bodyEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     if (templateEditorState.previewMode) return;
+                    // Sul PC il tasto destro dà le azioni del blocco in un menu dove sta il mouse
+                    // (071v); il pannello delle impostazioni è una delle voci.
+                    if (suPc()) { e.stopPropagation(); apriMenuBloccoPc(e, blockId); return; }
                     // Su Android il tocco prolungato manda anche contextmenu: il menu è già aperto.
                     const menu = document.getElementById('templateEditorBlockMenu');
                     if (menu && menu.dataset.blockId === blockId) return;

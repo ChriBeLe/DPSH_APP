@@ -750,8 +750,11 @@
             // Le altre righe sono sequenze di colpi («5 8 12», «5, 8, 12», «5,8,12»). La prima riga senza
             // numeri è un'intestazione e si salta; ogni altro valore che non è un intero ≥ 0 si segnala
             // invece di sparire in silenzio.
+            // «Rifiuto» segna il rifiuto: dopo un numero sulla stessa riga («50 Rifiuto») vale per
+            // quell'intervallo, da solo crea un intervallo a 0 colpi. Escluso da tabelle e calcoli.
             function parseBulkImportNumbers(text) {
-                const numeri = [], scartati = [];
+                const numeri = [], scartati = [], rifiuti = new Set();
+                const eRifiuto = c => /^rifiuto$/i.test(c.trim());
                 let primaRiga = true;
                 String(text || '').split(/\r?\n/).forEach((riga, i) => {
                     if (!riga.trim()) return;
@@ -759,28 +762,40 @@
                     if (/[\t;]/.test(riga) || /\d\.\d/.test(riga) || (/\d,\d/.test(riga) && /\s/.test(riga.trim()))) {
                         campi = riga.split(/[\t;]|\s+/).filter(c => c.trim());
                         if (campi.length === 1) campi = campi[0].split(',');
-                        campi = [campi.pop().trim()];
+                        const ultimo = campi.pop().trim();
+                        campi = eRifiuto(ultimo) && campi.length ? [campi.pop().trim(), ultimo] : [ultimo];
                     } else {
                         campi = riga.split(/[\s,]+/).filter(Boolean);
                     }
-                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c));
+                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c) && !eRifiuto(c));
                     primaRiga = false;
                     if (intestazione) return;
-                    campi.forEach(c => /^\d+$/.test(c) ? numeri.push(parseInt(c, 10)) : scartati.push({ riga: i + 1, testo: c }));
+                    let numeriRiga = 0;
+                    campi.forEach(c => {
+                        if (eRifiuto(c)) {
+                            if (!numeriRiga) numeri.push(0);
+                            rifiuti.add(numeri.length - 1);
+                        } else if (/^\d+$/.test(c)) {
+                            numeri.push(parseInt(c, 10));
+                            numeriRiga++;
+                        } else {
+                            scartati.push({ riga: i + 1, testo: c });
+                        }
+                    });
                 });
-                return { numeri, scartati };
+                return { numeri, scartati, rifiuti };
             }
 
             function updateBulkImportCount() {
                 if (!txtBulkImportData || !lblBulkImportCount) return;
-                const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData.value);
+                const { numeri: numbers, scartati, rifiuti } = parseBulkImportNumbers(txtBulkImportData.value);
                 lblBulkImportCount.textContent = `${numbers.length} ${numbers.length === 1 ? 'intervallo' : 'intervalli'}`;
                 const stepM = (state.settings.stepCm || 20) / 100;
                 const startDepth = getBulkImportStartDepth();
                 if (lblBulkImportDepth) lblBulkImportDepth.textContent = `${numeroConVirgola(startDepth)} → ${numeroConVirgola(startDepth + numbers.length * stepM)} m`;
                 const anteprima = document.getElementById('anteprimaBulkImport');
                 anteprima.innerHTML = scartati.map(s => `<div class="anteprima-scartato">Riga ${s.riga}: «${escapeHtmlDidascalia(s.testo)}» non è un numero di colpi</div>`).join('')
-                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${n}</strong></div>`).join('');
+                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${rifiuti.has(i) ? (n ? n + ' · ' : '') + 'Rifiuto' : n}</strong></div>`).join('');
                 btnConfirmBulkImport.disabled = !numbers.length || scartati.length > 0;
                 btnConfirmBulkImport.innerHTML = `<svg class="ico"><use href="#i-list"/></svg> ${scartati.length ? 'Correggi le righe segnate' : (numbers.length ? 'Aggiungi ' + lblBulkImportCount.textContent : 'Aggiungi')}`;
             }
@@ -806,7 +821,7 @@
 
             if (btnConfirmBulkImport) {
                 btnConfirmBulkImport.addEventListener('click', () => {
-                    const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
+                    const { numeri: numbers, scartati, rifiuti } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
                     if (numbers.length === 0 || scartati.length) return; // il bottone è già spento
 
                     const selectedOpt = document.querySelector('input[name="optImportMode"]:checked');
@@ -820,7 +835,7 @@
 
                     const stepM = (state.settings.stepCm || 20) / 100;
 
-                    numbers.forEach(colpi => {
+                    numbers.forEach((colpi, i) => {
                         const start = state.currentDepthStart;
                         const end = start + stepM;
                         const asta = getRodForDepth(end);
@@ -831,7 +846,8 @@
                             colpi: colpi,
                             asta: asta,
                             note: '',
-                            lithology: ''
+                            lithology: '',
+                            ...(rifiuti.has(i) ? { note: 'Rifiuto', rifiutoSoloGrafico: true } : {})
                         }, 'inserimento-multiplo'));
 
                         state.currentDepthStart = end;
@@ -1060,7 +1076,7 @@
                         const logs = surv.logs || [];
                         const photos = surv.photos || [];
                         const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                        const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                        const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                         
                         if (h.lat !== null && h.lng !== null && !isNaN(h.lat) && !isNaN(h.lng)) {
                             const alt = h.alt !== null && !isNaN(h.alt) ? h.alt : 0;
@@ -1142,7 +1158,7 @@
                     }
 
                     const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                    const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                    const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                     const alt = h.alt !== null && !isNaN(h.alt) ? h.alt : 0;
 
                     let photoHtml = '';
@@ -1234,7 +1250,7 @@
                         const h = surv.header || {};
                         const logs = surv.logs || [];
                         const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                        const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                        const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                         const photoCount = (surv.photos || []).length;
                         summaryData.push([
                             `Prova ${h.provaNr || '1'}`,
@@ -1270,7 +1286,7 @@
                             ["Intervallo Da (m)", "Intervallo A (m)", "Asta N°", "Colpi N", "Rpd (kg/cm²)", "Litologia", "Note"]
                         ];
 
-                        logs.forEach((log) => {
+                        logs.filter(l => !intervalloSoloGrafico(l)).forEach((log) => {
                             const N = log.colpi || 0;
                             const M = inst.pesoMassa || 63.5;
                             const H = (inst.volata || 0.75) * 100;
