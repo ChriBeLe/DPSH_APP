@@ -359,6 +359,26 @@ ${contenuto}
                 saveState();
             }));
 
+            /** Aggiunge una classe d'animazione e la toglie a fine animazione, così può ripartire. */
+            function animaUnaVolta(el, classe) {
+                el.classList.remove(classe);
+                void el.offsetWidth;
+                el.classList.add(classe);
+                el.addEventListener('animationend', () => el.classList.remove(classe), { once: true });
+            }
+
+            // L'intervallo appena registrato entra animato, sotto il contatore e nel Registro. Solo se
+            // ce n'è uno in più nella stessa prova: aprire una prova o ridisegnare non anima niente.
+            let registroVisto = { prova: null, n: 0 };
+            function segnaIntervalloNuovo() {
+                const n = state.logs.length;
+                if (registroVisto.prova === state.currentSurveyId && n === registroVisto.n + 1) {
+                    document.querySelectorAll(`#listaUltimiIntervalli [data-index="${n - 1}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${n - 1}"], #tblLogsBody .swipe-row-wrapper[data-index="${n - 1}"]`)
+                        .forEach(el => el.classList.add('appena-registrato'));
+                }
+                registroVisto = { prova: state.currentSurveyId, n };
+            }
+
             function renderUltimiIntervalli() {
                 const box = document.getElementById('listaUltimiIntervalli');
                 if (!box) return;
@@ -435,10 +455,16 @@ ${contenuto}
             }
             /** Le quattro spie sotto il titolo: GPS, foto, falda, note. Tre stati (vedi 03_regole-di-stile):
              * fatto, con quantità, non ancora. Mai rosso: una prova senza foto non è un errore. */
+            // Una spia che si accende nella stessa prova (il GPS preso, la prima foto) fa un piccolo
+            // salto; cambiando prova no, lì non è successo niente.
+            let provaDelleSpie = null;
             function aggiornaSpieProva() {
+                const stessaProva = provaDelleSpie === state.currentSurveyId;
+                provaDelleSpie = state.currentSurveyId;
                 const imposta = (id, stato, testo, idTesto) => {
                     const el = document.getElementById(id);
                     if (!el) return;
+                    if (stessaProva && stato !== 'non-ancora' && el.classList.contains('non-ancora')) animaUnaVolta(el, 'spia-accesa');
                     el.classList.toggle('fatto', stato === 'fatto');
                     el.classList.toggle('non-ancora', stato === 'non-ancora');
                     const t = idTesto ? document.getElementById(idTesto) : null;
@@ -606,6 +632,7 @@ ${contenuto}
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
                 renderPc();
                 segnaRigaScelta();
+                segnaIntervalloNuovo();
 
                 // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
@@ -896,6 +923,13 @@ ${contenuto}
                 // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
                 // dell'editor). In più resta la copia automatica.
                 copiaPrimaDi('eliminare un intervallo');
+                // La riga scivola via, poi si toglie (con il movimento ridotto la durata è 1 ms).
+                const righe = document.querySelectorAll(`#listaUltimiIntervalli [data-index="${idx}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${idx}"], #tblLogsBody .swipe-row-wrapper[data-index="${idx}"]`);
+                const uscita = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mov-breve')) || 0;
+                if (righe.length && uscita) {
+                    righe.forEach(el => el.classList.add('riga-esce'));
+                    await new Promise(r => setTimeout(r, uscita));
+                }
 
                 const backupItem = JSON.parse(JSON.stringify(state.logs[idx]));
                 const backupDepth = state.currentDepthStart;

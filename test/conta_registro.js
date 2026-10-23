@@ -159,7 +159,7 @@ async function apriPrimaProva(app) {
   const daEliminare = JSON.stringify(app.E('state.logs[3]'));
   scorri(contenuto(3), -150);
   clic(app, riga(3).querySelector('.riga-azione-elimina'));
-  await attesa(30);
+  await attesa(250); // la riga prima scivola via (--mov-breve)
   t('«Elimina» non chiede niente: toglie proprio quell\'intervallo e offre Annulla',
     !app.dialogo() && app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare) && $(app, 'undoNotificationBanner').style.display === 'flex');
   clic(app, $(app, 'btnUndoDeleteProject'));
