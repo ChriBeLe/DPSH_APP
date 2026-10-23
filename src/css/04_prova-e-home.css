@@ -11,6 +11,7 @@
             background: transparent; border: none; border-radius: var(--radius-md); color: var(--text-main);
             font-family: inherit; cursor: pointer;
         }
+        .testata-titolo-riga { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
         .testata-titolo-prova { font-size: 22px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .testata-titolo-progetto { font-size: var(--fs-testo); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .testata-titolo-progetto:empty { display: none; }
@@ -70,14 +71,32 @@
         .note-tags-row .pillola.btn-tag.accento { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
         .note-tags-row .pillola.btn-tag::before { content: none; }
 
+        /* ---- Riconosci strati: viola brillante, perché fa una cosa «da sola» ---- */
+        .bt-magia {
+            background: linear-gradient(120deg, #6d28d9, #a855f7 45%, #ec4899) 0 0 / 200% 100%;
+            border: none; color: #fff; font-weight: 800;
+            box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.55), 0 4px 16px rgba(168, 85, 247, 0.4);
+            transition: background-position var(--mov-medio, .4s) ease, box-shadow var(--mov-medio, .4s) ease;
+        }
+        .bt-magia:hover, .bt-magia:focus-visible { background-position: 100% 0; box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.6), 0 6px 22px rgba(168, 85, 247, 0.6); }
+        .bt-magia .ico { color: #fff; }
+        .titolo-magia { display: inline-flex; align-items: center; gap: var(--sp-2); }
+        .titolo-magia .ico { color: var(--purple); }
+        .campo-cursore { display: flex; align-items: center; gap: var(--sp-3); }
+        .campo-cursore input[type="range"] { flex: 1; accent-color: var(--purple); }
+        .campo-cursore .form-control { flex: 0 0 96px; width: 96px; }
+        @media (prefers-reduced-motion: reduce) { .bt-magia { transition: none; } }
+
         /* ---- Registro ---- */
         .registro-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); flex-wrap: wrap; }
+        .registro-testata-sx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .registro-testata-sx .t-didascalia:empty { display: none; }
         .registro-titolo { margin: 0; font-size: 17px; font-weight: 800; color: var(--text-main); }
         .registro-azioni { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .registro-azioni .bt-aiuto { margin-left: auto; }
         .registro-legenda { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px var(--sp-2); margin-bottom: var(--sp-2); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 600; }
         .registro-legenda:empty { display: none; }
-        .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
+        .registro-intestazione { display: grid; grid-template-columns: var(--colonne-registro, 14% 12% 74%); position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
         .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
 
         /* ---- Scheda dell'intervallo (Fase 6): − e + attorno ai colpi ---- */
@@ -185,8 +204,23 @@
         .cronologia-gruppo { display: inline-flex; gap: 4px; margin-left: auto; }
         [data-cronologia]:disabled { opacity: .35; cursor: default; }
         [data-cronologia][hidden] { display: none; }
-        .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; }
+        /* «Modifica»: dice che il titolo (del progetto o della prova) si tocca per cambiarne i dati. */
+        .modifica-dati {
+            flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px;
+            border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: var(--fs-didascalia); font-weight: 700;
+        }
+        .modifica-dati .ico { width: 16px; height: 16px; }
+        .testata-titolo .modifica-dati { min-height: 26px; padding: 0 6px; }
+        .progetto-testa {
+            display: flex; align-items: flex-start; gap: var(--sp-3); width: 100%; padding: var(--sp-3);
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer;
+        }
+        .progetto-testa:hover, .progetto-testa:focus-visible { border-color: var(--accent); }
+        .progetto-testa-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+        .progetto-nome { margin: 0; font-size: var(--fs-schermata); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
         .progetto-sotto { font-size: var(--fs-testo); color: var(--text-muted); }
+        .progetto-sotto:empty { display: none; }
         .progetto-prove { padding: 0; overflow: hidden; }
         .progetto-ordina { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); background: var(--accent-soft); }
         .progetto-ordina[hidden] { display: none; }
@@ -205,11 +239,12 @@
         .prova-riga-stato { flex-shrink: 0; padding: 3px 10px; border-radius: 13px; font-size: var(--fs-didascalia); font-weight: 700; color: var(--success); background: var(--success-soft); }
         .prova-riga-stato.avviso { color: var(--warning); background: var(--warning-soft); }
         .progetto-accessi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
-        .progetto-accessi button { min-height: 80px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-3); color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
+        .progetto-accessi button { min-height: 72px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: var(--sp-2) var(--sp-3); color: var(--text-main); font-family: inherit; text-align: left; cursor: pointer; }
         .progetto-accessi .ico { color: var(--accent); margin-bottom: auto; }
         .progetto-accessi strong { font-size: var(--fs-campo); }
         .progetto-accessi span { font-size: var(--fs-didascalia); color: var(--text-muted); }
         .progetto-accessi .accento { border-color: var(--accent); background: var(--accent-soft); }
+        @media (min-width: 1024px) { .progetto-accessi { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
         /* ---- La scheda della prova (Fase 4) ---- */
         .scheda-prova-rapidi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin-bottom: var(--sp-3); }
@@ -250,6 +285,29 @@
         .pc-lato button { width: 100%; min-height: 34px; padding: 0 var(--sp-2); border: none; border-radius: 7px; background: none; font: inherit; text-align: left; color: var(--text-main); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pc-lato button:hover { background: var(--bg-card-hover); }
         .pc-lato .pc-prova { padding-left: calc(var(--sp-2) + 18px); color: var(--text-muted); }
+        /* Le voci a due righe: il nome, e sotto le spie (stato e prove del progetto; GPS, foto,
+           strati, falda e note della prova). Spenta = manca. */
+        .pc-lato .pc-voce { min-height: 46px; padding: 5px var(--sp-2); display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+        .pc-lato .pc-prova.pc-voce { padding-left: calc(var(--sp-2) + 18px); }
+        .pc-voce-riga { display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%; }
+        .pc-voce-nome { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pc-voce-info { gap: 10px; font-size: 12px; font-weight: 400; color: var(--text-muted); }
+        .pc-voce-prof { flex: none; font-family: var(--font-mono); font-size: 12px; font-weight: 400; color: var(--text-muted); }
+        .pc-spia { flex: none; display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+        .pc-spia .ico { width: 13px; height: 13px; }
+        .pc-spia.manca { opacity: .4; }
+        /* La miniatura del profilo, a destra delle due righe della prova. */
+        .pc-lato .pc-prova.pc-voce:has(.pc-profilo) { display: grid; grid-template-columns: minmax(0, 1fr) 40px; column-gap: var(--sp-2); align-content: center; }
+        .pc-prova .pc-profilo { grid-column: 2; grid-row: 1 / span 2; width: 40px; height: 30px; align-self: center; fill: var(--text-muted); background: var(--bg-main); border-radius: 3px; }
+        .pc-avviso { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
+        .pc-stato-progetto { font-weight: 700; }
+        /* Sulla Home: i filtri per stato (pallino, nome, quanti) e gli strumenti. */
+        .pc-lato .pc-filtro { display: flex; align-items: center; gap: var(--sp-2); }
+        .pc-filtro > i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+        .pc-filtro .ico { flex: none; width: 16px; height: 16px; color: var(--text-muted); }
+        .pc-filtro-n { flex: none; font-size: 12px; font-weight: 400; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .pc-lato-sezione { margin-top: var(--sp-4); }
+        .pc-stato-progetto i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; vertical-align: 1px; }
         .menu-contesto { position: fixed; top: 0; right: auto; z-index: 1000; transform-origin: top left; } /* sopra anche la mappa del progetto */
         .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
         .menu-contesto kbd { margin-left: auto; padding-left: var(--sp-4); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
@@ -301,8 +359,10 @@
         .terreno-quote > div { display: flex; justify-content: space-between; align-items: center; min-height: 36px; border-bottom: 1px solid var(--border); }
         .terreno-quote strong { font-family: var(--font-mono); }
         .terreno-comandi { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+        .terreno-sezione + .terreno-sezione { margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+        .terreno-titolo { margin: 0 0 var(--sp-2); font-size: var(--fs-didascalia); font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
+        .terreno-sezione .terreno-comandi:first-child, .terreno-titolo + .terreno-comandi { margin-top: 0; }
         .riga-avviso.pericolo { border-color: var(--danger); color: var(--danger); background: transparent; margin-bottom: var(--sp-3); }
-        #btnProgettoConsegna { grid-column: 1 / -1; }
         .modal.sezione { max-width: 1100px; width: 96vw; max-height: 94vh; overflow-y: auto; }
         /* Il confronto è una figura: la finestra prende quasi tutto lo schermo e la figura si
            adatta allo spazio che resta (la misura renderConfrontoProve). */
@@ -350,6 +410,7 @@
 
         /* ---- Sezione: comandi e riquadro che scorre ---- */
         .sezione-comandi { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-2) 0; }
+        .sezione-carattere { width: auto; max-width: 260px; flex: 0 1 auto; }
         #graficoSezione { max-height: 68vh; overflow: auto; overscroll-behavior: contain; }
         #opzioniSezione .pillola[disabled] { opacity: .45; cursor: not-allowed; }
         .sezione-colonna:hover rect[fill="transparent"] { fill: var(--accent-soft); }
@@ -674,7 +735,13 @@
         .am-pnl.dk.red .am-pnl-testa { cursor: grab; }
         .am-pnl.dk.red.trascina { transition: none; cursor: grabbing; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
         /* chiuso al suo posto: resta largo e agganciato, si restringe in altezza fino alla testata */
-        .area-mappa .am-pnl.dk.chiuso { max-height: 41px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); border-bottom-width: 1px; }
+        /* Chiuso sul PC: una striscia verticale col nome scritto in verticale (come HyperGram); un clic la riapre. */
+        .am-pnl.dk.chiuso .am-pnl-testa { flex: 1; flex-direction: column; padding: var(--sp-3) 0; border-bottom: 0; }
+        .am-pnl.dk.chiuso .am-pnl-ctrl, .am-pnl.dk.chiuso .chevron { display: none; }
+        .am-pnl.dk.chiuso .am-pnl-tit, .am-pnl.dk.chiuso .mappa-livelli-titolo { flex: 1; width: 100%; writing-mode: vertical-rl; justify-content: flex-start; align-items: center; gap: var(--sp-3); padding: 0; animation: amSfuma 0.35s ease; }
+        .am-pnl.dk.chiuso .am-pnl-tit:hover, .am-pnl.dk.chiuso .mappa-livelli-titolo:hover { background: rgba(127, 127, 127, 0.1); }
+        .am-pnl.dk.chiuso .ico { color: var(--accent); }
+        .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { flex: 0 0 0; min-height: 0; overflow: hidden; }
         .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { opacity: 0; pointer-events: none; }
         .am-pnl.chiuso .am-pnl-testa { border-bottom-color: transparent; }
         .am-pnl-tit { cursor: pointer; }
@@ -1114,3 +1181,111 @@
         /* Il controllo dei dati: accanto a ogni anomalia, il tasto per andare a correggerla (004c). */
         .integrita-riga { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
         .integrita-vai { flex: none; background: none; border: none; padding: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+        /* ================== IL PC COMPATTO ==================
+           Col mouse non servono i bersagli da dito: bottoni da 36 (la regola «36 solo PC» di
+           03_regole-di-stile.css), testi un passo più piccoli, il contenuto che usa la larghezza.
+           Ogni schermata ha una testata su una riga sola: a sinistra cosa è, a destra cosa ci si fa,
+           con l'azione principale in fondo a destra. Le prove sono una tabella. Sul telefono niente
+           cambia: le celle della tabella e le intestazioni restano nascoste. */
+        .prova-cella, .prove-colonne, .progetti-colonne { display: none; }
+        @media (min-width: 1024px) {
+            :root { --h-bottone: var(--h-bottone-pc); --h-bottone-campo: 40px; --fs-schermata: 24px; --fs-campo: 15px; }
+            main { max-width: 1600px; padding: var(--sp-6) var(--sp-8); }
+            .bt-icona .ico { width: 20px; height: 20px; }
+            .chiudi-x { width: 36px; height: 36px; }
+
+            /* ---- Home: titolo | cerca | Ricevi, Nuovo progetto | template, archivio ---- */
+            /* switchView scrive display: flex sull'elemento: la griglia vince solo quando la schermata si vede. */
+            #viewHome:not([style*="none"]) { display: grid !important; width: 100%; }
+            .home { grid-template-columns: minmax(170px, 1fr) minmax(160px, 340px) auto; align-items: center; gap: var(--sp-3); }
+            .home-testata { display: contents; }
+            .home-ricerca:not([style*="none"]) { display: contents !important; }
+            .home-titoli { grid-column: 1; grid-row: 1; white-space: nowrap; }
+            /* Filtri per stato, template e archivio stanno nella barra laterale. */
+            .home-azioni, #filtroStatoProgetti { display: none !important; }
+            .home-ricerca .campo-cerca { grid-column: 2; grid-row: 1; }
+            .campo-cerca .ico { top: 9px; }
+            .home-comandi { grid-column: 3; grid-row: 1; display: flex; }
+            .home-comandi .bt { min-height: var(--h-bottone); font-size: var(--fs-testo); padding: 0 var(--sp-4); white-space: nowrap; }
+            #btnHomeNewProject { order: 1; }
+            #homePromemoriaBackup, #homeProjectsContainer { grid-column: 1 / -1; }
+            /* I progetti: un elenco a righe, colonne allineate (nome e stato | luogo | numeri | data). */
+            .home-progetti:has(.card-progetto) { gap: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+            .home-progetti .card-progetto { border: none; border-radius: 0; box-shadow: none; background: transparent; }
+            .home-progetti .card-progetto { border-top: 1px solid var(--border); }
+            /* Intestazioni e righe: stesse colonne; i 44 px in fondo sono il ⋯. */
+            .home-progetti { --colonne-progetti: minmax(0, 2fr) minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 2fr); }
+            .home-progetti:has(.card-progetto) .progetti-colonne { display: grid; grid-template-columns: var(--colonne-progetti); gap: var(--sp-4); padding: var(--sp-2) calc(44px + var(--sp-2)) var(--sp-2) var(--sp-4); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+            .card-progetto:hover { background: var(--bg-card-hover); }
+            .card-progetto-apri { min-height: 52px; display: grid; grid-template-columns: var(--colonne-progetti); align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
+            .card-progetto-nome { font-size: var(--fs-testo); }
+            .card-progetto-numeri, .card-progetto-data { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .card-progetto-numeri { color: var(--text-muted); }
+            .card-progetto-altro { flex-basis: 44px; width: 44px; min-height: 0; }
+            /* Sotto i 1280 la data lascia il posto (resta nel menu del tasto destro e nella barra). */
+            @media (max-width: 1279px) {
+                .home-progetti { --colonne-progetti: minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1fr); }
+                .card-progetto-data, .progetti-colonne > :nth-child(4) { display: none; }
+            }
+
+            /* ---- Progetto: nome e dati | Riprendi | ⋯; sotto gli strumenti; poi la tabella ---- */
+            #viewProject:not([style*="none"]) { display: grid !important; width: 100%; }
+            .progetto { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--sp-4) var(--sp-2); }
+            .progetto > * { grid-column: 1 / -1; }
+            .progetto-testa { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; column-gap: var(--sp-3); row-gap: 2px; padding: var(--sp-1) var(--sp-2); margin-left: calc(-1 * var(--sp-2)); background: transparent; border-color: transparent; }
+            .progetto-testa:hover, .progetto-testa:focus-visible { background: var(--bg-card); border-color: var(--border); }
+            .progetto-testa-testo { display: contents; }
+            .progetto-testa .progetto-nome { grid-column: 1; grid-row: 1; }
+            .progetto-testa .modifica-dati { grid-column: 2; grid-row: 1; }
+            .progetto-testa .progetto-sotto { grid-column: 1 / -1; }
+            #btnProgettoRiprendi { grid-column: 2; grid-row: 1; padding: 0 var(--sp-4); font-size: var(--fs-testo); border-radius: var(--radius-md); }
+            .progetto-barra { grid-column: 3; grid-row: 1; }
+            .progetto-accessi { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+            .progetto-accessi button { min-height: var(--h-bottone); box-shadow: none; flex-direction: row; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3); }
+            .progetto-accessi button > span, #btnProgettoConsegna { display: none; } /* la descrizione è nel suggerimento; Consegna sta nella barra in alto */
+            .progetto-accessi .ico { margin: 0; width: 18px; height: 18px; }
+            .progetto-accessi strong { font-size: var(--fs-testo); }
+            /* Solo la testata «Prove» della scheda progetto: il margine negativo la avvicina alla
+               tabella. Sulle testate del Registro tirerebbe la legenda sopra i bottoni. */
+            .progetto > .registro-testata { margin: var(--sp-2) 0 calc(-1 * var(--sp-2)); }
+            .registro-testata-sx { flex-direction: row; align-items: baseline; gap: var(--sp-3); }
+            /* La tabella delle prove: le stesse colonne per le intestazioni e per le righe. */
+            /* Le colonne dei numeri hanno un massimo: sullo schermo largo restano vicine al nome e lo
+               spazio in più va allo stato, in fondo. */
+            .progetto-prove { --colonne-prove: 28px minmax(90px, 220px) repeat(2, minmax(72px, 120px)) minmax(44px, 80px) repeat(2, minmax(76px, 110px)) minmax(64px, 110px) minmax(92px, 1fr); }
+            .prove-colonne, .prova-riga:not(.ordina) { display: grid; grid-template-columns: var(--colonne-prove); align-items: center; column-gap: var(--sp-3); }
+            .prove-colonne { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+            .progetto-ordina:not([hidden]) ~ .prove-colonne { display: none; }
+            .prova-riga { min-height: 44px; padding: var(--sp-1) var(--sp-3); }
+            .prova-riga:not(.ordina):hover { background: var(--bg-card-hover); }
+            .prova-riga-n { width: 28px; height: 28px; font-size: var(--fs-didascalia); }
+            .prova-riga-testo strong { font-size: var(--fs-testo); }
+            .prova-riga:not(.ordina) .prova-riga-testo > span { display: none; }
+            .prova-cella { display: block; font-family: var(--font-mono); font-size: var(--fs-testo); white-space: nowrap; }
+            .prova-cella.vuota { color: var(--text-muted); }
+            .prova-cella .ico { width: 16px; height: 16px; color: var(--success); vertical-align: -3px; }
+            .prova-cella:has(.prova-foto, .pc-profilo) { display: flex; align-items: center; gap: var(--sp-2); }
+            .prova-foto { width: 40px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+            .prova-cella .pc-profilo { width: 40px; height: 30px; flex: none; fill: var(--text-muted); background: var(--bg-main); border-radius: 3px; }
+            .prova-riga-stato { justify-self: start; }
+            .progetto-prove > .bt-link { min-height: 40px; justify-content: flex-start; padding: 0 var(--sp-3); }
+
+            /* ---- Prova: titolo | GPS, foto, note | ⋯, su una riga ---- */
+            header.testata-prova { flex-direction: row; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); }
+            header.testata-prova .testata-riga { display: contents; }
+            header.testata-prova .testata-titolo { order: 1; }
+            header.testata-prova .spie { order: 2; flex: 0 0 auto; gap: var(--sp-2); }
+            header.testata-prova .menu-ancora { order: 3; }
+            .spie .spia { flex: 0 0 auto; height: 32px; padding: 0 var(--sp-3); font-size: var(--fs-testo); }
+            .testata-titolo-prova { font-size: 20px; }
+
+            /* ---- Registro: colonne strette per profondità e colpi; le barre si fermano prima del
+               bordo, così a destra si leggono le note. Nella testata: il titolo e accanto come lo si
+               guarda (Grafico); a destra cosa si fa ai dati (Aggiungi, Riconosci strati), poi l'aiuto. ---- */
+            #viewField { --colonne-registro: 72px 56px minmax(0, 1fr); --colonna-prof: 72px; --barre: min(65%, 640px); }
+            #viewField .registro-testata { justify-content: flex-start; gap: var(--sp-3); }
+            #viewField .registro-azioni { flex: 1 1 auto; gap: var(--sp-2); }
+            #viewField .btn-toggle-integrated-view { margin-right: auto; }
+            #viewField .registro-azioni .bt-aiuto { margin-left: 0; width: 36px; height: 36px; }
+        }

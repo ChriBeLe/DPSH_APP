@@ -65,37 +65,46 @@
             // Progetti (barra laterale, Home) e prove (barra laterale, schermata Progetto).
             function apriMenuProgetto(e, id) {
                 const p = state.projects[id];
-                // Tutte le azioni del progetto qui, senza passare dalla finestra del ⋯: ogni voce preme
-                // il suo comando di quella finestra (stessi controlli e conferme).
+                // Lo stato si cambia da qui: un clic sullo stato già scelto lo toglie, come nel ⋯.
+                const segnaStato = (stato) => {
+                    if (p.stato === stato) delete p.stato; else p.stato = stato;
+                    saveState();
+                    renderHomeProjects();
+                    if (state.uiState.currentView === 'project' && state.currentProjectId === id) renderSchermataProgetto();
+                };
+                // Le altre azioni premono il loro comando nella finestra del ⋯ (stessi controlli e conferme).
                 const azione = (idBottone) => () => { projectActionsContext = { projId: id }; const b = document.getElementById(idBottone); if (b) b.click(); };
                 apriMenuContesto(e, p.name || p.comune || 'Progetto', [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(id)],
-                    ['Note del progetto', 'i-note', '', azione('btnProjActNote')],
-                    ['Consegna', 'i-download', '', () => openExportModal('project', id)],
-                    ['Confronta le prove', 'i-chart', '', azione('btnProjActConfronta')],
+                    ['Dati del progetto', 'i-edit', '', () => { apriDalLato(id); openCantiereInfoModal(); }],
+                    ['Note', 'i-note', '', () => apriNoteProgetto(id)],
+                    ['Strati', 'i-stack', '', () => { apriDalLato(id); openStratiModal(); }],
                     ['Terreno e sezioni', 'i-map', '', () => { apriDalLato(id); apriTerreno(); }],
+                    ['Consegna', 'i-download', '', () => openExportModal('project', id)],
+                    '-',
+                    ['Confronta le prove', 'i-chart', '', azione('btnProjActConfronta')],
+                    '-',
+                    ...STATI_PROGETTO.map(st => [st.etichetta, p.stato === st.id ? 'i-check' : 'i-tag', '', () => segnaStato(st.id)]),
                     '-',
                     ['Porta su un altro dispositivo', 'i-upload', '', azione('btnProjActPorta')],
                     ['Duplica il progetto', 'i-duplica', '', azione('btnProjActDuplicate')],
                     ['Cronologia (copie automatiche)', 'i-undo', '', azione('btnProjActCronologia')],
-                    ['Stato del progetto…', 'i-check', '', () => openProjectActionsModal(id)],
-                    '-',
                     ['Elimina il progetto', 'i-trash', '', azione('btnProjActDelete'), true]
                 ]);
             }
             function apriMenuProva(e, survId) {
                 const s = state.projects[state.currentProjectId].surveys[survId];
-                // Foto, GPS e falda sono della prova aperta: prima la si apre.
-                const nella = (fn) => () => { apriDalLato(null, survId); fn(); };
+                const correggi = tipo => () => apriProvaPerCorreggere(state.currentProjectId, survId, tipo);
                 apriMenuContesto(e, 'Prova ' + ((s.header || {}).provaNr || '?'), [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(null, survId)],
-                    ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
-                    ['Dati della prova', 'i-file', '', () => openSurveySettingsModal(survId, 'dati')],
+                    ['Dati della prova', 'i-edit', '', () => openSurveySettingsModal(survId, 'dati')],
                     ['Strumento', 'i-ruler', '', () => openSurveySettingsModal(survId, 'strumento')],
-                    ['Foto', 'i-camera', '', nella(() => openSurveyPhotosModal())],
-                    ['Posizione GPS', 'i-pin', '', nella(() => openGpsModal())],
-                    ['Falda', 'i-droplet', '', nella(() => openQuickFaldaModal())],
-                    ['Strati e parametri', 'i-stack', '', nella(() => openStratiModal())],
+                    '-',
+                    ['Posizione GPS', 'i-pin', '', correggi('gps')],
+                    ['Foto', 'i-camera', '', correggi('foto')],
+                    ['Falda', 'i-droplet', '', correggi('falda')],
+                    ['Strati e parametri', 'i-stack', '', () => { apriDalLato(null, survId); openStratiModal(); }],
+                    ['Mostra sulla mappa', 'i-map', '', () => mostraProvaSullaMappa(survId)],
                     '-',
                     ['Duplica come interpretazione', 'i-duplica', '', () => duplicaProvaComeInterpretazione(survId)],
                     ['Elimina la prova', 'i-trash', '', () => openDeleteSurveyModal(survId), true]
@@ -107,6 +116,9 @@
                 const prova = e.target.closest('#pcLato [data-prova], #listaProveProgetto [data-surv]');
                 if (progetto) apriMenuProgetto(e, progetto.dataset.progetto || progetto.dataset.id);
                 else if (prova) apriMenuProva(e, prova.dataset.prova || prova.dataset.surv);
+                // Anche sui titoli: il nome del progetto nella sua schermata, «Prova N» nella prova.
+                else if (e.target.closest('#btnProgettoDati')) apriMenuProgetto(e, state.currentProjectId);
+                else if (e.target.closest('#btnOpenSurveyDrawer')) apriMenuProva(e, state.currentSurveyId);
             });
             menuRiga.addEventListener('click', (e) => {
                 const b = e.target.closest('[data-voce]');

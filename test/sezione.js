@@ -56,12 +56,18 @@ const $ = (app, id) => app.d.getElementById(id);
 
   // Opzioni, cursori e fumetto, sulla sezione intera.
   const conta = sel => svg().querySelectorAll(sel).length;
+  t('accanto alla linea dei colpi i numeri degli intervalli, mai sovrapposti', conta('.sezione-colpi') > 0
+    && [...svg().querySelectorAll('.sezione-colpi')].every(el => /^\d+$/.test(el.textContent))
+    && (() => { for (const el of svg().querySelectorAll('.sezione-colonna')) { const ys = [...el.querySelectorAll('.sezione-colpi')].map(t => +t.getAttribute('y')); if (ys.some((y, i) => i && y - ys[i - 1] < 9)) return false; } return true; })());
+  t('di partenza il carattere è senza grazie; si cambia e resta nella figura', /Manrope/.test(svg().getAttribute('style'))
+    && ((() => { const sel = $(app, 'selCarattereSezione'); sel.value = 'serif'; sel.dispatchEvent(new app.w.Event('change')); })(), /Georgia/.test(svg().getAttribute('style'))));
+  (() => { const sel = $(app, 'selCarattereSezione'); sel.value = 'sans'; sel.dispatchEvent(new app.w.Event('change')); })();
   t('di partenza: correlazioni, etichette lungo i profili, scale delle prove e grafico dei colpi', conta('.sezione-unione') > 0 && conta('.sezione-etichetta-strato') > 0 && conta('.sezione-scala') > 0 && conta('.sezione-grafico') === 3);
   const opz = n => $(app, 'opzioniSezione').querySelector(`[data-opzione="${n}"]`);
   clic(app, opz('correlazioni'));
   t('«Correlazioni» spento: niente colori proiettati né etichette (e il bottone Etichette si spegne)', conta('.sezione-unione') === 0 && conta('.sezione-etichetta-strato') === 0 && opz('etichette').disabled);
   clic(app, opz('correlazioni')); clic(app, opz('scale')); clic(app, opz('grafico'));
-  t('scale e grafico si spengono', conta('.sezione-scala') === 0 && conta('.sezione-grafico') === 0 && conta('.sezione-unione') > 0);
+  t('scale e grafico si spengono, e coi colpi spariscono i loro numeri', conta('.sezione-scala') === 0 && conta('.sezione-grafico') === 0 && conta('.sezione-colpi') === 0 && conta('.sezione-unione') > 0);
   clic(app, opz('scale')); clic(app, opz('grafico'));
   const esag = () => svg().querySelector('.sezione-didascalia').textContent.match(/×([\d,]+)/)[1];
   const r = $(app, 'rngEsagSezione'); r.value = '20'; r.dispatchEvent(new app.w.Event('input'));
