@@ -42,8 +42,9 @@
                     righe.push(`<button type="button" class="pc-filtro" data-strumento="btnOpenArchiveManagerHome"><svg class="ico"><use href="#i-database"/></svg><span class="pc-voce-nome">Archivio litologico</span></button>`);
                     document.getElementById('pcLato').innerHTML = righe.join('');
                 } else {
-                    righe.push('<div class="pc-lato-titolo">Progetti</div>');
-                    Object.keys(progetti).sort((a, b) => (progetti[b].updatedAt || 0) - (progetti[a].updatedAt || 0)).forEach(id => {
+                    // Stesso ordine della Home, scelto col menu «Ordina»: aprire un progetto non lo sposta.
+                    righe.push(`<div class="pc-lato-titolo pc-lato-titolo-ordina"><span>Progetti</span>${menuOrdineProgetti('selOrdineProgettiPc')}</div>`);
+                    ordinaProgetti(Object.keys(progetti), progetti, ordineProgettiScelto()).forEach(id => {
                         const p = progetti[id];
                         const aperto = id === state.currentProjectId;
                         const nome = nomeProgetto(p);
@@ -56,7 +57,7 @@
                             `${nProve} ${nProve === 1 ? 'prova' : 'prove'}`,
                             p.comune && !nome.includes(p.comune) ? esc(p.comune) : ''
                         ].filter(Boolean).join(' · ');
-                        const titolo = [nome, p.comune, p.committente ? 'Committente: ' + p.committente : '', p.updatedAt ? 'Modificato il ' + dataBreve(p.updatedAt) : '', 'Tasto destro: azioni'].filter(Boolean).join('\n');
+                        const titolo = [nome, p.comune, p.committente ? 'Committente: ' + p.committente : '', (p.modificatoIl || p.updatedAt) ? 'Modificato il ' + dataBreve(p.modificatoIl || p.updatedAt) : '', 'Tasto destro: azioni'].filter(Boolean).join('\n');
                         righe.push(`<button type="button" class="pc-voce" data-progetto="${esc(id)}" title="${esc(titolo)}"${aperto && vista === 'project' ? ' aria-current="page"' : ''}>
                             <span class="pc-voce-riga"><span class="pc-voce-nome">${esc(nome)}</span></span>
                             <span class="pc-voce-riga pc-voce-info"><span class="pc-voce-nome">${info}</span>${haNote ? spia('i-note', '', false, 'Ha delle note') : ''}</span>
