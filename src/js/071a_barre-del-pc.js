@@ -72,7 +72,7 @@
                             const fondo = logs.reduce((m, l) => Math.max(m, Number(l && l.end) || 0), 0);
                             const gps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
                             const nFoto = (sv.photos || []).length;
-                            const nStrati = logs.filter(l => l && l.lithology).length;
+                            const nStrati = contaStrati(logs);
                             const falda = parseFloat(h.faldaDa);
                             const nNote = logs.filter(l => l && String(l.note || '').trim()).length;
                             const daControllare = avvisi.get(sv.id) || [];
@@ -101,6 +101,19 @@
                 }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · Ctrl Z annulla · ? guida · DPSH ' + APP_VERSIONE;
                 if (vista === 'field') forseGuidaRapida();
+            }
+
+            /** Gli strati di una prova: i tratti di intervalli consecutivi con la stessa litologia. La
+             * litologia si segna sul primo intervallo dello strato e vale fino al segno dopo; prima del
+             * primo segno c'è comunque uno strato, senza nome. */
+            function contaStrati(logs) {
+                let n = 0, prima;
+                (logs || []).forEach((l, i) => {
+                    const lit = (l && l.lithology) || (i ? prima : null);
+                    if (!i || lit !== prima) n++;
+                    prima = lit;
+                });
+                return n;
             }
 
             /** La forma della prova in piccolo, come il grafico del Registro: la profondità scende,

@@ -104,7 +104,7 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   await attesa(80); // chiudere il cassetto torna indietro nella cronologia
   app.E(`apriDalLato(${JSON.stringify(idProg)}); switchView('field')`);
   await attesa(30);
-  const vocePrima = $(app, 'pcLato').querySelector('[data-prova]'), datiPrima = app.E(`(() => { const s = state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}]; return { foto: (s.photos || []).length, strati: s.logs.filter(l => l.lithology).length }; })()`);
+  const vocePrima = $(app, 'pcLato').querySelector('[data-prova]'), datiPrima = app.E(`(() => { const s = state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}]; return { foto: (s.photos || []).length, strati: contaStrati(s.logs) }; })()`);
   t('sotto ogni prova le spie: GPS, foto, strati, falda', ['#i-pin', '#i-camera', '#i-stack', '#i-droplet'].every(i => vocePrima.querySelector(`.pc-voce-info use[href="${i}"]`))
     && vocePrima.querySelector('.pc-voce-info use[href="#i-camera"]').closest('.pc-spia').textContent === String(datiPrima.foto)
     && vocePrima.querySelector('.pc-voce-info use[href="#i-stack"]').closest('.pc-spia').textContent === String(datiPrima.strati));

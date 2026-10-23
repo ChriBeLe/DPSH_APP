@@ -51,6 +51,9 @@ const vista = app => app.E('state.uiState.currentView');
     righe.every(r => { const sv = proj.surveys[r.dataset.surv]; const img = r.querySelector('img.prova-foto');
       return (sv.photos || []).length ? img && img.dataset.foto === sv.photos[0].id : !img; })
     && riga1.querySelectorAll('.pc-profilo rect').length === s1.logs.length);
+  t('una prova con intervalli ha almeno uno strato, anche senza litologia assegnata; lo stesso segno ripetuto non ne fa due',
+    app.E("contaStrati([{}, {}])") === 1 && app.E("contaStrati([{ lithology: 'a' }, {}, { lithology: 'a' }, { lithology: 'b' }])") === 2
+    && app.E("contaStrati([{}, { lithology: 'a' }])") === 2 && app.E('contaStrati([])') === 0);
   t('e lo stato: «Pronta» o «N avvisi»', righe.every(r => /^(Pronta|\d+ avvis[oi])$/.test(r.querySelector('.prova-riga-stato').textContent)));
   t('la prova aperta è segnata, e «Riprendi» la nomina', righe.find(r => r.classList.contains('attiva')).dataset.surv === provaAperta
     && /^Riprendi la Prova /.test($(app, 'btnProgettoRiprendi').textContent));

@@ -434,7 +434,7 @@
                     const haGps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
                     const falda = parseFloat(h.faldaDa);
                     const n = avvisi.get(s.id) || 0;
-                    const nFoto = (s.photos || []).length, nStrati = logs.filter(l => l && l.lithology).length;
+                    const nFoto = (s.photos || []).length, nStrati = contaStrati(logs);
                     // Sul PC le stesse cose in colonne (una tabella che si confronta riga per riga); sul
                     // telefono la riga riassunta sotto il nome. Il CSS mostra l'una o l'altra.
                     const cella = (valore, vuota) => `<span class="prova-cella${vuota ? ' vuota' : ''}">${valore}</span>`;

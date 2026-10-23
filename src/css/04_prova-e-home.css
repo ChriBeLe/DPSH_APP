@@ -735,7 +735,13 @@
         .am-pnl.dk.red .am-pnl-testa { cursor: grab; }
         .am-pnl.dk.red.trascina { transition: none; cursor: grabbing; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55); }
         /* chiuso al suo posto: resta largo e agganciato, si restringe in altezza fino alla testata */
-        .area-mappa .am-pnl.dk.chiuso { max-height: 41px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); border-bottom-width: 1px; }
+        /* Chiuso sul PC: una striscia verticale col nome scritto in verticale (come HyperGram); un clic la riapre. */
+        .am-pnl.dk.chiuso .am-pnl-testa { flex: 1; flex-direction: column; padding: var(--sp-3) 0; border-bottom: 0; }
+        .am-pnl.dk.chiuso .am-pnl-ctrl, .am-pnl.dk.chiuso .chevron { display: none; }
+        .am-pnl.dk.chiuso .am-pnl-tit, .am-pnl.dk.chiuso .mappa-livelli-titolo { flex: 1; width: 100%; writing-mode: vertical-rl; justify-content: flex-start; align-items: center; gap: var(--sp-3); padding: 0; animation: amSfuma 0.35s ease; }
+        .am-pnl.dk.chiuso .am-pnl-tit:hover, .am-pnl.dk.chiuso .mappa-livelli-titolo:hover { background: rgba(127, 127, 127, 0.1); }
+        .am-pnl.dk.chiuso .ico { color: var(--accent); }
+        .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { flex: 0 0 0; min-height: 0; overflow: hidden; }
         .am-pnl.dk.chiuso .am-pnl-corpo, .am-pnl.dk.chiuso .mappa-livelli-albero { opacity: 0; pointer-events: none; }
         .am-pnl.chiuso .am-pnl-testa { border-bottom-color: transparent; }
         .am-pnl-tit { cursor: pointer; }
