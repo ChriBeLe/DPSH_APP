@@ -806,9 +806,14 @@
         #modalVista3d.area-mappa { scale: 0.985; transition: opacity var(--mov-lungo) var(--ease-entra), scale var(--mov-lungo) var(--ease-entra); }
         #modalVista3d.area-mappa.open { scale: 1; }
         /* Mappa ⇄ 3D: dissolvenza incrociata (la scena nascosta resta della sua misura) */
-        .area-mappa .vista3d-scena, .area-mappa .mappa2d-scena { transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s; }
+        /* Mappa ⇄ 3D come una camera che si alza: andando al 3D la mappa piatta si inclina all'indietro e
+           sfuma mentre la scena 3D si posa (da un filo più vicina); tornando alla mappa, il contrario. */
+        .area-mappa .vista3d-scena, .area-mappa .mappa2d-scena { transform-origin: 50% 80%;
+            transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s, transform var(--mov-lungo) var(--ease-entra); }
         .area-mappa[data-modo="mappa"] .vista3d-scena, .area-mappa[data-modo="3d"] .mappa2d-scena { display: block; opacity: 0; visibility: hidden; pointer-events: none;
-            transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s var(--mov-lungo); }
+            transition: opacity var(--mov-lungo) var(--ease-inloco), visibility 0s var(--mov-lungo), transform var(--mov-lungo) var(--ease-entra); }
+        .area-mappa[data-modo="3d"] .mappa2d-scena { transform: perspective(1400px) rotateX(40deg) scale(0.9); }
+        .area-mappa[data-modo="mappa"] .vista3d-scena { transform: scale(1.08); }
         /* quel che compare (strumenti e comandi del modo, schede, riquadri) entra scivolando */
         .area-mappa .am-solo-3d, .area-mappa .am-solo-mappa, .area-mappa [data-pannello3d]:not([hidden]),
         .area-mappa #tastiMappa3d:not([hidden]), #lblAreaMappaMisura:not([hidden]) { animation: amComparsa var(--mov-medio) var(--ease-entra); }
@@ -1335,3 +1340,15 @@
 
         /* Il cambio di tema: dissolvenza incrociata di tutta la pagina (dove il browser la sa fare). */
         ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--mov-lungo); animation-timing-function: var(--ease-inloco); }
+
+        /* Il riquadro acceso delle schede scivola da una all'altra (071v ne scrive posto e misura). Finché
+           non è misurato, la scheda scelta ha il suo fondo come prima. */
+        .schede-prova, .am-modi { position: relative; }
+        .con-cursore::before {
+            content: ""; position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch); translate: var(--cx) var(--cy);
+            border-radius: var(--radius-sm); background: var(--accent); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+            transition: translate var(--mov-medio) var(--ease-entra), width var(--mov-medio) var(--ease-entra), height var(--mov-medio) var(--ease-entra);
+        }
+        .am-modi.con-cursore::before { border-radius: 7px; }
+        .con-cursore > button { position: relative; z-index: 1; }
+        .con-cursore > [aria-selected="true"] { background: transparent !important; }
