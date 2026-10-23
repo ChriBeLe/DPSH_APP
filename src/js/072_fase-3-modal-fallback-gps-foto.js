@@ -722,7 +722,14 @@
                 if (state.settings.wakeLock) requestWakeLock();
                 saveState(); 
             });
-            if (chkDarkMode) chkDarkMode.addEventListener('change', (e) => { state.settings.darkMode = e.target.checked; updateUI(); saveState(); });
+            if (chkDarkMode) chkDarkMode.addEventListener('change', (e) => {
+                // La scelta si scrive subito; dove il browser lo sa fare il disegno passa al nuovo
+                // tema con una dissolvenza (il passaggio parte un istante dopo).
+                state.settings.darkMode = e.target.checked;
+                saveState();
+                const cambia = () => { updateUI(); syncThemeToggleLabel(); };
+                if (document.startViewTransition) document.startViewTransition(cambia); else cambia();
+            });
 
             // (La «Modalità Espansa» non c'è più: il tasto Registra è visibile di default e si
             // nasconde dal contatore; «Annulla ultimo» sta nel ⋯ della prova e nel toast. Fase 3.)
@@ -799,7 +806,7 @@
 
                 let totalBlows = 0;
 
-                state.logs.forEach(log => {
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     totalBlows += log.colpi;
                     const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
@@ -839,10 +846,10 @@
 
                 state.logs.forEach(log => {
                     const barLen = Math.min(40, Math.max(1, Math.round((log.colpi / maxColpiInLogs) * 35)));
-                    const chartBar = '▓'.repeat(barLen) + ` N=${log.colpi}`;
+                    const chartBar = '▓'.repeat(barLen) + (intervalloSoloGrafico(log) ? ' Rifiuto' : ` N=${log.colpi}`);
                     chartSheetData.push([
                         `${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m`,
-                        log.colpi,
+                        intervalloSoloGrafico(log) ? 'Rifiuto' : log.colpi,
                         chartBar
                     ]);
                 });
@@ -898,7 +905,7 @@
                 const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
                 const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
 
-                state.logs.forEach(log => {
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
                     if (log.colpi > 0) {

@@ -240,16 +240,10 @@
                 const template = state.reportTemplates[templateId];
                 const usaTemplatePersonalizzato = template && Array.isArray(template.pages) && template.pages.length > 0;
                 const paginaDatiCount = usaTemplatePersonalizzato ? template.pages.length : 1;
-                const numeroFotoGiaPiazzate = usaTemplatePersonalizzato ? Object.keys(calcolaIndiciImmaginePerBlocco(template.pages)).length : 0;
-                const numFoto = (surv.photos || []).length;
-                const fotoRestanti = Math.max(0, numFoto - numeroFotoGiaPiazzate);
-                let totale = paginaDatiCount + fotoRestanti;
-                if (completo) {
-                    const strati = (proj && proj.strati) || state.strati || [];
-                    const dati = datiCalcolatiProva(surv, strati);
-                    if (dati.length > 0) totale += 2;
-                }
-                return totale;
+                // Solo le pagine del template: le foto in più e le tabelle dei parametri avanzati non
+                // escono più da sole (067, 071: «solo quello che c'è nel template»). Prima le
+                // contava ancora, e la stima diceva 13 pagine per un PDF di 7.
+                return paginaDatiCount;
             }
 
             /** Stima grezza del peso di UNA foto originale, in byte: dalla dataURL già in memoria se
@@ -299,13 +293,22 @@
                 const fattore = fattoreDimensioneJpeg(qualita);
 
                 let pagineTotali = includiIndice ? 1 : 0;
+                // Il capitolo introduttivo: le pagine del suo template.
+                const intro = proj && proj.introduzione && proj.introduzione.attiva ? state.reportTemplates[proj.introduzione.templateId || 'classico'] : null;
+                if (intro) pagineTotali += Array.isArray(intro.pages) && intro.pages.length ? intro.pages.length : 1;
                 let byteTotali = selezionate.length * 60000; // testo/layout per prova, stima grezza
                 selezionate.forEach(surv => {
                     pagineTotali += stimaPagineProva(surv, proj, completo);
-                    (surv.photos || []).forEach(p => { byteTotali += stimaByteFotoOriginale(p) * fattore; });
+                    // Solo le foto che il template mette nel foglio (i blocchi «Foto prova»).
+                    const tpl = state.reportTemplates[getReportTemplateIdPerProva(surv)];
+                    const posti = tpl && Array.isArray(tpl.pages) && tpl.pages.length ? Object.keys(calcolaIndiciImmaginePerBlocco(tpl.pages)).length : 0;
+                    (surv.photos || []).slice(0, posti).forEach(p => { byteTotali += stimaByteFotoOriginale(p) * fattore; });
                 });
 
-                lblEsportaPdfPagineStima.textContent = selezionate.length > 0 ? String(pagineTotali) : '–';
+                // «≥»: un blocco che non sta nel foglio passa al foglio dopo, e lo si sa solo
+                // impaginando davvero; il conto qui è quello delle pagine del template.
+                lblEsportaPdfPagineStima.textContent = selezionate.length > 0 ? '≥ ' + pagineTotali : '–';
+                lblEsportaPdfPagineStima.title = 'Almeno ' + pagineTotali + ' pagine: un blocco che non sta in un foglio passa al foglio dopo';
                 lblEsportaPdfPesoStima.textContent = selezionate.length > 0 ? formattaBytesEsportazione(byteTotali) : '–';
             }
 

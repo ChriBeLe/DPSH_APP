@@ -1502,6 +1502,7 @@
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
                 riempiSceltaSfondo3d();
+                aggiornaCampiSr();
                 vista3d.disegno = null;
                 renderElencoSezioni3d();
                 modoAreaMappa(typeof modo === 'string' ? modo : '3d');

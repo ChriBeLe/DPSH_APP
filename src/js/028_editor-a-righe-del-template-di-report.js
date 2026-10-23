@@ -145,12 +145,12 @@
                     // Il dato esisteva già da sempre (correzione Nspt′, peso di volume saturo,
                     // colonna "in falda" nelle tabelle) ma non arrivava fin qui — la colonna non
                     // mancava per una scelta grafica, mancava perché il parametro non veniva passato.
-                    stratigrafiaChartHtml: stratiEff.length > 0 ? buildStratigrafiaColpiRpdSvg(stratiEff, logsCalc, provaNr, LARGH_GRAFICO_DEFAULT_PX, { falda }) : '',
+                    stratigrafiaChartHtml: stratiEff.length > 0 ? buildStratigrafiaColpiRpdSvg(stratiEff, logsCalc, provaNr, LARGH_GRAFICO_DEFAULT_PX, { falda, strati }) : '',
                     // "Grezzi" come datiBoxRawParams sopra: servono a ricostruire il grafico con la
                     // compattezza (larghezza) PER-BLOCCO scelta nell'editor (vedi buildBlockContentHtml
                     // case 'grafico-stratigrafia') invece di riusare sempre l'HTML già pronto qui sopra
                     // a dimensione naturale, che ignorerebbe la richiesta di condensarlo lateralmente.
-                    stratigrafiaChartRawParams: { stratiEff, logsCalc, provaNr, falda },
+                    stratigrafiaChartRawParams: { stratiEff, logsCalc, provaNr, falda, strati },
                     tabellaRiepilogoHtml: datiParametri.length > 0 ? htmlTabellaRiepilogo(datiParametri, provaNr, h) : '',
                     tabellaDettagliataHtml: datiParametri.length > 0 ? htmlTabellaDettagliata(datiParametri, provaNr, h) : '',
                     allegatoHtml: datiParametri.length > 0 ? buildAllegatoHtml(datiParametri, provaNr, h) : '',

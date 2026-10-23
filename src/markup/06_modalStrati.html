@@ -12,38 +12,30 @@
             <button class="btn-icon btn-icon-sm" id="btnCloseStrati"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div class="drawer-body">
-            <!-- La prova su cui si calcolano Nspt, Rpd e i candidati (gli strati sono del progetto,
-                 i valori di una prova): prima non lo diceva nessuno. Vedi renderProvaDiCalcoloStrati. -->
-            <div id="stratiProvaDiCalcolo"></div>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn-action" id="btnOpenWizardFromStrati" style="flex:1; background: var(--accent); color: var(--on-accent); border: none; font-weight: 800; font-size: 12.5px; padding: 12px 8px; display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <svg class="ico"><use href="#i-sparkles"/></svg> Configurazione guidata
-                </button>
-                <button class="btn-action" id="btnAutoCompilaTuttiStrati" style="flex:1; background: var(--suggest-soft, var(--accent-soft)); color: var(--accent); border: 1px solid var(--accent); font-weight: 800; font-size: 12.5px; padding: 12px 8px; display:flex; align-items:center; justify-content:center; gap:6px;">
-                    <svg class="ico"><use href="#i-flask"/></svg> Compila automaticamente
-                </button>
+            <!-- In testa: la prova su cui si calcolano Nspt, Rpd e i candidati (gli strati sono del
+                 progetto, i valori di una prova; vedi renderProvaDiCalcoloStrati) e, a destra, le due
+                 azioni che lavorano su tutti gli strati. Tasti larghi quanto il loro testo. -->
+            <div class="strati-testa">
+                <div id="stratiProvaDiCalcolo"></div>
+                <div class="strati-azioni">
+                    <button type="button" class="bt bt-tenue" id="btnAutoCompilaTuttiStrati" title="Sceglie per ogni strato le formule più adatte"><svg class="ico"><use href="#i-flask"/></svg>Compila automaticamente</button>
+                    <button type="button" class="bt bt-principale" id="btnOpenWizardFromStrati"><svg class="ico"><use href="#i-sparkles"/></svg>Configurazione guidata</button>
+                </div>
             </div>
-            <div id="stratiListContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn-action" id="btnAddStrato" style="flex: 1; background: var(--bg-card-hover); font-weight: 600; font-size: 12.5px;"><svg class="ico"><use href="#i-plus"/></svg> Nuovo Strato</button>
-                <button class="btn-action" id="btnPickFromArchive" style="flex: 1; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168,85,247,0.4); font-weight: 700; font-size: 12.5px;"><svg class="ico"><use href="#i-database"/></svg> Dall'Archivio</button>
+            <div id="stratiListContainer" class="strati-elenco"></div>
+            <!-- Sotto gli strati: aggiungerne (a sinistra) e le porte verso archivio e Consegna (a destra).
+                 L'export dei parametri sta nella Consegna (Fase 5); i bottoni veri restano, nascosti,
+                 perché è la Consegna a premerli (data-parametri). -->
+            <div class="strati-piede">
+                <div class="strati-azioni">
+                    <button type="button" class="bt" id="btnAddStrato"><svg class="ico"><use href="#i-plus"/></svg>Nuovo strato</button>
+                    <button type="button" class="bt strati-viola" id="btnPickFromArchive"><svg class="ico"><use href="#i-database"/></svg>Dall'archivio</button>
+                </div>
+                <div class="strati-azioni">
+                    <button type="button" class="bt-link accento strati-porta" id="btnOpenArchiveManager" title="Tutti gli strati salvati, statistiche, import/export"><svg class="ico"><use href="#i-database"/></svg>Archivio litologico</button>
+                    <button type="button" class="bt-link accento strati-porta" id="btnStratiVaiConsegna" title="L'export dei parametri avanzati sta nella Consegna"><svg class="ico"><use href="#i-download"/></svg>Esporta i parametri</button>
+                </div>
             </div>
-            <button class="btn-action" id="btnOpenArchiveManager" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; background: var(--purple-soft); border: 1px solid rgba(168,85,247,0.4); padding: 10px 12px;">
-                <svg class="ico" style="width:18px; height:18px; color: var(--purple); flex:0 0 auto;"><use href="#i-database"/></svg>
-                <span style="flex:1; min-width:0;">
-                    <span style="display:block; font-size:12.5px; font-weight:700; color: var(--purple);">Archivio Litologico Globale</span>
-                    <span style="display:block; font-size:11px; font-weight:500; color: var(--text-muted);">Tutti gli strati salvati, statistiche, import/export</span>
-                </span>
-                <svg class="ico" style="width:16px; height:16px; color: var(--text-muted); flex:0 0 auto; transform: rotate(-90deg);"><use href="#i-chevron-down"/></svg>
-            </button>
-
-            <!-- L'export dei parametri sta nella Consegna (Fase 5). Qui una porta verso di lei; i
-                 bottoni restano, nascosti, perché è la Consegna a premerli (data-parametri). -->
-            <button class="btn-action" id="btnStratiVaiConsegna" style="width:100%; display:flex; align-items:center; gap:10px; text-align:left; background: var(--bg-card-hover); border: 1px solid var(--border); padding: 10px 12px;">
-                <svg class="ico" style="width:18px; height:18px; flex:0 0 auto;"><use href="#i-download"/></svg>
-                <span style="flex:1; min-width:0; font-size:12.5px; font-weight:700;">Esporta i parametri avanzati</span>
-                <span style="font-size:11px; color: var(--text-muted);">nella Consegna</span>
-            </button>
                         <div id="stratiExportNascosto" hidden style="display: none;">
                             <button class="btn-action" id="btnExportProcessingExcel" style="flex: 1; min-width: 130px; background: var(--success-soft); color: var(--success); border: 1px solid var(--success); font-weight: 700; font-size: 12px;">
                                 <svg class="ico"><use href="#i-file"/></svg> Excel
@@ -59,7 +51,9 @@
                             </button>
                         </div>
 
-            <!-- Le spiegazioni in fondo: prima stavano sopra gli strati, cioè sopra il contenuto. -->
+            <!-- Le spiegazioni in fondo: prima stavano sopra gli strati, cioè sopra il contenuto.
+                 Sul PC stanno affiancate. -->
+            <div class="strati-aiuti">
             <div class="info-collapsible">
                 <button type="button" class="info-collapsible-toggle">
                     <svg class="ico"><use href="#i-info"/></svg>
@@ -84,6 +78,7 @@
                         Per ogni strato con almeno un intervallo assegnato in questa prova, l'app calcola automaticamente Nspt, Nspt' (corretto in falda) e Rpd dai colpi DPSH, poi propone le formule di letteratura compatibili per <strong>angolo di attrito, coesione non drenata, moduli elastico/edometrico/di taglio, densità relativa e resistenza CPT equivalente</strong>. Scegli l'autore più adatto per ogni parametro nella card dello strato (o usa "Compila automaticamente"): le scelte sono salvate per strato e condivise tra tutte le prove del cantiere.
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>
