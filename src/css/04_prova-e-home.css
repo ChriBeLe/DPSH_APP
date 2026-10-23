@@ -1289,3 +1289,56 @@
             #viewField .btn-toggle-integrated-view { margin-right: auto; }
             #viewField .registro-azioni .bt-aiuto { margin-left: 0; width: 36px; height: 36px; }
         }
+
+        /* ================== IL MOVIMENTO DI OGNI AZIONE ==================
+           Ogni tocco ha una risposta, ogni cosa che compare entra, ogni cosa che se ne va esce. Solo le
+           quattro durate e le due curve di 01_app.css: col movimento ridotto valgono 1 ms. Le regole
+           d'ingresso stanno dentro :where(), così un'animazione già scritta per un elemento vince. */
+
+        /* Il tocco: i tasti cedono un poco sotto il dito e cambiano colore senza scatti. */
+        .bt, .bt-icona, .bt-link, .pillola, .spia, .chiudi-x, .bt-aiuto, .am-pnl-bt, .mappa-rt, .btn-action, .modifica-dati,
+        .schede-prova button, .progetto-accessi button, .pc-lato button, .pc-percorso button, .menu-azioni [role="menuitem"],
+        .prova-riga, .card-progetto, .ultimo-intervallo, .progetto-testa {
+            transition: background-color var(--mov-istante) var(--ease-inloco), border-color var(--mov-istante) var(--ease-inloco),
+                color var(--mov-istante) var(--ease-inloco), box-shadow var(--mov-breve) var(--ease-inloco),
+                opacity var(--mov-breve) var(--ease-inloco), scale var(--mov-istante) var(--ease-inloco);
+        }
+        .bt-magia { transition: background-position var(--mov-medio) var(--ease-inloco), box-shadow var(--mov-medio) var(--ease-inloco), scale var(--mov-istante) var(--ease-inloco); }
+        :is(.bt, .bt-icona, .pillola, .btn-action, .mappa-rt):active:not(:disabled),
+        :is(.spia, .chiudi-x, .bt-aiuto, .am-pnl-bt, .modifica-dati, .schede-prova button, .progetto-accessi button):active { scale: 0.96; }
+        :is(.prova-riga:not(.ordina), .card-progetto-apri, .ultimo-intervallo, .progetto-testa, .pc-lato button):active { scale: 0.99; }
+        @media (hover: hover) { .progetto-accessi button:hover { border-color: var(--accent); } }
+
+        /* Gli elenchi entrano una riga dopo l'altra (prove, progetti, quote del terreno). */
+        :where(.prova-riga:not(.ordina), .card-progetto, .terreno-quote > div) { animation: amRigaEntra var(--mov-medio) var(--ease-entra) both; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(2) { animation-delay: 25ms; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(3) { animation-delay: 50ms; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(4) { animation-delay: 75ms; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(5) { animation-delay: 100ms; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(6) { animation-delay: 125ms; }
+        :where(.prova-riga, .card-progetto, .terreno-quote > div):nth-child(n+7) { animation-delay: 150ms; }
+
+        /* Ciò che compare dopo essere stato nascosto: schede della prova, avvisi, finestre a tendina. */
+        :where(#cardCounterDashboard, #cardUltimiIntervalli, #cardIntegratedRegister, #cardLogsTable, #cardChart,
+            #homePromemoriaBackup, #undoNotificationBanner, .progetto-ordina, #lblAutoStratiPreview) { animation: amComparsa var(--mov-medio) var(--ease-entra); }
+        details[open] > summary ~ * { animation: amComparsa var(--mov-medio) var(--ease-entra); }
+        :where(.prova-foto:not([hidden]), .mappa-progetto-foto:not([hidden])) { animation: amSfuma var(--mov-medio) var(--ease-entra); }
+
+        /* L'intervallo appena registrato scende al suo posto con un filo d'accento, e la barra cresce. */
+        .appena-registrato { animation: rigaRegistrata var(--mov-lungo) var(--ease-entra); }
+        .appena-registrato :is(.int-bar-fill, .ultimo-intervallo-barra > span) { transform-origin: left center; animation: barraCresce var(--mov-lungo) var(--ease-entra); }
+        @keyframes rigaRegistrata {
+            0% { opacity: 0; translate: 0 -8px; box-shadow: inset 3px 0 0 var(--accent); }
+            60% { opacity: 1; translate: 0 0; box-shadow: inset 3px 0 0 var(--accent); }
+            100% { box-shadow: inset 3px 0 0 transparent; }
+        }
+        @keyframes barraCresce { from { scale: 0 1; } to { scale: 1 1; } }
+        /* L'intervallo eliminato scivola via prima di sparire. */
+        .riga-esce { animation: rigaEsce var(--mov-breve) var(--ease-inloco) forwards; pointer-events: none; }
+        @keyframes rigaEsce { to { opacity: 0; translate: -24px 0; } }
+        /* Una spia che si accende (GPS preso, prima foto) fa un piccolo salto. */
+        .spia-accesa { animation: spiaAccesa var(--mov-medio) var(--ease-entra); }
+        @keyframes spiaAccesa { 0% { scale: 1; } 40% { scale: 1.08; box-shadow: 0 0 0 4px var(--success-soft); } 100% { scale: 1; box-shadow: 0 0 0 0 transparent; } }
+
+        /* Il cambio di tema: dissolvenza incrociata di tutta la pagina (dove il browser la sa fare). */
+        ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--mov-lungo); animation-timing-function: var(--ease-inloco); }
