@@ -143,6 +143,15 @@
         #filtroStatoProgetti { flex-wrap: nowrap; gap: 6px; }
         #filtroStatoProgetti .pillola { flex: 1 1 auto; min-width: 0; padding: 0 6px; justify-content: center; }
         .campo-cerca { position: relative; display: block; }
+        /* Cerca e «Ordina» su una riga: il campo prende lo spazio, il menu solo quello che serve. */
+        .home-cerca-riga { display: flex; gap: var(--sp-2); align-items: center; min-width: 0; }
+        .home-cerca-riga .campo-cerca { flex: 1 1 auto; min-width: 0; }
+        .ordina-progetti { position: relative; display: inline-flex; align-items: center; flex: 0 0 auto; color: var(--text-muted); }
+        .ordina-progetti .ico { position: absolute; left: 9px; width: 15px; height: 15px; pointer-events: none; }
+        .ordina-progetti select {
+            height: var(--h-bottone); max-width: 170px; padding: 0 8px 0 28px; border: 1px solid var(--border); border-radius: var(--radius-md);
+            background: var(--bg-card); color: var(--text-main); font-family: inherit; font-size: var(--fs-didascalia); font-weight: 600; cursor: pointer;
+        }
         .campo-cerca .ico { position: absolute; left: 12px; top: 13px; width: 18px; height: 18px; color: var(--text-muted); }
         .campo-cerca input {
             box-sizing: border-box; width: 100%; height: var(--h-bottone); padding: 0 12px 0 38px;
@@ -262,7 +271,7 @@
             /* Il contatore acceso (passo 5) sta a sinistra del Registro. */
             #viewField > #cardCounterDashboard { flex: 0 0 380px; }
             #viewField > #cardIntegratedRegister { flex: 1 1 400px; min-width: 0; }
-            #modalManageStrati { max-width: 1100px !important; width: 94vw !important; }
+            #modalManageStrati { max-width: 860px !important; width: 94vw !important; }
             /* Consegna e Confronto più larghi sul PC (passo 6): il confronto è una figura, più spazio più leggibile. */
             #modalExportFormats { max-width: 640px !important; }
             main { max-width: 1200px; }
@@ -307,6 +316,10 @@
         .pc-filtro .ico { flex: none; width: 16px; height: 16px; color: var(--text-muted); }
         .pc-filtro-n { flex: none; font-size: 12px; font-weight: 400; color: var(--text-muted); font-variant-numeric: tabular-nums; }
         .pc-lato-sezione { margin-top: var(--sp-4); }
+        /* «Progetti» e il menu «Ordina» sulla stessa riga del titolo, in piccolo. */
+        .pc-lato-titolo-ordina { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+        .pc-lato-titolo-ordina .ordina-progetti select { height: 26px; max-width: 150px; padding: 0 4px 0 24px; font-size: 11px; text-transform: none; letter-spacing: 0; border-radius: 6px; }
+        .pc-lato-titolo-ordina .ordina-progetti .ico { left: 6px; width: 13px; height: 13px; }
         .pc-stato-progetto i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; vertical-align: 1px; }
         .menu-contesto { position: fixed; top: 0; right: auto; z-index: 1000; transform-origin: top left; } /* sopra anche la mappa del progetto */
         .menu-contesto-titolo { padding: 4px var(--sp-3) 6px; font-size: 12px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
@@ -1070,6 +1083,41 @@
             border: 1px solid var(--border); border-radius: var(--radius-sm);
             background: var(--bg-card); color: var(--text-main); font: inherit; font-weight: 700;
         }
+        /* Gestione dei dati litologici: tasti larghi quanto il testo, in due righe d'azione (in
+           testa: lavorano su tutti gli strati; sotto l'elenco: aggiungere e le porte verso archivio
+           e Consegna). Vanno a capo da soli sul telefono. */
+        .strati-testa, .strati-piede { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; }
+        .strati-testa, .strati-piede, .strati-elenco, .strati-aiuti { flex: 0 0 auto; }
+        .strati-azioni { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+        .strati-testa .strati-azioni { margin-left: auto; }
+        #stratiProvaDiCalcolo:empty { display: none; }
+        /* La scelta della prova prende lo spazio che resta accanto ai due tasti; sotto i 260 px va a capo. */
+        .strati-testa #stratiProvaDiCalcolo { flex: 1 1 0; min-width: 260px; }
+        .strati-testa .strati-prova-calcolo { flex-wrap: nowrap; white-space: nowrap; }
+        .strati-testa .strati-prova-calcolo { padding: 0; border: none; background: none; }
+        .strati-testa .strati-prova-calcolo select { flex: 0 1 auto; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+        #modalManageStrati .strati-azioni .bt { font-size: var(--fs-testo); white-space: nowrap; }
+        .bt.strati-viola { background: var(--purple-soft); border-color: rgba(168,85,247,0.4); color: var(--purple); }
+        .bt-link.strati-porta { display: inline-flex; align-items: center; gap: 6px; }
+        .bt-link.strati-porta .ico { width: 16px; height: 16px; }
+        .strati-elenco { display: flex; flex-direction: column; gap: 6px; }
+        /* Le righe degli strati: niente margine in più (lo spazio è il gap dell'elenco), il nome
+           sembra un testo finché non lo si tocca. */
+        .strati-elenco > [data-strato-row-idx] { margin-bottom: 0 !important; }
+        .strati-elenco .strato-row-header { padding: 6px 8px !important; }
+        .strati-elenco .strato-name-input { background: transparent; border-color: transparent; box-shadow: none; }
+        .strati-elenco .strato-name-input:hover { border-color: var(--border); }
+        .strati-elenco .strato-name-input:focus { background: var(--bg-card); border-color: var(--accent); }
+        .strati-aiuti { display: flex; flex-direction: column; gap: var(--sp-2); }
+        /* Sul telefono i tasti si dividono la riga a metà, e il testo può andare a capo. */
+        @media (max-width: 600px) {
+            .strati-testa .strati-azioni, .strati-piede .strati-azioni:first-child { width: 100%; flex-wrap: nowrap; }
+            .strati-testa .strati-azioni .bt, .strati-piede .strati-azioni:first-child .bt { flex: 1 1 0; min-width: 0; white-space: normal !important; }
+        }
+        @media (min-width: 1024px) {
+            .strati-aiuti { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+            .strati-aiuti .info-collapsible { margin: 0; }
+        }
         .strato-senza-dati { font-size: var(--fs-testo); color: var(--text-muted); line-height: 1.4; text-align: left; }
         .strato-senza-dati-azioni { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
 
@@ -1198,13 +1246,13 @@
             /* ---- Home: titolo | cerca | Ricevi, Nuovo progetto | template, archivio ---- */
             /* switchView scrive display: flex sull'elemento: la griglia vince solo quando la schermata si vede. */
             #viewHome:not([style*="none"]) { display: grid !important; width: 100%; }
-            .home { grid-template-columns: minmax(170px, 1fr) minmax(160px, 340px) auto; align-items: center; gap: var(--sp-3); }
+            .home { grid-template-columns: minmax(170px, 1fr) minmax(260px, 520px) auto; align-items: center; gap: var(--sp-3); }
             .home-testata { display: contents; }
             .home-ricerca:not([style*="none"]) { display: contents !important; }
             .home-titoli { grid-column: 1; grid-row: 1; white-space: nowrap; }
             /* Filtri per stato, template e archivio stanno nella barra laterale. */
             .home-azioni, #filtroStatoProgetti { display: none !important; }
-            .home-ricerca .campo-cerca { grid-column: 2; grid-row: 1; }
+            .home-ricerca .home-cerca-riga { grid-column: 2; grid-row: 1; }
             .campo-cerca .ico { top: 9px; }
             .home-comandi { grid-column: 3; grid-row: 1; display: flex; }
             .home-comandi .bt { min-height: var(--h-bottone); font-size: var(--fs-testo); padding: 0 var(--sp-4); white-space: nowrap; }

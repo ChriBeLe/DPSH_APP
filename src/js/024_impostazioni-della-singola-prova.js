@@ -403,6 +403,66 @@
                 });
             }
 
+            /** I modi di ordinare i progetti, uguali in Home e nella barra laterale del PC. Niente
+             * ordine per `updatedAt`: cambia a ogni salvataggio, anche solo aprendo un progetto, e
+             * l'elenco saltava. «Ultima modifica» usa modificatoIl (pezzo 004e), che cambia solo
+             * quando cambia davvero il contenuto. */
+            function vociOrdineProgetti() {
+                return [
+                    { id: 'data_desc', etichetta: 'Data, recenti prima' },
+                    { id: 'data_asc', etichetta: 'Data, vecchi prima' },
+                    { id: 'modifica', etichetta: 'Ultima modifica' },
+                    { id: 'nome', etichetta: 'Nome A–Z' }
+                ];
+            }
+
+            /** L'ordine scelto. Vive nel browser (come i pannelli della mappa): è una preferenza di
+             * chi guarda, non un dato dei progetti, e non deve finire nei backup né in Annulla. */
+            function ordineProgettiScelto() {
+                let v = null;
+                try { v = localStorage.getItem('dpsh.ordineProgetti'); } catch (_) { /* predefinito */ }
+                return vociOrdineProgetti().some(o => o.id === v) ? v : 'data_desc';
+            }
+
+            function scegliOrdineProgetti(v) {
+                try { localStorage.setItem('dpsh.ordineProgetti', v); } catch (_) { /* resta per questa volta */ }
+                renderHomeProjects();
+            }
+
+            /** Gli id dei progetti nell'ordine scelto. «Data» è quella della prima prova del progetto:
+             * proj.date no, perché ogni salvataggio la riscrive con la data della prova aperta, e
+             * aprire un'altra prova spostava il progetto. Senza date vale quando il progetto è stato
+             * creato, letto dall'id (PROJ_…_ora). A parità decide il nome, così due progetti non si
+             * scambiano mai di posto da soli. */
+            function ordinaProgetti(ids, progetti, ordine) {
+                const nome = id => String((progetti[id] && (progetti[id].name || progetti[id].comune)) || '');
+                const perNome = (a, b) => nome(a).localeCompare(nome(b), 'it', { numeric: true, sensitivity: 'base' }) || (a < b ? -1 : a > b ? 1 : 0);
+                const giorno = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? Date.parse(String(v).slice(0, 10)) : NaN;
+                const creato = id => { const m = String(id).match(/(\d{12,})/); return m ? Number(m[1]) : 0; };
+                const data = id => {
+                    const p = progetti[id] || {};
+                    const date = Object.values(p.surveys || {}).map(s => giorno(s && s.header && s.header.date)).filter(isFinite);
+                    if (date.length) return Math.min(...date);
+                    const t = giorno(p.date);
+                    return isFinite(t) ? t : creato(id);
+                };
+                const modifica = id => { const t = Date.parse((progetti[id] || {}).modificatoIl || ''); return isFinite(t) ? t : 0; };
+                const confronti = {
+                    data_desc: (a, b) => data(b) - data(a),
+                    data_asc: (a, b) => data(a) - data(b),
+                    modifica: (a, b) => modifica(b) - modifica(a),
+                    nome: () => 0
+                };
+                const prima = confronti[ordine] || confronti.data_desc;
+                return ids.slice().sort((a, b) => prima(a, b) || perNome(a, b));
+            }
+
+            /** Il menu «Ordina» (Home e barra laterale): un select piccolo, la scelta vale per tutti e due. */
+            function menuOrdineProgetti(id) {
+                const scelto = ordineProgettiScelto();
+                return `<label class="ordina-progetti" title="Ordina i progetti"><svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg><select id="${id}" data-ordine-progetti aria-label="Ordina i progetti">${vociOrdineProgetti().map(o => `<option value="${o.id}"${o.id === scelto ? ' selected' : ''}>${o.etichetta}</option>`).join('')}</select></label>`;
+            }
+
             /** Le pillole del filtro per stato sopra l'elenco (Fase 3: 44 di altezza, senza conteggi;
              * «Consegnati» al plurale come le altre voci di un filtro). */
             function renderFiltroStatoProgetti(projKeys) {
@@ -468,8 +528,11 @@
                     return;
                 }
 
-                // Ordina per data di aggiornamento decrescente
-                projKeys.sort((a, b) => (state.projects[b].updatedAt || 0) - (state.projects[a].updatedAt || 0));
+                // L'ordine lo sceglie chi guarda (menu «Ordina»): aprire un progetto non lo sposta.
+                const ordinati = ordinaProgetti(projKeys, state.projects, ordineProgettiScelto());
+                projKeys.splice(0, projKeys.length, ...ordinati);
+                const boxOrdine = document.getElementById('homeOrdineProgetti');
+                if (boxOrdine) boxOrdine.innerHTML = menuOrdineProgetti('selOrdineProgettiHome');
 
                 renderFiltroStatoProgetti(projKeys);
                 const visibili = progettiVisibiliHome(projKeys, state.projects, ricercaProgettiTesto, filtroStatoProgetti);
@@ -509,7 +572,8 @@
                     const nrUltima = ultima && proj.surveys[ultima] && proj.surveys[ultima].header ? proj.surveys[ultima].header.provaNr : null;
                     const statoProgetto = STATI_PROGETTO.find(st => st.id === proj.stato);
                     const luogo = [proj.comune || '', proj.committente ? `Committente: ${proj.committente}` : ''].filter(Boolean).join(' · ');
-                    const modificato = dataBreve(proj.updatedAt);
+                    // La modifica vera (004e), come l'ordine «Ultima modifica»; i dati vecchi non ce l'hanno.
+                    const modificato = dataBreve(proj.modificatoIl || proj.updatedAt);
                     const nome = proj.name || ('Progetto ' + (proj.comune || ''));
 
                     const card = document.createElement('div');
@@ -538,6 +602,12 @@
                     btn.addEventListener('click', () => openProjectActionsModal(btn.getAttribute('data-id')));
                 });
             }
+
+            // Un solo ascoltatore per i menu «Ordina» di Home e barra laterale (si ridisegnano spesso).
+            document.addEventListener('change', (e) => {
+                const sel = e.target.closest && e.target.closest('[data-ordine-progetti]');
+                if (sel) scegliOrdineProgetti(sel.value);
+            });
 
             const txtCercaProgetti = document.getElementById('txtCercaProgetti');
             if (txtCercaProgetti) txtCercaProgetti.addEventListener('input', () => {
