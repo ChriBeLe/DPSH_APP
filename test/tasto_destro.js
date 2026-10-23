@@ -44,7 +44,7 @@ const scegli = (app, testo) => clic(app, Array.from(app.d.querySelectorAll('#men
   const vs = voci(app);
   t('prova: foto, GPS, falda, strati, duplica ed elimina', ['Foto', 'Posizione GPS', 'Falda', 'Strati e parametri', 'Duplica come interpretazione', 'Elimina la prova'].every(x => vs.some(v => v.includes(x))));
   scegli(app, 'Falda');
-  await attesa(30);
+  await attesa(300); // apriProvaPerCorreggere apre la finestra dopo 250 ms
   t('«Falda» apre quella prova e la sua falda', app.E('state.currentSurveyId') === sid && $(app, 'modalQuickFalda').classList.contains('open'));
   app.E('closeQuickFaldaModal()');
 

@@ -77,7 +77,7 @@
                 apriMenuContesto(e, p.name || p.comune || 'Progetto', [
                     ['Apri', 'i-folder-open', '', () => apriDalLato(id)],
                     ['Dati del progetto', 'i-edit', '', () => { apriDalLato(id); openCantiereInfoModal(); }],
-                    ['Note', 'i-note', '', () => apriNoteProgetto(id)],
+                    ['Note del progetto', 'i-note', '', () => apriNoteProgetto(id)],
                     ['Strati', 'i-stack', '', () => { apriDalLato(id); openStratiModal(); }],
                     ['Terreno e sezioni', 'i-map', '', () => { apriDalLato(id); apriTerreno(); }],
                     ['Consegna', 'i-download', '', () => openExportModal('project', id)],
