@@ -21,7 +21,8 @@ const clic = (app, el) => el && el.dispatchEvent(new app.w.MouseEvent('click', {
   t('all\'avvio l\'avviso del controllo dei dati (lo stato di prova ha foto che mancano)', dlg && dlg.titolo === 'Controllo dei dati');
   t('l\'avviso ha «Mostrami dove», non solo «Ho capito»', dlg && dlg.extra && dlg.extra.style.display !== 'none' && dlg.extra.textContent === 'Mostrami dove');
   clic(app, dlg && dlg.extra);
-  await attesa(200);
+  // il controllo delle foto è asincrono: si aspetta che l'elenco compaia (fino a 5 s)
+  for (let i = 0; i < 50 && !app.d.querySelector('#integritaPrimaExport [data-integrita-vai]'); i++) await attesa(100);
   t('«Mostrami dove» apre la Consegna del progetto', app.d.getElementById('modalExportFormats').classList.contains('open'));
   const box = app.d.getElementById('integritaPrimaExport');
   t('con l\'elenco delle anomalie già aperto', !!box.querySelector('details[open]'));
