@@ -71,6 +71,22 @@
         .note-tags-row .pillola.btn-tag.accento { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
         .note-tags-row .pillola.btn-tag::before { content: none; }
 
+        /* ---- Riconosci strati: viola brillante, perché fa una cosa «da sola» ---- */
+        .bt-magia {
+            background: linear-gradient(120deg, #6d28d9, #a855f7 45%, #ec4899) 0 0 / 200% 100%;
+            border: none; color: #fff; font-weight: 800;
+            box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.55), 0 4px 16px rgba(168, 85, 247, 0.4);
+            transition: background-position var(--mov-medio, .4s) ease, box-shadow var(--mov-medio, .4s) ease;
+        }
+        .bt-magia:hover, .bt-magia:focus-visible { background-position: 100% 0; box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.6), 0 6px 22px rgba(168, 85, 247, 0.6); }
+        .bt-magia .ico { color: #fff; }
+        .titolo-magia { display: inline-flex; align-items: center; gap: var(--sp-2); }
+        .titolo-magia .ico { color: var(--purple); }
+        .campo-cursore { display: flex; align-items: center; gap: var(--sp-3); }
+        .campo-cursore input[type="range"] { flex: 1; accent-color: var(--purple); }
+        .campo-cursore .form-control { flex: 0 0 96px; width: 96px; }
+        @media (prefers-reduced-motion: reduce) { .bt-magia { transition: none; } }
+
         /* ---- Registro ---- */
         .registro-testata { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); flex-wrap: wrap; }
         .registro-testata-sx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -80,7 +96,7 @@
         .registro-azioni .bt-aiuto { margin-left: auto; }
         .registro-legenda { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px var(--sp-2); margin-bottom: var(--sp-2); background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 600; }
         .registro-legenda:empty { display: none; }
-        .registro-intestazione { display: grid; grid-template-columns: 14% 12% 74%; position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
+        .registro-intestazione { display: grid; grid-template-columns: var(--colonne-registro, 14% 12% 74%); position: sticky; top: 0; z-index: 30; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
         .registro-intestazione > div { padding: 6px 4px 6px 8px; white-space: nowrap; }
 
         /* ---- Scheda dell'intervallo (Fase 6): − e + attorno ai colpi ---- */
@@ -343,6 +359,9 @@
         .terreno-quote > div { display: flex; justify-content: space-between; align-items: center; min-height: 36px; border-bottom: 1px solid var(--border); }
         .terreno-quote strong { font-family: var(--font-mono); }
         .terreno-comandi { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
+        .terreno-sezione + .terreno-sezione { margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--border); }
+        .terreno-titolo { margin: 0 0 var(--sp-2); font-size: var(--fs-didascalia); font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
+        .terreno-sezione .terreno-comandi:first-child, .terreno-titolo + .terreno-comandi { margin-top: 0; }
         .riga-avviso.pericolo { border-color: var(--danger); color: var(--danger); background: transparent; margin-bottom: var(--sp-3); }
         .modal.sezione { max-width: 1100px; width: 96vw; max-height: 94vh; overflow-y: auto; }
         /* Il confronto è una figura: la finestra prende quasi tutto lo schermo e la figura si
@@ -391,6 +410,7 @@
 
         /* ---- Sezione: comandi e riquadro che scorre ---- */
         .sezione-comandi { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-2) 0; }
+        .sezione-carattere { width: auto; max-width: 260px; flex: 0 1 auto; }
         #graficoSezione { max-height: 68vh; overflow: auto; overscroll-behavior: contain; }
         #opzioniSezione .pillola[disabled] { opacity: .45; cursor: not-allowed; }
         .sezione-colonna:hover rect[fill="transparent"] { fill: var(--accent-soft); }
@@ -1246,4 +1266,13 @@
             header.testata-prova .menu-ancora { order: 3; }
             .spie .spia { flex: 0 0 auto; height: 32px; padding: 0 var(--sp-3); font-size: var(--fs-testo); }
             .testata-titolo-prova { font-size: 20px; }
+
+            /* ---- Registro: colonne strette per profondità e colpi; le barre si fermano prima del
+               bordo, così a destra si leggono le note. Nella testata: il titolo e accanto come lo si
+               guarda (Grafico); a destra cosa si fa ai dati (Aggiungi, Riconosci strati), poi l'aiuto. ---- */
+            #viewField { --colonne-registro: 72px 56px minmax(0, 1fr); --colonna-prof: 72px; --barre: min(65%, 640px); }
+            #viewField .registro-testata { justify-content: flex-start; gap: var(--sp-3); }
+            #viewField .registro-azioni { flex: 1 1 auto; gap: var(--sp-2); }
+            #viewField .btn-toggle-integrated-view { margin-right: auto; }
+            #viewField .registro-azioni .bt-aiuto { margin-left: 0; width: 36px; height: 36px; }
         }
