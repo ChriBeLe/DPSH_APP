@@ -635,6 +635,20 @@
                         if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = '100%';
                         if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = 'Completato';
                         if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `Si apre il pannello di stampa: scegli "Salva come PDF" · dimensione stimata ${pesoReale}`;
+                        // NEL PROGRAMMA DA PC (desktop/, Electron): niente pannello di stampa da attraversare,
+                        // il PDF si salva direttamente, impaginato dallo stesso Chromium. Il documento è
+                        // quello della cornice così com'è ora (impaginazione già fatta).
+                        if (window.dpshDesktop && typeof window.dpshDesktop.salvaPdf === 'function') {
+                            if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `Scegli dove salvare il PDF · dimensione stimata ${pesoReale}`;
+                            const docStampa = iframeStampa.contentDocument;
+                            const htmlStampa = '<!DOCTYPE html>' + docStampa.documentElement.outerHTML.replace(/window\.print\(\)/g, 'void 0');
+                            const nomePdf = titolo.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_') + '.pdf';
+                            window.dpshDesktop.salvaPdf(htmlStampa, nomePdf)
+                                .then(r => { if (r && r.salvato) mostraToast('PDF salvato: ' + r.nome); })
+                                .catch(e => appAlert('Il PDF non si è salvato: ' + (e && e.message ? e.message : e)));
+                            setTimeout(chiudiEsportazionePdfModal, 900);
+                            return;
+                        }
                         // print() sulla finestra della cornice, chiamato da qui: è la stessa cosa
                         // che faceva lo script dentro il documento, ma se lì dentro qualcosa va
                         // storto (come è successo) qui ce ne accorgiamo e c'è il ripiego.
