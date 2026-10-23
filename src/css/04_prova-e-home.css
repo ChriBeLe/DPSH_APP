@@ -1220,7 +1220,7 @@
             /* La tabella delle prove: le stesse colonne per le intestazioni e per le righe. */
             /* Le colonne dei numeri hanno un massimo: sullo schermo largo restano vicine al nome e lo
                spazio in più va allo stato, in fondo. */
-            .progetto-prove { --colonne-prove: 28px minmax(90px, 220px) repeat(2, minmax(72px, 120px)) repeat(3, minmax(44px, 90px)) minmax(64px, 110px) minmax(92px, 1fr); }
+            .progetto-prove { --colonne-prove: 28px minmax(90px, 220px) repeat(2, minmax(72px, 120px)) minmax(44px, 80px) repeat(2, minmax(76px, 110px)) minmax(64px, 110px) minmax(92px, 1fr); }
             .prove-colonne, .prova-riga:not(.ordina) { display: grid; grid-template-columns: var(--colonne-prove); align-items: center; column-gap: var(--sp-3); }
             .prove-colonne { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
             .progetto-ordina:not([hidden]) ~ .prove-colonne { display: none; }
@@ -1232,6 +1232,9 @@
             .prova-cella { display: block; font-family: var(--font-mono); font-size: var(--fs-testo); white-space: nowrap; }
             .prova-cella.vuota { color: var(--text-muted); }
             .prova-cella .ico { width: 16px; height: 16px; color: var(--success); vertical-align: -3px; }
+            .prova-cella:has(.prova-foto, .pc-profilo) { display: flex; align-items: center; gap: var(--sp-2); }
+            .prova-foto { width: 40px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+            .prova-cella .pc-profilo { width: 40px; height: 30px; flex: none; fill: var(--text-muted); background: var(--bg-main); border-radius: 3px; }
             .prova-riga-stato { justify-self: start; }
             .progetto-prove > .bt-link { min-height: 40px; justify-content: flex-start; padding: 0 var(--sp-3); }
 

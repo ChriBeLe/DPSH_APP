@@ -47,6 +47,10 @@ const vista = app => app.E('state.uiState.currentView');
   const riga1 = righe.find(r => r.dataset.surv === s1.id);
   const fondo = Math.max(...s1.logs.map(l => l.end)).toFixed(2).replace('.', ',');
   t('con profondità e numero di intervalli', riga1.textContent.includes(`${fondo} m · ${s1.logs.length} intervall`));
+  t('sul PC la prima foto si vede in piccolo, e accanto agli strati c\'è la forma della prova',
+    righe.every(r => { const sv = proj.surveys[r.dataset.surv]; const img = r.querySelector('img.prova-foto');
+      return (sv.photos || []).length ? img && img.dataset.foto === sv.photos[0].id : !img; })
+    && riga1.querySelectorAll('.pc-profilo rect').length === s1.logs.length);
   t('e lo stato: «Pronta» o «N avvisi»', righe.every(r => /^(Pronta|\d+ avvis[oi])$/.test(r.querySelector('.prova-riga-stato').textContent)));
   t('la prova aperta è segnata, e «Riprendi» la nomina', righe.find(r => r.classList.contains('attiva')).dataset.surv === provaAperta
     && /^Riprendi la Prova /.test($(app, 'btnProgettoRiprendi').textContent));
