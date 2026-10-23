@@ -1241,7 +1241,9 @@
             .progetto-accessi button > span, #btnProgettoConsegna { display: none; } /* la descrizione è nel suggerimento; Consegna sta nella barra in alto */
             .progetto-accessi .ico { margin: 0; width: 18px; height: 18px; }
             .progetto-accessi strong { font-size: var(--fs-testo); }
-            .registro-testata { margin: var(--sp-2) 0 calc(-1 * var(--sp-2)); }
+            /* Solo la testata «Prove» della scheda progetto: il margine negativo la avvicina alla
+               tabella. Sulle testate del Registro tirerebbe la legenda sopra i bottoni. */
+            .progetto > .registro-testata { margin: var(--sp-2) 0 calc(-1 * var(--sp-2)); }
             .registro-testata-sx { flex-direction: row; align-items: baseline; gap: var(--sp-3); }
             /* La tabella delle prove: le stesse colonne per le intestazioni e per le righe. */
             /* Le colonne dei numeri hanno un massimo: sullo schermo largo restano vicine al nome e lo
