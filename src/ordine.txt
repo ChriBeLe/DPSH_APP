@@ -173,5 +173,6 @@ js/071q_strati-senza-vicoli-ciechi.js
 js/071r_tavole-nel-report.js
 js/071s_importa-da-word.js
 js/071v_tasto-destro.js
+js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

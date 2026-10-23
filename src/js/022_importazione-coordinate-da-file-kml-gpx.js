@@ -271,6 +271,8 @@
                 if (!state.uiState) state.uiState = { currentView: 'home' };
                 const vistaPrecedente = state.uiState.currentView;
                 const cambioVistaReale = vistaPrecedente !== viewName;
+                // Dove stanno ora i nomi che passano alla schermata nuova (071v: il morph).
+                const sorgentiMorph = cambioVistaReale && viewTransitionsEnabled ? misuraMorph(vistaPrecedente) : null;
                 state.uiState.currentView = viewName;
                 const btnExpHeader = document.getElementById('btnExportHeader');
 
@@ -313,7 +315,8 @@
                 // al primo giro (avvio app: non c'è una schermata precedente da cui "arrivare").
                 if (cambioVistaReale && viewTransitionsEnabled) {
                     const vistaEntrante = viewName === 'home' ? viewHome : (viewName === 'project' ? viewProject : viewField);
-                    if (vistaEntrante) {
+                    // Se un nome vola dentro la schermata nuova, entra il resto attorno a lui; altrimenti tutta.
+                    if (vistaEntrante && !eseguiMorph(sorgentiMorph, state.uiState.currentView, vistaEntrante)) {
                         vistaEntrante.classList.remove('screen-nav-enter');
                         void vistaEntrante.offsetWidth; // forza il reflow per poter ri-innescare l'animazione
                         vistaEntrante.classList.add('screen-nav-enter');
