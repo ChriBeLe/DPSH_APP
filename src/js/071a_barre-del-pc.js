@@ -15,8 +15,8 @@
                 if (proj) percorso.push(['project', nomeProgetto(proj)]);
                 if (proj && vista === 'field' && proj.surveys[state.currentSurveyId]) percorso.push(['field', 'Prova ' + provaNr(proj.surveys[state.currentSurveyId])]);
                 document.getElementById('pcPercorso').innerHTML = percorso.map((p, i) => i === percorso.length - 1
-                    ? `<li><span aria-current="page">${esc(p[1])}</span></li>`
-                    : `<li><button type="button" data-vista="${p[0]}">${esc(p[1])}</button></li>`).join('');
+                    ? `<li><span aria-current="page" title="${esc(p[1])}">${esc(p[1])}</span></li>`
+                    : `<li><button type="button" data-vista="${p[0]}" title="${esc(p[1])}">${esc(p[1])}</button></li>`).join('');
                 document.getElementById('pcBtnConsegna').style.display = proj ? '' : 'none';
                 const btnContatore = document.getElementById('pcBtnContatore');
                 btnContatore.style.display = vista === 'field' ? '' : 'none';

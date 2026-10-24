@@ -241,8 +241,12 @@
             #btnHomeView, #surveySwitcherBar, #btnProgettoAiProgetti, #btnImpostazioniHome, .cronologia-telefono { display: none !important; }
             #btnProgettoAltro { margin-left: auto; }
         }
-        .pc-percorso { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }
-        .pc-percorso li + li::before { content: "/"; margin-right: 6px; color: var(--text-muted); }
+        .pc-percorso { flex: 1 1 0; min-width: 230px; overflow: hidden; display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-weight: 700; }
+        .pc-percorso li { display: flex; align-items: center; min-width: 3.2em; flex: 0 1 auto; white-space: nowrap; }
+        .pc-percorso li:last-child { flex-shrink: 0; } /* la voce aperta resta intera, si accorciano le altre */
+        .pc-percorso li:first-child { flex-shrink: 2; }
+        .pc-percorso li > * { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pc-percorso li + li::before { content: "/"; flex-shrink: 0; margin-right: 6px; color: var(--text-muted); }
         .pc-percorso button { border: none; background: none; padding: 4px 6px; border-radius: 6px; font: inherit; color: var(--text-muted); cursor: pointer; }
         .pc-percorso button:hover { color: var(--text-main); background: var(--bg-card-hover); }
         .pc-percorso [aria-current] { color: var(--text-main); padding: 4px 6px; }
@@ -268,23 +272,24 @@
 
         /* ---- L'omnibar (Ctrl K) e la guida delle scorciatoie (prototipo PC, passo 4) ----
            Una pillola al centro della barra in alto. Al clic (o con Ctrl K) si allarga, si accende
-           e sotto scende il pannello dei risultati; dietro, un velo scurisce la pagina. La casella
-           sta in uno spazio fisso della barra e si allarga sopra il percorso, senza spostare niente. */
-        .omnibar { position: relative; z-index: 2; flex: 0 1 400px; min-width: 220px; height: 38px; } /* sopra i bottoni accanto quando si allarga */
+           e sotto scende il pannello dei risultati; dietro, un velo scurisce la pagina. Si allarga
+           solo nello spazio libero della barra: non copre mai il percorso né i bottoni. È il
+           percorso a stringersi (coi puntini), e i bottoni a destra non si muovono. */
+        .omnibar { position: relative; flex: 0 1 400px; min-width: 220px; height: 38px; transition: flex-basis var(--mov-medio) var(--ease-entra); }
+        .omnibar.aperta { flex-basis: 600px; }
         .pc-barra-azioni { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
         .pc-barra.omnibar-attiva { z-index: 390; }
         .omnibar-campo {
-            position: absolute; top: 0; left: 50%; width: 100%; height: 38px; box-sizing: border-box;
-            transform: translateX(-50%);
+            position: absolute; inset: 0; box-sizing: border-box;
             display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px;
             border: 1px solid var(--border); border-radius: 999px;
             background: var(--bg-card-hover); color: var(--text-muted); cursor: text;
-            transition: width var(--mov-medio) var(--ease-entra), background-color var(--mov-breve) var(--ease-entra),
+            transition: background-color var(--mov-breve) var(--ease-entra),
                         border-color var(--mov-breve) var(--ease-entra), box-shadow var(--mov-medio) var(--ease-entra);
         }
         .omnibar-campo:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
         .omnibar-campo > .ico { width: 17px; height: 17px; flex-shrink: 0; transition: color var(--mov-breve) var(--ease-entra), transform var(--mov-medio) var(--ease-entra); }
-        .omnibar-campo input { flex: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: transparent; color: var(--text-main); font: inherit; font-size: 14px; font-weight: 600; }
+        .omnibar-campo input { flex: 1; min-width: 0; height: 100%; text-overflow: ellipsis; padding: 0; border: none; outline: none; background: transparent; color: var(--text-main); font: inherit; font-size: 14px; font-weight: 600; }
         .omnibar-campo input::placeholder { color: var(--text-muted); font-weight: 500; opacity: 1; }
         .omnibar-tasto { flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 999px; background: var(--bg-card); color: var(--text-muted); white-space: nowrap; transition: opacity var(--mov-breve) var(--ease-entra); }
         .omnibar-pulisci { display: none; flex-shrink: 0; width: 26px; height: 26px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; align-items: center; justify-content: center; }
@@ -292,7 +297,6 @@
         .omnibar-pulisci:hover { background: var(--bg-card-hover); color: var(--text-main); }
         .omnibar.con-testo .omnibar-pulisci { display: inline-flex; }
         .omnibar.aperta .omnibar-campo {
-            width: min(660px, calc(100vw - 48px));
             background: var(--bg-card); border-color: var(--accent);
             box-shadow: 0 0 0 4px var(--accent-soft), 0 12px 32px rgba(0, 0, 0, .22);
         }
@@ -300,15 +304,15 @@
         .omnibar.aperta .omnibar-tasto { opacity: .55; }
         .omnibar.con-testo .omnibar-tasto { display: none; }
         .omnibar-pannello {
-            position: absolute; top: 46px; left: 50%; width: min(660px, calc(100vw - 48px)); box-sizing: border-box;
+            position: absolute; top: 46px; left: 0; right: 0; box-sizing: border-box;
             display: flex; flex-direction: column; overflow: hidden;
             border: 1px solid var(--border); border-radius: 20px; background: var(--bg-card);
             box-shadow: 0 24px 60px rgba(0, 0, 0, .28), 0 2px 8px rgba(0, 0, 0, .12);
             opacity: 0; visibility: hidden; pointer-events: none;
-            transform: translateX(-50%) translateY(-8px) scale(.97); transform-origin: top center;
+            transform: translateY(-8px) scale(.97); transform-origin: top center;
             transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-medio) var(--ease-entra), visibility 0s linear var(--mov-medio);
         }
-        .omnibar.aperta .omnibar-pannello { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%); transition-delay: 0s; }
+        .omnibar.aperta .omnibar-pannello { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }
         .omnibar-velo { position: fixed; inset: 0; z-index: 389; background: rgba(5, 10, 9, .38); opacity: 0; visibility: hidden; transition: opacity var(--mov-medio) var(--ease-entra), visibility 0s linear var(--mov-medio); }
         .omnibar-velo.open { opacity: 1; visibility: visible; transition-delay: 0s; }
         @supports (backdrop-filter: blur(2px)) { .omnibar-velo { backdrop-filter: blur(2px); } }
