@@ -266,17 +266,73 @@
         .anteprima-intervalli .anteprima-scartato { color: var(--danger); font-family: var(--font-sans); font-weight: 700; }
         #btnConfirmBulkImport:disabled { opacity: .5; cursor: not-allowed; }
 
-        /* ---- Palette dei comandi e guida delle scorciatoie (prototipo PC, passo 4) ---- */
-        .modal.palette { max-width: 620px; top: 12vh !important; transform: translateX(-50%); display: flex; flex-direction: column; gap: var(--sp-2); }
-        .modal.palette.open { transform: translateX(-50%); } /* in alto e ferma mentre la lista si accorcia */
-        .palette-lista { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-        .palette-lista button { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: 0 var(--sp-3); border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-main); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
-        .palette-lista button span { flex: 1; }
-        .palette-lista button small { color: var(--text-muted); font-size: 12px; font-weight: 600; }
-        .palette-lista button:hover, .palette-lista [aria-selected] { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
-        .palette-lista kbd, .scorciatoie kbd { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--bg-card-hover); color: var(--text-main); white-space: nowrap; }
-        .palette-vuota { padding: var(--sp-4); color: var(--text-muted); text-align: center; }
-        .palette-piede { text-align: right; }
+        /* ---- L'omnibar (Ctrl K) e la guida delle scorciatoie (prototipo PC, passo 4) ----
+           Una pillola al centro della barra in alto. Al clic (o con Ctrl K) si allarga, si accende
+           e sotto scende il pannello dei risultati; dietro, un velo scurisce la pagina. La casella
+           sta in uno spazio fisso della barra e si allarga sopra il percorso, senza spostare niente. */
+        .omnibar { position: relative; z-index: 2; flex: 0 1 400px; min-width: 220px; height: 38px; } /* sopra i bottoni accanto quando si allarga */
+        .pc-barra-azioni { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+        .pc-barra.omnibar-attiva { z-index: 390; }
+        .omnibar-campo {
+            position: absolute; top: 0; left: 50%; width: 100%; height: 38px; box-sizing: border-box;
+            transform: translateX(-50%);
+            display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px;
+            border: 1px solid var(--border); border-radius: 999px;
+            background: var(--bg-card-hover); color: var(--text-muted); cursor: text;
+            transition: width var(--mov-medio) var(--ease-entra), background-color var(--mov-breve) var(--ease-entra),
+                        border-color var(--mov-breve) var(--ease-entra), box-shadow var(--mov-medio) var(--ease-entra);
+        }
+        .omnibar-campo:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+        .omnibar-campo > .ico { width: 17px; height: 17px; flex-shrink: 0; transition: color var(--mov-breve) var(--ease-entra), transform var(--mov-medio) var(--ease-entra); }
+        .omnibar-campo input { flex: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: transparent; color: var(--text-main); font: inherit; font-size: 14px; font-weight: 600; }
+        .omnibar-campo input::placeholder { color: var(--text-muted); font-weight: 500; opacity: 1; }
+        .omnibar-tasto { flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 999px; background: var(--bg-card); color: var(--text-muted); white-space: nowrap; transition: opacity var(--mov-breve) var(--ease-entra); }
+        .omnibar-pulisci { display: none; flex-shrink: 0; width: 26px; height: 26px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; align-items: center; justify-content: center; }
+        .omnibar-pulisci .ico { width: 15px; height: 15px; }
+        .omnibar-pulisci:hover { background: var(--bg-card-hover); color: var(--text-main); }
+        .omnibar.con-testo .omnibar-pulisci { display: inline-flex; }
+        .omnibar.aperta .omnibar-campo {
+            width: min(660px, calc(100vw - 48px));
+            background: var(--bg-card); border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-soft), 0 12px 32px rgba(0, 0, 0, .22);
+        }
+        .omnibar.aperta .omnibar-campo > .ico { color: var(--accent); transform: scale(1.08); }
+        .omnibar.aperta .omnibar-tasto { opacity: .55; }
+        .omnibar.con-testo .omnibar-tasto { display: none; }
+        .omnibar-pannello {
+            position: absolute; top: 46px; left: 50%; width: min(660px, calc(100vw - 48px)); box-sizing: border-box;
+            display: flex; flex-direction: column; overflow: hidden;
+            border: 1px solid var(--border); border-radius: 20px; background: var(--bg-card);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, .28), 0 2px 8px rgba(0, 0, 0, .12);
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translateX(-50%) translateY(-8px) scale(.97); transform-origin: top center;
+            transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-medio) var(--ease-entra), visibility 0s linear var(--mov-medio);
+        }
+        .omnibar.aperta .omnibar-pannello { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%); transition-delay: 0s; }
+        .omnibar-velo { position: fixed; inset: 0; z-index: 389; background: rgba(5, 10, 9, .38); opacity: 0; visibility: hidden; transition: opacity var(--mov-medio) var(--ease-entra), visibility 0s linear var(--mov-medio); }
+        .omnibar-velo.open { opacity: 1; visibility: visible; transition-delay: 0s; }
+        @supports (backdrop-filter: blur(2px)) { .omnibar-velo { backdrop-filter: blur(2px); } }
+        .palette-lista { max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 1px; padding: 6px; scroll-padding: 34px 0 6px; }
+        .omnibar-gruppo { position: sticky; top: -6px; z-index: 1; display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); padding: 10px 12px 4px; background: var(--bg-card); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+        .omnibar-gruppo span { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+        .palette-lista button { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: 6px 12px; border: none; border-radius: 12px; background: transparent; color: var(--text-main); font: inherit; font-weight: 600; text-align: left; cursor: pointer; transition: background-color var(--mov-istante) var(--ease-inloco); }
+        .palette-lista button > .ico { width: 17px; height: 17px; flex-shrink: 0; color: var(--text-muted); transition: color var(--mov-istante) var(--ease-inloco); }
+        .palette-lista button span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .palette-lista button[data-tipo="nota"] span { white-space: normal; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .palette-lista button small { flex-shrink: 1; min-width: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+        .palette-lista mark { background: none; color: var(--accent); font-weight: 800; }
+        .palette-lista [aria-selected] { background: var(--accent-soft); }
+        .palette-lista [aria-selected] > .ico { color: var(--accent); }
+        .palette-lista kbd, .scorciatoie kbd, .omnibar-piede kbd { font-family: var(--font-mono); font-size: 12px; padding: 2px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--bg-card-hover); color: var(--text-main); white-space: nowrap; }
+        .omnibar.aperta .palette-lista > * { animation: omnibarEntra var(--mov-medio) var(--ease-entra) both; }
+        @keyframes omnibarEntra { from { opacity: 0; transform: translateY(-3px); } }
+        .palette-vuota { padding: 24px var(--sp-4); color: var(--text-muted); text-align: center; }
+        .omnibar-piede { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 14px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+        .omnibar-piede span { display: inline-flex; align-items: center; gap: 4px; }
+        .omnibar-piede kbd { font-size: 11px; padding: 0 5px; }
+        /* L'impostazione trovata dall'omnibar lampeggia nel cassetto. */
+        .omnibar-trovata { animation: omnibarTrovata 1.6s var(--ease-entra); border-radius: var(--radius-md); }
+        @keyframes omnibarTrovata { 0%, 60% { box-shadow: 0 0 0 3px var(--accent); background-color: var(--accent-soft); } 100% { box-shadow: 0 0 0 3px transparent; } }
         .modal.scorciatoie { max-width: 900px; }
         .scorciatoie-gruppi { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
         .scorciatoie-gruppi section { display: flex; flex-direction: column; gap: 6px; padding: var(--sp-3); border: 1px solid var(--border); border-radius: var(--radius-md); }

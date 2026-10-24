@@ -106,15 +106,33 @@
 
     <!-- IL PC (prototipo PC, passo 1): barra in alto col percorso, barra laterale con progetti e
          prove, barra di stato. Nascoste sotto i 1024 px; le riempie renderPc. -->
+    <!-- Il velo dietro l'omnibar aperta: scurisce la pagina, un clic la chiude. -->
+    <div class="omnibar-velo" id="omnibarVelo"></div>
     <nav class="pc-barra" id="pcBarra" aria-label="Percorso">
         <ol class="pc-percorso" id="pcPercorso"></ol>
-        <!-- ANNULLA E RIPETI (pezzo 004f): ogni azione che cambia i dati. Sul telefono stanno nelle
-             testate delle tre schermate. -->
-        <button type="button" class="bt-icona" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
-        <button type="button" class="bt-icona" data-cronologia="avanti" aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
-        <button type="button" class="bt" id="pcBtnContatore" aria-pressed="false" title="Contatore dei colpi anche sul PC (C)"><svg class="ico"><use href="#i-target"/></svg>Contatore</button>
-        <button type="button" class="bt" id="pcBtnConsegna"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
-        <button type="button" class="bt-icona" id="pcBtnImpostazioni" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
+        <!-- L'OMNIBAR (pezzo 071c): una casella sola per cercare tutto, comandi, progetti, prove,
+             note, strati, archivio, template, impostazioni. Ctrl K ci porta il cursore. -->
+        <div class="omnibar" id="omnibar">
+            <div class="omnibar-campo">
+                <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                <input type="text" id="txtPalette" role="combobox" aria-expanded="false" aria-controls="listaPalette" aria-autocomplete="list" aria-label="Cerca comandi, progetti, prove, note e impostazioni" placeholder="Cerca comandi, progetti, prove, note…" autocomplete="off" spellcheck="false">
+                <button type="button" class="omnibar-pulisci" id="omnibarPulisci" aria-label="Svuota la ricerca" tabindex="-1"><svg class="ico"><use href="#i-x"/></svg></button>
+                <kbd class="omnibar-tasto" id="omnibarTasto">Ctrl K</kbd>
+            </div>
+            <div class="omnibar-pannello" id="omnibarPannello">
+                <div class="palette-lista" id="listaPalette" role="listbox" aria-label="Risultati"></div>
+                <div class="omnibar-piede"><span><kbd>↑</kbd><kbd>↓</kbd> scegli</span><span><kbd>Invio</kbd> apri</span><span><kbd>Esc</kbd> chiudi</span><span><kbd>?</kbd> tutte le scorciatoie</span></div>
+            </div>
+        </div>
+        <div class="pc-barra-azioni">
+            <!-- ANNULLA E RIPETI (pezzo 004f): ogni azione che cambia i dati. Sul telefono stanno nelle
+                 testate delle tre schermate. -->
+            <button type="button" class="bt-icona" data-cronologia="indietro" aria-label="Annulla" title="Annulla l'ultima azione (Ctrl Z)" disabled><svg class="ico"><use href="#i-undo"/></svg></button>
+            <button type="button" class="bt-icona" data-cronologia="avanti" aria-label="Ripeti" title="Ripeti l'azione annullata (Ctrl Y)" disabled><svg class="ico"><use href="#i-redo"/></svg></button>
+            <button type="button" class="bt" id="pcBtnContatore" aria-pressed="false" title="Contatore dei colpi anche sul PC (C)"><svg class="ico"><use href="#i-target"/></svg>Contatore</button>
+            <button type="button" class="bt" id="pcBtnConsegna"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
+            <button type="button" class="bt-icona" id="pcBtnImpostazioni" aria-label="Impostazioni" title="Impostazioni"><svg class="ico"><use href="#i-settings"/></svg></button>
+        </div>
     </nav>
     <aside class="pc-lato" id="pcLato" aria-label="Progetti e prove"></aside>
     <footer class="pc-stato" id="pcStato"><span id="pcStatoAiuto"></span><span id="pcStatoVersione"></span></footer>
