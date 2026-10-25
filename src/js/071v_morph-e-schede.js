@@ -119,3 +119,84 @@
             }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-selected', 'class'], attributeOldValue: true });
             window.addEventListener('resize', () => aggiornaCursori());
             aggiornaCursori();
+
+            // ---- 4. Da una prova all'altra: ogni elemento si trasforma ----
+            // Con le View Transitions del browser: prima del cambio si dà un nome a ogni pezzo della prova
+            // (titolo, spie, percorso, voce accesa della barra, titolo e legenda del Registro e, riga per
+            // riga, la riga, i colpi e la barra); dopo, gli stessi nomi ai pezzi della prova nuova. Il
+            // browser porta ognuno dalla forma vecchia alla nuova: le barre si allungano o si accorciano,
+            // le righe scivolano, la voce accesa della barra laterale corre alla prova nuova. Le righe in
+            // più escono sfumando, quelle nuove entrano, in cascata. Senza View Transitions (o col
+            // movimento ridotto) il cambio è quello di sempre, all'istante.
+            const MORPH_PROVA_RIGHE = 60;
+            function nominaMorphProva() {
+                let usati = 0;
+                const metti = (el, nome, classe) => {
+                    if (!el || !el.getClientRects().length) return;
+                    el.style.viewTransitionName = nome;
+                    if (classe) el.style.viewTransitionClass = classe; // per le regole di uscita ed entrata (CSS)
+                    el.setAttribute('data-morph-prova', '');
+                    usati++;
+                };
+                metti(document.getElementById('lblSurveySummary'), 'mp-titolo');
+                metti(document.getElementById('lblSurveySub'), 'mp-sotto');
+                metti(document.getElementById('btnGetGpsHeader'), 'mp-gps');
+                metti(document.getElementById('btnOpenSurveyPhotosModal'), 'mp-foto');
+                metti(document.getElementById('btnOpenProjectNotesHeader'), 'mp-note');
+                metti(document.querySelector('#pcPercorso li:last-child'), 'mp-percorso');
+                metti(document.querySelector('#pcLato [aria-current]'), 'mp-lato');
+                metti(document.querySelector('#surveySwitcherBar .attiva, #surveySwitcherBar [aria-current]'), 'mp-chip');
+                metti(document.getElementById('lblIntegratedTotalSteps'), 'mp-reg-titolo');
+                metti(document.getElementById('integratedLegendContainer'), 'mp-legenda');
+                ['cardCounterDashboard', 'cardUltimiIntervalli', 'cardLogsTable', 'cardChart'].forEach(id => metti(document.getElementById(id), 'mp-' + id));
+                const righe = [...document.querySelectorAll('#tblIntegratedLogsBody .swipe-row-wrapper')].slice(0, MORPH_PROVA_RIGHE);
+                righe.forEach((r, i) => {
+                    metti(r, 'mp-riga-' + i, 'mp-riga');
+                    metti(r.querySelector('.swipe-content > div:nth-child(2)'), 'mp-colpi-' + i, 'mp-riga');
+                    metti(r.querySelector('.int-bar-fill'), 'mp-barra-' + i, 'mp-riga');
+                });
+                return usati;
+            }
+            function togliNomiMorphProva() {
+                document.querySelectorAll('[data-morph-prova]').forEach(el => { el.style.viewTransitionName = ''; el.style.viewTransitionClass = ''; el.removeAttribute('data-morph-prova'); });
+            }
+            // La cascata: ogni riga parte un poco dopo quella sopra (regole scritte una volta sola).
+            (() => {
+                const st = document.createElement('style');
+                st.id = 'cascataMorphProva';
+                let css = '';
+                for (let i = 1; i < MORPH_PROVA_RIGHE; i++) {
+                    const r = Math.min(i, 24) * 9;
+                    css += `:root.morph-prova::view-transition-group(mp-riga-${i}),:root.morph-prova::view-transition-group(mp-colpi-${i}),:root.morph-prova::view-transition-group(mp-barra-${i}){animation-delay:${r}ms}`;
+                    css += `:root.morph-prova::view-transition-old(mp-riga-${i}),:root.morph-prova::view-transition-new(mp-riga-${i}),:root.morph-prova::view-transition-old(mp-barra-${i}),:root.morph-prova::view-transition-new(mp-barra-${i}),:root.morph-prova::view-transition-old(mp-colpi-${i}),:root.morph-prova::view-transition-new(mp-colpi-${i}){animation-delay:${r}ms}`;
+                }
+                st.textContent = css;
+                document.head.appendChild(st);
+            })();
+            /** Esegue il cambio di prova `cambia(conMorph)`; se si può, dentro una View Transition.
+             * Vero se il cambio si anima (chi chiama allora salta i suoi lampeggi). */
+            function morphProva(cambia) {
+                const si = durataMorph() && typeof document.startViewTransition === 'function'
+                    && state.uiState && state.uiState.currentView === 'field' && !document.querySelector('.modal.open');
+                if (!si) { cambia(false); return false; }
+                togliNomiMorphProva();
+                nominaMorphProva();
+                document.documentElement.classList.add('morph-prova');
+                let vt;
+                try {
+                    vt = document.startViewTransition(() => {
+                        togliNomiMorphProva();
+                        try { cambia(true); } catch (e) { setTimeout(() => { throw e; }); }
+                        nominaMorphProva();
+                    });
+                } catch (e) {
+                    togliNomiMorphProva();
+                    document.documentElement.classList.remove('morph-prova');
+                    cambia(false);
+                    return false;
+                }
+                const fine = () => { togliNomiMorphProva(); document.documentElement.classList.remove('morph-prova'); };
+                vt.ready.catch(() => {});
+                vt.finished.then(fine, fine);
+                return true;
+            }

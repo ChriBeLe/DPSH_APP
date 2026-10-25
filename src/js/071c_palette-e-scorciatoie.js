@@ -83,9 +83,7 @@
 
             function apriProvaOvunque(projId, survId) {
                 if (projId === state.currentProjectId) return apriDalLato(null, survId);
-                saveState();
-                syncProjectToActiveState(projId, survId);
-                switchView('field');
+                morphProva(() => { saveState(); syncProjectToActiveState(projId, survId); switchView('field'); });
             }
 
             // Porta il cursore su un'impostazione del cassetto e la fa lampeggiare.

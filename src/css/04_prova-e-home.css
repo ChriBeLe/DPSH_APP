@@ -1663,3 +1663,17 @@
         .area-mappa .am-comandi #direzioneTaglio3d .pillola { justify-content: center; }
         .area-mappa .am-comandi #rngTaglioV3d { flex: 1 1 100%; }
         .area-mappa .am-comandi .vista3d-taglio-riga input[type="range"]:disabled { opacity: .4; }
+
+        /* ---- Il morph da una prova all'altra (071v, View Transitions) ----
+           Tutto un poco più lento di un cambio di schermata, perché lo si possa seguire; ognuno dei
+           pezzi si deforma dalla forma vecchia alla nuova, il resto della pagina si dissolve. */
+        :root.morph-prova::view-transition-group(*) { animation-duration: calc(var(--mov-lungo) * 1.25); animation-timing-function: var(--ease-entra); }
+        :root.morph-prova::view-transition-old(*), :root.morph-prova::view-transition-new(*) { animation-duration: calc(var(--mov-lungo) * 1.25); animation-timing-function: var(--ease-entra); }
+        /* Ogni pezzo si deforma alla misura nuova (una barra si allunga restando alta uguale), invece
+           di ingrandirsi tenendo le proporzioni come fa il browser di suo. */
+        :root.morph-prova::view-transition-old(*), :root.morph-prova::view-transition-new(*) { height: 100%; object-fit: fill; }
+        /* Le righe che ci sono solo nella prova di prima escono in fretta (non restano sopra il fondo
+           della scheda); quelle che ci sono solo nella nuova entrano dopo, a cambio quasi fatto. */
+        :root.morph-prova::view-transition-old(*.mp-riga):only-child { animation-duration: calc(var(--mov-lungo) * .45); }
+        :root.morph-prova::view-transition-new(*.mp-riga):only-child { animation-duration: calc(var(--mov-lungo) * .8); animation-delay: calc(var(--mov-lungo) * .45) !important; animation-fill-mode: both; }
+        @media (prefers-reduced-motion: reduce) { :root.morph-prova::view-transition-group(*) { animation: none; } }

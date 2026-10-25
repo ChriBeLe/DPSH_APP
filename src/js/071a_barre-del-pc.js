@@ -163,8 +163,9 @@
             // Apre una prova del progetto aperto, o la schermata di un progetto. Serve anche alla palette.
             function apriDalLato(id, prova) {
                 if (prova) {
-                    if (prova !== state.currentSurveyId) { saveState(); syncProjectToActiveState(state.currentProjectId, prova); }
-                    return switchView('field');
+                    if (prova === state.currentSurveyId) return switchView('field');
+                    // Da una prova all'altra: ogni pezzo si trasforma (morphProva, 071v).
+                    return morphProva(() => { saveState(); syncProjectToActiveState(state.currentProjectId, prova); switchView('field'); });
                 }
                 const surv = ultimaProvaUsata(state.projects[id]);
                 if (!surv) return openProject(id, 'project'); // la ripara creando la prima prova

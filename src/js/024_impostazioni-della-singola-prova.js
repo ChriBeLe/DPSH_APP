@@ -272,14 +272,18 @@
                     tabBtn.addEventListener('click', () => {
                         if (longPressFired) { longPressFired = false; return; }
                         if (survId !== state.currentSurveyId) {
-                            saveState();
-                            syncProjectToActiveState(state.currentProjectId, survId);
-                            pendingBarGrowAnim = true;
-                            updateUI();
-                            pendingBarGrowAnim = false;
-                            saveState();
+                            // Col morph (071v) ogni pezzo si trasforma nella prova nuova: niente barre che
+                            // ricrescono da zero né lampeggio delle schede, che ci si sovrapporrebbero.
+                            const conMorph = morphProva((animato) => {
+                                saveState();
+                                syncProjectToActiveState(state.currentProjectId, survId);
+                                pendingBarGrowAnim = !animato;
+                                updateUI();
+                                pendingBarGrowAnim = false;
+                                saveState();
+                            });
                             triggerVibrate(30);
-                            flashDataChangedCards();
+                            if (!conMorph) flashDataChangedCards();
                         }
                     });
 
