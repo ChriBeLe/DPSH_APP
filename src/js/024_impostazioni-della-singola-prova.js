@@ -116,9 +116,12 @@
                 if (survId !== state.currentSurveyId) {
                     saveState();
                     syncProjectToActiveState(state.currentProjectId, survId);
-                    updateUI();
                     saveState();
                 }
+                // I campi si riempiono in updateUI, che gira solo dentro la prova: aperta dalla scheda
+                // del progetto (o dalla barra del PC, dopo aver cambiato progetto) la finestra
+                // mostrerebbe ancora i dati del progetto aperto prima.
+                updateUI();
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
                 if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;
@@ -492,6 +495,8 @@
                 }
 
                 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                // Le intestazioni delle colonne: solo sul PC, dove i progetti sono una tabella.
+                homeProjectsContainer.insertAdjacentHTML('beforeend', '<div class="progetti-colonne" aria-hidden="true"><span>Progetto</span><span>Luogo</span><span>Prove</span><span>Ultima modifica</span></div>');
                 visibili.forEach(projId => {
                     const proj = state.projects[projId];
                     const survList = Object.values(proj.surveys || {});
@@ -509,17 +514,17 @@
 
                     const card = document.createElement('div');
                     card.className = 'card-progetto';
-                    // Tutta la card apre il progetto sull'ULTIMA PROVA USATA (decisione H); il ⋯ a
-                    // destra, separato da una linea, ha le azioni di progetto (note comprese).
+                    // Tutta la card apre la schermata del progetto; il ⋯ a destra, separato da una
+                    // linea, ha le azioni di progetto (note comprese).
                     card.innerHTML = `
-                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${projId}" aria-label="Apri ${esc(nome)}${nrUltima ? ', riprende dalla Prova ' + esc(nrUltima) : ''}">
+                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${projId}" aria-label="Apri ${esc(nome)}">
                             <span class="card-progetto-riga1">
                                 <span class="card-progetto-nome">${esc(nome)}</span>
                                 ${statoProgetto ? `<span class="card-progetto-stato" style="color: ${statoProgetto.colore}; background: ${statoProgetto.sfondo};">${statoProgetto.etichetta}</span>` : ''}
                             </span>
                             ${luogo ? `<span class="card-progetto-luogo">${esc(luogo)}</span>` : ''}
                             <span class="card-progetto-numeri">${nProve} ${nProve === 1 ? 'prova' : 'prove'} · ${conGps}/${nProve} GPS · ${nFoto} foto</span>
-                            <span class="card-progetto-data">${modificato ? 'Modificato il ' + modificato : 'Mai modificato'}${nrUltima ? ' · riprende dalla Prova ' + esc(nrUltima) : ''}</span>
+                            <span class="card-progetto-data">${modificato ? 'Modificato il ' + modificato : 'Mai modificato'}${nrUltima ? ' · ultima aperta: Prova ' + esc(nrUltima) : ''}</span>
                         </button>
                         <button type="button" class="card-progetto-altro btn-project-actions" data-id="${projId}" aria-label="Azioni sul progetto" title="Azioni sul progetto (stato, note, duplica, backup, esporta, elimina)"><svg class="ico"><use href="#i-more"/></svg></button>
                     `;
@@ -527,7 +532,7 @@
                 });
 
                 homeProjectsContainer.querySelectorAll('.btn-open-project').forEach(btn => {
-                    btn.addEventListener('click', () => openProject(btn.getAttribute('data-id')));
+                    btn.addEventListener('click', () => openProject(btn.getAttribute('data-id'), 'project'));
                 });
                 homeProjectsContainer.querySelectorAll('.btn-project-actions').forEach(btn => {
                     btn.addEventListener('click', () => openProjectActionsModal(btn.getAttribute('data-id')));
@@ -540,7 +545,9 @@
                 renderHomeProjects();
             });
 
-            function openProject(projId) {
+            /** Rende attivo il progetto sull'ultima prova usata e apre la vista chiesta: 'field' (la
+             * prova) o 'project' (la schermata del progetto, quella che apre la Home). */
+            function openProject(projId, vista = 'field') {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
                 // Decisione H: si riprende dall'ultima prova usata, non dalla prima.
@@ -563,7 +570,7 @@
                     syncProjectToActiveState(projId, firstSurvId);
                 }
 
-                switchView('field');
+                switchView(vista);
                 triggerVibrate([40, 40]);
             }
 
