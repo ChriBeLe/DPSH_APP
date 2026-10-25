@@ -137,10 +137,21 @@
 
                 showGpsMapSearchMessage('⏳ Ricerca in corso...');
                 try {
-                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=it&q=' + encodeURIComponent(q);
-                    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    const results = await resp.json();
+                    // Prima OpenStreetMap (Nominatim); se rifiuta (aperta come file la richiesta non ha
+                    // pagina di provenienza) o non risponde, il geocodificatore di Esri, senza chiave.
+                    const nominatim = async () => {
+                        const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=it&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } });
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    };
+                    const esri = async () => {
+                        const resp = await fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=6&countryCode=ITA&outFields=Match_addr&SingleLine=' + encodeURIComponent(q));
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        const dati = await resp.json();
+                        return (dati.candidates || []).map(c => ({ display_name: c.address, lat: c.location && c.location.y, lon: c.location && c.location.x }));
+                    };
+                    let results;
+                    try { results = await nominatim(); } catch (_) { results = await esri(); }
 
                     if (!results || results.length === 0) {
                         showGpsMapSearchMessage('Nessun risultato trovato. Prova con il nome del comune o una via più nota.');

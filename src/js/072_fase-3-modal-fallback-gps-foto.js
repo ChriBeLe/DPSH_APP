@@ -131,10 +131,8 @@
                 setTimeout(() => {
                     if (!photoGpsMapInstance) {
                         photoGpsMapInstance = L.map('photoGpsMapEl').setView([centerLat, centerLng], 16);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap'
-                        }).addTo(photoGpsMapInstance);
+                        // Esri e non OpenStreetMap: OSM blocca le richieste dell'app aperta come file (vedi GPS_MAP_TILE_SOURCES).
+                        L.tileLayer(GPS_MAP_TILE_SOURCES.street.url, GPS_MAP_TILE_SOURCES.street.options).addTo(photoGpsMapInstance);
                         photoGpsMapMarker = L.marker([centerLat, centerLng], { draggable: true }).addTo(photoGpsMapInstance);
                         photoGpsMapInstance.on('click', (e) => { photoGpsMapMarker.setLatLng(e.latlng); });
                     } else {

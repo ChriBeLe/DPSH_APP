@@ -66,7 +66,17 @@
                     url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
                     attribuzione: 'Esri, Maxar, Earthstar Geographics'
                 },
-                'osm': {
+                // OpenStreetMap rifiuta le richieste senza pagina di provenienza (Referer): aperta come
+                // file (o nell'APK, o nel programma da PC) l'app ne riceverebbe solo tessere «Access
+                // blocked». Lì la voce resta (le scelte salvate continuano a valere) ma disegna la
+                // stradale di Esri, che si apre da ovunque.
+                'osm': location.protocol === 'file:' ? {
+                    nome: 'Mappa stradale (Esri: OSM non si apre da file)',
+                    tipo: 'tessere',
+                    zoomMax: 19,
+                    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+                    attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'
+                } : {
                     nome: 'Mappa stradale (OSM)',
                     tipo: 'tessere',
                     zoomMax: 19,

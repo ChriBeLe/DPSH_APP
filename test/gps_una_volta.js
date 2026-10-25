@@ -44,6 +44,8 @@ const STATO_V0 = fs.readFileSync(path.join(__dirname, 'dati', 'stato_v0.json'), 
   t('(e non si richiede di nuovo cambiando schermata)', app.E('window.__guardia') === 1);
   app.E('window.__errore({ code: 1 })');
   t('rifiutata: ricordato', app.w.localStorage.getItem('dpsh.gpsRifiutato') === '1');
+  t('la mappa del GPS non usa i server di OpenStreetMap (bloccano l\'app aperta come file)',
+    !/openstreetmap/.test(app.E('GPS_MAP_TILE_SOURCES.street.url')) && !/openstreetmap/.test(app.E('JSON.stringify(GPS_MAP_TILE_SOURCES)')));
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`\n${ok} ok, ${ko} KO`);

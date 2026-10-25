@@ -1853,10 +1853,13 @@ ${contenuto}
             const btnUseGpsMapPin = document.getElementById('btnUseGpsMapPin');
             const btnGpsMapGoToMe = document.getElementById('btnGpsMapGoToMe');
 
-            // Fonti tile gratuite, senza chiave API: OSM per la vista Strada, Esri World Imagery
-            // per il Satellite, più uno strato di etichette/confini sopra le immagini per l'Ibrida.
+            // Fonti tile gratuite, senza chiave API, tutte Esri: World Street Map per la vista Strada,
+            // World Imagery per il Satellite, più uno strato di etichette/confini per l'Ibrida.
+            // NON OpenStreetMap: i suoi server rifiutano le richieste senza pagina di provenienza
+            // (Referer), cioè proprio quelle dell'app aperta come file o dentro l'APK/programma da PC,
+            // e al posto della mappa mostravano le tessere «Access blocked».
             const GPS_MAP_TILE_SOURCES = {
-                street: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options: { maxZoom: 19, attribution: '&copy; OpenStreetMap' } },
+                street: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' } },
                 satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
                 hybridLabels: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19 } }
             };

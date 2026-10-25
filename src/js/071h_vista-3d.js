@@ -474,7 +474,7 @@
                 'esri-satellite': Object.assign({}, PROVIDER_MAPPA['esri-satellite'], { nome: 'Esri · Satellite' }),
                 'esri-topo': Object.assign({}, PROVIDER_MAPPA['esri-topo'], { nome: 'Esri · Topografica' }),
                 'esri-strade': Object.assign({}, PROVIDER_MAPPA['esri-strade'], { nome: 'Esri · Stradale' }),
-                'osm': Object.assign({}, PROVIDER_MAPPA['osm'], { nome: 'OpenStreetMap · Stradale' }),
+                'osm': Object.assign({}, PROVIDER_MAPPA['osm'], { nome: location.protocol === 'file:' ? 'Esri · Stradale (OSM non si apre da file)' : 'OpenStreetMap · Stradale' }),
                 'opentopo': Object.assign({}, PROVIDER_MAPPA['opentopo'], { nome: 'OpenStreetMap · Curve di livello (OpenTopoMap)' })
             };
             /** La scelta, ricordata nelle impostazioni dell'app (vale per tutti i progetti). */

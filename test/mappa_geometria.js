@@ -636,7 +636,8 @@ console.log('--- Il compositore riordinato, e i comandi che mancavano ---');
   t('premerne uno compila indirizzo, layer E attribuzione insieme',
      /composizione\.imp\.attribuzione = v\.attribuzione \|\| ''/.test(js));
   t('e le basemap a tessere sono passate da due a cinque',
-     ['esri-satellite', 'osm', 'esri-topo', 'esri-strade', 'opentopo'].every(k => src.includes("'" + k + "': {")));
+     // ('osm' è una scelta: aperta come file disegna la stradale di Esri, OSM lì blocca le tessere)
+     ['esri-satellite', 'osm', 'esri-topo', 'esri-strade', 'opentopo'].every(k => src.includes("'" + k + "': {") || src.includes("'" + k + "': location.protocol === 'file:' ? {")));
 }
 
 console.log('--- LA STAMPA NON PUO PIU ESSERE BLOCCATA DA UN DIALOGO ---');
