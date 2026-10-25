@@ -58,9 +58,22 @@ const ColoreTesto = Mark.create({
 });
 
 const TabellaNota = Table.extend({
+  /* L'ASPETTO DELLA TABELLA E DELLE CELLE (bordi, sfondi, larghezze): arriva dalle intestazioni
+     e dai piè di pagina presi da un Word (importa da un Word) e deve sopravvivere alla modifica.
+     Senza dichiararli, lo schema li scartava: una tabella di intestazione coi suoi bordi tornava
+     una griglia qualunque appena la si apriva. */
+  addAttributes() {
+    return { ...this.parent?.(), style: passante('style'), 'data-bordi': passante('data-bordi') };
+  },
   renderHTML({ HTMLAttributes }) {
     return ['table', mergeAttributes(HTMLAttributes, { class: 'note-table' }), ['tbody', 0]];
   }
+});
+const CellaNota = TableCell.extend({
+  addAttributes() { return { ...this.parent?.(), style: passante('style') }; }
+});
+const CellaTitoloNota = TableHeader.extend({
+  addAttributes() { return { ...this.parent?.(), style: passante('style') }; }
 });
 
 /* ALLINEAMENTO DEL TESTO. Non e' un marcatore che avvolge del testo: e' un ATTRIBUTO della
@@ -289,5 +302,5 @@ export const ESTENSIONI = [
   ColoreTesto, Allineamento, InterruzionePagina, RegolaParagrafo,
   Subscript, Superscript, Formula, TagDato,
   ImmagineNota, TaskList, TaskItem.configure({ nested: false }),
-  TabellaNota, TableRow, TableHeader, TableCell
+  TabellaNota, TableRow, CellaTitoloNota, CellaNota
 ];

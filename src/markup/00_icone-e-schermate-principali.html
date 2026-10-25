@@ -76,6 +76,8 @@
             <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
             <!-- Un'unica freccia "su": le altre 3 direzioni si ottengono ruotandola via CSS
                  (vedi i pulsanti "Sposta mappa" in apriMenuBloccoEditor) invece di 4 simboli distinti. -->
+            <!-- Ordina: frecce su e giù, per il menu «Ordina» dei progetti. -->
+            <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16"/><path d="M3 8l4-4 4 4"/><path d="M17 20V4"/><path d="M13 16l4 4 4-4"/></symbol>
             <symbol id="i-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
             <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
             <!-- Etichetta/cartellino: usata per il toggle "Toponimi" della mappa satellitare (nomi di
@@ -246,10 +248,14 @@
                  stato, che si imposta a mano dal ⋯ della card. Nascosto finché non c'è almeno un
                  progetto (vedi renderHomeProjects). -->
             <div id="homeRicercaProgetti" class="home-ricerca" style="display: none;">
-                <label class="campo-cerca">
-                    <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
-                    <input type="search" id="txtCercaProgetti" placeholder="Cerca nome, comune, committente" aria-label="Cerca progetti" autocomplete="off" enterkeyhint="search">
-                </label>
+                <div class="home-cerca-riga">
+                    <label class="campo-cerca">
+                        <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                        <input type="search" id="txtCercaProgetti" placeholder="Cerca nome, comune, committente" aria-label="Cerca progetti" autocomplete="off" enterkeyhint="search">
+                    </label>
+                    <!-- «Ordina»: lo riempie renderHomeProjects con menuOrdineProgetti. -->
+                    <span id="homeOrdineProgetti"></span>
+                </div>
                 <div id="filtroStatoProgetti" class="pillole"></div>
             </div>
 

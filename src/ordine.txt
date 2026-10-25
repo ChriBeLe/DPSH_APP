@@ -151,6 +151,7 @@ js/071c_palette-e-scorciatoie.js
 js/071d_contatore-sul-pc.js
 js/071e_guida-rapida-pc.js
 js/071f_terreno-dtm.js
+js/071fs_sistema-di-riferimento.js
 js/071g_sezione.js
 js/071h_vista-3d.js
 js/071i_export-word.js
@@ -171,6 +172,7 @@ js/071u_carta-intestata.js
 js/071q_strati-senza-vicoli-ciechi.js
 js/071r_tavole-nel-report.js
 js/071s_importa-da-word.js
+js/071v_tasto-destro.js
 js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
 shell/06_fine.html

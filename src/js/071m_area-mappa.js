@@ -33,7 +33,7 @@
             }
             function coordinateAreaMappa(lat, lng, quota) {
                 document.getElementById('lblAreaMappaCoord').textContent = Number.isFinite(lat)
-                    ? `${lat.toFixed(6)}, ${lng.toFixed(6)}${Number.isFinite(quota) ? ` · ${numeroConVirgola(quota, 1)} m s.l.m.` : ''}` : '';
+                    ? `${coordNelSr(lat, lng)}${Number.isFinite(quota) ? ` · ${numeroConVirgola(quota, 1)} m s.l.m.` : ''}` : '';
             }
             function misuraAreaMappa(testo) {
                 const el = document.getElementById('lblAreaMappaMisura');

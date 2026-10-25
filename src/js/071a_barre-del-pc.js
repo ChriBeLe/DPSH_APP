@@ -42,8 +42,9 @@
                     righe.push(`<button type="button" class="pc-filtro" data-strumento="btnOpenArchiveManagerHome"><svg class="ico"><use href="#i-database"/></svg><span class="pc-voce-nome">Archivio litologico</span></button>`);
                     document.getElementById('pcLato').innerHTML = righe.join('');
                 } else {
-                    righe.push('<div class="pc-lato-titolo">Progetti</div>');
-                    Object.keys(progetti).sort((a, b) => (progetti[b].updatedAt || 0) - (progetti[a].updatedAt || 0)).forEach(id => {
+                    // Stesso ordine della Home, scelto col menu «Ordina»: aprire un progetto non lo sposta.
+                    righe.push(`<div class="pc-lato-titolo pc-lato-titolo-ordina"><span>Progetti</span>${menuOrdineProgetti('selOrdineProgettiPc')}</div>`);
+                    ordinaProgetti(Object.keys(progetti), progetti, ordineProgettiScelto()).forEach(id => {
                         const p = progetti[id];
                         const aperto = id === state.currentProjectId;
                         const nome = nomeProgetto(p);
@@ -56,7 +57,7 @@
                             `${nProve} ${nProve === 1 ? 'prova' : 'prove'}`,
                             p.comune && !nome.includes(p.comune) ? esc(p.comune) : ''
                         ].filter(Boolean).join(' · ');
-                        const titolo = [nome, p.comune, p.committente ? 'Committente: ' + p.committente : '', p.updatedAt ? 'Modificato il ' + dataBreve(p.updatedAt) : '', 'Tasto destro: azioni'].filter(Boolean).join('\n');
+                        const titolo = [nome, p.comune, p.committente ? 'Committente: ' + p.committente : '', (p.modificatoIl || p.updatedAt) ? 'Modificato il ' + dataBreve(p.modificatoIl || p.updatedAt) : '', 'Tasto destro: azioni'].filter(Boolean).join('\n');
                         righe.push(`<button type="button" class="pc-voce" data-progetto="${esc(id)}" title="${esc(titolo)}"${aperto && vista === 'project' ? ' aria-current="page"' : ''}>
                             <span class="pc-voce-riga"><span class="pc-voce-nome">${esc(nome)}</span></span>
                             <span class="pc-voce-riga pc-voce-info"><span class="pc-voce-nome">${info}</span>${haNote ? spia('i-note', '', false, 'Ha delle note') : ''}</span>
@@ -94,13 +95,13 @@
                     document.getElementById('pcLato').innerHTML = righe.join('');
                 }
 
-                document.getElementById('pcStatoAiuto').textContent = {
+                document.getElementById('pcStatoAiuto').textContent = ({
                     home: 'Clic su un progetto per aprirlo · tasto destro: le sue azioni',
                     project: 'Clic su una prova per aprirla · tasto destro: le sue azioni',
                     field: state.settings.contatoreSuPc === true
                         ? 'Contatore: Spazio un colpo · Backspace toglie · Invio registra · F2 modifica la riga scelta · C spegne'
                         : 'Clic sceglie · doppio clic o Invio modifica · tasto destro: azioni · ↑ ↓ scorrono · Canc elimina'
-                }[vista] + (vista === 'field' ? '' : ' · Esc chiude le finestre');
+                }[vista] || '') + (vista === 'field' ? '' : ' · Esc chiude le finestre');
                 document.getElementById('pcStatoVersione').textContent = 'Ctrl K comandi · Ctrl Z annulla · ? guida · DPSH ' + APP_VERSIONE;
                 if (vista === 'field') forseGuidaRapida();
             }

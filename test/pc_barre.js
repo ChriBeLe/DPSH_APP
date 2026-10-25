@@ -98,11 +98,13 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   const destro = (el) => el.dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
   const voci = () => [...$(app, 'menuRiga').querySelectorAll('[data-voce]')].map(b => b.textContent);
   destro($(app, 'homeProjectsContainer').querySelector('[data-id]'));
-  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Dati del progetto|Note|Strati|Terreno e sezioni|Consegna|In corso|Da elaborare|Consegnato|Copia, backup, elimina…');
+  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open')
+    && voci().join('|') === 'Apri|Dati del progetto|Note del progetto|Strati|Terreno e sezioni|Consegna|Confronta le prove|In corso|Da elaborare|Consegnato|Porta su un altro dispositivo|Duplica il progetto|Cronologia (copie automatiche)|Elimina il progetto');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
   t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
   destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
-  t('tasto destro su una prova: Apri, Dati, Strumento, GPS, Foto, Falda, Mappa', voci().join('|') === 'Apri|Dati della prova|Strumento|Posizione GPS|Foto|Falda|Mostra sulla mappa');
+  t('tasto destro su una prova: Apri, Dati, Strumento, GPS, Foto, Falda, Strati, Mappa, duplica, elimina',
+    voci().join('|') === 'Apri|Dati della prova|Strumento|Posizione GPS|Foto|Falda|Strati e parametri|Mostra sulla mappa|Duplica come interpretazione|Elimina la prova');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="1"]'));
   t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
   app.E('closeAnyOpenModal()');
@@ -124,7 +126,7 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   t('sotto il progetto: stato e numero di prove', /^Consegnato · \d+ prov[ae]/.test($(app, 'pcLato').querySelector(`[data-progetto="${idProg}"] .pc-voce-info`).textContent.trim()));
   $(app, 'pcLato').querySelector(`[data-progetto="${idProg}"]`).dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
   const vociProgetto = [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
-  t('tasto destro sul progetto: dati, note, strati e stato', ['Dati del progetto', 'Note', 'Strati', 'In corso', 'Consegnato'].every(v => vociProgetto.includes(v)));
+  t('tasto destro sul progetto: dati, note, strati e stato', ['Dati del progetto', 'Note del progetto', 'Strati', 'In corso', 'Consegnato'].every(v => vociProgetto.includes(v)));
   [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].find(b => b.textContent.trim() === 'Consegnato').click();
   t('lo stato scelto di nuovo si toglie', app.E(`state.projects[${JSON.stringify(idProg)}].stato`) === undefined);
   $(app, 'btnProgettoDati').dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));

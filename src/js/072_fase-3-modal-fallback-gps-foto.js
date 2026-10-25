@@ -806,7 +806,7 @@
 
                 let totalBlows = 0;
 
-                state.logs.forEach(log => {
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     totalBlows += log.colpi;
                     const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
@@ -846,10 +846,10 @@
 
                 state.logs.forEach(log => {
                     const barLen = Math.min(40, Math.max(1, Math.round((log.colpi / maxColpiInLogs) * 35)));
-                    const chartBar = '▓'.repeat(barLen) + ` N=${log.colpi}`;
+                    const chartBar = '▓'.repeat(barLen) + (intervalloSoloGrafico(log) ? ' Rifiuto' : ` N=${log.colpi}`);
                     chartSheetData.push([
                         `${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m`,
-                        log.colpi,
+                        intervalloSoloGrafico(log) ? 'Rifiuto' : log.colpi,
                         chartBar
                     ]);
                 });
@@ -905,7 +905,7 @@
                 const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
                 const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
 
-                state.logs.forEach(log => {
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
                     if (log.colpi > 0) {

@@ -119,11 +119,12 @@
                     else if (q && !c[3] && c[2]) voci.push({ tipo: 'tasto', gruppo: 'Scorciatoie', etichetta: c[1], sotto: c[0], tasto: c[2], icona: 'i-info', azione: apriScorciatoie });
                 });
 
-                const ids = Object.keys(progetti).sort((a, b) => (progetti[b].updatedAt || 0) - (progetti[a].updatedAt || 0));
+                // Lo stesso ordine della Home e della barra laterale (menu «Ordina»).
+                const ids = ordinaProgetti(Object.keys(progetti), progetti, ordineProgettiScelto());
                 (q ? ids : ids.slice(0, 6)).forEach(id => {
                     const p = progetti[id];
                     const prove = Object.values(p.surveys || {}).map(s => [(s.header || {}).localita, (s.header || {}).comune].join(' ')).join(' ');
-                    voci.push({ tipo: 'progetto', gruppo: q ? 'Progetti' : 'Progetti recenti', etichetta: nomeProgetto(p),
+                    voci.push({ tipo: 'progetto', gruppo: 'Progetti', etichetta: nomeProgetto(p),
                         sotto: [p.comune, p.committente].filter(Boolean).join(' · '),
                         cerca: [p.localita, p.operator, p.date, prove].join(' '), icona: 'i-folder', azione: () => apriDalLato(id) });
                 });
