@@ -1431,3 +1431,62 @@
         .am-modi.con-cursore::before { border-radius: 7px; }
         .con-cursore > button { position: relative; z-index: 1; }
         .con-cursore > [aria-selected="true"] { background: transparent !important; }
+
+        /* ================== LA FINESTRA GPS SUL PC ==================
+           Larga, a due colonne. A sinistra la mappa, sempre aperta (sul telefono sta dentro
+           «Manuale»), con sopra vista e ricerca del luogo e sotto «Usa la posizione del pin». A destra
+           lo stato, latitudine e longitudine, incolla, file KML/GPX, sposta la prova, Apri in Mappe.
+           Le schede File | Incolla | Manuale non servono: si vede tutto insieme. Il GPS del dispositivo
+           diventa un tasto secondario (da PC quasi mai c'è). Gli !important vincono sugli stili
+           scritti nel markup per il telefono. */
+        .gps-etichetta-pc { display: none; }
+        .gps-mappa-assente { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 120px; padding: var(--sp-4); text-align: center; font-size: 13px; color: var(--text-muted); }
+        @media (min-width: 1024px) {
+            #modalGpsSettings.modal {
+                width: min(1060px, 94vw) !important; max-width: none !important; padding: 20px 22px !important;
+                display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 22px; row-gap: 0;
+                grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto;
+                grid-template-areas:
+                    "titolo titolo"
+                    "testa  stato"
+                    "mappa  coord"
+                    "mappa  incolla"
+                    "mappa  file"
+                    "mappa  rileva"
+                    "mappa  sposta"
+                    "mappa  apri"
+                    "mappa  debug"
+                    "mappa  ."
+                    "pin    azioni";
+            }
+            #modalGpsSettings .modal-title { grid-area: titolo; margin-bottom: 14px; }
+            #modalGpsSettings #lblModalGpsStatus { grid-area: stato; text-align: left !important; font-size: 12px !important; line-height: 1.5; padding: 10px 12px !important; }
+            #modalGpsSettings .gps-oppure, #modalGpsSettings .gps-method-tabs,
+            #modalGpsSettings #btnGpsMapGoToMe, #modalGpsSettings .gps-suggerimento { display: none !important; }
+            /* I corpi delle schede: «Manuale» si apre nei suoi pezzi, File e Incolla sempre aperti. */
+            #modalGpsSettings .gps-method-panel,
+            #gpsAccBodyManual, #gpsAccBodyManual > .gps-accordion-body-inner { display: contents; }
+            #gpsAccBodyKml, #gpsAccBodyPaste {
+                height: auto; max-height: none; opacity: 1; overflow: visible; margin: 0 0 12px;
+                padding: 0; background: none; border: none !important;
+            }
+            #gpsAccBodyKml { grid-area: file; }
+            #gpsAccBodyPaste { grid-area: incolla; }
+            #gpsAccBodyKml > .gps-accordion-body-inner, #gpsAccBodyPaste > .gps-accordion-body-inner { padding: 0; }
+            .gps-etichetta-pc { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+            #modalGpsSettings .gps-coord { grid-area: coord; margin: 12px 0 !important; }
+            #modalGpsSettings .gps-coord .form-group { margin: 0; }
+            #modalGpsSettings .gps-mappa-testa { grid-area: testa; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+            #modalGpsSettings .gps-mappa-testa .gps-map-layer-switch { margin: 0; flex: 0 0 auto; }
+            #modalGpsSettings .gps-mappa-testa > div:nth-child(2) { flex: 1 1 260px; margin: 0 !important; }
+            #modalGpsSettings #gpsMapSearchResults, #modalGpsSettings #notaSpostaProva { flex: 1 1 100%; margin: 0 !important; }
+            #gpsMapModalEl { grid-area: mappa; height: auto !important; min-height: 440px; border-radius: var(--radius-lg) !important; }
+            #modalGpsSettings #btnUseGpsMapPin { grid-area: pin; align-self: end; margin-top: 10px; }
+            #modalGpsSettings .gps-rileva { grid-area: rileva; margin: 0 0 12px !important; }
+            #btnGetGpsModal { background: var(--bg-card-hover) !important; color: var(--text-main) !important; border: 1px solid var(--border) !important; font-weight: 600 !important; }
+            #btnGetGpsModal:hover { border-color: var(--accent) !important; }
+            #modalGpsSettings #boxSpostaProva { grid-area: sposta; margin: 0 0 12px !important; }
+            #modalGpsSettings #boxApriInMappe { grid-area: apri; margin: 0 0 12px !important; }
+            #modalGpsSettings #gpsDebugToolsWrapper { grid-area: debug; }
+            #modalGpsSettings .modal-actions { grid-area: azioni; align-self: end; margin-top: 10px; }
+        }

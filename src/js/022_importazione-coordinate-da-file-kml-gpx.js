@@ -305,7 +305,7 @@
                     // Entrando in una prova (dalla Home o dal Progetto) si parte dal contatore (Fase 6).
                     if (vistaPrecedente !== 'field') vistaProva = 'conta';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'flex';
-                    startLiveGpsWatch();
+                    // (Il GPS non parte più da solo entrando: vedi startLiveGpsWatch.)
                     updateUI();
                 }
 

@@ -1,5 +1,9 @@
 
-    <!-- MODAL FINESTRA FLUTTUANTE RILEVAMENTO / MODIFICA GPS -->
+    <!-- MODAL FINESTRA FLUTTUANTE RILEVAMENTO / MODIFICA GPS
+         Sul telefono una colonna, coi metodi a schede. Sul PC (da 1024 px, regole in 04) una finestra
+         larga a due colonne: a sinistra la mappa sempre aperta con la ricerca del luogo, a destra lo
+         stato, le coordinate, incolla, file KML/GPX e le azioni. Il GPS del dispositivo NON parte da
+         solo: lo si cerca solo col tasto «Rileva». -->
     <div class="modal-overlay" id="modalGpsOverlay"></div>
     <div class="modal" id="modalGpsSettings" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
         <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
@@ -42,7 +46,7 @@
             </div>
         </div>
 
-        <div class="form-group" style="text-align: center; margin-bottom: 14px;">
+        <div class="form-group gps-rileva" style="text-align: center; margin-bottom: 14px;">
             <button class="btn-action" id="btnGetGpsModal" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; width: 100%; padding: 10px; font-size: 13px;">
                 <svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS
             </button>
@@ -52,7 +56,7 @@
              singola — selezionarne una chiude le altre. "Coordinate manuali" e "Mappa" restano
              unite in una sola scheda perché la mappa è solo un aiuto visivo per compilare gli
              stessi due campi Lat/Lng. -->
-        <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">
+        <div class="gps-oppure" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">
             Oppure imposta manualmente
         </div>
         <div class="gps-method-tabs">
@@ -72,6 +76,7 @@
         <div class="gps-method-panel">
             <div class="gps-accordion-body expand-region" id="gpsAccBodyKml">
                 <div class="gps-accordion-body-inner">
+                    <div class="gps-etichetta-pc">Da un file KML o GPX</div>
                     <button class="btn-action" id="btnImportGpsKml" style="width:100%; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 700; font-size: 12px;">
                         <svg class="ico"><use href="#i-upload"/></svg> Scegli File KML / GPX
                     </button>
@@ -81,6 +86,7 @@
             </div>
             <div class="gps-accordion-body expand-region" id="gpsAccBodyPaste">
                 <div class="gps-accordion-body-inner">
+                    <div class="gps-etichetta-pc">Incolla le coordinate</div>
                     <div style="display: flex; gap: 8px;">
                         <input type="text" id="txtPasteCoords" class="form-control" placeholder="es. 41.845912, 12.562424" style="flex: 1;">
                         <button class="btn-action" id="btnApplyPastedCoords" style="background: var(--info); color: #fff; border: none; font-weight: 700; font-size: 12px; white-space: nowrap; flex: 0 0 auto; padding: 10px 12px;">
@@ -91,7 +97,7 @@
             </div>
             <div class="gps-accordion-body expand-region" id="gpsAccBodyManual">
                 <div class="gps-accordion-body-inner">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                    <div class="gps-coord" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
                         <div class="form-group">
                             <label style="font-size: 11px;">Latitudine (°)</label>
                             <input type="number" step="0.000001" id="numModalGpsLat" class="form-control" placeholder="es. 41.845912">
@@ -102,6 +108,9 @@
                         </div>
                     </div>
 
+                    <!-- Sopra la mappa: vista, ricerca del luogo e i loro risultati. Un blocco solo, così
+                         sul PC sta tutto sopra la mappa grande. -->
+                    <div class="gps-mappa-testa">
                     <!-- Visualizzazione mappa: Strada / Satellite / Ibrida -->
                     <div class="gps-map-layer-switch">
                         <button type="button" class="gps-map-layer-btn active" data-layer="street">Strada</button>
@@ -117,11 +126,12 @@
                     <div id="notaSpostaProva" style="display: none; font-size: 11px; line-height: 1.45; font-weight: 600; color: var(--warning); margin-bottom: 6px;">
                         Spostamento della prova: trascina il pin (o tocca la mappa) nel punto nuovo, poi «Sposta qui la prova». Il cerchio tratteggiato è dov'è adesso. Ti chiedo conferma due volte.
                     </div>
+                    </div>
                     <div id="gpsMapModalEl" style="width:100%; height:220px; border-radius: var(--radius-md); border:1px solid var(--border); background:var(--bg-sunken);"></div>
                     <button class="btn-action" id="btnGpsMapGoToMe" style="width:100%; margin-top:6px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-weight: 700; font-size: 12px;">
                         <svg class="ico"><use href="#i-satellite"/></svg> Vai alla Mia Posizione
                     </button>
-                    <div style="font-size:10.5px; color:var(--text-muted); margin:6px 0;">
+                    <div class="gps-suggerimento" style="font-size:10.5px; color:var(--text-muted); margin:6px 0;">
                         <svg class="ico"><use href="#i-note"/></svg> Come ultima spiaggia se il GPS del dispositivo non risponde: cerca la località qui sopra (o centra la mappa a mano) e tocca il punto esatto per posizionare il marker.
                     </div>
                     <button class="btn-action" id="btnUseGpsMapPin" style="width:100%; background: var(--accent); color:var(--on-accent); border:none; font-weight:700;">

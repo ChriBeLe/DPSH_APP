@@ -1547,12 +1547,10 @@ ${contenuto}
                 if (modalGpsOverlay) modalGpsOverlay.classList.add('open');
                 if (modalGpsSettings) modalGpsSettings.classList.add('open');
 
-                // Un solo tap sull'icona 📍 fa già partire subito la ricerca automatica, senza
-                // costringere l'utente a un secondo tocco dentro il modale appena aperto.
-                const hasGpsAlready = (state.header.lat !== null && state.header.lat !== undefined && state.header.lat !== '');
-                if (!hasGpsAlready && navigator.geolocation) {
-                    fetchGpsPositionModal();
-                }
+                // Il GPS del dispositivo NON parte da solo aprendo la finestra (chiedeva il permesso e,
+                // sul PC, finiva sempre in «Tempo scaduto»): lo si cerca solo col tasto «Rileva».
+                // Sul PC la mappa è la via principale: si apre subito, in silenzio se non si carica.
+                if (suPc()) openGpsAccordion('Manual', { silenzioso: true });
             }
 
             function closeGpsModal() {
@@ -1647,13 +1645,12 @@ ${contenuto}
                 else appAlert(`Copia non riuscita. Le coordinate sono: ${ind.coordinate}`);
             });
 
-            // GPS IN TEMPO REALE (IDEA 1): mantiene una posizione sempre aggiornata mentre l'app è
-            // aperta sulla schermata di campo, cosi le foto scattate/importate senza EXIF possono
-            // usare una posizione fresca invece di quella (eventualmente vecchia) del cantiere.
-            // Il permesso si chiede una volta sola: la ricerca, partita, resta accesa per tutta la
-            // sessione (riaccenderla a ogni prova faceva ricomparire la richiesta, perché aperta
-            // come file il browser non ricorda il permesso); rifiutata, non si richiede più da
-            // sola (ricordato), resta il tasto «Rileva la posizione».
+            // GPS IN TEMPO REALE (IDEA 1): mantiene una posizione sempre aggiornata, cosi le foto
+            // scattate/importate senza EXIF possono usare una posizione fresca invece di quella
+            // (eventualmente vecchia) del cantiere. NON parte più entrando in una prova: chiedeva il
+            // permesso a ogni avvio (anche sul PC, dove il GPS non c'è). Parte solo dopo che la
+            // posizione è stata rilevata col tasto «Rileva» (il permesso è già dato, nessuna nuova
+            // domanda) e poi resta accesa per la sessione; rifiutata, non si richiede più da sola.
             let gpsAutoChiesto = false;
             const GPS_RIFIUTATO = 'dpsh.gpsRifiutato';
             function startLiveGpsWatch() {
@@ -1741,6 +1738,7 @@ ${contenuto}
 
                 function handleSuccess(pos) {
                     try { localStorage.removeItem(GPS_RIFIUTATO); } catch (_) { /* niente */ }
+                    startLiveGpsWatch(); // il permesso c'è: da qui le foto hanno una posizione fresca
                     state.header.lat = pos.coords.latitude;
                     state.header.lng = pos.coords.longitude;
                     state.header.alt = pos.coords.altitude || null;
@@ -1756,14 +1754,19 @@ ${contenuto}
                     saveState();
                 }
 
+                // Se non riesce lo dice dentro la finestra, al posto dello stato: niente popup da chiudere.
+                function dicoErrore(err) {
+                    if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
+                    updateModalGpsStatusText();
+                    if (lblModalGpsStatus) {
+                        lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-alert"/></svg> GPS non trovato: ${escapeHtmlDidascalia(describeGeoError(err))} Scegli il punto sulla mappa o scrivi le coordinate.`;
+                        lblModalGpsStatus.style.color = 'var(--warning)';
+                    }
+                }
                 function tryLowAccuracy() {
                     navigator.geolocation.getCurrentPosition(
                         handleSuccess,
-                        (err) => {
-                            if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            updateModalGpsStatusText();
-                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
-                        },
+                        dicoErrore,
                         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
                     );
                 }
@@ -1778,11 +1781,7 @@ ${contenuto}
                     (err) => {
                         // Se il permesso è negato in modo definitivo, non ha senso ritentare
                         // subito a bassa precisione: mostriamo l'errore chiaro all'utente.
-                        if (err && err.code === 1) {
-                            if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
-                            return;
-                        }
+                        if (err && err.code === 1) return dicoErrore(err);
                         tryLowAccuracy();
                     },
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -1805,7 +1804,7 @@ ${contenuto}
                 spostandoProva = false;
                 aggiornaModoSposta();
             }
-            async function openGpsAccordion(key) {
+            async function openGpsAccordion(key, opzioni = {}) {
                 closeAllGpsAccordion();
                 const body = document.getElementById('gpsAccBody' + key);
                 const toggle = document.getElementById('btnGpsAcc' + key);
@@ -1815,6 +1814,11 @@ ${contenuto}
                     try {
                         await ensureLeafletLoaded();
                     } catch (e) {
+                        if (opzioni.silenzioso) {
+                            const el = document.getElementById('gpsMapModalEl');
+                            if (el && !gpsModalMapInstance) el.innerHTML = '<div class="gps-mappa-assente">La mappa non si carica (serve la connessione). Scrivi o incolla le coordinate qui accanto.</div>';
+                            return;
+                        }
                         alert('' + e.message);
                         closeAllGpsAccordion();
                         return;
