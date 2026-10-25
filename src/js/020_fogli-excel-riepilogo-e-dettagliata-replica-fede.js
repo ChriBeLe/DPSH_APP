@@ -359,6 +359,26 @@ ${contenuto}
                 saveState();
             }));
 
+            /** Aggiunge una classe d'animazione e la toglie a fine animazione, così può ripartire. */
+            function animaUnaVolta(el, classe) {
+                el.classList.remove(classe);
+                void el.offsetWidth;
+                el.classList.add(classe);
+                el.addEventListener('animationend', () => el.classList.remove(classe), { once: true });
+            }
+
+            // L'intervallo appena registrato entra animato, sotto il contatore e nel Registro. Solo se
+            // ce n'è uno in più nella stessa prova: aprire una prova o ridisegnare non anima niente.
+            let registroVisto = { prova: null, n: 0 };
+            function segnaIntervalloNuovo() {
+                const n = state.logs.length;
+                if (registroVisto.prova === state.currentSurveyId && n === registroVisto.n + 1) {
+                    document.querySelectorAll(`#listaUltimiIntervalli [data-index="${n - 1}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${n - 1}"], #tblLogsBody .swipe-row-wrapper[data-index="${n - 1}"]`)
+                        .forEach(el => el.classList.add('appena-registrato'));
+                }
+                registroVisto = { prova: state.currentSurveyId, n };
+            }
+
             function renderUltimiIntervalli() {
                 const box = document.getElementById('listaUltimiIntervalli');
                 if (!box) return;
@@ -435,10 +455,16 @@ ${contenuto}
             }
             /** Le quattro spie sotto il titolo: GPS, foto, falda, note. Tre stati (vedi 03_regole-di-stile):
              * fatto, con quantità, non ancora. Mai rosso: una prova senza foto non è un errore. */
+            // Una spia che si accende nella stessa prova (il GPS preso, la prima foto) fa un piccolo
+            // salto; cambiando prova no, lì non è successo niente.
+            let provaDelleSpie = null;
             function aggiornaSpieProva() {
+                const stessaProva = provaDelleSpie === state.currentSurveyId;
+                provaDelleSpie = state.currentSurveyId;
                 const imposta = (id, stato, testo, idTesto) => {
                     const el = document.getElementById(id);
                     if (!el) return;
+                    if (stessaProva && stato !== 'non-ancora' && el.classList.contains('non-ancora')) animaUnaVolta(el, 'spia-accesa');
                     el.classList.toggle('fatto', stato === 'fatto');
                     el.classList.toggle('non-ancora', stato === 'non-ancora');
                     const t = idTesto ? document.getElementById(idTesto) : null;
@@ -606,6 +632,7 @@ ${contenuto}
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
                 renderPc();
                 segnaRigaScelta();
+                segnaIntervalloNuovo();
 
                 // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
@@ -720,6 +747,9 @@ ${contenuto}
                     const sameAsNext = nextLit && nextLit.id === litObj.id;
 
                     const barWidthPct = Math.min(100, Math.max(6, (colpiVal / maxN) * 100));
+                    // --barre è la larghezza che le barre possono prendere al massimo: tutta la corsia sul
+                    // telefono, meno sul PC, dove a destra resta posto per leggere le note.
+                    const larghezzaBarra = p => `calc(var(--barre, 100%) * ${p / 100})`;
 
                     const isBelowFalda = (faldaDepth !== null && !isNaN(faldaDepth) && endVal > faldaDepth);
 
@@ -732,7 +762,7 @@ ${contenuto}
                     return `
                         <div class="swipe-row-wrapper" data-index="${idx}" style="border-bottom: 1px solid var(--border);">
                             <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
-                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: 14% 12% 74%; padding: 0; min-height: 34px;">
+                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: var(--colonne-registro, 14% 12% 74%); padding: 0; min-height: 34px;">
                                 <!-- Colonna Prof: lasciata vuota di proposito. Le quote di profondità
                                      vengono disegnate da renderIntegratedDepthLabels() in un overlay
                                      posizionato con le coordinate REALI delle righe, cosi ogni numero
@@ -748,7 +778,7 @@ ${contenuto}
                                     <!-- BARRA LITOLOGICA: la larghezza rappresenta i colpi (si ferma al valore misurato),
                                          l'altezza è piena e i bordi verso righe con la STESSA litologia sono rimossi,
                                          cosi gli strati contigui si toccano come nel grafico SVG. -->
-                                    <div class="int-bar-fill" data-target-w="${barWidthPct}" style="position:absolute; top:0; bottom:0; left:0; width:${growAnim ? 0 : barWidthPct}%;
+                                    <div class="int-bar-fill" data-target-w="${larghezzaBarra(barWidthPct)}" style="position:absolute; top:0; bottom:0; left:0; width:${growAnim ? 0 : larghezzaBarra(barWidthPct)};
                                         ${getPatternCss(litObj.pattern, litObj.color)}
                                         border-top:${sameAsPrev ? 'none' : '1px solid rgba(0,0,0,0.3)'};
                                         border-bottom:${sameAsNext ? 'none' : '1px solid rgba(0,0,0,0.3)'};
@@ -757,7 +787,7 @@ ${contenuto}
                                         transition: width var(--mov-medio) var(--ease-entra);
                                     "></div>
                                     <!-- Nota agganciata subito dopo la fine della barra -->
-                                    <div style="position:absolute; top:0; bottom:0; left:${barWidthPct}%; display:flex; align-items:center; padding-left:6px; z-index:3; pointer-events:none;">
+                                    <div style="position:absolute; top:0; bottom:0; left:${larghezzaBarra(barWidthPct)}; display:flex; align-items:center; padding-left:6px; z-index:3; pointer-events:none;">
                                         ${noteMarkup}
                                     </div>
                                 </div>
@@ -775,7 +805,7 @@ ${contenuto}
                         requestAnimationFrame(() => {
                             tblBody.querySelectorAll('.int-bar-fill').forEach(el => {
                                 const t = el.getAttribute('data-target-w');
-                                if (t !== null) el.style.width = t + '%';
+                                if (t !== null) el.style.width = t;
                             });
                         });
                     });
@@ -814,7 +844,7 @@ ${contenuto}
                 // ----- Overlay quote di profondità: una etichetta per ogni linea di confine -----
                 const depthOverlay = document.createElement('div');
                 depthOverlay.className = 'int-depth-overlay';
-                depthOverlay.style.cssText = 'position:absolute; top:0; left:0; width:14%; height:100%; pointer-events:none; z-index:6;';
+                depthOverlay.style.cssText = 'position:absolute; top:0; left:0; width:var(--colonna-prof, 14%); height:100%; pointer-events:none; z-index:6;';
 
                 function makeDepthLabel(depthVal, yPx, accentColor) {
                     const lbl = document.createElement('div');
@@ -893,6 +923,13 @@ ${contenuto}
                 // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
                 // dell'editor). In più resta la copia automatica.
                 copiaPrimaDi('eliminare un intervallo');
+                // La riga scivola via, poi si toglie (con il movimento ridotto la durata è 1 ms).
+                const righe = document.querySelectorAll(`#listaUltimiIntervalli [data-index="${idx}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${idx}"], #tblLogsBody .swipe-row-wrapper[data-index="${idx}"]`);
+                const uscita = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mov-breve')) || 0;
+                if (righe.length && uscita) {
+                    righe.forEach(el => el.classList.add('riga-esce'));
+                    await new Promise(r => setTimeout(r, uscita));
+                }
 
                 const backupItem = JSON.parse(JSON.stringify(state.logs[idx]));
                 const backupDepth = state.currentDepthStart;

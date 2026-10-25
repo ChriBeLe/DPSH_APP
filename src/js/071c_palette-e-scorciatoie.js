@@ -270,7 +270,7 @@
                 if (!omnibarAperta()) {
                     closeAnyOpenModal();
                     vocePalette = 0;
-                    omnibar.classList.add('aperta');
+                    omnibar.classList.add('aperta', 'appena-aperta');
                     document.getElementById('pcBarra').classList.add('omnibar-attiva');
                     veloOmni.classList.add('open');
                     campoOmni.setAttribute('aria-expanded', 'true');
@@ -282,7 +282,7 @@
 
             function chiudiPalette() {
                 if (!omnibarAperta()) return;
-                omnibar.classList.remove('aperta', 'con-testo');
+                omnibar.classList.remove('aperta', 'appena-aperta', 'con-testo');
                 document.getElementById('pcBarra').classList.remove('omnibar-attiva');
                 veloOmni.classList.remove('open');
                 campoOmni.setAttribute('aria-expanded', 'false');
@@ -291,9 +291,12 @@
                 if (document.activeElement === campoOmni) campoOmni.blur();
             }
 
-            function eseguiVocePalette(i) {
+            function eseguiVocePalette(i, daTastiera) {
                 const v = vociPalette[i];
                 if (!v) return;
+                // Con Invio non c'è un clic: si dice al morph (071v) da dove far crescere la finestra.
+                const riga = daTastiera && listaOmni.querySelector(`[data-i="${i}"]`);
+                if (riga) try { ultimoTocco = { r: riga.getBoundingClientRect(), t: performance.now() }; } catch (_) { /* senza morph */ }
                 chiudiPalette();
                 closeAnyOpenModal();
                 v.azione();
@@ -310,7 +313,8 @@
             }
 
             campoOmni.addEventListener('focus', apriPalette);
-            campoOmni.addEventListener('input', () => { if (!omnibarAperta()) apriPalette(); vocePalette = 0; renderPalette(); });
+            // Le righe entrano una dopo l'altra solo all'apertura: scrivendo si aggiornano e basta.
+            campoOmni.addEventListener('input', () => { if (!omnibarAperta()) apriPalette(); omnibar.classList.remove('appena-aperta'); vocePalette = 0; renderPalette(); });
             campoOmni.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                     e.preventDefault();
@@ -319,7 +323,7 @@
                     segnaVoceScelta(true);
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    eseguiVocePalette(vocePalette);
+                    eseguiVocePalette(vocePalette, true);
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
                     e.stopPropagation();

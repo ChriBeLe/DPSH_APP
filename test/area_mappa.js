@@ -84,9 +84,9 @@ const $ = (app, id) => app.d.getElementById(id);
   t('Comandi ridotto: resta la testata, la vista prende il posto', pnl('cmd').classList.contains('red') && pnl('cmd').classList.contains('dr') && am.querySelector('.am-vista').style.getPropertyValue('--vr') === '0px');
   clic(app, pnl('cmd').querySelector('[data-pnl-azione="riduci"]'));
   clic(app, $(app, 'btnLivelli3d'));
-  t('il titolo CHIUDE i Livelli al loro posto: restano larghi e agganciati, si restringono in altezza; la vista e la bussola fanno posto',
-    pnl('liv').classList.contains('chiuso') && !pnl('liv').classList.contains('red') && pnl('liv').classList.contains('dl') && pnl('liv').style.width === '250px'
-    && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '0px' && am.querySelector('.am-vista').classList.contains('liv-pillola'));
+  t('il titolo CHIUDE i Livelli al loro posto: restano agganciati come una striscia stretta, e la vista prende il resto',
+    pnl('liv').classList.contains('chiuso') && !pnl('liv').classList.contains('red') && pnl('liv').classList.contains('dl') && pnl('liv').style.width === '44px'
+    && am.querySelector('.am-vista').style.getPropertyValue('--vl') === '44px' && !am.querySelector('.am-vista').classList.contains('liv-pillola'));
   clic(app, $(app, 'btnLivelli3d'));
   clic(app, pnl('liv').querySelector('[data-pnl-azione="riduci"]'));
   t('il tasto «riduci» ne fa una PILLOLA', pnl('liv').classList.contains('red') && pnl('liv').style.width === '128px');

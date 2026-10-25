@@ -84,6 +84,16 @@
             if (modalAutoStratiOverlay) modalAutoStratiOverlay.addEventListener('click', closeAutoStratiParamsModal);
             if (numAutoStratiDeltaColpi) numAutoStratiDeltaColpi.addEventListener('input', updateAutoStratiPreview);
             if (numAutoStratiMinThickness) numAutoStratiMinThickness.addEventListener('input', updateAutoStratiPreview);
+            // Ogni campo ha il suo cursore: si muove uno, segue l'altro.
+            [['rngAutoStratiDeltaColpi', numAutoStratiDeltaColpi], ['rngAutoStratiMinThickness', numAutoStratiMinThickness]].forEach(([id, campo]) => {
+                const cursore = document.getElementById(id);
+                if (!cursore || !campo) return;
+                cursore.addEventListener('input', () => {
+                    campo.value = cursore.step.includes('.') ? Number(cursore.value).toFixed(2) : cursore.value;
+                    updateAutoStratiPreview();
+                });
+                campo.addEventListener('input', () => { cursore.value = campo.value; });
+            });
 
             if (btnRunAutoStrati) {
                 function finalizeAutoStratiApplication(segs) {

@@ -25,24 +25,40 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   pc(app);
   app.E("switchView('home')");
   const nProgetti = app.E('Object.keys(state.projects).length');
-  t('Home: percorso «Progetti», un bottone per progetto, niente Consegna',
-    percorso(app).join('/') === 'Progetti' && $(app, 'pcLato').querySelectorAll('[data-progetto]').length === nProgetti && $(app, 'pcBtnConsegna').style.display === 'none');
+  // Sulla Home i progetti sono già al centro: la barra ha i filtri per stato e gli strumenti.
+  t('Home: percorso «Progetti», niente Consegna, nella barra nessun progetto ma i filtri',
+    percorso(app).join('/') === 'Progetti' && $(app, 'pcBtnConsegna').style.display === 'none'
+    && !$(app, 'pcLato').querySelector('[data-progetto]') && $(app, 'pcLato').querySelectorAll('[data-filtro]').length === 4);
+  t('«Tutti» è scelto e conta tutti i progetti', $(app, 'pcLato').querySelector('[data-filtro="tutti"]').getAttribute('aria-current') === 'true'
+    && $(app, 'pcLato').querySelector('[data-filtro="tutti"] .pc-filtro-n').textContent === String(nProgetti));
+  app.E("Object.values(state.projects)[0].stato = 'consegnato'; renderHomeProjects()");
+  clic(app, $(app, 'pcLato').querySelector('[data-filtro="consegnato"]'));
+  t('un filtro della barra filtra la tabella', $(app, 'homeProjectsContainer').querySelectorAll('.card-progetto').length === 1
+    && $(app, 'pcLato').querySelector('[data-filtro="consegnato"]').getAttribute('aria-current') === 'true');
+  clic(app, $(app, 'pcLato').querySelector('[data-filtro="tutti"]'));
+  app.E("delete Object.values(state.projects)[0].stato; renderHomeProjects()");
+  clic(app, $(app, 'pcLato').querySelector('[data-strumento="btnOpenArchiveManagerHome"]'));
+  t('«Archivio litologico» nella barra apre l\'archivio', !!app.d.querySelector('.modal.open'));
+  app.E('closeAnyOpenModal()');
 
   const idProg = app.E('Object.keys(state.projects)[0]');
-  clic(app, $(app, 'pcLato').querySelector(`[data-progetto="${idProg}"]`));
+  clic(app, $(app, 'homeProjectsContainer').querySelector(`.card-progetto-apri[data-id="${idProg}"]`));
   await attesa(30);
   const nome = app.E(`state.projects[${JSON.stringify(idProg)}].name`);
-  const prove = $(app, 'pcLato').querySelectorAll('[data-prova]');
-  t('clic sul progetto: schermata Progetto, percorso e prove nella barra',
-    app.E('state.uiState.currentView') === 'project' && percorso(app)[1] === nome && prove.length === app.E(`Object.keys(state.projects[${JSON.stringify(idProg)}].surveys).length`) && prove.length > 0);
+  t('clic sul progetto: schermata Progetto, percorso; nella barra i progetti, le prove no (sono nella tabella)',
+    app.E('state.uiState.currentView') === 'project' && percorso(app)[1] === nome
+    && $(app, 'pcLato').querySelectorAll('[data-progetto]').length === nProgetti && !$(app, 'pcLato').querySelector('[data-prova]'));
   t('il progetto aperto è segnato', $(app, 'pcLato').querySelector('[aria-current]').dataset.progetto === idProg);
 
-  const ultima = prove[prove.length - 1];
-  clic(app, ultima);
+  const righeTabella = $(app, 'listaProveProgetto').querySelectorAll('[data-surv]');
+  const ultimaId = righeTabella[righeTabella.length - 1].dataset.surv;
+  clic(app, righeTabella[righeTabella.length - 1]);
   await attesa(30);
-  t('clic sulla prova: la apre e il percorso arriva alla prova',
-    app.E('state.uiState.currentView') === 'field' && app.E('state.currentSurveyId') === ultima.dataset.prova && percorso(app).length === 3 && /^Prova /.test(percorso(app)[2]));
-  t('la prova aperta è segnata', $(app, 'pcLato').querySelector('[aria-current]').dataset.prova === ultima.dataset.prova);
+  const prove = $(app, 'pcLato').querySelectorAll('[data-prova]');
+  t('clic sulla prova: la apre, il percorso arriva alla prova e la barra mostra le prove del progetto',
+    app.E('state.uiState.currentView') === 'field' && app.E('state.currentSurveyId') === ultimaId && percorso(app).length === 3 && /^Prova /.test(percorso(app)[2])
+    && prove.length === app.E(`Object.keys(state.projects[${JSON.stringify(idProg)}].surveys).length`));
+  t('la prova aperta è segnata', $(app, 'pcLato').querySelector('[aria-current]').dataset.prova === ultimaId);
   const nuova = $(app, 'pcLato').querySelector('[data-nuova-prova]');
   t('sotto le prove del progetto aperto c\'è «Nuova prova», dopo l\'ultima', !!nuova && nuova.previousElementSibling.dataset.prova !== undefined);
   const primaN = app.E('Object.keys(state.projects[state.currentProjectId].surveys).length');
@@ -82,16 +98,38 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   const destro = (el) => el.dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 150 }));
   const voci = () => [...$(app, 'menuRiga').querySelectorAll('[data-voce]')].map(b => b.textContent);
   destro($(app, 'homeProjectsContainer').querySelector('[data-id]'));
-  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Consegna|Terreno e sezioni|Note, stato, copia, elimina…');
+  t('tasto destro su un progetto della Home: le sue azioni', $(app, 'menuRiga').classList.contains('open') && voci().join('|') === 'Apri|Dati del progetto|Note|Strati|Terreno e sezioni|Consegna|In corso|Da elaborare|Consegnato|Copia, backup, elimina…');
   clic(app, $(app, 'menuRiga').querySelector('[data-voce="0"]'));
   t('«Apri» apre il progetto', app.E('state.uiState.currentView') === 'project' && !$(app, 'menuRiga').classList.contains('open'));
   destro($(app, 'listaProveProgetto').querySelector('[data-surv]'));
-  t('tasto destro su una prova: Apri, Mostra sulla mappa, Dati, Strumento', voci().join('|') === 'Apri|Mostra sulla mappa|Dati della prova|Strumento');
-  clic(app, $(app, 'menuRiga').querySelector('[data-voce="2"]'));
+  t('tasto destro su una prova: Apri, Dati, Strumento, GPS, Foto, Falda, Mappa', voci().join('|') === 'Apri|Dati della prova|Strumento|Posizione GPS|Foto|Falda|Mostra sulla mappa');
+  clic(app, $(app, 'menuRiga').querySelector('[data-voce="1"]'));
   t('«Dati della prova» apre la sua scheda', !!app.d.querySelector('#modalSurveySettings.open'));
   app.E('closeAnyOpenModal()');
   clic(app, $(app, 'pcBtnImpostazioni'));
   t('Impostazioni apre il cassetto', $(app, 'drawerMenu').classList.contains('open'));
+
+  console.log('--- Le voci della barra: spie e tasto destro ---');
+  app.E('closeDrawer()');
+  await attesa(80); // chiudere il cassetto torna indietro nella cronologia
+  app.E(`apriDalLato(${JSON.stringify(idProg)}); switchView('field')`);
+  await attesa(30);
+  const vocePrima = $(app, 'pcLato').querySelector('[data-prova]'), datiPrima = app.E(`(() => { const s = state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}]; return { foto: (s.photos || []).length, strati: contaStrati(s.logs) }; })()`);
+  t('sotto ogni prova le spie: GPS, foto, strati, falda', ['#i-pin', '#i-camera', '#i-stack', '#i-droplet'].every(i => vocePrima.querySelector(`.pc-voce-info use[href="${i}"]`))
+    && vocePrima.querySelector('.pc-voce-info use[href="#i-camera"]').closest('.pc-spia').textContent === String(datiPrima.foto)
+    && vocePrima.querySelector('.pc-voce-info use[href="#i-stack"]').closest('.pc-spia').textContent === String(datiPrima.strati));
+  t('e la profondità raggiunta', / m$/.test(vocePrima.querySelector('.pc-voce-prof').textContent));
+  t('e la miniatura del profilo: una barra per intervallo', vocePrima.querySelectorAll('.pc-profilo rect').length === app.E(`state.projects[${JSON.stringify(idProg)}].surveys[${JSON.stringify(vocePrima.dataset.prova)}].logs.length`));
+  app.E(`state.projects[${JSON.stringify(idProg)}].stato = 'consegnato'; renderPc()`);
+  t('sotto il progetto: stato e numero di prove', /^Consegnato · \d+ prov[ae]/.test($(app, 'pcLato').querySelector(`[data-progetto="${idProg}"] .pc-voce-info`).textContent.trim()));
+  $(app, 'pcLato').querySelector(`[data-progetto="${idProg}"]`).dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  const vociProgetto = [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
+  t('tasto destro sul progetto: dati, note, strati e stato', ['Dati del progetto', 'Note', 'Strati', 'In corso', 'Consegnato'].every(v => vociProgetto.includes(v)));
+  [...$(app, 'menuRiga').querySelectorAll('[role="menuitem"]')].find(b => b.textContent.trim() === 'Consegnato').click();
+  t('lo stato scelto di nuovo si toglie', app.E(`state.projects[${JSON.stringify(idProg)}].stato`) === undefined);
+  $(app, 'btnProgettoDati').dispatchEvent(new app.w.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  t('tasto destro anche sul nome del progetto', $(app, 'menuRiga').classList.contains('open') && $(app, 'menuRiga').querySelector('.menu-contesto-titolo').textContent === nome);
+  app.E('chiudiMenuRiga()');
 
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
