@@ -237,7 +237,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const larghezza = () => { const xs = app.E('ultimaScena3d.pezzi').filter(f => f.cls === 'vista3d-faccia').flatMap(f => f.p.map(q => q[0])); return Math.max(...xs) - Math.min(...xs); };
   const senza = larghezza();
   clic(app, $(app, 'btnProspettiva3d'));
-  t('la prospettiva si accende e cambia il disegno (dall\'alto, il terreno lontano rimpicciolisce)', app.E('vista3d.prospettiva') === true && Math.abs(larghezza() - senza) > 1 && /campo visivo/.test($(app, 'lblFov3d').textContent));
+  t('la prospettiva si accende e cambia il disegno (dall\'alto, il terreno lontano rimpicciolisce)', app.E('vista3d.prospettiva') === true && Math.abs(larghezza() - senza) > 1 && /^\d+°$/.test($(app, 'lblFov3d').textContent));
   clic(app, $(app, 'btnProspettiva3d'));
   t('la bussola: anello, leva, quattro tasti agli angoli, righe di zoom, inclinazione ed esagerazione', !!app.d.querySelector('#bussola3d .b-presa-anello') && !!app.d.querySelector('#bussola3d .b-pomello') && app.d.querySelectorAll('#bussola3d .b-ang').length === 4 && [...app.d.querySelectorAll('#bussola3d [data-riga]')].map(r => r.dataset.riga).join() === 'zoom,incl,esag');
   t('le viste pronte: dall\'alto, isometrica (35,26°), dai quattro lati, da sotto', app.E('Object.keys(VISTE_PRONTE_3D).join()') === 'alto,iso,nord,est,sud,ovest,sotto' && Math.abs(app.E('VISTE_PRONTE_3D.iso.el') * 180 / Math.PI - 35.264) < 0.01);
@@ -267,6 +267,14 @@ const $ = (app, id) => app.d.getElementById(id);
   $(app, 'selSfondo3d').value = 'wms';
   $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
   t('«Altro indirizzo WMS…» apre la riga per indirizzo e layer', $(app, 'rigaWms3d').style.display === '' && /Incolla l'indirizzo/.test($(app, 'lblSfondo3d').textContent));
+  {
+    const prima = app.E('JSON.stringify(state.settings.sfondo3d || null)');
+    app.E("state.settings.sfondo3d = { id: 'esri-satellite' }; datiVista3dCorrenti._sfondo = { errori: 1, caricate: 0, totali: 1 }; aggiornaStatoSfondo3d()");
+    const st = $(app, 'lblSfondo3d');
+    t('se l\'immagine sul terreno non arriva lo dice chiaro, in un riquadro giallo', st.classList.contains('problema') && /non è arrivata/.test(st.textContent));
+    app.E(`state.settings.sfondo3d = ${prima}; datiVista3dCorrenti._sfondo = undefined; riempiSceltaSfondo3d()`);
+    t('(e il riquadro sparisce quando non c\'è niente da dire)', !$(app, 'lblSfondo3d').classList.contains('problema'));
+  }
   $(app, 'selSfondo3d').value = '';
   $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
   t('«Nessuna» torna ai colori della quota', !app.E('ultimaScena3d.pezzi.some(f => f.sfondo)'));
