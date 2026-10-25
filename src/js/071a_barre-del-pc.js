@@ -135,6 +135,27 @@
                 return `<svg class="pc-profilo" viewBox="0 0 ${L} ${A}" preserveAspectRatio="none" aria-hidden="true">${barre}</svg>`;
             }
 
+            /** Dove sta la prova rispetto alle altre, in piccolo: una pianta con le prove col GPS come
+             * puntini grigi e questa in evidenza. Nord in alto, distanze in proporzione (la longitudine
+             * stretta col coseno della latitudine). Vuota se la prova non ha il GPS. */
+            function miniPianta(survId, prove) {
+                const punti = prove.map(sv => ({ id: sv.id, la: parseFloat((sv.header || {}).lat), lo: parseFloat((sv.header || {}).lng) }))
+                    .filter(p => isFinite(p.la) && isFinite(p.lo));
+                const questa = punti.find(p => p.id === survId);
+                if (!questa) return '';
+                const L = 40, A = 30, M = 5;
+                const k = Math.cos(questa.la * Math.PI / 180);
+                const xs = punti.map(p => p.lo * k), ys = punti.map(p => -p.la);
+                const x0 = Math.min(...xs), y0 = Math.min(...ys);
+                const largo = Math.max(...xs) - x0, alto = Math.max(...ys) - y0;
+                const scala = Math.min((L - 2 * M) / (largo || 1), (A - 2 * M) / (alto || 1));
+                const dx = (L - largo * scala) / 2, dy = (A - alto * scala) / 2;
+                const pos = p => [(dx + (p.lo * k - x0) * scala).toFixed(1), (dy + (-p.la - y0) * scala).toFixed(1)];
+                const altre = punti.filter(p => p !== questa).map(p => { const [x, y] = pos(p); return `<circle cx="${x}" cy="${y}" r="2.2"/>`; }).join('');
+                const [x, y] = pos(questa);
+                return `<svg class="pc-pianta" viewBox="0 0 ${L} ${A}" aria-hidden="true">${altre}<circle class="questa" cx="${x}" cy="${y}" r="4.2"/><circle class="questa-centro" cx="${x}" cy="${y}" r="2.2"/></svg>`;
+            }
+
             document.getElementById('pcPercorso').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-vista]');
                 if (b) switchView(b.dataset.vista);

@@ -1391,7 +1391,12 @@
             .prova-cella { display: block; font-family: var(--font-mono); font-size: var(--fs-testo); white-space: nowrap; }
             .prova-cella.vuota { color: var(--text-muted); }
             .prova-cella .ico { width: 16px; height: 16px; color: var(--success); vertical-align: -3px; }
-            .prova-cella:has(.prova-foto, .pc-profilo) { display: flex; align-items: center; gap: var(--sp-2); }
+            .prova-cella:has(.prova-foto, .pc-profilo, .pc-pianta) { display: flex; align-items: center; gap: var(--sp-2); }
+            /* La mini-pianta nella colonna GPS: le altre prove in grigio, questa in evidenza. */
+            .prova-cella .pc-pianta { width: 40px; height: 30px; flex: none; background: var(--bg-main); border-radius: 3px; fill: var(--text-muted); }
+            .pc-pianta circle:not([class]) { opacity: .75; }
+            .pc-pianta .questa { fill: var(--accent); opacity: .3; }
+            .pc-pianta .questa-centro { fill: var(--accent); }
             .prova-foto { width: 40px; height: 30px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
             .prova-cella .pc-profilo { width: 40px; height: 30px; flex: none; fill: var(--text-muted); background: var(--bg-main); border-radius: 3px; }
             .prova-riga-stato { justify-self: start; }

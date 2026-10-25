@@ -54,6 +54,11 @@ const vista = app => app.E('state.uiState.currentView');
   t('una prova con intervalli ha almeno uno strato, anche senza litologia assegnata; lo stesso segno ripetuto non ne fa due',
     app.E("contaStrati([{}, {}])") === 1 && app.E("contaStrati([{ lithology: 'a' }, {}, { lithology: 'a' }, { lithology: 'b' }])") === 2
     && app.E("contaStrati([{}, { lithology: 'a' }])") === 2 && app.E('contaStrati([])') === 0);
+  const conGps = sv => isFinite(parseFloat((sv.header || {}).lat)) && isFinite(parseFloat((sv.header || {}).lng));
+  const nGps = Object.values(proj.surveys).filter(conGps).length;
+  t('nella colonna GPS, oltre al ✓, la mini-pianta: le altre prove col GPS in grigio, questa in evidenza; senza GPS niente',
+    righe.every(r => { const sv = proj.surveys[r.dataset.surv]; const m = r.querySelector('.pc-pianta');
+      return conGps(sv) ? m && m.querySelectorAll('.questa').length === 1 && m.querySelectorAll('circle:not([class])').length === nGps - 1 : !m; }));
   t('e lo stato: «Pronta» o «N avvisi»', righe.every(r => /^(Pronta|\d+ avvis[oi])$/.test(r.querySelector('.prova-riga-stato').textContent)));
   t('la prova aperta è segnata, e «Riprendi» la nomina', righe.find(r => r.classList.contains('attiva')).dataset.surv === provaAperta
     && /^Riprendi la Prova /.test($(app, 'btnProgettoRiprendi').textContent));

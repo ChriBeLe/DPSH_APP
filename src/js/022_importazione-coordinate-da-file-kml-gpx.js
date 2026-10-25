@@ -450,7 +450,7 @@
                         <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
                         <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
                             <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${nFoto} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
-                        ${cella(numeroConVirgola(fondo) + ' m')}${cella(logs.length, !logs.length)}${cella(haGps ? '<svg class="ico"><use href="#i-check"/></svg>' : '—', !haGps)}${cella(foto, !nFoto)}${cella(strati, !nStrati)}${cella(isFinite(falda) ? numeroConVirgola(falda) + ' m' : '—', !isFinite(falda))}
+                        ${cella(numeroConVirgola(fondo) + ' m')}${cella(logs.length, !logs.length)}${cella(haGps ? `${miniPianta(s.id, prove)}<svg class="ico"><use href="#i-check"/></svg>` : '—', !haGps)}${cella(foto, !nFoto)}${cella(strati, !nStrati)}${cella(isFinite(falda) ? numeroConVirgola(falda) + ' m' : '—', !isFinite(falda))}
                         <span class="prova-riga-stato${n ? ' avviso' : ''}">${n ? n + (n === 1 ? ' avviso' : ' avvisi') : 'Pronta'}</span>
                     </button>`;
                 }).join('');
