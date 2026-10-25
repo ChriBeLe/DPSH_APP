@@ -474,7 +474,7 @@
                 'esri-satellite': Object.assign({}, PROVIDER_MAPPA['esri-satellite'], { nome: 'Esri · Satellite' }),
                 'esri-topo': Object.assign({}, PROVIDER_MAPPA['esri-topo'], { nome: 'Esri · Topografica' }),
                 'esri-strade': Object.assign({}, PROVIDER_MAPPA['esri-strade'], { nome: 'Esri · Stradale' }),
-                'osm': Object.assign({}, PROVIDER_MAPPA['osm'], { nome: 'OpenStreetMap · Stradale' }),
+                'osm': Object.assign({}, PROVIDER_MAPPA['osm'], { nome: location.protocol === 'file:' ? 'Esri · Stradale (OSM non si apre da file)' : 'OpenStreetMap · Stradale' }),
                 'opentopo': Object.assign({}, PROVIDER_MAPPA['opentopo'], { nome: 'OpenStreetMap · Curve di livello (OpenTopoMap)' })
             };
             /** La scelta, ricordata nelle impostazioni dell'app (vale per tutti i progetti). */
@@ -1502,6 +1502,7 @@
                 document.getElementById('modalVista3dOverlay').classList.add('open');
                 document.getElementById('modalVista3d').classList.add('open');
                 riempiSceltaSfondo3d();
+                aggiornaCampiSr();
                 vista3d.disegno = null;
                 renderElencoSezioni3d();
                 modoAreaMappa(typeof modo === 'string' ? modo : '3d');
@@ -1939,7 +1940,7 @@
                 bp.textContent = vista3d.prospettiva ? 'Accesa' : 'Spenta';
                 document.getElementById('rngFov3d').value = vista3d.fov;
                 document.getElementById('rngFov3d').disabled = !vista3d.prospettiva;
-                document.getElementById('lblFov3d').textContent = vista3d.prospettiva ? `campo visivo ${vista3d.fov}°` : 'assonometria';
+                document.getElementById('lblFov3d').textContent = vista3d.prospettiva ? `${vista3d.fov}°` : '—';
                 document.querySelectorAll('#presetVista3d [data-preset3d]').forEach(b => b.setAttribute('aria-pressed', 'false'));
             }
             /** Porta la vista a una posizione, con un breve movimento (per l'azimut, dalla parte più corta). */
@@ -2280,7 +2281,7 @@
                 requestAnimationFrame(passo);
             }
             document.getElementById('btnProspettiva3d').addEventListener('click', () => { vista3d.prospettiva = !vista3d.prospettiva; renderVista3d(); });
-            document.getElementById('rngFov3d').addEventListener('input', (e) => { vista3d.fov = Number(e.target.value); ridisegna3d(); });
+            document.getElementById('rngFov3d').addEventListener('input', (e) => { vista3d.fov = Number(e.target.value); document.getElementById('lblFov3d').textContent = vista3d.fov + '°'; ridisegna3d(); });
 
             // ---- L'immagine sul terreno: scelta, opacità, WMS ----
             /** Il menù: nessuna, i fornitori a tessere, i WMS pronti e i propri, e un WMS qualsiasi. */
@@ -2299,17 +2300,23 @@
                 document.getElementById('txtWmsLayer3d').value = sc.wmsLayer;
                 document.getElementById('rigaWms3d').style.display = sel.value === 'wms' ? '' : 'none';
                 document.getElementById('rngOpacita3d').value = Math.round((sc.opacita || (sc.id ? 0.85 : 0.62)) * 100);
+                document.getElementById('lblOpacita3d').textContent = document.getElementById('rngOpacita3d').value + '%';
                 aggiornaStatoSfondo3d();
             }
             function aggiornaStatoSfondo3d() {
                 const lbl = document.getElementById('lblSfondo3d'), sc = sceltaSfondo3d();
                 const sf = datiVista3dCorrenti && datiVista3dCorrenti._sfondo;
-                if (!sc.id || !sf) { lbl.textContent = ''; return; }
-                if (sc.id === 'wms' && !sc.wmsUrl) { lbl.textContent = 'Incolla l\'indirizzo del servizio e premi «Carica».'; return; }
+                // Lo stato si colora: in caricamento neutro, un problema in giallo (classe .problema).
+                const dici = (testo, problema) => { lbl.textContent = testo; lbl.classList.toggle('problema', !!problema); };
+                if (!sc.id || !sf) return dici('');
+                if (sc.id === 'wms' && !sc.wmsUrl) return dici('Incolla l\'indirizzo del servizio e premi «Carica».');
                 const misto = sc.id === 'wms' && /^http:/i.test(sc.wmsUrl) && location.protocol === 'https:';
-                lbl.textContent = misto ? 'Questo servizio è in http: da una pagina https il browser lo blocca.'
-                    : sf.errori && sf.caricate < sf.totali && sf.caricate + sf.errori >= sf.totali ? `${sf.errori} su ${sf.totali} pezzi non sono arrivati: senza rete, o il servizio non risponde.`
-                    : sf.caricate < sf.totali ? `Carico l'immagine… ${sf.caricate} di ${sf.totali}` : '';
+                if (misto) return dici('Questo servizio è in http: da una pagina https il browser lo blocca. Scegline un altro.', true);
+                if (sf.errori && sf.caricate < sf.totali && sf.caricate + sf.errori >= sf.totali) {
+                    return dici(sf.caricate ? `Immagine incompleta: ${sf.errori} pezzi su ${sf.totali} non sono arrivati. Senza rete, o il servizio non risponde.`
+                        : 'L\'immagine non è arrivata: senza rete, o il servizio non risponde. Prova con un\'altra.', true);
+                }
+                dici(sf.caricate < sf.totali ? `Carico l'immagine… ${sf.caricate} di ${sf.totali}` : '');
             }
             function cambiaSfondo3d(modifiche) {
                 salvaSceltaSfondo3d(modifiche);
@@ -2346,6 +2353,7 @@
             document.getElementById('rngOpacita3d').addEventListener('input', (e) => {
                 if (!state.settings) state.settings = {};
                 state.settings.sfondo3d = Object.assign(sceltaSfondo3d(), { opacita: Number(e.target.value) / 100 });
+                document.getElementById('lblOpacita3d').textContent = e.target.value + '%';
                 ridisegna3d();
             });
             document.getElementById('rngOpacita3d').addEventListener('change', () => saveState());

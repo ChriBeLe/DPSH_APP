@@ -52,6 +52,7 @@
             function applyGpsCoordsToModal(lat, lng, sourceLabel) {
                 if (numModalGpsLat) numModalGpsLat.value = lat;
                 if (numModalGpsLng) numModalGpsLng.value = lng;
+                aggiornaCampiSr();
                 triggerVibrate([40, 40]);
                 if (lblModalGpsStatus) {
                     lblModalGpsStatus.innerHTML = `${ico('check')} ${sourceLabel}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
@@ -270,6 +271,8 @@
                 if (!state.uiState) state.uiState = { currentView: 'home' };
                 const vistaPrecedente = state.uiState.currentView;
                 const cambioVistaReale = vistaPrecedente !== viewName;
+                // Dove stanno ora i nomi che passano alla schermata nuova (071v: il morph).
+                const sorgentiMorph = cambioVistaReale && viewTransitionsEnabled ? misuraMorph(vistaPrecedente) : null;
                 state.uiState.currentView = viewName;
                 const btnExpHeader = document.getElementById('btnExportHeader');
 
@@ -303,7 +306,7 @@
                     // Entrando in una prova (dalla Home o dal Progetto) si parte dal contatore (Fase 6).
                     if (vistaPrecedente !== 'field') vistaProva = 'conta';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'flex';
-                    startLiveGpsWatch();
+                    // (Il GPS non parte più da solo entrando: vedi startLiveGpsWatch.)
                     updateUI();
                 }
 
@@ -312,7 +315,8 @@
                 // al primo giro (avvio app: non c'è una schermata precedente da cui "arrivare").
                 if (cambioVistaReale && viewTransitionsEnabled) {
                     const vistaEntrante = viewName === 'home' ? viewHome : (viewName === 'project' ? viewProject : viewField);
-                    if (vistaEntrante) {
+                    // Se un nome vola dentro la schermata nuova, entra il resto attorno a lui; altrimenti tutta.
+                    if (vistaEntrante && !eseguiMorph(sorgentiMorph, state.uiState.currentView, vistaEntrante)) {
                         vistaEntrante.classList.remove('screen-nav-enter');
                         void vistaEntrante.offsetWidth; // forza il reflow per poter ri-innescare l'animazione
                         vistaEntrante.classList.add('screen-nav-enter');
@@ -434,13 +438,27 @@
                     const haGps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
                     const falda = parseFloat(h.faldaDa);
                     const n = avvisi.get(s.id) || 0;
+                    const nFoto = (s.photos || []).length, nStrati = contaStrati(logs);
+                    // Sul PC le stesse cose in colonne (una tabella che si confronta riga per riga); sul
+                    // telefono la riga riassunta sotto il nome. Il CSS mostra l'una o l'altra.
+                    const cella = (valore, vuota) => `<span class="prova-cella${vuota ? ' vuota' : ''}">${valore}</span>`;
+                    // Mostrare, non dire: la prima foto in piccolo (si carica dopo, dall'archivio) e la
+                    // forma della prova accanto al numero di strati.
+                    const foto = nFoto ? `<img class="prova-foto" alt="" hidden data-foto="${escapeHtmlDidascalia(String(s.photos[0].id || ''))}">${nFoto > 1 ? '+' + (nFoto - 1) : ''}` : '0';
+                    const strati = `${miniProfilo(logs, fondo)}${nStrati}`;
                     return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${s.id}">
                         <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
                         <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
-                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${(s.photos || []).length} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${nFoto} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                        ${cella(numeroConVirgola(fondo) + ' m')}${cella(logs.length, !logs.length)}${cella(haGps ? `${miniPianta(s.id, prove)}<svg class="ico"><use href="#i-check"/></svg>` : '—', !haGps)}${cella(foto, !nFoto)}${cella(strati, !nStrati)}${cella(isFinite(falda) ? numeroConVirgola(falda) + ' m' : '—', !isFinite(falda))}
                         <span class="prova-riga-stato${n ? ' avviso' : ''}">${n ? n + (n === 1 ? ' avviso' : ' avvisi') : 'Pronta'}</span>
                     </button>`;
                 }).join('');
+                // Le miniature delle foto solo dove la tabella si vede (dal PC): sul telefono non servono.
+                if (window.matchMedia('(min-width: 1024px)').matches) $('listaProveProgetto').querySelectorAll('img[data-foto]').forEach(img => {
+                    const id = img.dataset.foto;
+                    Promise.resolve(photoMemoryCache[id] || getPhotoFromIDB(id)).then(u => { if (u && img.isConnected) { img.src = u; img.hidden = false; } }).catch(() => {});
+                });
                 $('listaProveProgetto').querySelectorAll('.prova-riga').forEach(b => b.addEventListener('click', () => {
                     if (b.dataset.surv !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, b.dataset.surv);
                     switchView('field');

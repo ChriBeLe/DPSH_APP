@@ -62,7 +62,7 @@ const schermo = (app, larghezza) => { app.w.matchMedia = q => { const m = /min-w
   const n = app.E('state.logs.length');
   clic(app, riga(0));
   tasto('Delete');
-  await attesa(30);
+  await attesa(250); // la riga prima scivola via (--mov-breve)
   t('Canc elimina la riga scelta, senza domande (c\'è Annulla)', app.E('state.logs.length') === n - 1 && !app.dialogo());
   app.d.body.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
   await attesa(30);

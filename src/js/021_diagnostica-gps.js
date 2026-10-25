@@ -137,10 +137,21 @@
 
                 showGpsMapSearchMessage('⏳ Ricerca in corso...');
                 try {
-                    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=it&q=' + encodeURIComponent(q);
-                    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                    const results = await resp.json();
+                    // Prima OpenStreetMap (Nominatim); se rifiuta (aperta come file la richiesta non ha
+                    // pagina di provenienza) o non risponde, il geocodificatore di Esri, senza chiave.
+                    const nominatim = async () => {
+                        const resp = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=it&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } });
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        return resp.json();
+                    };
+                    const esri = async () => {
+                        const resp = await fetch('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=6&countryCode=ITA&outFields=Match_addr&SingleLine=' + encodeURIComponent(q));
+                        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                        const dati = await resp.json();
+                        return (dati.candidates || []).map(c => ({ display_name: c.address, lat: c.location && c.location.y, lon: c.location && c.location.x }));
+                    };
+                    let results;
+                    try { results = await nominatim(); } catch (_) { results = await esri(); }
 
                     if (!results || results.length === 0) {
                         showGpsMapSearchMessage('Nessun risultato trovato. Prova con il nome del comune o una via più nota.');
@@ -199,6 +210,8 @@
             // oppure un link tipo "https://maps.google.com/@41.845912,12.562424,15z"
             function parsePastedCoords(text) {
                 if (!text) return null;
+                const sr = srDelProgetto();
+                if (sr.zona) return geoDaTestoUtm(text, sr);
                 const match = text.match(/(-?\d{1,3}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)/);
                 if (!match) return null;
                 const lat = parseFloat(match[1]);
@@ -213,15 +226,16 @@
                     const raw = txtPasteCoords ? txtPasteCoords.value : '';
                     const coords = parsePastedCoords(raw);
                     if (!coords) {
-                        appAlert('Coordinate non riconosciute. Incolla un testo con lat e lng, es: 41.845912, 12.562424');
+                        appAlert(srDelProgetto().zona ? `Coordinate non riconosciute. Il progetto è in ${nomeBreveSr(srDelProgetto())}: incolla Est e Nord, es: 471719.850, 4115631.129` : 'Coordinate non riconosciute. Incolla un testo con lat e lng, es: 41.845912, 12.562424');
                         return;
                     }
                     if (numModalGpsLat) numModalGpsLat.value = coords.lat;
                     if (numModalGpsLng) numModalGpsLng.value = coords.lng;
                     if (txtPasteCoords) txtPasteCoords.value = '';
+                    aggiornaCampiSr();
                     triggerVibrate([40, 40]);
                     if (lblModalGpsStatus) {
-                        lblModalGpsStatus.innerHTML = `${ico('check')} Coordinate riconosciute: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)} — premi "Salva Coordinate" per confermare`;
+                        lblModalGpsStatus.innerHTML = `${ico('check')} Coordinate riconosciute: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}${testoCoordSr(coords.lat, coords.lng)} — premi "Salva Coordinate" per confermare`;
                         lblModalGpsStatus.style.color = 'var(--success)';
                     }
                 });

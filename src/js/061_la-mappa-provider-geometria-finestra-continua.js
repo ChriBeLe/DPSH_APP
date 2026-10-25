@@ -66,7 +66,17 @@
                     url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
                     attribuzione: 'Esri, Maxar, Earthstar Geographics'
                 },
-                'osm': {
+                // OpenStreetMap rifiuta le richieste senza pagina di provenienza (Referer): aperta come
+                // file (o nell'APK, o nel programma da PC) l'app ne riceverebbe solo tessere «Access
+                // blocked». Lì la voce resta (le scelte salvate continuano a valere) ma disegna la
+                // stradale di Esri, che si apre da ovunque.
+                'osm': location.protocol === 'file:' ? {
+                    nome: 'Mappa stradale (Esri: OSM non si apre da file)',
+                    tipo: 'tessere',
+                    zoomMax: 19,
+                    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+                    attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'
+                } : {
                     nome: 'Mappa stradale (OSM)',
                     tipo: 'tessere',
                     zoomMax: 19,
@@ -1389,6 +1399,8 @@
                 numModalEnd.value = end.toFixed(2);
                 numModalColpi.value = '';
                 txtModalNote.value = '';
+                chkModalRifiuto.checked = false;
+                aggiornaRigaRifiuto();
 
                 populateStratiDropdown();
                 if (selModalLithology) selModalLithology.value = '';
@@ -1410,6 +1422,13 @@
             // MODAL EDITING MANUALE COMPLETO (DA, A, COLPI, NOTE)
             // senzaTastiera: aperta toccando una riga (Fase 6) la scheda non chiama la tastiera; per
             // correggere un colpo bastano − e +.
+            // La scelta «solo grafico» ha senso solo se la nota contiene «Rifiuto».
+            const chkModalRifiuto = document.getElementById('chkModalRifiuto');
+            function aggiornaRigaRifiuto() {
+                document.getElementById('rigaModalRifiuto').style.display = /rifiuto/i.test(txtModalNote.value) ? 'flex' : 'none';
+            }
+            txtModalNote.addEventListener('input', aggiornaRigaRifiuto);
+
             function openEditModal(idx, { senzaTastiera = false } = {}) {
                 editingIndex = idx;
                 const item = state.logs[idx];
@@ -1422,6 +1441,8 @@
                 numModalEnd.value = item.end.toFixed(2);
                 numModalColpi.value = item.colpi === 0 ? '' : item.colpi; // Vuoto per aprire il tastierino pulito!
                 txtModalNote.value = item.note || '';
+                chkModalRifiuto.checked = !!item.rifiutoSoloGrafico;
+                aggiornaRigaRifiuto();
                 
                 // Popola dropdown strati e seleziona litologia specifica dello step
                 populateStratiDropdown();
@@ -1480,6 +1501,8 @@
                         const cur = txtModalNote.value.trim();
                         txtModalNote.value = cur ? `${cur}, ${tag}` : tag;
                     }
+                    if (tag === 'Rifiuto') chkModalRifiuto.checked = true;
+                    aggiornaRigaRifiuto();
                 });
             });
 
@@ -1516,6 +1539,7 @@
                             state.logs[editingIndex].colpi = Math.max(0, parseInt(numModalColpi.value) || 0);
                             state.logs[editingIndex].asta = getRodForDepth(endDepth);
                             state.logs[editingIndex].note = txtModalNote.value.trim();
+                            state.logs[editingIndex].rifiutoSoloGrafico = chkModalRifiuto.checked;
                             if (selModalLithology) {
                                 state.logs[editingIndex].lithology = selModalLithology.value || '';
                             }
@@ -1540,7 +1564,8 @@
                                 colpi: colpi,
                                 asta: getRodForDepth(endDepth),
                                 note: note,
-                                lithology: lithology
+                                lithology: lithology,
+                                rifiutoSoloGrafico: chkModalRifiuto.checked
                             }, 'modifica-manuale'));
 
                             state.currentDepthStart = endDepth;

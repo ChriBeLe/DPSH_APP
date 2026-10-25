@@ -66,7 +66,7 @@
                     <label class="am-solo-mappa am-sfondo2d" id="sfondoMappaProgetto">Mappa di base <select id="selSfondo2d" class="form-control" aria-label="Mappa di base"></select></label>
                     <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
                         <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
-                        <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false">Modello e tagli</button>
+                        <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false" title="Modello e tagli">Modello<span class="cmd3d-solo-largo"> e tagli</span></button>
                         <button type="button" role="tab" data-scheda3d="immagine" aria-selected="false">Immagine</button>
                         <button type="button" role="tab" data-scheda3d="sezioni" aria-selected="false">Sezioni</button>
                     </div>
@@ -82,16 +82,21 @@
                             <button type="button" class="pillola" data-preset3d="ovest">Da Ovest</button>
                             <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
                         </div>
+                        <!-- Una riga per comando: nome, cursore, valore. Il campo visivo vale solo con la
+                             prospettiva accesa (spenta: assonometria). -->
                         <div class="vista3d-cursori">
-                            <div class="vista3d-cursore"><span>Prospettiva</span>
-                                <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false">Spenta</button>
+                            <div class="vista3d-cursore cmd3d-interruttore"><span>Prospettiva</span>
+                                <button type="button" class="pillola" id="btnProspettiva3d" aria-pressed="false" title="Spenta: assonometria, le misure non cambiano con la distanza">Spenta</button></div>
+                            <label class="vista3d-cursore"><span>Campo visivo</span>
                                 <input type="range" id="rngFov3d" min="15" max="90" step="1" value="45" aria-label="Campo visivo">
-                                <strong id="lblFov3d"></strong></div>
+                                <strong id="lblFov3d"></strong></label>
                             <label class="vista3d-cursore"><span>Ombreggiatura</span>
                                 <input type="range" id="rngOmbre3d" min="0" max="100" step="5" value="60" aria-label="Ombreggiatura del modello">
                                 <strong id="lblOmbre3d">60%</strong></label>
                         </div>
+                        <details class="cmd3d-aiuto"><summary>Come ci si muove nella figura</summary>
                         <p class="t-didascalia vista3d-aiuto">Trascina per girare, anche sotto l'orizzonte; tasto destro o centrale (o Maiusc, o due dita) per spostarti, e poi giri attorno a lì; la rotella avvicina verso il punto sotto il cursore. La bussola sulla figura: l'anello gira la vista, la leva al centro la sposta (un clic: Nord in alto), a destra zoom, inclinazione ed esagerazione. Tocca una colonna per la sua scheda; col tasto destro il suo menu. Tastiera: W A S D, Q Z, R F (vedi «Tasti»).</p>
+                        </details>
                     </div>
 
                     <!-- MODELLO E TAGLI: il corpo chiuso tra le prove e i due piani che lo tagliano. Toccare un
@@ -137,29 +142,38 @@
                     <!-- IMMAGINE: quella stesa sul terreno. Google, Esri, OpenStreetMap o un WMS; la scelta si
                          ricorda (impostazioni dell'app), i WMS salvati sono gli stessi dell'inquadramento. -->
                     <div class="vista3d-pannello" data-pannello3d="immagine" role="tabpanel" hidden>
-                        <div class="vista3d-taglio-riga">
-                            <span class="vista3d-taglio-nome">Immagine sul terreno</span>
+                        <!-- Due blocchi: l'immagine stesa sul terreno (quale, quanto si vede, l'eventuale WMS e lo
+                             stato del caricamento), poi la stessa immagine sopra il modello (sì/no, quanto si vede). -->
+                        <div class="cmd3d-gruppo">
+                            <div class="cmd3d-titolo">Immagine sul terreno</div>
                             <select id="selSfondo3d" class="form-control" aria-label="Immagine sul terreno"></select>
-                            <label class="vista3d-opacita">Opacità <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85"></label>
+                            <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
+                                <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
+                                <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">
+                                <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
+                                <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
+                            </div>
+                            <label class="vista3d-cursore"><span>Opacità</span>
+                                <input type="range" id="rngOpacita3d" min="10" max="100" step="5" value="85" aria-label="Opacità dell'immagine sul terreno">
+                                <strong id="lblOpacita3d">85%</strong></label>
+                            <p class="cmd3d-stato" id="lblSfondo3d" role="status"></p>
                         </div>
-                        <div class="vista3d-taglio-riga">
-                            <label class="vista3d-opacita"><input type="checkbox" id="chkFotoSopra3d"> Foto sopra il modello</label>
-                            <label class="vista3d-opacita" title="Quanto si vede la foto sopra il modello: poca, e il modello sotto si vede di più">Opacità <input type="range" id="rngOpacitaFoto3d" min="10" max="100" step="5" value="50"> <b id="lblOpacitaFoto3d">50%</b></label>
+                        <div class="cmd3d-gruppo">
+                            <label class="cmd3d-interruttore-riga">
+                                <span><b>Foto sopra il modello</b><small>L'immagine anche sopra il corpo solido, in trasparenza</small></span>
+                                <span class="switch"><input type="checkbox" id="chkFotoSopra3d"><span class="switch-visual"></span></span>
+                            </label>
+                            <label class="vista3d-cursore cmd3d-dipende" title="Quanto si vede la foto sopra il modello: poca, e il modello sotto si vede di più"><span>Opacità</span>
+                                <input type="range" id="rngOpacitaFoto3d" min="10" max="100" step="5" value="50" aria-label="Opacità della foto sopra il modello">
+                                <strong id="lblOpacitaFoto3d">50%</strong></label>
                         </div>
-                        <div class="vista3d-taglio-riga" id="rigaWms3d" style="display: none;">
-                            <input type="url" id="txtWmsUrl3d" class="form-control" placeholder="Indirizzo del servizio WMS (https://…)" aria-label="Indirizzo del servizio WMS">
-                            <input type="text" id="txtWmsLayer3d" class="form-control" placeholder="Layer" aria-label="Layer del WMS">
-                            <button type="button" class="bt" id="btnWmsCarica3d">Carica</button>
-                            <button type="button" class="bt-link" id="btnWmsSalva3d">Salva fra i miei servizi</button>
-                        </div>
-                        <p class="t-didascalia" id="lblSfondo3d"></p>
                     </div>
 
                     <!-- SEZIONI: tracce disegnate sulla figura (due clic, dall'alto) o a griglia, con un nome
                          (A-A', 1-1'…); per ciascuna la sezione lungo la linea, il PDF con la vista dal satellite,
                          e il GeoPackage di tutte. Le riempie il 071j (il GeoPackage il 071k). -->
                     <div class="vista3d-pannello" data-pannello3d="sezioni" role="tabpanel" hidden>
-                        <div class="vista3d-taglio-riga">
+                        <div class="vista3d-taglio-riga cmd3d-traccia">
                             <button type="button" class="pillola" id="btnTracciaSezione3d" aria-pressed="false">Traccia una sezione</button>
                             <span class="t-didascalia">Due clic sulla figura (dall'alto): inizio e fine. Il nome si cambia nell'elenco.</span>
                         </div>
@@ -188,7 +202,7 @@
                             </div>
                         </details>
                         <div id="elencoSezioni3d" class="vista3d-sezioni"></div>
-                        <div class="vista3d-taglio-riga">
+                        <div class="vista3d-taglio-riga cmd3d-esporta">
                             <label>Prove entro <input type="number" id="numFasciaSezione3d" class="form-control" min="0" step="5" value="25"> m dalla traccia</label>
                             <label>Sezioni 2D <select id="selRiempimentoSezioni3d" class="form-control" title="Come si riempiono le sezioni 2D (anche nelle tavole)"><option value="pannelli">Pannelli di correlazione</option><option value="solido">Modello solido</option></select></label>
                             <button type="button" class="bt bt-tenue" id="btnPdfSezioni3d" title="Le sezioni 3D (il modello tagliato lungo ogni traccia) e 2D, in un PDF solo o in immagini, col modello in isometria prima"><svg class="ico"><use href="#i-print"/></svg>Tavole 2D e 3D…</button>
@@ -216,6 +230,7 @@
         </div>
         <div class="am-stato" id="statoAreaMappa">
             <span class="am-chip" id="lblAreaMappaInfo"></span>
+            <select id="selSrMappa" class="form-control am-sr" aria-label="Sistema di riferimento del progetto" title="Sistema di riferimento del progetto: le coordinate si leggono in questo"></select>
             <span class="am-chip am-mono" id="lblAreaMappaCoord"></span>
             <span class="am-chip" id="lblAreaMappaMisura" hidden></span>
             <span class="am-spazio"></span>
