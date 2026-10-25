@@ -31,6 +31,8 @@
                     Object.values(p.surveys || {}).sort((a, b) => provaNr(a).localeCompare(provaNr(b), 'it', { numeric: true })).forEach(s => {
                         righe.push(`<button type="button" class="pc-prova" data-prova="${esc(s.id)}"${vista === 'field' && s.id === state.currentSurveyId ? ' aria-current="page"' : ''}>Prova ${esc(provaNr(s))}</button>`);
                     });
+                    // In fondo alle prove del progetto aperto, il tasto per aggiungerne una.
+                    righe.push(`<button type="button" class="pc-prova pc-nuova-prova" data-nuova-prova title="Nuova prova in questo progetto"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuova prova</button>`);
                 });
                 document.getElementById('pcLato').innerHTML = righe.join('');
 
@@ -62,6 +64,7 @@
             }
             document.getElementById('pcLato').addEventListener('click', (e) => {
                 const b = e.target.closest('button');
+                if (b && 'nuovaProva' in b.dataset) return openNewSurveyModal();
                 if (b) apriDalLato(b.dataset.progetto, b.dataset.prova);
             });
             document.getElementById('pcBtnConsegna').addEventListener('click', () => {

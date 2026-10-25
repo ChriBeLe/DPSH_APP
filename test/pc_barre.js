@@ -43,6 +43,16 @@ const percorso = (app) => [...$(app, 'pcPercorso').querySelectorAll('li')].map(l
   t('clic sulla prova: la apre e il percorso arriva alla prova',
     app.E('state.uiState.currentView') === 'field' && app.E('state.currentSurveyId') === ultima.dataset.prova && percorso(app).length === 3 && /^Prova /.test(percorso(app)[2]));
   t('la prova aperta è segnata', $(app, 'pcLato').querySelector('[aria-current]').dataset.prova === ultima.dataset.prova);
+  const nuova = $(app, 'pcLato').querySelector('[data-nuova-prova]');
+  t('sotto le prove del progetto aperto c\'è «Nuova prova», dopo l\'ultima', !!nuova && nuova.previousElementSibling.dataset.prova !== undefined);
+  const primaN = app.E('Object.keys(state.projects[state.currentProjectId].surveys).length');
+  clic(app, nuova);
+  await attesa(30);
+  t('«Nuova prova» la crea con un clic e compare nella barra', app.E('Object.keys(state.projects[state.currentProjectId].surveys).length') === primaN + 1
+    && $(app, 'pcLato').querySelectorAll('[data-prova]').length === primaN + 1);
+  app.E('annullaAzione()');
+  await attesa(30);
+  app.E('closeAnyOpenModal()');
   await attesa(450);
   const guida = $(app, 'guidaRapida');
   t('la prima volta in una prova sul PC parte la guida rapida, passo 1 di 3', !guida.hidden && $(app, 'guidaPasso').textContent === '1 di 3');
