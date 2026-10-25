@@ -130,7 +130,7 @@
 
                 setTimeout(() => {
                     if (!photoGpsMapInstance) {
-                        photoGpsMapInstance = L.map('photoGpsMapEl').setView([centerLat, centerLng], 16);
+                        photoGpsMapInstance = L.map('photoGpsMapEl', { rotate: false, rotateControl: false }).setView([centerLat, centerLng], 16); // opzioni sempre: vedi la mappa del GPS (leaflet-rotate)
                         // Esri e non OpenStreetMap: OSM blocca le richieste dell'app aperta come file (vedi GPS_MAP_TILE_SOURCES).
                         L.tileLayer(GPS_MAP_TILE_SOURCES.street.url, GPS_MAP_TILE_SOURCES.street.options).addTo(photoGpsMapInstance);
                         photoGpsMapMarker = L.marker([centerLat, centerLng], { draggable: true }).addTo(photoGpsMapInstance);

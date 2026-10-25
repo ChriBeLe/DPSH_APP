@@ -1981,7 +1981,17 @@ ${contenuto}
                 // finché non arriva un resize successivo.
                 setTimeout(() => {
                     if (!gpsModalMapInstance) {
-                        gpsModalMapInstance = L.map('gpsMapModalEl').setView([centerLat, centerLng], 15);
+                        // Le opzioni vanno passate SEMPRE: aperta la mappa del progetto, il plugin
+                        // leaflet-rotate le legge in ogni L.map e senza si fermava («reading 'rotate'»),
+                        // lasciando la mappa vuota e la barra rossa «Script error».
+                        try {
+                            gpsModalMapInstance = L.map('gpsMapModalEl', { rotate: false, rotateControl: false }).setView([centerLat, centerLng], 15);
+                        } catch (e) {
+                            gpsModalMapInstance = null;
+                            const el = document.getElementById('gpsMapModalEl');
+                            if (el) el.innerHTML = `<div class="gps-mappa-assente">La mappa non si è aperta (${escapeHtmlDidascalia(e && e.message || 'errore')}). Scrivi o incolla le coordinate qui accanto.</div>`;
+                            return;
+                        }
                         setGpsMapStyle(gpsModalMapStyle);
                         gpsModalMapMarker = L.marker([centerLat, centerLng], { draggable: true, icon: gpsMiaProvaIcon((state.header && state.header.provaNr) || '?') }).addTo(gpsModalMapInstance);
                         gpsModalMapInstance.on('click', (e) => { gpsModalMapMarker.setLatLng(e.latlng); });

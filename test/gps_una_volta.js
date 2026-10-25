@@ -46,6 +46,13 @@ const STATO_V0 = fs.readFileSync(path.join(__dirname, 'dati', 'stato_v0.json'), 
   t('rifiutata: ricordato', app.w.localStorage.getItem('dpsh.gpsRifiutato') === '1');
   t('la mappa del GPS non usa i server di OpenStreetMap (bloccano l\'app aperta come file)',
     !/openstreetmap/.test(app.E('GPS_MAP_TILE_SOURCES.street.url')) && !/openstreetmap/.test(app.E('JSON.stringify(GPS_MAP_TILE_SOURCES)')));
+  {
+    // Aperta la mappa del progetto, il plugin leaflet-rotate legge le opzioni di OGNI L.map: senza,
+    // si fermava («reading 'rotate'») e la mappa del GPS restava vuota con la barra «Script error».
+    const sorgenti = fs.readdirSync(path.join(__dirname, '..', 'src', 'js')).map(f => fs.readFileSync(path.join(__dirname, '..', 'src', 'js', f), 'utf8')).join('\n');
+    const chiamate = sorgenti.match(/L\.map\([^)]*\)/g) || [];
+    t(`ogni mappa Leaflet si crea con le sue opzioni (${chiamate.length})`, chiamate.length >= 3 && chiamate.every(c => /,\s*\{/.test(c) || /,\s*[a-zA-Z_]/.test(c)));
+  }
   t('nessun errore', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`\n${ok} ok, ${ko} KO`);

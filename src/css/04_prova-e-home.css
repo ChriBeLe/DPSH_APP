@@ -1542,7 +1542,7 @@
             #modalGpsSettings .gps-mappa-testa .gps-map-layer-switch { margin: 0; flex: 0 0 auto; }
             #modalGpsSettings .gps-mappa-testa > div:nth-child(2) { flex: 1 1 260px; margin: 0 !important; }
             #modalGpsSettings #gpsMapSearchResults, #modalGpsSettings #notaSpostaProva { flex: 1 1 100%; margin: 0 !important; }
-            #gpsMapModalEl { grid-area: mappa; height: auto !important; min-height: 440px; border-radius: var(--radius-lg) !important; }
+            #gpsMapModalEl { grid-area: mappa; height: auto !important; min-height: max(240px, min(440px, calc(100vh - 330px))); border-radius: var(--radius-lg) !important; }
             #modalGpsSettings #btnUseGpsMapPin { grid-area: pin; align-self: end; margin-top: 10px; }
             #modalGpsSettings .gps-rileva { grid-area: rileva; margin: 0 0 12px !important; }
             #btnGetGpsModal { background: var(--bg-card-hover) !important; color: var(--text-main) !important; border: 1px solid var(--border) !important; font-weight: 600 !important; }
