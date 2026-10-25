@@ -1547,3 +1547,36 @@
             #modalGpsSettings #gpsDebugToolsWrapper { grid-area: debug; }
             #modalGpsSettings .modal-actions { grid-area: azioni; align-self: end; margin-top: 10px; }
         }
+
+        /* ================== AGGIUNGI INTERVALLI SUL PC ==================
+           Larga e senza scorrere: a sinistra si scrive o si incolla, a destra l'anteprima riga per
+           riga (alta quanto il testo); in basso le due modalità come scelte affiancate e i tasti.
+           Gli !important vincono sugli stili scritti nel markup per il telefono. */
+        @media (min-width: 1024px) {
+            #modalBulkImport.modal {
+                width: min(920px, 94vw); max-width: none; padding: 20px 22px;
+                display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px;
+                grid-template-areas: "titolo titolo" "spiega spiega" "testo anteprima" "modo azioni";
+            }
+            #modalBulkImport .modal-title { grid-area: titolo; }
+            #modalBulkImport .bulk-spiega { grid-area: spiega; margin-bottom: 14px !important; font-size: 13px !important; }
+            #modalBulkImport .bulk-testo { grid-area: testo; display: flex; margin: 0 !important; }
+            #txtBulkImportData { flex: 1; height: min(46vh, 380px); resize: none !important; font-size: 15px !important; line-height: 1.55 !important; padding: 12px 14px !important; }
+            #modalBulkImport .bulk-anteprima { grid-area: anteprima; height: min(46vh, 380px); box-sizing: border-box; margin: 0 !important; padding: 12px 14px !important; }
+            #modalBulkImport .bulk-anteprima .anteprima-intervalli { flex: 1; max-height: none; min-height: 0; }
+            #modalBulkImport .bulk-anteprima .anteprima-intervalli:empty { display: flex; }
+            #modalBulkImport .bulk-anteprima .anteprima-intervalli:empty::before { content: "Qui compaiono gli intervalli, riga per riga, mentre scrivi."; margin: auto; color: var(--text-muted); font-family: var(--font-sans); font-size: 13px; text-align: center; }
+            #modalBulkImport .bulk-modo { grid-area: modo; margin: 16px 0 0 !important; }
+            #modalBulkImport .bulk-modo > label { margin-bottom: 8px !important; }
+            #modalBulkImport .bulk-modo > div { gap: 6px !important; }
+            #modalBulkImport .bulk-scelta {
+                min-height: 36px; padding: 0 12px; box-sizing: border-box; text-transform: none; letter-spacing: 0; font-size: 13px !important;
+                border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main);
+                transition: border-color var(--mov-istante) var(--ease-inloco), background-color var(--mov-istante) var(--ease-inloco);
+            }
+            #modalBulkImport .bulk-scelta:hover { border-color: var(--accent); }
+            #modalBulkImport .bulk-scelta:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+            #modalBulkImport .bulk-scelta:has(input[value="replace"]:checked) { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+            #modalBulkImport .modal-actions { grid-area: azioni; align-self: end; align-items: center; margin-top: 16px; }
+            #modalBulkImport .modal-actions .btn-action { height: 40px; min-height: 0; padding: 0 18px !important; }
+        }
