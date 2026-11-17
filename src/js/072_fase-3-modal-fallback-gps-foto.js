@@ -364,7 +364,7 @@
             // Impostazioni generale, e non esiste alcuna scorciatoia per aprirla da Home (dove non
             // c'è una prova specifica a cui riferirli).
             // L'intestazione è la linguetta «Dati» della scheda della prova (Fase 4).
-            function openCantiereInfoModal() { openSurveySettingsModal(state.currentSurveyId, 'dati'); }
+            function openCantiereInfoModal() { apriDatiProgetto(); }
             function closeCantiereInfoModal() { closeSurveySettingsModal(); }
 
             if (btnHamburger) btnHamburger.addEventListener('click', openDrawer);

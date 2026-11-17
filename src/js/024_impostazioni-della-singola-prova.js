@@ -125,11 +125,24 @@
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
                 if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;
+                modalSurveySettings.removeAttribute('data-modo');
                 mostraSchedaProva(scheda);
                 surveySettingsContext = { survId };
                 if (modalSurveySettingsOverlay) modalSurveySettingsOverlay.classList.add('open');
                 if (modalSurveySettings) modalSurveySettings.classList.add('open');
                 triggerVibrate(30);
+            }
+            /** «Dati del progetto»: la stessa finestra, ma solo il gruppo «Del progetto» (nome, committente,
+             * comune, provincia, sede, denominazione). Quello che si scrive vale per tutte le prove. Si apre dal
+             * nome del progetto, non dalla prova che era aperta (richiesta di Romeo, 17/11/2026). */
+            function apriDatiProgetto() {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                const survId = state.currentSurveyId && proj.surveys && proj.surveys[state.currentSurveyId] ? state.currentSurveyId : Object.keys(proj.surveys || {})[0];
+                if (!survId) return;
+                openSurveySettingsModal(survId, 'dati');
+                modalSurveySettings.setAttribute('data-modo', 'progetto');
+                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = 'Dati del progetto';
             }
             function closeSurveySettingsModal() {
                 surveySettingsContext = null;

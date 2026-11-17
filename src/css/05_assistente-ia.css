@@ -65,3 +65,7 @@
         .tavole-campo.tavole-esag { gap: 6px; }
         .tavole-campo.tavole-esag .tavole-riga { display: flex; align-items: center; justify-content: space-between; width: 100%; }
         .tavole-campo.tavole-esag input[type=range] { width: 100%; accent-color: var(--accent); }
+
+        /* «Dati del progetto»: della scheda della prova resta solo il gruppo del progetto */
+        #modalSurveySettings[data-modo="progetto"] .solo-prova,
+        #modalSurveySettings[data-modo="progetto"] [data-pannello-prova="strumento"] { display: none !important; }

@@ -536,7 +536,7 @@
             document.getElementById('btnProgettoAltro').addEventListener('click', () => openProjectActionsModal(state.currentProjectId));
             document.getElementById('btnProgettoRiprendi').addEventListener('click', () => switchView('field'));
             document.getElementById('btnProgettoNuovaProva').addEventListener('click', () => openNewSurveyModal());
-            document.getElementById('btnProgettoDati').addEventListener('click', () => openCantiereInfoModal());
+            document.getElementById('btnProgettoDati').addEventListener('click', () => apriDatiProgetto());
             document.getElementById('btnProgettoStrati').addEventListener('click', () => openStratiModal());
             document.getElementById('btnProgettoNote').addEventListener('click', () => apriNoteProgetto(state.currentProjectId));
             document.getElementById('btnProgettoConsegna').addEventListener('click', () => openExportModal('project', state.currentProjectId));

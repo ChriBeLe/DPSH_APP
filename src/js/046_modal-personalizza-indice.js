@@ -994,7 +994,7 @@
                 // Nuova prova con un tocco (Fase 4): N° successivo e dati ereditati, senza domande; si
                 // correggono dopo dalla scheda della prova.
                 confirmNewSurvey();
-                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openCantiereInfoModal() } });
+                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openSurveySettingsModal(state.currentSurveyId, 'dati') } });
             }
 
             function closeNewSurveyModal() {
