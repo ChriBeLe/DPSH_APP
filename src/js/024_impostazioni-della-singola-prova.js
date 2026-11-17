@@ -453,13 +453,14 @@
                 const boxRicercaProgetti = document.getElementById('homeRicercaProgetti');
                 if (boxRicercaProgetti) boxRicercaProgetti.style.display = projKeys.length === 0 ? 'none' : 'flex';
                 if (projKeys.length === 0) {
-                    // Stato vuoto: «Nuovo progetto» e «Ricevi» ci sono già una volta sola, in alto.
+                    // Stato vuoto: «Nuovo progetto» e «Ricevi un progetto» ci sono già una volta sola, in alto.
                     homeProjectsContainer.innerHTML = `
                         <div class="home-vuota">
                             <div class="titolo">Nessun progetto</div>
                             Un progetto raccoglie le prove di uno stesso cantiere, con strati e dati comuni.
                             Creane uno con <strong>Nuovo progetto</strong>, oppure prendine uno da un altro
-                            dispositivo con <strong>Ricevi</strong>.
+                            dispositivo con <strong>Ricevi un progetto</strong>. Dal telefono al PC si passa da
+                            Consegna → <strong>Porta sul PC</strong>.
                         </div>
                     `;
                     return;
@@ -631,17 +632,36 @@
             const lblDeleteProjName = document.getElementById('lblDeleteProjName');
             const btnCancelDeleteProjModal = document.getElementById('btnCancelDeleteProjModal');
             const btnConfirmDeleteProjModal = document.getElementById('btnConfirmDeleteProjModal');
+            const txtDeleteProjConfirm = document.getElementById('txtDeleteProjConfirm');
+
+            // (Fase C) Come per la prova: il tasto resta spento finché non si scrive CANCELLA.
+            function impostaTastoEliminaProgetto(acceso) {
+                if (!btnConfirmDeleteProjModal) return;
+                btnConfirmDeleteProjModal.disabled = !acceso;
+                btnConfirmDeleteProjModal.setAttribute('aria-disabled', acceso ? 'false' : 'true');
+                btnConfirmDeleteProjModal.style.opacity = acceso ? '1' : '0.45';
+                btnConfirmDeleteProjModal.style.pointerEvents = acceso ? 'auto' : 'none';
+            }
+            if (txtDeleteProjConfirm) {
+                txtDeleteProjConfirm.addEventListener('input', (e) => {
+                    impostaTastoEliminaProgetto(e.target.value.trim().toUpperCase() === 'CANCELLA');
+                });
+            }
 
             function openConfirmDeleteModal(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
+                const projName = proj.name || proj.comune || 'Progetto';
 
                 projectToDeleteContext = { projId, cardElem };
                 if (lblDeleteProjName) lblDeleteProjName.textContent = `"${projName}"`;
 
+                if (txtDeleteProjConfirm) txtDeleteProjConfirm.value = '';
+                impostaTastoEliminaProgetto(false);
+
                 if (modalConfirmDeleteOverlay) modalConfirmDeleteOverlay.classList.add('open');
                 if (modalConfirmDelete) modalConfirmDelete.classList.add('open');
+                if (txtDeleteProjConfirm) setTimeout(() => txtDeleteProjConfirm.focus(), 120);
             }
 
             function closeConfirmDeleteModal() {
@@ -655,6 +675,7 @@
 
             if (btnConfirmDeleteProjModal) {
                 btnConfirmDeleteProjModal.addEventListener('click', () => {
+                    if (txtDeleteProjConfirm && txtDeleteProjConfirm.value.trim().toUpperCase() !== 'CANCELLA') return;
                     if (projectToDeleteContext) {
                         const { projId, cardElem } = projectToDeleteContext;
                         closeConfirmDeleteModal();
@@ -672,7 +693,7 @@
             async function performDeleteProject(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
+                const projName = proj.name || proj.comune || 'Progetto';
                 if (!await copiaOChiedi(`eliminare il progetto «${projName}»`)) return;
                 if (state.projects[projId] !== proj) return; // già eliminato o cambiato nel frattempo
 
@@ -800,7 +821,6 @@
             const lblProjectActionsSubtitle = document.getElementById('lblProjectActionsSubtitle');
             const btnCloseProjectActionsX = document.getElementById('btnCloseProjectActionsX');
             const btnProjActDuplicate = document.getElementById('btnProjActDuplicate');
-            const btnProjActBackup = document.getElementById('btnProjActBackup');
             const btnProjActExport = document.getElementById('btnProjActExport');
             const btnProjActDelete = document.getElementById('btnProjActDelete');
 
@@ -876,15 +896,6 @@
                         renderHomeProjects();
                         triggerVibrate([40, 60]);
                     }
-                });
-            }
-
-            if (btnProjActBackup) {
-                btnProjActBackup.addEventListener('click', () => {
-                    if (!projectActionsContext) return;
-                    const { projId } = projectActionsContext;
-                    closeProjectActionsModal();
-                    openBackupChoiceModal({ type: 'project', projId });
                 });
             }
 

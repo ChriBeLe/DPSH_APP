@@ -279,11 +279,11 @@
                     if (!delCantiere) {
                         lblLivello.textContent = 'Questo valore vale solo per la prova aperta.';
                     } else if (forzato && Math.abs(forzato - delCantiere) < 1e-9) {
-                        lblLivello.textContent = 'Valore dichiarato per tutto il cantiere (' + fmtIT(delCantiere, 3) + '): lo adottano anche le prove create d\'ora in poi.';
+                        lblLivello.textContent = 'Valore dichiarato per tutto il progetto (' + fmtIT(delCantiere, 3) + '): lo adottano anche le prove create d\'ora in poi.';
                     } else {
                         // Il caso che merita di essere detto: questa prova si e' staccata dal
                         // resto del cantiere. Senza scriverlo, resterebbe una divergenza muta.
-                        lblLivello.textContent = 'Attenzione: il cantiere dichiara ' + fmtIT(delCantiere, 3) + ', questa prova usa un valore diverso.';
+                        lblLivello.textContent = 'Attenzione: il progetto dichiara ' + fmtIT(delCantiere, 3) + ', questa prova usa un valore diverso.';
                     }
                 }
             }
@@ -318,7 +318,7 @@
                     const v = parseFloat(numBetaTForzato && numBetaTForzato.value);
                     if (!proj || !isFinite(v) || v <= 0) return;
                     const quante = Object.keys(proj.surveys || {}).length;
-                    const ok = await appConfirm(`Imporre \u03b2t = ${fmtIT(v, 3)} a tutte le ${quante} prove di questo cantiere?\n\nOgni prova che ne aveva uno suo verra\u0300 allineata, e le prove create d'ora in poi partiranno da questo valore.`);
+                    const ok = await appConfirm(`Imporre \u03b2t = ${fmtIT(v, 3)} a tutte le ${quante} prove di questo progetto?\n\nOgni prova che ne aveva uno suo verra\u0300 allineata, e le prove create d'ora in poi partiranno da questo valore.`);
                     if (!ok) return;
                     proj.betaTForzato = v;
                     Object.values(proj.surveys || {}).forEach(surv => {
@@ -597,7 +597,7 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (!imported || (!imported.state && !imported.projects)) {
-                            alert('Il file selezionato non è un backup valido di DPSH Field Collector!');
+                            alert('Il file selezionato non è un backup valido di DPSH Field Collector.');
                             return;
                         }
 
@@ -819,7 +819,7 @@
             // EXPORT EXCEL GENERATOR PROFESSIONALE CON GRAFICO E FORMATTAZIONE (.xlsx)
             if (btnExportExcel) btnExportExcel.addEventListener('click', () => {
                 if (state.logs.length === 0) {
-                    alert('Nessun dato da esportare!');
+                    alert('Nessun dato da esportare.');
                     return;
                 }
 
@@ -884,7 +884,7 @@
                 // --- FOGLIO 2: DIAGRAMMA GRAFICO PROFILO PENETROMETRICO ---
                 const chartSheetData = [
                     ["DIAGRAMMA PROFILO PENETROMETRICO DINAMICO"],
-                    [`Prova N° ${state.header.provaNr || '1'} - ${state.header.comune || 'Cantiere'}`],
+                    [`Prova N° ${state.header.provaNr || '1'} - ${state.header.comune || 'Progetto'}`],
                     [""],
                     ["Profondità (m)", `Resistenza Colpi N${deltaS}`, "Grafico Profilo"]
                 ];
@@ -924,7 +924,7 @@
                     ];
                     XLSX.utils.book_append_sheet(wb, ws2, "Diagramma_Profilo");
                     
-                    const fileName = `DPSH_Prova_${state.header.provaNr || '1'}_${state.header.comune || 'Cantiere'}.xlsx`;
+                    const fileName = `DPSH_Prova_${state.header.provaNr || '1'}_${state.header.comune || 'Progetto'}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                 } else {
                     exportCsvFallback();

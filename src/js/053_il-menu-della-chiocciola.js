@@ -172,7 +172,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                     const proj = progettoPerTag();
-                    if (!proj) { appAlert('Scegli prima un cantiere nella tendina «Anteprima con i dati di», in alto nell\'editor: senza, non c\'e\' nessun posto dove scrivere il dato.'); return; }
+                    if (!proj) { appAlert('Scegli prima un progetto nella tendina «Anteprima con i dati di», in alto nell\'editor: senza, non c\'e\' nessun posto dove scrivere il dato.'); return; }
                     const dove = nomeProgettoPerAvviso(proj);
                     if (TAG_RISOLTI_A_DOCUMENTO[chiave] || eRiferimentoFigura(chiave)) {
                         // SI SCEGLIE QUI, toccando. Prima la finestra diceva «cancella il tag e
@@ -187,7 +187,7 @@
                         // fonte — e' piu' utile che aprire un campo che verrebbe ricalcolato
                         // sopra al primo cambiamento.
                         const r = globalThis.risolviTagPerVista(def.tipo);
-                        appAlert(def.etichetta.toUpperCase() + '\n\nCantiere: ' + dove
+                        appAlert(def.etichetta.toUpperCase() + '\n\nProgetto: ' + dove
                             + '\n\nValore attuale: ' + (r.valore || '— non ancora disponibile')
                             + '\n\nQuesto dato l\'app lo calcola da sola, dalle prove e dallo strumento: si corregge li\', non qui. Cambiando i dati alla fonte, il testo si riadatta da solo.');
                         return;
@@ -199,13 +199,13 @@
                     // di ritorno e' una stringa, e il codice leggeva `esito.v` — cioe' avrebbe
                     // scritto `undefined` nel campo del cantiere.
                     const casaDelDato = def.dove === 'prova'
-                        ? 'Verra\' scritto nell\'Intestazione Cantiere, per tutte le prove di questo cantiere.'
-                        : 'Verra\' scritto nell\'anagrafica del cantiere.';
+                        ? 'Verrà scritto nella Scheda della prova, per tutte le prove di questo progetto.'
+                        : 'Verrà scritto nell\'anagrafica del progetto.';
                     const esito = await appPromptCampi(
-                        'Cantiere: ' + dove + '\n' + casaDelDato,
+                        'Progetto: ' + dove + '\n' + casaDelDato,
                         [{ name: 'valore', label: def.etichetta, value: attuale,
                            placeholder: attuale ? '' : 'non ancora compilato', required: false }],
-                        { title: 'Compila: ' + def.etichetta, okLabel: 'Salva nel cantiere' }
+                        { title: 'Compila: ' + def.etichetta, okLabel: 'Salva nel progetto' }
                     );
                     if (!esito) return;
                     // LA CORREZIONE VA SUI DATI DEL CANTIERE, non su una copia dentro il testo:

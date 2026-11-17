@@ -298,7 +298,7 @@
                 const progettoOra = pid && state.projects ? state.projects[pid] : null;
                 const titolo = document.getElementById('lblCronologiaTitolo');
                 const sotto = document.getElementById('lblCronologiaSottotitolo');
-                if (titolo) titolo.textContent = progettoOra ? `Cronologia · ${progettoOra.name || progettoOra.comune || 'Progetto'}` : 'Copie automatiche';
+                if (titolo) titolo.textContent = progettoOra ? `Copie automatiche · ${progettoOra.name || progettoOra.comune || 'Progetto'}` : 'Copie automatiche';
                 if (sotto) sotto.textContent = pid
                     ? `Com'era questo progetto nei momenti salvati. «Ripristina» rimette solo questo progetto: gli altri restano come sono, e prima si salva una copia di adesso.`
                     : `L'app salva da sola i dati dei progetti (le foto restano al loro posto) ogni 5 minuti di lavoro e prima di ogni cancellazione. Tiene le ultime 20, una al giorno per 14 giorni e quelle «prima di…» per 7 giorni. Da qui si ripristina anche un progetto eliminato.`;

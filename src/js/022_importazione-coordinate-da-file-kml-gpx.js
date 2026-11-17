@@ -281,7 +281,13 @@
                 viewProject.style.display = viewName === 'project' ? 'flex' : 'none';
                 // Tasto indietro di Android (Fase 5): una voce nella cronologia finché non si è in Home.
                 if (viewName !== 'home' && !(history.state && history.state.dpsh)) history.pushState({ dpsh: true }, '');
-                if (viewName === 'home' && history.state && history.state.dpsh) history.back();
+                if (viewName === 'home' && history.state && history.state.dpsh) {
+                    // Questo «indietro» lo facciamo noi: il gestore di popstate non deve scambiarlo per
+                    // un Indietro dell'utente e chiudere una finestra (Fase C).
+                    window._indietroProgrammatico = true;
+                    setTimeout(() => { window._indietroProgrammatico = false; }, 600);
+                    history.back();
+                }
                 if (viewName === 'project') {
                     if (viewHome) viewHome.style.display = 'none';
                     if (viewField) viewField.style.display = 'none';
@@ -346,7 +352,16 @@
             }
 
             // Indietro (Android, o del browser): prova → progetto → Home.
+            // Con una finestra aperta (Fase C) Indietro chiude quella più in alto, con la stessa regola
+            // dei dati non salvati di ESC, e NON cambia schermata. Il popstate ha già consumato la voce
+            // di cronologia, quindi la si rimette: serve perché il prossimo Indietro funzioni ancora.
             window.addEventListener('popstate', () => {
+                if (window._indietroProgrammatico) { window._indietroProgrammatico = false; return; }
+                if (typeof finestraInCima === 'function' && finestraInCima()) {
+                    history.pushState({ dpsh: true }, '');
+                    chiudiFinestraInCima();
+                    return;
+                }
                 const vista = state.uiState && state.uiState.currentView;
                 if (vista === 'field') switchView('project');
                 else if (vista === 'project') switchView('home');
@@ -369,6 +384,16 @@
                 const avvisi = new Map(avvisiPrimaExport(proj).map(r => [r.id, r.avvisi.length]));
                 const aMano = Array.isArray(proj.ordineProve) && proj.ordineProve.length > 0;
                 $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '') + (aMano ? ' · ordine scelto a mano' : '');
+                // IL PERCORSO (Fase C): lo stato di ogni tappa solo se si calcola in modo affidabile
+                // dai dati che ci sono; altrimenti resta il nome. Parametri e Consegna non hanno uno
+                // stato certo (dipende dalla prova e dalle scelte fatte), quindi niente numeri finti.
+                $('lblTappaProve').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '');
+                const riepStrati = typeof riepilogoStratiProgetto === 'function' ? riepilogoStratiProgetto() : null;
+                $('lblTappaStrati').textContent = riepStrati && riepStrati.totale ? `${riepStrati.totale} · ${riepStrati.senzaNome ? riepStrati.senzaNome + ' senza nome' : 'tutti con il nome'}` : '';
+                const tplReport = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
+                $('lblTappaReport').textContent = tplReport && tplReport.name ? tplReport.name : '';
+                $('lblTappaParametri').textContent = '';
+                $('lblTappaConsegna').textContent = '';
                 $('btnProgettoOrdina').textContent = ordinandoProve ? 'Fatto' : 'Ordina';
                 $('btnProgettoOrdina').setAttribute('aria-pressed', String(ordinandoProve));
                 $('btnProgettoOrdina').hidden = prove.length < 2;
@@ -460,7 +485,27 @@
             document.getElementById('btnProgettoRiprendi').addEventListener('click', () => switchView('field'));
             document.getElementById('btnProgettoNuovaProva').addEventListener('click', () => openNewSurveyModal());
             document.getElementById('btnProgettoDati').addEventListener('click', () => openCantiereInfoModal());
-            document.getElementById('btnProgettoStrati').addEventListener('click', () => openStratiModal());
+            // ② Strati: con strati senza nome la tappa porta al foglio che li nomina (dal foglio resta
+            // «Apri Strati» per la Gestione completa); senza, apre direttamente Strati.
+            document.getElementById('btnProgettoStrati').addEventListener('click', () => {
+                if (typeof riepilogoStratiProgetto === 'function' && riepilogoStratiProgetto().senzaNome > 0) apriDaiNomeStrati();
+                else openStratiModal();
+            });
+            // ① Prove: porta alla lista, sulla prima prova con avvisi se ce ne sono.
+            document.getElementById('btnTappaProve').addEventListener('click', () => {
+                const lista = document.getElementById('listaProveProgetto');
+                const bersaglio = lista.querySelector('.prova-riga-stato.avviso') || lista.querySelector('.prova-riga') || lista;
+                const riga = bersaglio.closest ? (bersaglio.closest('.prova-riga') || bersaglio) : bersaglio;
+                if (riga.scrollIntoView) riga.scrollIntoView({ block: 'center' });
+                if (riga.focus) riga.focus();
+            });
+            // ③ Parametri: la procedura guidata, sul primo strato a cui manca una scelta.
+            document.getElementById('btnTappaParametri').addEventListener('click', () => {
+                const manca = typeof primoCampoWizardMancante === 'function' ? primoCampoWizardMancante() : null;
+                apriWizardParametri(manca && state.strati[manca.stratoIdx] ? state.strati[manca.stratoIdx].id : undefined);
+            });
+            // ④ Report: la libreria dei template (il modello del report); la Consegna è la tappa ⑤.
+            document.getElementById('btnTappaReport').addEventListener('click', () => openReportTemplatesModal());
             document.getElementById('btnProgettoNote').addEventListener('click', () => apriNoteProgetto(state.currentProjectId));
             document.getElementById('btnProgettoConsegna').addEventListener('click', () => openExportModal('project', state.currentProjectId));
 

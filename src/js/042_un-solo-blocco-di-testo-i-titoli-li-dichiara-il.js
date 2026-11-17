@@ -840,7 +840,7 @@
                         return (a.name || a.comune || '').localeCompare(b.name || b.comune || '');
                     });
                 sel.innerHTML = progetti.map(p => {
-                    const nome = p.name || p.comune || 'Cantiere senza nome';
+                    const nome = p.name || p.comune || 'Progetto senza nome';
                     const lbl = p.id === state.currentProjectId ? `${nome} (attuale)` : nome;
                     return `<option value="${p.id}">${lbl}</option>`;
                 }).join('');

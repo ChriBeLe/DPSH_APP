@@ -327,7 +327,7 @@
                                 </div>
                                 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                                     ${stratoHaCollegamentoArchivioValido(s) ? `
-                                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:var(--purple);" title="Questo strato è collegato a una voce dell'Archivio Litologico Globale">
+                                        <span style="display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:var(--purple);" title="Questo strato è collegato a una voce dell'Archivio litologico">
                                             <svg class="ico" style="width:12px; height:12px;"><use href="#i-folder-open"/></svg> In Archivio
                                         </span>
                                     ` : s.sourceArchiveId ? `
