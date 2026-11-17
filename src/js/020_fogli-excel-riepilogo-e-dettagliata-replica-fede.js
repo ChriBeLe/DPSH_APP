@@ -1127,7 +1127,14 @@ ${contenuto}
                 
                 // ALTEZZA DINAMICA: 28px per ogni step (es. 20cm), estensione verso il basso
                 const totalSteps = Math.ceil(maxDepth / stepM);
-                const pxPerStep = 28;
+                // Sul PC tutto il profilo in una sola vista: il passo si adatta all'altezza libera
+                // (da 8 a 28 px per intervallo) e il riquadro non scorre più.
+                let pxPerStep = 28;
+                if (suPc()) {
+                    const r = svgChart.getBoundingClientRect();
+                    const libera = window.innerHeight - (r.height > 0 ? Math.max(r.top, 0) : 220) - 50;
+                    pxPerStep = Math.max(8, Math.min(28, Math.floor((libera - padT - padB) / Math.max(1, totalSteps))));
+                }
                 const height = Math.max(240, padT + padB + (totalSteps * pxPerStep));
 
                 svgChart.setAttribute('height', height);

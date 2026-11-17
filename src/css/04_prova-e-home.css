@@ -105,6 +105,15 @@
         #lblModalOrigine { margin-top: var(--sp-2); }
         #lblModalOrigine:empty { display: none; }
 
+        /* ---- Sul PC il registro e il grafico stanno in una sola vista: niente scorrimento, le righe
+           si stringono (--riga-registro, calcolata da adattaRegistroAllaFinestra) fino a 14 px ---- */
+        #viewField.registro-adatta .logs-table-wrapper,
+        #viewField.registro-adatta .chart-box { max-height: none; overflow-y: visible; }
+        #viewField.registro-adatta .btn-espandi-registro { display: none; }
+        #viewField.registro-adatta #tblIntegratedLogsBody .swipe-content,
+        #viewField.registro-adatta #tblIntegratedLogsBody .swipe-content > div { min-height: var(--riga-registro, 34px) !important; }
+        #viewField.registro-adatta.riga-stretta #tblIntegratedLogsBody .swipe-content > div { font-size: 11px !important; }
+
         /* ---- Registro e grafico: poche righe che scorrono, oppure tutte (scelta ricordata) ---- */
         #viewField.registro-espanso .logs-table-wrapper,
         #viewField.registro-espanso .chart-box { max-height: none; overflow-y: visible; }
