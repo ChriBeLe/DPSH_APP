@@ -126,7 +126,6 @@
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
                     const ok = v => v === '' || v == null || (isFinite(parseFloat(v)) && parseFloat(v) >= 0 && parseFloat(v) < 100);
                     if (!ok(a.da) || !ok(a.a)) throw new Error('Valori di falda non validi.');
-                    copiaPrimaDi('impostare la falda (assistente IA)');
                     state.header.faldaDa = a.da == null ? '' : String(a.da); state.header.faldaA = a.a == null ? '' : String(a.a);
                     saveState(); updateUI(); return { ok: true };
                 } },
