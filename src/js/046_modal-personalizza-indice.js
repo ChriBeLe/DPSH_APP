@@ -951,8 +951,13 @@
             function openNewSurveyModal() {
                 let nextNr = '1';
                 if (state.currentProjectId && state.projects[state.currentProjectId]) {
-                    const count = proveFisiche(Object.values(state.projects[state.currentProjectId].surveys || {})).length; // le interpretazioni («3B») non sono prove in più
-                    nextNr = (count + 1).toString();
+                    // Massimo + 1, non conteggio + 1: dopo aver eliminato la 2 di 1, 2, 3 il conteggio
+                    // darebbe di nuovo 3, già in uso. Le interpretazioni («3B») portano il numero
+                    // dell'originale, quindi il massimo non ne è toccato.
+                    const numeri = Object.values(state.projects[state.currentProjectId].surveys || {})
+                        .map(s => parseInt(String((s && s.header && s.header.provaNr) || ''), 10))
+                        .filter(n => Number.isFinite(n));
+                    nextNr = (numeri.length ? Math.max(...numeri) + 1 : 1).toString();
                 }
 
                 txtNewCommittente.value = state.header.committente || '';
