@@ -79,7 +79,7 @@
                             </span>
                         </label>
                         <select id="selEsportaPdfTemplateIntroduzione" title="Template del capitolo introduttivo" style="width:108px; flex-shrink:0; padding:3px 4px; font-size:10.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main);">
-                            ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === (intro.templateId || 'classico') ? 'selected' : ''}>${t.name}</option>`).join('')}
+                            ${opzioniTemplate.map(t => `<option value="${testoHtml(t.id)}" ${t.id === (intro.templateId || 'classico') ? 'selected' : ''}>${testoHtml(t.name)}</option>`).join('')}
                         </select>
                     </div>`;
                 // LE TAVOLE 2D E 3D, ultima riga: un capitolo dopo le prove con le tavole scelte nella
@@ -117,7 +117,7 @@
                                 </span>
                             </label>
                             <select data-survey-id="${s.id}" class="sel-esporta-pdf-template-riga" title="Template report per questa prova" style="width:108px; flex-shrink:0; padding:3px 4px; font-size:10.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main);">
-                                ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === attuale ? 'selected' : ''}>${t.name}</option>`).join('')}
+                                ${opzioniTemplate.map(t => `<option value="${testoHtml(t.id)}" ${t.id === attuale ? 'selected' : ''}>${testoHtml(t.name)}</option>`).join('')}
                             </select>
                         </div>`;
                 }).join('') + rigaTavole;
@@ -197,7 +197,7 @@
             function popolaSelettoreTemplateBulkEsportazionePdf() {
                 if (!selEsportaPdfTemplateBulk) return;
                 selEsportaPdfTemplateBulk.innerHTML = elencoTemplateReportOrdinato()
-                    .map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    .map(t => `<option value="${testoHtml(t.id)}">${testoHtml(t.name)}</option>`).join('');
             }
 
             if (btnEsportaPdfApplicaTemplateTutte) {
@@ -352,7 +352,7 @@
                     // e quella scrive in state.indiceTemplates — l'elenco va letto DOPO, altrimenti
                     // l'opzione appena creata non esiste ancora e .value resta vuoto.
                     const idAttuale = getIndiceTemplateIdPerProgetto(proj);
-                    selEsportaPdfIndiceStile.innerHTML = elencoIndiceTemplateOrdinato().map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    selEsportaPdfIndiceStile.innerHTML = elencoIndiceTemplateOrdinato().map(t => `<option value="${testoHtml(t.id)}">${testoHtml(t.name)}</option>`).join('');
                     selEsportaPdfIndiceStile.value = idAttuale;
                 }
 
