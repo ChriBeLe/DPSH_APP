@@ -74,7 +74,7 @@
                 // si copiano su dal header della prova solo se il progetto è ancora senza.
                 if (state.header.comune && !proj.comune) proj.comune = state.header.comune;
                 if (state.header.committente && !proj.committente) proj.committente = state.header.committente;
-                if (state.header.localita) proj.localita = state.header.localita;
+                if (state.header.localita && !proj.localita) proj.localita = state.header.localita; // la località del progetto non segue l'ultima prova salvata
                 if (state.header.date) proj.date = state.header.date;
                 if (state.settings.operator) proj.operator = state.settings.operator;
             }

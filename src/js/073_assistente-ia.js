@@ -233,12 +233,13 @@
                     const el = id && document.getElementById(id); if (!el) throw new Error('Preferenza sconosciuta.');
                     el.checked = /^(true|si|sì|on|1)$/i.test(String(a.valore)); el.dispatchEvent(new Event('change', { bubbles: true })); return { ok: true, valore: el.checked };
                 } },
-                { n: 'modifica_progetto', d: 'Cambia un dato del progetto aperto: nome, comune, committente, date (AAAA-MM-GG) o operator.', p: { campo: { type: 'string', enum: ['name', 'comune', 'committente', 'date', 'operator'] }, valore: { type: 'string' } }, req: ['campo', 'valore'], w: true,
+                { n: 'modifica_progetto', d: 'Cambia un dato del progetto aperto: name, comune, committente, localita (le prove che non ne hanno una loro la seguono), date (AAAA-MM-GG) o operator.', p: { campo: { type: 'string', enum: ['name', 'comune', 'committente', 'localita', 'date', 'operator'] }, valore: { type: 'string' } }, req: ['campo', 'valore'], w: true,
                   ds: a => `Progetto: cambiare «${a.campo}» in «${a.valore}»`, run: a => {
                     const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
-                    if (!['name', 'comune', 'committente', 'date', 'operator'].includes(a.campo)) throw new Error('Campo non modificabile.');
+                    if (!['name', 'comune', 'committente', 'localita', 'date', 'operator'].includes(a.campo)) throw new Error('Campo non modificabile.');
                     if (a.campo === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(a.valore)) throw new Error('La data deve essere AAAA-MM-GG.');
-                    saveState(); pr[a.campo] = String(a.valore); pr.updatedAt = Date.now();
+                    saveState(); const vecchiaLoc = pr.localita || ''; pr[a.campo] = String(a.valore); pr.updatedAt = Date.now();
+                    if (a.campo === 'localita') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header && (sv.header.localita || '') === vecchiaLoc) sv.header.localita = String(a.valore); }); if ((state.header.localita || '') === vecchiaLoc) state.header.localita = String(a.valore); }
                     if (a.campo === 'comune' || a.campo === 'committente') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[a.campo] = String(a.valore); }); state.header[a.campo] = String(a.valore); }
                     saveState(); updateUI(); return { ok: true };
                 } },

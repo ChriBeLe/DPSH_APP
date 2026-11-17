@@ -50,6 +50,11 @@
              sono uguali per tutte le prove dello stesso cantiere: si scrivono una volta e
              valgono per il progetto intero, come gia' fanno comune, committente e localita'. -->
         <div class="form-group">
+            <label>Località / Indirizzo (di tutte le prove)</label>
+            <input type="text" id="txtLocalitaProgetto" class="form-control" placeholder="es. Via Roma 10">
+            <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Vale per tutte le prove. Una prova può averne una sua: si cambia dalla scheda della singola prova e il progetto non la riscrive.</div>
+        </div>
+        <div class="form-group">
             <label>Provincia</label>
             <input type="text" id="txtProvincia" class="form-control" placeholder="es. TA" maxlength="30">
             <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Compare nell&rsquo;ubicazione del sito: &laquo;in agro del Comune di Sava (TA)&raquo;.</div>
@@ -66,7 +71,7 @@
         <div class="t-didascalia scheda-prova-gruppo solo-prova">Di questa prova</div>
         <div class="solo-prova" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
             <div class="form-group">
-                <label>Località / Indirizzo</label>
+                <label>Località / Indirizzo (solo questa prova)</label>
                 <input type="text" id="txtLocalita" class="form-control" placeholder="es. Via Roma 10">
             </div>
             <div class="form-group">

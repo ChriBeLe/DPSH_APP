@@ -19,5 +19,15 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   scrivi('txtLocalita', 'Via Solo 1');
   const dopo = heads();
   t('la località resta della sola prova aperta', dopo.filter(h => h.localita === 'Via Solo 1').length === 1);
+  // località del progetto: segue chi non l'ha cambiata a mano (si riparte da prove senza località)
+  app.E('(()=>{const p=state.projects[state.currentProjectId];p.localita="";Object.values(p.surveys).forEach(s=>s.header.localita="");state.header.localita="";})()');
+  scrivi('txtLocalitaProgetto', 'Via Roma 10');
+  t('località del progetto in tutte le prove', heads().every(h => h.localita === 'Via Roma 10'));
+  scrivi('txtLocalita', 'Via Solo 1');
+  scrivi('txtLocalitaProgetto', 'Via Nuova 5');
+  const l = heads().map(h => h.localita);
+  t('la prova cambiata a mano tiene la sua', l.filter(x => x === 'Via Solo 1').length === 1);
+  t('le altre seguono il progetto', l.filter(x => x === 'Via Nuova 5').length === l.length - 1);
+  t('il progetto ha la sua località', app.E('state.projects[state.currentProjectId].localita') === 'Via Nuova 5');
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

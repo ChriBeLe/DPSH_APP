@@ -179,6 +179,19 @@
                 state.header[chiave] = valore;
                 saveState();
             }
+            /** La località del PROGETTO vale per tutte le prove che la seguono: quelle il cui valore è ancora
+             * quello precedente del progetto (o vuoto) passano al nuovo; quelle cambiate a mano nella singola
+             * prova restano com'erano. */
+            const txtLocalitaProgetto = document.getElementById('txtLocalitaProgetto');
+            if (txtLocalitaProgetto) txtLocalitaProgetto.addEventListener('input', (e) => {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                const vecchia = proj.localita || '', nuova = e.target.value;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header && (sv.header.localita || '') === vecchia) sv.header.localita = nuova; });
+                if ((state.header.localita || '') === vecchia) state.header.localita = nuova;
+                proj.localita = nuova; proj.updatedAt = Date.now();
+                saveState(); updateUI();
+            });
             const txtNomeProgetto = document.getElementById('txtNomeProgetto');
             // Un nome vuoto non si salva: il progetto resterebbe senza nome in Home e nei file.
             if (txtNomeProgetto) txtNomeProgetto.addEventListener('input', (e) => {

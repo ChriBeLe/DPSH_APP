@@ -987,7 +987,10 @@
 
                 txtNewCommittente.value = state.header.committente || '';
                 txtNewComune.value = state.header.comune || '';
-                txtNewLocalita.value = state.header.localita || '';
+                {
+                    const pr = state.projects && state.projects[state.currentProjectId];
+                    txtNewLocalita.value = (pr && pr.localita) || state.header.localita || '';
+                }
                 txtNewData.value = state.header.date || new Date().toISOString().split('T')[0];
                 txtNewProvaNr.value = nextNr;
                 numNewLunghAsta.value = state.instrument.lunghAsta || '1.00';

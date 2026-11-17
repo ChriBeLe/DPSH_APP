@@ -521,6 +521,8 @@ ${contenuto}
                     const txtNomeProgetto = document.getElementById('txtNomeProgetto');
                     // Non si riscrive mentre lo si sta digitando: updateUI parte a ogni tasto.
                     if (txtNomeProgetto && document.activeElement !== txtNomeProgetto) txtNomeProgetto.value = (progettoCorrente && progettoCorrente.name) || '';
+                    const txtLocProg = document.getElementById('txtLocalitaProgetto');
+                    if (txtLocProg && document.activeElement !== txtLocProg) txtLocProg.value = (progettoCorrente && progettoCorrente.localita) || '';
                     if (txtProvincia) txtProvincia.value = (progettoCorrente && progettoCorrente.provincia) || '';
                     if (txtSedeCommittente) txtSedeCommittente.value = (progettoCorrente && progettoCorrente.sedeCommittente) || '';
                     if (txtDenominazioneIntervento) txtDenominazioneIntervento.value = (progettoCorrente && progettoCorrente.denominazioneIntervento) || '';
