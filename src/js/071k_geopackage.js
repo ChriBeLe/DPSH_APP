@@ -1,12 +1,18 @@
             // ===================== GEOPACKAGE DELLE SEZIONI (.gpkg) =====================
             // Un GeoPackage è un file SQLite con alcune tabelle stabilite (OGC 12-128). L'app lo scrive
-            // da sé, senza librerie: poche tabelle piccole, ciascuna in una pagina sola (pagine da
-            // 64 KB). Dentro: «sezioni» (le tracce, linee) e «prove» (punti), in WGS84 (EPSG:4326),
+            // da sé, senza librerie: pagine da 64 KB; le righe più grandi di una pagina (lo stile QML di tanti
+            // elementi, un poligono con migliaia di vertici) continuano in pagine di trabocco, come vuole
+            // il formato SQLite. Dentro: «sezioni» (le tracce, linee) e «prove» (punti), in WGS84 (EPSG:4326),
             // con nome, lunghezza e direzione. Si apre in QGIS come due layer.
 
             const GPKG_WKT_4326 = 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],'
                 + 'PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]]';
             const PAGINA_SQLITE = 65536;
+            // Trabocco (formato SQLite, «B-tree cell payload overflow»; U = PAGINA_SQLITE, nessun byte riservato):
+            // un record più lungo di X = U-35 byte tiene in pagina solo K byte (M se K non sta), il resto va in
+            // una catena di pagine di trabocco: 4 byte col numero della successiva (0 = ultima) e U-4 di dati.
+            const SQLITE_MAX_LOCALE = PAGINA_SQLITE - 35;
+            const SQLITE_MIN_LOCALE = Math.floor((PAGINA_SQLITE - 12) * 32 / 255) - 23;
             /** Un numero da scrivere come reale anche quando è tondo (le colonne REAL). */
             const realeSqlite = v => ({ reale: v });
 
@@ -31,8 +37,8 @@
                 const enc = new TextEncoder();
                 valori.forEach(v => {
                     if (v === null || v === undefined) { tipi.push(0); return; }
-                    if (v instanceof Uint8Array) { tipi.push(12 + 2 * v.length); corpo.push(...v); return; }
-                    if (typeof v === 'string') { const b = enc.encode(v); tipi.push(13 + 2 * b.length); corpo.push(...b); return; }
+                    if (v instanceof Uint8Array) { tipi.push(12 + 2 * v.length); for (let i = 0; i < v.length; i++) corpo.push(v[i]); return; }
+                    if (typeof v === 'string') { const b = enc.encode(v); tipi.push(13 + 2 * b.length); for (let i = 0; i < b.length; i++) corpo.push(b[i]); return; }
                     const dv = new DataView(new ArrayBuffer(8));
                     if (typeof v === 'object' || !Number.isInteger(v)) { tipi.push(7); dv.setFloat64(0, typeof v === 'object' ? v.reale : v); }
                     else { tipi.push(6); dv.setBigInt64(0, BigInt(v)); }
@@ -44,12 +50,33 @@
                 return [...varintSqlite(h), ...t, ...corpo];
             }
 
-            /** La cella di una riga di tabella: lunghezza del record, rowid, record. Il record deve stare in una
-             * pagina (niente pagine di trabocco): chi scrive divide i dati grandi su più righe. */
+            /** La cella di una riga di tabella: lunghezza del record, rowid, record. Se il record è più lungo di
+             * SQLITE_MAX_LOCALE in pagina ne resta l'inizio, poi 4 byte (a zero per ora) per il numero della prima
+             * pagina di trabocco; il resto sta in `trabocco` (pezzi da U-4 byte), `puntatore` è dove scrivere
+             * quel numero (lo sa fileSqlite, che numera le pagine). */
             function cellaSqlite(r) {
-                const rec = recordSqlite(r.valori);
-                if (rec.length > PAGINA_SQLITE - 35) throw new Error('Una riga troppo grande per il GeoPackage.');
-                return [...varintSqlite(rec.length), ...varintSqlite(r.rowid), ...rec];
+                const rec = recordSqlite(r.valori), P = rec.length;
+                if (P <= SQLITE_MAX_LOCALE) { const c = [...varintSqlite(P), ...varintSqlite(r.rowid), ...rec]; c.trabocco = []; return c; }
+                const K = SQLITE_MIN_LOCALE + ((P - SQLITE_MIN_LOCALE) % (PAGINA_SQLITE - 4)), locale = K <= SQLITE_MAX_LOCALE ? K : SQLITE_MIN_LOCALE;
+                const c = [...varintSqlite(P), ...varintSqlite(r.rowid)];
+                for (let i = 0; i < locale; i++) c.push(rec[i]);
+                c.puntatore = c.length;
+                c.push(0, 0, 0, 0);
+                c.trabocco = [];
+                for (let i = locale; i < P; i += PAGINA_SQLITE - 4) c.trabocco.push(Uint8Array.from(rec.slice(i, Math.min(P, i + PAGINA_SQLITE - 4))));
+                return c;
+            }
+            /** Le pagine di trabocco di una cella, a partire dal numero `primo`: la cella ne riceve il puntatore. */
+            function pagineTraboccoSqlite(cella, primo) {
+                if (!cella.trabocco.length) return [];
+                const n = cella.trabocco.length;
+                cella.splice(cella.puntatore, 4, (primo >>> 24) & 255, (primo >>> 16) & 255, (primo >>> 8) & 255, primo & 255);
+                return cella.trabocco.map((pezzo, i) => {
+                    const pg = new Uint8Array(PAGINA_SQLITE), succ = i + 1 < n ? primo + i + 1 : 0;
+                    new DataView(pg.buffer).setUint32(0, succ);
+                    pg.set(pezzo, 4);
+                    return pg;
+                });
             }
             /** Una pagina foglia di tabella con le sue celle (in ordine di rowid). */
             function paginaFogliaSqlite(righe, primaPagina, celle) {
@@ -74,7 +101,7 @@
                     ora.push(c); usato += c.length + 2; chiave = r.rowid;
                 });
                 gruppi.push({ celle: ora, chiave: chiave === null ? 0 : chiave });
-                return gruppi.map(g => ({ pagina: paginaFogliaSqlite(null, false, g.celle), chiave: g.chiave }));
+                return gruppi; // { celle, chiave }: le pagine si fanno dopo, quando i puntatori di trabocco sono numerati
             }
             /** La pagina interna (la radice) di una tabella su più foglie: i figli con la loro chiave più alta,
              * l'ultimo a destra. */
@@ -95,17 +122,30 @@
             }
 
             /** Il file SQLite: pagina 1 lo schema (sqlite_master), poi ogni tabella: una pagina foglia, o una
-             * radice interna con le sue foglie. tabelle: [{ nome, sql, righe: [{ rowid, valori }] }] */
+             * radice interna con le sue foglie; poi le pagine di trabocco delle righe grandi. tabelle: [{ nome, sql, righe: [{ rowid, valori }] }] */
             function fileSqlite(tabelle) {
                 const foglie = tabelle.map(t => foglieSqlite(t.righe));
+                // numerazione: pagina 1 lo schema; per ogni tabella la radice (e le foglie), poi le pagine di trabocco
                 let n = 2;
-                const radici = foglie.map(f => { const r = n; n += f.length > 1 ? f.length + 1 : 1; return r; });
-                const schema = tabelle.map((t, i) => ({ rowid: i + 1, valori: ['table', t.nome, t.nome, radici[i], t.sql] }));
-                const pagine = [paginaFogliaSqlite(schema, true)];
+                const radici = [], trabocchi = [];
                 foglie.forEach((f, i) => {
-                    if (f.length === 1) { pagine.push(f[0].pagina); return; }
-                    const figli = f.map((x, j) => ({ pagina: radici[i] + 1 + j, chiave: x.chiave }));
-                    pagine.push(paginaInternaSqlite(figli.slice(0, -1), figli[figli.length - 1].pagina), ...f.map(x => x.pagina));
+                    radici.push(n); n += f.length > 1 ? f.length + 1 : 1;
+                    const extra = [];
+                    f.forEach(g => g.celle.forEach(c => { const pp = pagineTraboccoSqlite(c, n + extra.length); extra.push(...pp); }));
+                    n += extra.length; trabocchi.push(extra);
+                });
+                const schema = tabelle.map((t, i) => ({ rowid: i + 1, valori: ['table', t.nome, t.nome, radici[i], t.sql] }));
+                const celleSchema = schema.map(cellaSqlite);
+                if (celleSchema.some(c => c.trabocco.length)) throw new Error('Lo schema del GeoPackage non sta in una pagina.');
+                const pagine = [paginaFogliaSqlite(null, true, celleSchema)];
+                foglie.forEach((f, i) => {
+                    const pg = f.map(g => paginaFogliaSqlite(null, false, g.celle));
+                    if (pg.length === 1) pagine.push(pg[0]);
+                    else {
+                        const figli = f.map((g, j) => ({ pagina: radici[i] + 1 + j, chiave: g.chiave }));
+                        pagine.push(paginaInternaSqlite(figli.slice(0, -1), figli[figli.length - 1].pagina), ...pg);
+                    }
+                    trabocchi[i].forEach(x => pagine.push(x));
                 });
                 const p1 = pagine[0], dv = new DataView(p1.buffer);
                 p1.set(new TextEncoder().encode('SQLite format 3\0'), 0);
