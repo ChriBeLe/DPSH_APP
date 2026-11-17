@@ -12,17 +12,17 @@
             // acceso questo pezzo non fa nessuna richiesta di rete.
             const AI_CHIAVE = 'DPSH_AI_V1';
             const AI_PROVIDER = [
-                { id: 'gemini', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', modello: 'gemini-2.5-flash', costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
+                { id: 'gemini', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
-                { id: 'groq', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', modello: 'llama-3.3-70b-versatile', costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
+                { id: 'groq', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
-                { id: 'openrouter', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', modello: 'meta-llama/llama-3.3-70b-instruct:free', costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
+                { id: 'openrouter', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
                   passi: ['Apri OpenRouter e crea un account.', 'Vai su «Keys» e premi «Create Key».', 'Copia la chiave (inizia con «sk-or-») e incollala qui sotto. I modelli con «:free» nel nome non costano.'] },
-                { id: 'anthropic', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', modello: 'claude-sonnet-5-5', costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
+                { id: 'anthropic', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
                   passi: ['Apri la console di Anthropic e accedi.', 'In «Billing» aggiungi un po\' di credito (bastano pochi euro).', 'In «API Keys» premi «Create Key», copia la chiave (inizia con «sk-ant-») e incollala qui sotto.'] },
-                { id: 'openai', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', modello: 'gpt-4.1-mini', costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
+                { id: 'openai', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', pref: /mini/, costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
                   passi: ['Apri la piattaforma OpenAI e accedi.', 'In «Billing» aggiungi un po\' di credito.', 'In «API keys» premi «Create new secret key», copia la chiave (inizia con «sk-») e incollala qui sotto.'] },
-                { id: 'ollama', nome: 'Ollama (sul tuo PC)', tipo: 'openai', base: 'http://localhost:11434/v1', modello: 'llama3.1', costo: 'Gratis, funziona sul tuo computer', url: 'https://ollama.com/download', senzaChiave: true,
+                { id: 'ollama', nome: 'Ollama (sul tuo PC)', tipo: 'openai', base: 'http://localhost:11434/v1', pref: /./, costo: 'Gratis, funziona sul tuo computer', url: 'https://ollama.com/download', senzaChiave: true,
                   passi: ['Installa Ollama dalla pagina qui sopra e avvialo.', 'Da terminale scarica un modello, per esempio: ollama pull llama3.1', 'Per far parlare l\'app con Ollama avvialo con la variabile OLLAMA_ORIGINS="*" (altrimenti il browser blocca la richiesta).', 'L\'indirizzo qui sotto è quello standard: cambialo solo se Ollama è su un altro computer.'] }
             ];
             const AI_MAX_GIRI = 6;
@@ -43,7 +43,7 @@
             function aiSalva() { try { localStorage.setItem(AI_CHIAVE, JSON.stringify(aiCfg)); } catch (e) { /* spazio pieno o accesso negato */ } }
             const aiDef = id => AI_PROVIDER.find(p => p.id === id);
             const aiConf = id => aiCfg.provider[id] || (aiCfg.provider[id] = {});
-            const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && (d.senzaChiave ? c.configurato : c.chiave)); };
+            const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
             const aiProntiInOrdine = () => aiCfg.ordine.filter(aiPronto);
             const aiEl = (tag, cls, testo) => { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; };
 
@@ -154,7 +154,7 @@
                         : { role: 'user', content: m.res.map(x => ({ type: 'tool_result', tool_use_id: x.id, content: x.c })) });
                     return {
                         url: d.base + '/messages', headers: { 'x-api-key': c.chiave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                        corpo: { model: c.modello || d.modello, max_tokens: 1500, system: aiMsgSistema(), messages: msgs, tools: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) })) },
+                        corpo: { model: c.modello, max_tokens: 1500, system: aiMsgSistema(), messages: msgs, tools: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) })) },
                         leggi: j => ({ t: (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), calls: (j.content || []).filter(b => b.type === 'tool_use').map(b => ({ id: b.id, n: b.name, a: b.input || {} })) })
                     };
                 },
@@ -169,7 +169,7 @@
                     if (c.chiave) h.Authorization = 'Bearer ' + c.chiave;
                     return {
                         url: (c.base || d.base).replace(/\/$/, '') + '/chat/completions', headers: h,
-                        corpo: { model: c.modello || d.modello, messages: msgs, tools: AI_STRUMENTI.map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
+                        corpo: { model: c.modello, messages: msgs, tools: AI_STRUMENTI.map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
                         leggi: j => {
                             const m = ((j.choices || [])[0] || {}).message || {};
                             return { t: m.content || '', calls: (m.tool_calls || []).map((k, i) => { let a = {}; try { a = JSON.parse(k.function.arguments || '{}'); } catch (e) { /* argomenti rovinati: strumento senza argomenti */ } return { id: k.id || ('call_' + i), n: k.function.name, a }; }) };
@@ -181,7 +181,7 @@
                         : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => ({ functionCall: { name: k.n, args: k.a || {} } }))) }
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
-                        url: d.base + '/models/' + encodeURIComponent(c.modello || d.modello) + ':generateContent', headers: { 'x-goog-api-key': c.chiave },
+                        url: d.base + '/models/' + encodeURIComponent(c.modello) + ':generateContent', headers: { 'x-goog-api-key': c.chiave },
                         corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
                         leggi: j => {
                             const parti = (((j.candidates || [])[0] || {}).content || {}).parts || [];
@@ -190,6 +190,30 @@
                     };
                 }
             };
+            // ELENCO DEI MODELLI: si scarica dal provider (con la chiave appena incollata, che così è anche
+            // verificata) e si sceglie da un menu: i nomi dei modelli cambiano di continuo e non vanno digitati.
+            async function aiElencoModelli(id, v) {
+                const d = aiDef(id), base = (v.base || d.base).replace(/\/$/, '');
+                let url = base + '/models', h = {};
+                if (d.tipo === 'anthropic') { url += '?limit=100'; h = { 'x-api-key': v.chiave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }; }
+                else if (d.tipo === 'gemini') { url += '?pageSize=200'; h = { 'x-goog-api-key': v.chiave }; }
+                else if (v.chiave) h = { Authorization: 'Bearer ' + v.chiave };
+                let risp;
+                try { risp = await fetch(url, { headers: h }); }
+                catch (e) { throw new Error(id === 'ollama' ? 'Ollama non raggiungibile: è avviato e ha OLLAMA_ORIGINS="*"?' : 'rete assente o richiesta bloccata'); }
+                if (!risp.ok) throw new Error(risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso' : risp.status === 429 ? 'limite raggiunto' : 'errore ' + risp.status);
+                const j = await risp.json();
+                const non = /embed|whisper|tts|audio|transcri|moderat|guard|image|imagen|veo|dall-e|realtime|search-preview|davinci|babbage|aqa|vision-preview|robotics|computer-use/i;
+                let el = [];
+                if (d.tipo === 'gemini') el = (j.models || []).filter(m => /gemini|gemma/i.test(m.name) && (m.supportedGenerationMethods || []).includes('generateContent') && !non.test(m.name)).map(m => ({ id: m.name.replace(/^models\//, ''), nome: m.displayName || m.name }));
+                else if (d.tipo === 'anthropic') el = (j.data || []).map(m => ({ id: m.id, nome: m.display_name || m.id }));
+                else if (id === 'openrouter') el = (j.data || []).filter(m => (m.supported_parameters || []).includes('tools') && !non.test(m.id)).map(m => ({ id: m.id, nome: (m.name || m.id) + (/:free$/.test(m.id) ? ' (gratis)' : '') }));
+                else if (id === 'ollama') el = (j.data || []).map(m => ({ id: m.id, nome: m.id }));
+                else el = (j.data || []).filter(m => !non.test(m.id) && (id !== 'openai' || /^(gpt|o\d|chatgpt)/.test(m.id))).map(m => ({ id: m.id, nome: m.id }));
+                if (id === 'openrouter') el.sort((a, b) => (/:free$/.test(b.id) ? 1 : 0) - (/:free$/.test(a.id) ? 1 : 0));
+                if (!el.length) throw new Error('nessun modello disponibile' + (id === 'ollama' ? ': scaricane uno con «ollama pull llama3.1»' : ''));
+                return el;
+            }
             async function aiChiama(id, crono) {
                 const d = aiDef(id), c = aiConf(id);
                 const r = AI_ADATTATORI[d.tipo](d, c, crono);
@@ -201,7 +225,7 @@
                         let det = ''; try { const j = await risp.json(); det = (j.error && (j.error.message || j.error)) || ''; } catch (e) { /* corpo non JSON */ }
                         const m = risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso'
                             : risp.status === 429 ? 'limite raggiunto o credito esaurito'
-                            : risp.status === 404 ? 'modello non trovato (controlla il nome del modello)'
+                            : risp.status === 404 ? 'modello non più disponibile: riapri il provider e scegline un altro dal menu'
                             : 'errore ' + risp.status;
                         throw new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
                     }
@@ -318,14 +342,35 @@
                 const campo = (et, tipo, val, ph) => { const w = aiEl('div'); w.appendChild(aiEl('label', null, et)); const i = aiEl('input'); i.type = tipo; i.value = val || ''; i.placeholder = ph || ''; i.autocomplete = 'off'; i.spellcheck = false; w.appendChild(i); n.push(w); return i; };
                 const iChiave = d.senzaChiave ? null : campo('Chiave API (resta solo su questo dispositivo)', 'password', c.chiave, 'incolla qui la chiave');
                 const iBase = d.senzaChiave ? campo('Indirizzo di Ollama', 'text', c.base || d.base) : null;
-                const iMod = campo('Modello (lascia quello proposto se non sai)', 'text', c.modello || d.modello);
+                const wm = aiEl('div'); wm.appendChild(aiEl('label', null, 'Modello (si scarica dal provider dopo la chiave)'));
+                const sel = aiEl('select'); sel.style.cssText = 'width:100%;box-sizing:border-box;background:var(--bg-sunken);color:var(--text-main);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 10px;font:inherit;font-size:13px;';
+                wm.appendChild(sel); n.push(wm);
                 const esito = aiEl('div', 'ai-esito'); esito.style.display = 'none'; n.push(esito);
-                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), prova = aiEl('button', null, 'Prova la connessione'), salva = aiEl('button', 'pri', 'Salva'), togli = aiEl('button', null, 'Rimuovi');
-                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim() : '', base: iBase ? iBase.value.trim() : '', modello: iMod.value.trim() || d.modello });
+                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), carica = aiEl('button', null, 'Carica i modelli'), prova = aiEl('button', null, 'Prova'), salva = aiEl('button', 'pri', 'Salva'), togli = aiEl('button', null, 'Rimuovi');
+                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim() : '', base: iBase ? iBase.value.trim() : '', modello: sel.value });
                 const mostra = (ok, t) => { esito.style.display = ''; esito.className = 'ai-esito ' + (ok ? 'ok' : 'ko'); esito.textContent = t; };
+                const riempi = (el, scelto) => {
+                    sel.textContent = '';
+                    el.forEach(m => { const o = aiEl('option', null, m.nome); o.value = m.id; sel.appendChild(o); });
+                    const pref = el.find(m => m.id === scelto) || el.find(m => d.pref.test(m.id)) || el[0];
+                    sel.value = pref.id;
+                };
+                const caricaModelli = async () => {
+                    const v = leggi();
+                    if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return false; }
+                    carica.disabled = true; mostra(true, 'Scarico l\'elenco dei modelli…');
+                    try { const el = await aiElencoModelli(id, v); riempi(el, c.modello); mostra(true, el.length + ' modelli disponibili. Scegli dal menu.'); return true; }
+                    catch (e) { sel.textContent = ''; mostra(false, 'Non riesco: ' + e.message); return false; }
+                    finally { carica.disabled = false; }
+                };
+                if (c.modello) { const o = aiEl('option', null, c.modello); o.value = c.modello; sel.appendChild(o); }
+                else sel.appendChild(Object.assign(aiEl('option', null, 'Prima carica i modelli'), { value: '' }));
+                carica.onclick = caricaModelli;
+                if (iChiave) iChiave.addEventListener('change', caricaModelli);
+                if (d.senzaChiave || c.chiave) caricaModelli();
                 prova.onclick = async () => {
                     const v = leggi();
-                    if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; }
+                    if (!v.modello) { mostra(false, 'Scegli prima un modello (premi «Carica i modelli»).'); return; }
                     const prec = Object.assign({}, c); Object.assign(c, v, { configurato: true });
                     prova.disabled = true; mostra(true, 'Provo…');
                     try {
@@ -334,10 +379,10 @@
                     } catch (e) { mostra(false, 'Non funziona: ' + e.message); }
                     for (const k of Object.keys(c)) delete c[k]; Object.assign(c, prec); prova.disabled = false;
                 };
-                salva.onclick = () => { const v = leggi(); if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
+                salva.onclick = () => { const v = leggi(); if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } if (!v.modello) { mostra(false, 'Scegli un modello dal menu (premi «Carica i modelli»).'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
                 togli.onclick = () => { delete aiCfg.provider[id]; aiSalva(); aiWizElenco(); };
                 indietro.onclick = aiWizElenco;
-                az.append(indietro); if (aiPronto(id)) az.appendChild(togli); az.append(prova, salva); n.push(az);
+                az.append(indietro); if (aiPronto(id)) az.appendChild(togli); az.append(carica, prova, salva); n.push(az);
                 aiWizMostra(n);
             }
 

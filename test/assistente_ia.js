@@ -13,7 +13,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('acceso: bolla visibile', $('aiBolla').classList.contains('attiva'));
   t('si apre la procedura guidata', $('aiWizOverlay').classList.contains('aperto') && $('aiWizOverlay').textContent.includes('Google Gemini'));
   // configuro due provider a mano (la chiave finta resta solo nel localStorage di jsdom)
-  app.E(`aiConf('groq').chiave='k1'; aiConf('groq').configurato=true; aiConf('gemini').chiave='k2'; aiConf('gemini').configurato=true; aiCfg.ordine=['groq','gemini','openai','anthropic','openrouter','ollama']; aiSalva()`);
+  app.E(`aiConf('groq').chiave='k1'; aiConf('groq').modello='m'; aiConf('groq').configurato=true; aiConf('gemini').chiave='k2'; aiConf('gemini').modello='g'; aiConf('gemini').configurato=true; aiCfg.ordine=['groq','gemini','openai','anthropic','openrouter','ollama']; aiSalva()`);
   t('stato non contiene chiavi', !app.E('JSON.stringify(state)').includes('k1'));
   const chiamate = [];
   w.fetch = async (url, opz) => {
@@ -47,6 +47,14 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('leggi_prova legge i colpi', app.E(`AI_STRUMENTI.find(x=>x.n==='leggi_prova').run({}).colpiPerIntervallo.length`) === 3);
   t('imposta_falda', (app.E(`AI_STRUMENTI.find(x=>x.n==='imposta_falda').run({da:'2.5',a:'3'}); state.header.faldaDa`)) === '2.5');
   t('nessuno strumento elimina', !app.E('AI_STRUMENTI.map(s=>s.n)').some(n => /elimin|cancell|delete/i.test(n)));
+  // elenco modelli scaricato dal provider
+  w.fetch = async (url) => ({ ok: true, status: 200, json: async () => url.includes('generativelanguage')
+    ? { models: [{ name: 'models/gemini-x-flash', displayName: 'Gemini X Flash', supportedGenerationMethods: ['generateContent'] }, { name: 'models/text-embedding-1', supportedGenerationMethods: ['embedContent'] }] }
+    : { data: [{ id: 'gpt-9-mini' }, { id: 'text-embedding-3' }, { id: 'whisper-1' }] } });
+  const mg = await app.E(`aiElencoModelli('gemini',{chiave:'x'})`);
+  t('Gemini: solo modelli di chat', mg.length === 1 && mg[0].id === 'gemini-x-flash');
+  const mo = await app.E(`aiElencoModelli('openai',{chiave:'x'})`);
+  t('OpenAI: niente embedding/whisper', mo.length === 1 && mo[0].id === 'gpt-9-mini');
   console.log(`\n${ok} ok, ${ko} KO`); console.log(app.errori ? app.errori.slice(0,5) : '');
   process.exit(ko ? 1 : 0);
 })();
