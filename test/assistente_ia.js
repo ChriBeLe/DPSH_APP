@@ -95,7 +95,6 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   // guidare la schermata: aprire Impostazioni, leggere i controlli, premere/compilare
   app2.E('openDrawer()'); await attesa(100);
   const sch = T('leggi_schermata');
-  console.log(JSON.stringify(sch).slice(0,300));
   t('leggi_schermata vede la finestra aperta e i controlli', sch.controlli.length > 5 && /Impostazioni/.test(sch.finestra || ''));
   const vib = sch.controlli.find(c => /Vibrazione/i.test(c.etichetta) && c.tipo === 'checkbox');
   if (vib) { const prima = vib.attivo; T('compila_campo', { id: vib.id, valore: String(!prima) }); t('compila_campo cambia l\'interruttore', app2.E('document.getElementById("chkHaptic").checked') === !prima); }

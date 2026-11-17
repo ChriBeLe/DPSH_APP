@@ -282,7 +282,8 @@
                         if (e.closest('#aiPannello, #aiWizOverlay') || e.type === 'hidden' || !aiVisibile(e)) return;
                         if (aiUiMappa.length >= 90) return;
                         const tipo = e.tagName === 'SELECT' ? 'menu' : e.tagName === 'TEXTAREA' ? 'testo' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'campo') : 'pulsante';
-                        const lab = (e.getAttribute('aria-label') || e.title || e.textContent || e.placeholder || (e.labels && e.labels[0] && e.labels[0].textContent) || ((e.closest('.setting-row, .form-group, .field-row') || {}).querySelector ? ((e.closest('.setting-row, .form-group, .field-row').querySelector('.setting-label, label') || {}).textContent || '') : '') || e.id || '').replace(/\s+/g, ' ').trim().slice(0, 70);
+                        const riga = e.closest('.setting-row, .form-group, .field-row');
+                        const lab = [e.getAttribute('aria-label'), e.title, e.textContent, e.placeholder, e.labels && e.labels[0] && e.labels[0].textContent, riga && (riga.querySelector('.setting-label, label') || {}).textContent, e.id].map(x => String(x || '').replace(/\s+/g, ' ').trim()).find(x => x).slice(0, 70) || '';
                         const o = { id: aiUiMappa.length, tipo, etichetta: lab };
                         if (tipo === 'campo' || tipo === 'testo' || tipo === 'menu') o.valore = String(e.value).slice(0, 60);
                         if (tipo === 'menu') o.opzioni = Array.from(e.options).slice(0, 15).map(x => x.textContent.trim());
