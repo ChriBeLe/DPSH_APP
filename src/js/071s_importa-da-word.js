@@ -10,7 +10,7 @@
 
             /** Un .docx è uno ZIP compresso (DEFLATE): readZipStoreOnly legge solo gli ZIP dell'app,
              * che non sono compressi. Qui si decomprime col motore del browser. */
-            async function leggiZipCompresso(buf) {
+            async function leggiZipCompresso(buf, servonoPer) {
                 const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
                 let fine = -1;
                 for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
@@ -32,7 +32,7 @@
                     voci.push({ nome, metodo, dati });
                     p += 46 + lNome + lExtra + lComm;
                 }
-                const servono = /^(word\/(document|styles)\.xml|word\/(header|footer)\d*\.xml|word\/_rels\/.*\.rels|word\/theme\/theme1\.xml|word\/media\/.*)$/;
+                const servono = servonoPer || /^(word\/(document|styles)\.xml|word\/(header|footer)\d*\.xml|word\/_rels\/.*\.rels|word\/theme\/theme1\.xml|word\/media\/.*)$/;
                 const per = new Map();
                 for (const v of voci) {
                     if (!servono.test(v.nome)) continue;

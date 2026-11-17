@@ -93,6 +93,7 @@ js/019_allegato-compendio-delle-formule-di-correlazione.js
 js/020_fogli-excel-riepilogo-e-dettagliata-replica-fede.js
 js/021_diagnostica-gps.js
 js/022_importazione-coordinate-da-file-kml-gpx.js
+js/022b_importa-prove-da-excel.js
 js/023_eliminazione-prova.js
 js/024_impostazioni-della-singola-prova.js
 js/025_scelta-formato-backup.js

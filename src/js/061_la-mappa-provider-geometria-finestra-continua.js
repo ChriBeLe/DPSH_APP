@@ -67,11 +67,11 @@
                     attribuzione: 'Esri, Maxar, Earthstar Geographics'
                 },
                 'osm': {
-                    nome: 'Mappa stradale (OSM)',
+                    nome: 'Mappa stradale (Esri)',
                     tipo: 'tessere',
                     zoomMax: 19,
-                    url: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-                    attribuzione: '© OpenStreetMap contributors'
+                    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+                    attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'
                 },
                 // Le altre basemap a tessere. Sono indirizzi standard e stabili, non servizi
                 // regionali: si aggiungono qui perche' in una relazione servono per cose diverse

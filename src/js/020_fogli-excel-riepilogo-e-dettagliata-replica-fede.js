@@ -1516,6 +1516,7 @@ ${contenuto}
                 if (!hasGpsAlready && navigator.geolocation) {
                     fetchGpsPositionModal();
                 }
+                if (hasGpsAlready) mostraMappaDelPunto();
             }
 
             function closeGpsModal() {
@@ -1717,6 +1718,7 @@ ${contenuto}
                     updateModalGpsStatusText();
                     updateUI();
                     saveState();
+                    mostraMappaDelPunto();
                 }
 
                 function tryLowAccuracy() {
@@ -1810,7 +1812,7 @@ ${contenuto}
             // Fonti tile gratuite, senza chiave API: OSM per la vista Strada, Esri World Imagery
             // per il Satellite, più uno strato di etichette/confini sopra le immagini per l'Ibrida.
             const GPS_MAP_TILE_SOURCES = {
-                street: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options: { maxZoom: 19, attribution: '&copy; OpenStreetMap' } },
+                street: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
                 satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
                 hybridLabels: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19 } }
             };

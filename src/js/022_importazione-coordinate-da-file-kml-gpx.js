@@ -95,6 +95,18 @@
                 return new TextDecoder().decode(await new Response(flusso).arrayBuffer());
             }
 
+            /** La mappa col pin del punto appena preso (GPS, file, coordinate incollate) o già salvato:
+             * si apre da sola, senza dover passare dall'inserimento manuale. Se la mappa non si può
+             * caricare (niente rete) resta com'è, senza avvisi: il punto si legge dalle coordinate. */
+            async function mostraMappaDelPunto() {
+                try {
+                    const body = document.getElementById('gpsAccBodyManual');
+                    if (!body || body.classList.contains('open')) { if (body && gpsModalMapInstance) ensureGpsModalMapReady(); return; }
+                    await ensureLeafletLoaded();
+                    await openGpsAccordion('Manual');
+                } catch (e) { ignoraErrore('mostraMappaDelPunto', e); }
+            }
+
             function applyGpsCoordsToModal(lat, lng, sourceLabel) {
                 if (numModalGpsLat) numModalGpsLat.value = lat;
                 if (numModalGpsLng) numModalGpsLng.value = lng;
@@ -107,6 +119,7 @@
                     gpsModalMapInstance.setView([lat, lng], 16);
                     gpsModalMapMarker.setLatLng([lat, lng]);
                 }
+                mostraMappaDelPunto();
             }
 
             const btnImportGpsKml = document.getElementById('btnImportGpsKml');

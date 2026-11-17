@@ -131,9 +131,9 @@
                 setTimeout(() => {
                     if (!photoGpsMapInstance) {
                         photoGpsMapInstance = L.map('photoGpsMapEl').setView([centerLat, centerLng], 16);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
                             maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap'
+                            attribution: 'Tiles &copy; Esri'
                         }).addTo(photoGpsMapInstance);
                         photoGpsMapMarker = L.marker([centerLat, centerLng], { draggable: true }).addTo(photoGpsMapInstance);
                         photoGpsMapInstance.on('click', (e) => { photoGpsMapMarker.setLatLng(e.latlng); });

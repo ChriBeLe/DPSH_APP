@@ -219,6 +219,7 @@
                     if (numModalGpsLat) numModalGpsLat.value = coords.lat;
                     if (numModalGpsLng) numModalGpsLng.value = coords.lng;
                     if (txtPasteCoords) txtPasteCoords.value = '';
+                    mostraMappaDelPunto();
                     triggerVibrate([40, 40]);
                     if (lblModalGpsStatus) {
                         lblModalGpsStatus.innerHTML = `${ico('check')} Coordinate riconosciute: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)} — premi "Salva Coordinate" per confermare`;
