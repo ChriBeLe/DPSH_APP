@@ -260,21 +260,30 @@
             // due bottoni distinti). Riguarda sempre un intero progetto: se la modale è aperta
             // dalla singola prova, risolviamo il progetto a cui appartiene (state.currentProjectId)
             // invece di bloccare l'utente con un errore — è comunque quello che si aspetta.
+            // Il perimetro scelto nella Consegna vale anche per PDF e Word (Fase C): «Questa prova»
+            // porta la sola prova aperta, «Tutto il progetto» le prove lasciate accese (null = tutte).
+            function proveDelPerimetroConsegna() {
+                if (exportModalContext.type !== 'project') return exportModalContext.id ? new Set([exportModalContext.id]) : null;
+                return exportModalContext.soloProve || null;
+            }
+
             if (btnOptExportCompletePdf) {
                 btnOptExportCompletePdf.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
-                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId });
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, soloProve: proveDelPerimetroConsegna() });
                 });
             }
 
             if (btnOptExportCompleteWord) {
                 btnOptExportCompleteWord.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
                     // Il Word passa dalla stessa finestra del PDF: stesse prove, stesso indice, stessa
                     // numerazione — è lo stesso documento, salvato in un altro formato.
-                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'word' });
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'word', soloProve: proveDelPerimetroConsegna() });
                 });
             }
 

@@ -188,8 +188,11 @@
                 }));
             }
 
-            function openExportModal(targetType, targetId) {
-                exportModalContext = { type: targetType, id: targetId };
+            function openExportModal(targetType, targetId, mantieniScelta) {
+                // Passando da «Questa prova» a «Tutto il progetto» e ritorno la scelta delle prove resta.
+                const sceltaPrima = mantieniScelta && exportModalContext ? exportModalContext.soloProveProgetto : null;
+                exportModalContext = { type: targetType, id: targetId, soloProveProgetto: sceltaPrima || null };
+                if (targetType === 'project' && sceltaPrima && sceltaPrima.projId === targetId) exportModalContext.soloProve = sceltaPrima.prove;
                 renderRiepilogoPrimaExport(targetType, targetId);
                 // Controllo dei dati (004c) sul progetto che si esporta: dopo il riepilogo, che ha già
                 // riportato nel progetto la prova aperta.
@@ -200,6 +203,7 @@
                 const lblSingleScope = document.getElementById('lblExportSingleSurveyScope');
                 const lblSingleName = document.getElementById('lblExportSingleSurveyName');
                 const lblCompleteDesc = document.getElementById('lblExportCompleteDesc');
+                const lblPdfPerimetro = document.getElementById('lblExportPdfPerimetro');
 
                 // Consegna (Fase 5): dentro una prova si può scegliere tra la prova e il progetto.
                 const inProva = state.uiState && state.uiState.currentView === 'field' && projIdControllo === state.currentProjectId;
@@ -215,10 +219,11 @@
 
                 if (targetType === 'project') {
                     const proj = state.projects ? state.projects[targetId] : null;
-                    const projName = proj ? (proj.name || proj.comune || 'Cantiere') : 'Progetto';
+                    const projName = proj ? (proj.name || proj.comune || 'Progetto') : 'Progetto';
                     if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = projName;
                     if (lblSingleScope) lblSingleScope.style.display = 'none';
-                    if (lblCompleteDesc) lblCompleteDesc.textContent = `Report di campo (tabelle Parametri Avanzati opzionali) per tutte le prove del progetto "${projName}".`;
+                    if (lblPdfPerimetro) lblPdfPerimetro.textContent = 'Progetto';
+                    if (lblCompleteDesc) lblCompleteDesc.textContent = `Report di campo delle prove scelte del progetto "${projName}", con le tabelle dei parametri avanzati se le vuoi: prove e opzioni si confermano nel passo dopo.`;
                 } else {
                     const survName = (state.header && state.header.comune) ? `${state.header.comune} (${state.header.codice || 'Prova'})` : 'Prova Corrente';
                     if (lblExportModalSubtitle) lblExportModalSubtitle.textContent = testiTestataProva().titolo + ' · ' + testiTestataProva().sotto;
@@ -227,7 +232,8 @@
                     // Completo qui sopra riguarda invece sempre l'intero progetto.
                     if (lblSingleScope) lblSingleScope.style.display = 'flex';
                     if (lblSingleName) lblSingleName.textContent = survName;
-                    if (lblCompleteDesc) lblCompleteDesc.textContent = `Report di campo (tabelle Parametri Avanzati opzionali) per tutte le prove del progetto a cui appartiene "${survName}" (non solo questa).`;
+                    if (lblPdfPerimetro) lblPdfPerimetro.textContent = 'Questa prova';
+                    if (lblCompleteDesc) lblCompleteDesc.textContent = `Report di campo della sola prova "${survName}". Per le altre prove del progetto scegli «Tutto il progetto» qui sopra.`;
                 }
 
 
@@ -248,10 +254,10 @@
                 const n = prove.filter(s => scelte.has(s.id)).length;
                 document.getElementById('lblProveConsegnaBreve').textContent = n === prove.length ? `tutte (${n})` : `${n} su ${prove.length}`;
                 document.getElementById('lblProveConsegna').textContent = n === prove.length
-                    ? 'Tutte le prove. Tocca una prova per toglierla da Excel, KML e foto.'
+                    ? 'Tutte le prove. Tocca una prova per toglierla da PDF, Word, Excel, KML e foto.'
                     : n === 0 ? 'Scegli almeno una prova.'
-                    : `${n} prove su ${prove.length} per Excel, KML e foto. Il PDF le fa scegliere nel passo dopo; backup e parametri restano di tutto il progetto.`;
-                ['btnOptExportExcel', 'btnOptExportKML', 'btnOptExportPhotos'].forEach(id => document.getElementById(id).classList.toggle('spenta', n === 0));
+                    : `${n} prove su ${prove.length} per PDF, Word, Excel, KML e foto. Parametri e porta sul PC restano di tutto il progetto.`;
+                ['btnOptExportExcel', 'btnOptExportKML', 'btnOptExportPhotos', 'btnOptExportCompletePdf', 'btnOptExportCompleteWord'].forEach(id => document.getElementById(id).classList.toggle('spenta', n === 0));
             }
             document.getElementById('pilloleProveConsegna').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-prova]');
@@ -260,10 +266,14 @@
                 const scelte = exportModalContext.soloProve || new Set(Object.keys(proj.surveys || {}));
                 if (scelte.has(b.dataset.prova)) scelte.delete(b.dataset.prova); else scelte.add(b.dataset.prova);
                 exportModalContext.soloProve = scelte.size === Object.keys(proj.surveys || {}).length ? null : scelte;
+                ricordaSceltaProve();
                 renderProveConsegna();
             });
-            document.getElementById('btnProveConsegnaTutte').addEventListener('click', () => { exportModalContext.soloProve = null; renderProveConsegna(); });
-            document.getElementById('btnProveConsegnaNessuna').addEventListener('click', () => { exportModalContext.soloProve = new Set(); renderProveConsegna(); });
+            function ricordaSceltaProve() {
+                exportModalContext.soloProveProgetto = { projId: exportModalContext.id, prove: exportModalContext.soloProve };
+            }
+            document.getElementById('btnProveConsegnaTutte').addEventListener('click', () => { exportModalContext.soloProve = null; ricordaSceltaProve(); renderProveConsegna(); });
+            document.getElementById('btnProveConsegnaNessuna').addEventListener('click', () => { exportModalContext.soloProve = new Set(); ricordaSceltaProve(); renderProveConsegna(); });
 
             function closeExportModal() {
                 if (modalExportOverlay) modalExportOverlay.classList.remove('open');
@@ -271,8 +281,8 @@
             }
 
             if (btnCloseExportX) btnCloseExportX.addEventListener('click', closeExportModal);
-            document.getElementById('btnPerimetroProva').addEventListener('click', () => openExportModal('survey', state.currentSurveyId));
-            document.getElementById('btnPerimetroProgetto').addEventListener('click', () => openExportModal('project', state.currentProjectId));
+            document.getElementById('btnPerimetroProva').addEventListener('click', () => openExportModal('survey', state.currentSurveyId, true));
+            document.getElementById('btnPerimetroProgetto').addEventListener('click', () => openExportModal('project', state.currentProjectId, true));
             document.querySelectorAll('[data-parametri]').forEach(b => b.addEventListener('click', () => {
                 closeExportModal();
                 document.getElementById('btnExportProcessing' + b.dataset.parametri).click();

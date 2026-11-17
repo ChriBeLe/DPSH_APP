@@ -1,4 +1,4 @@
-            // ============ LE FINESTRE «PORTA SU UN ALTRO DISPOSITIVO» E «RICEVI» (Fase 2) ============
+            // ============ LE FINESTRE «PORTA SUL PC» E «RICEVI UN PROGETTO» (Fase 2, nomi della Fase C) ============
             // Come nel prototipo approvato (tavole «Telefono · Porta su un altro dispositivo» e «PC ·
             // Ricevi un progetto»). Il lavoro vero sta in 044b; qui solo cosa si vede e cosa si tocca.
 
@@ -76,7 +76,7 @@
                     scaricaBlobFile(blob, nomeFile);
                     chiudiPortaProgetto();
                     const mancanti = manifest.fotoMancanti.length + manifest.immaginiNoteMancanti.length;
-                    appDialog(`«${nomeFile}» · ${formattaMegabyte(blob.size)}\n\nÈ nei Download. Sull'altro dispositivo apri DPSH, tocca Ricevi nella Home e scegli questo file.`
+                    appDialog(`«${nomeFile}» · ${formattaMegabyte(blob.size)}\n\nÈ nei Download. Sull'altro dispositivo apri DPSH, tocca «Ricevi un progetto» nella Home e scegli questo file.`
                         + (mancanti ? `\n\nNel pacchetto mancano ${plurale(mancanti, 'immagine', 'immagini')} che non erano su questo dispositivo.` : ''),
                         { title: 'Pacchetto creato', okLabel: 'Ho capito', icona: 'check', coloreIcona: 'var(--success)' });
                 } catch (e) {
@@ -108,6 +108,26 @@
                     const { projId } = projectActionsContext;
                     closeProjectActionsModal();
                     apriPortaProgetto(projId);
+                });
+            }
+
+            // Fase C: l'unica porta telefono→PC sta nella Consegna. Vale sempre per tutto il progetto,
+            // anche quando la Consegna è aperta dalla singola prova.
+            const btnOptPortaSulPc = document.getElementById('btnOptPortaSulPc');
+            if (btnOptPortaSulPc) {
+                btnOptPortaSulPc.addEventListener('click', () => {
+                    const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
+                    closeExportModal();
+                    if (projId) apriPortaProgetto(projId);
+                });
+            }
+            // Gli altri formati (JSON in un file solo, ZIP semplice) restano, ma dentro la stessa porta.
+            const btnPortaAltriFormati = document.getElementById('btnPortaAltriFormati');
+            if (btnPortaAltriFormati) {
+                btnPortaAltriFormati.addEventListener('click', () => {
+                    const projId = portaProgettoId;
+                    chiudiPortaProgetto();
+                    if (projId) openBackupChoiceModal({ type: 'project', projId });
                 });
             }
 
@@ -248,7 +268,9 @@
                         : (esito.scelta === 'entrambi' ? `Il progetto è arrivato come «${esito.nome}». Quello che c'era resta com'è.` : `«${esito.nome}» è su questo dispositivo.`);
                     if (esito.immagini.rinominate) msg += `\n\n${plurale(esito.immagini.rinominate, 'immagine aveva', 'immagini avevano')} lo stesso nome di una diversa già qui: quella di qui resta, quella del pacchetto è entrata con un nome nuovo.`;
                     msg += testoLibrerieAccolte(esito.librerie);
-                    appDialog(msg, { title: 'Progetto ricevuto', okLabel: 'Ho capito', icona: 'check', coloreIcona: 'var(--success)' });
+                    // Fase C: dopo «Ricevi» si apre il progetto da qui, senza cercarlo nella Home.
+                    const apri = await appDialog(msg, { confirm: true, title: 'Progetto ricevuto', okLabel: 'Apri il progetto', cancelLabel: 'Chiudi', icona: 'check', coloreIcona: 'var(--success)' });
+                    if (apri === true && esito.projId && state.projects && state.projects[esito.projId] && typeof openProject === 'function') openProject(esito.projId);
                 } catch (e) {
                     console.error('Ricevi progetto:', e);
                     s.lavoro = false;
