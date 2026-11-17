@@ -919,6 +919,10 @@
 
             // Inizializzazione
             loadState();
+            // Le preferenze salvate vanno riapplicate ora: le funzioni in 003 e 004 girano prima di
+            // loadState() e da sole leggerebbero uno stato ancora vuoto.
+            if (typeof applyGloveMode === 'function') applyGloveMode();
+            if (typeof applyDebugMode === 'function') applyDebugMode();
             requestWakeLock();
 
             // Schermata iniziale SEMPRE la Home View.
