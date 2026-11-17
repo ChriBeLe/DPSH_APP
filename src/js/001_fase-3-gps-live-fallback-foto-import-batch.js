@@ -76,6 +76,15 @@
                 if (state.settings.operator) proj.operator = state.settings.operator;
             }
 
+            /** Le preferenze dell'APP (non della prova) che passando da una prova all'altra devono
+             * restare quelle correnti: la lista è IMPOSTAZIONI_DELL_APP (004e), l'unica. Essendo una
+             * const dichiarata in un pezzo successivo, se qualcuno chiamasse syncProjectToActiveState
+             * prima che sia inizializzata (zona morta) si ripiega su un elenco minimo, senza errori. */
+            function chiaviPreferenzeApp() {
+                try { return Array.from(IMPOSTAZIONI_DELL_APP); }
+                catch (e) { return ['darkMode', 'themeHue', 'tastoRegistraVisibile', 'integratedChart', 'registroEspanso', 'contatoreSuPc', 'guidaPcVista', 'intervalliRecentiInCima']; }
+            }
+
             // Carica nello stato attivo la prova selezionata del progetto corrente
             function syncProjectToActiveState(projId, survId) {
                 if (!state.projects || !state.projects[projId]) return;
@@ -101,6 +110,16 @@
                 const globalContatoreSuPc = !!(state.settings && state.settings.contatoreSuPc === true);
                 const globalGuidaPcVista = !!(state.settings && state.settings.guidaPcVista === true);
                 const globalRecentiInCima = !!(state.settings && state.settings.intervalliRecentiInCima === true);
+                // Tutte le altre preferenze dell'app (audio, vibrazione, guanti, schermo sempre
+                // acceso, sfondi, WMS...): se ci sono nelle impostazioni correnti, passano alla prova
+                // che si apre. Quelle gestite sopra hanno già il loro valore di ripiego.
+                const altrePreferenze = {};
+                chiaviPreferenzeApp().forEach(k => {
+                    if (k === 'expandedMode' || k === 'compactMode') return;
+                    if (state.settings && Object.prototype.hasOwnProperty.call(state.settings, k) && state.settings[k] !== undefined) {
+                        altrePreferenze[k] = JSON.parse(JSON.stringify(state.settings[k]));
+                    }
+                });
 
                 state.currentProjectId = projId;
                 state.currentSurveyId = survId;
@@ -120,6 +139,7 @@
                 state.settings = JSON.parse(JSON.stringify(surv.settings || state.settings));
 
                 // Riapplica le impostazioni universali dell'applicazione
+                Object.keys(altrePreferenze).forEach(k => { state.settings[k] = altrePreferenze[k]; });
                 state.settings.darkMode = globalDarkMode;
                 state.settings.themeHue = globalThemeHue;
                 state.settings.tastoRegistraVisibile = globalTastoRegistra;
