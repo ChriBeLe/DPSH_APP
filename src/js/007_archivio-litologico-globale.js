@@ -82,6 +82,14 @@
                 return true;
             }
 
+            /** Una voce d'archivio che arriva da un file: il colore finisce in attributi style e in
+             * <input type=color>, quindi si riduce a un colore di forma ammessa (coloreSicuro). Il nome
+             * non si tocca qui: si escapa dove lo si scrive. Modifica la voce sul posto. */
+            function rendiSicuraVoceArchivio(voce) {
+                if (voce && typeof voce === 'object' && voce.color !== undefined) voce.color = coloreSicuro(voce.color);
+                return voce;
+            }
+
             /** Unisce un dizionario di voci d'archivio { archId: {...} } importato da un file
              * (esportazione dell'archivio da solo, o l'intero "state" di un Backup Completo) dentro
              * state.lithologyArchive — SEMPRE un merge, mai una sostituzione, e mai una sovrascrittura
@@ -100,8 +108,12 @@
                 if (!state.lithologyArchive) state.lithologyArchive = {};
                 let imported = 0, renamed = 0;
                 Object.keys(incoming).forEach(origId => {
-                    const entry = JSON.parse(JSON.stringify(incoming[origId]));
-                    let targetId = entry.id || origId;
+                    if (!incoming[origId] || typeof incoming[origId] !== 'object') return;
+                    const entry = rendiSicuraVoceArchivio(JSON.parse(JSON.stringify(incoming[origId])));
+                    // Un id che non ha la forma di quelli dell'app (virgolette, '<', '__proto__') diventa
+                    // un id nuovo: finirebbe in data-id e come chiave dell'archivio. La voce si importa.
+                    let targetId = idSicuroOppureNuovo(entry.id || origId, 'arch');
+                    if (targetId !== (entry.id || origId)) entry.id = targetId;
                     if (state.lithologyArchive[targetId]) {
                         targetId = 'arch_' + Date.now() + '_' + imported;
                         entry.id = targetId;
@@ -261,7 +273,7 @@
                     row.innerHTML = `
                         <div class="strato-row-header" data-strato-idx="${idx}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; cursor:pointer;">
                             <div class="strato-pattern-preview" data-strato-idx="${idx}" title="Colore e pattern" style="width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,0.25); flex:0 0 auto; ${getPatternCss(pat, s.color)}"></div>
-                            <input type="text" value="${s.name}" data-strato-idx="${idx}" class="strato-name-input form-control" style="flex:1; min-width:0; font-weight:700;" placeholder="Nome strato">
+                            <input type="text" value="${testoHtml(s.name)}" data-strato-idx="${idx}" class="strato-name-input form-control" style="flex:1; min-width:0; font-weight:700;" placeholder="Nome strato">
                             ${stratoHaCollegamentoArchivioValido(s) ? '<svg class="ico" style="width:14px; height:14px; color:var(--purple); flex:0 0 auto;" title="Collegato all\'archivio"><use href="#i-folder-open"/></svg>' : (s.sourceArchiveId ? '<svg class="ico" style="width:14px; height:14px; color:#f59e0b; flex:0 0 auto;" title="Collegamento archivio perso — apri la riga per ripristinarlo"><use href="#i-alert"/></svg>' : '')}
                             ${idx === 0 ? '<span style="font-size:9.5px; color:var(--text-muted); font-weight:700; flex:0 0 auto;">Default</span>' : ''}
                             <svg class="ico strato-row-chevron" style="width:14px; height:14px; color:var(--text-muted); flex:0 0 auto; transition: transform var(--mov-medio) var(--ease-entra); transform: rotate(${rowOpen ? '180' : '0'}deg);"><use href="#i-chevron-down"/></svg>
@@ -300,7 +312,7 @@
                             <div class="strato-row-body-inner" style="display:flex; flex-direction:column; gap:8px; padding:0 0 10px;">
                                 <div style="display:flex; gap:6px;">
                                     <div style="flex:1.3; min-width:0; display:flex; align-items:center; gap:6px; background:var(--bg-sunken); border-radius:8px; padding:0 8px;">
-                                        <input type="color" value="${s.color}" data-strato-idx="${idx}" class="strato-color-pick" style="width:18px; height:18px; border:none; background:none; padding:0; cursor:pointer; border-radius:4px; flex:0 0 auto;" title="Colore dello strato">
+                                        <input type="color" value="${coloreSicuro(s.color)}" data-strato-idx="${idx}" class="strato-color-pick" style="width:18px; height:18px; border:none; background:none; padding:0; cursor:pointer; border-radius:4px; flex:0 0 auto;" title="Colore dello strato">
                                         <div style="flex:1; min-width:0;">
                                             ${buildPatternPickerHtml(idx, pat, s.color)}
                                         </div>

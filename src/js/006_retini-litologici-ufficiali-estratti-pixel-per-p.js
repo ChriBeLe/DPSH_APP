@@ -45,6 +45,9 @@
             const PREFISSO_RETINO = 'retino:';
 
             function getPatternCss(patternName, baseColor) {
+                // Il colore finisce dentro style="…": viene dai dati (anche importati), quindi solo
+                // forme di colore ammesse; un valore strano diventa grigio, non codice.
+                if (baseColor) baseColor = coloreSicuro(baseColor);
                 if (typeof patternName === 'string' && patternName.startsWith(PREFISSO_RETINO)) {
                     const r = RETINI_PER_ID[patternName.slice(PREFISSO_RETINO.length)];
                     // Il retino è una maschera trasparente: il colore di sfondo è quello scelto
@@ -58,6 +61,7 @@
             // Genera un <pattern> SVG nativo (per il grafico a barre nella vista separata),
             // equivalente visivo dei pattern CSS usati nella tabella/legenda.
             function getSvgPatternDef(patternName, patternDomId, baseColor) {
+                if (baseColor) baseColor = coloreSicuro(baseColor);
                 if (typeof patternName === 'string' && patternName.startsWith(PREFISSO_RETINO)) {
                     const r = RETINI_PER_ID[patternName.slice(PREFISSO_RETINO.length)];
                     // RETINI NITIDI IN STAMPA (bug segnalato: "nell'export i retini dei pattern
@@ -96,6 +100,7 @@
             let patpickDocClickBound = false;
 
             function buildPatternPickerHtml(idx, patternValue, colorForPreview) {
+                colorForPreview = coloreSicuro(colorForPreview);
                 const isOpen = patpickOpenIdx === idx;
                 const isRetino = typeof patternValue === 'string' && patternValue.startsWith(PREFISSO_RETINO);
                 const currentLabel = isRetino
@@ -144,6 +149,7 @@
             let archPatpickDocClickBound = false;
 
             function buildArchPatternPickerHtml(archId, patternValue, colorForPreview) {
+                colorForPreview = coloreSicuro(colorForPreview);
                 const isOpen = archPatpickOpenId === archId;
                 const isRetino = typeof patternValue === 'string' && patternValue.startsWith(PREFISSO_RETINO);
                 const currentLabel = isRetino
@@ -151,22 +157,22 @@
                     : ((PATTERN_LIBRARY.find(p => p.id === patternValue) || PATTERN_LIBRARY[0]).name);
 
                 const rigaGenerici = PATTERN_LIBRARY.map(p => `
-                    <button type="button" class="patpick-option" data-arch-id="${archId}" data-value="${p.id}">
+                    <button type="button" class="patpick-option" data-arch-id="${testoHtml(archId)}" data-value="${p.id}">
                         <span class="patpick-swatch" style="${p.css(colorForPreview)}"></span>
                         <span class="patpick-option-label">${p.name}</span>
                     </button>`).join('');
                 const rigaRetini = RETINI_LITOLOGICI.map(r => {
                     const value = PREFISSO_RETINO + r.id;
                     return `
-                    <button type="button" class="patpick-option" data-arch-id="${archId}" data-value="${value}">
+                    <button type="button" class="patpick-option" data-arch-id="${testoHtml(archId)}" data-value="${value}">
                         <span class="patpick-swatch" style="${getPatternCss(value, r.colore)}"></span>
                         <span class="patpick-option-label">${r.label}</span>
                     </button>`;
                 }).join('');
 
                 return `
-                    <div class="patpick-wrap arch-patpick-wrap" data-arch-id="${archId}">
-                        <button type="button" class="patpick-trigger form-control arch-patpick-trigger" data-arch-id="${archId}">
+                    <div class="patpick-wrap arch-patpick-wrap" data-arch-id="${testoHtml(archId)}">
+                        <button type="button" class="patpick-trigger form-control arch-patpick-trigger" data-arch-id="${testoHtml(archId)}">
                             <span class="patpick-swatch" style="${getPatternCss(patternValue, colorForPreview)}"></span>
                             <span class="patpick-trigger-label">${currentLabel}</span>
                             <span class="patpick-chevron">▾</span>

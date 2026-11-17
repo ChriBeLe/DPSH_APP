@@ -40,10 +40,10 @@
                     const prefEspanso = archPrefExpanded.has(arch.id);
                     const pref = arch.parametriPreferiti || {};
                     return `
-                        <div class="arch-card-wrap ${espanso ? 'arch-card-wrap-open' : ''}" style="border:1px solid var(--border); border-left:4px solid ${arch.color}; border-radius:var(--radius-sm); background:var(--bg-card-hover); overflow:hidden;">
-                            <div class="arch-card-toggle" data-arch-id="${arch.id}" style="display:flex; align-items:center; gap:8px; padding:9px 11px; cursor:pointer;">
+                        <div class="arch-card-wrap ${espanso ? 'arch-card-wrap-open' : ''}" style="border:1px solid var(--border); border-left:4px solid ${coloreSicuro(arch.color)}; border-radius:var(--radius-sm); background:var(--bg-card-hover); overflow:hidden;">
+                            <div class="arch-card-toggle" data-arch-id="${testoHtml(arch.id)}" style="display:flex; align-items:center; gap:8px; padding:9px 11px; cursor:pointer;">
                                 <div style="width:20px; height:20px; border-radius:5px; flex:0 0 auto; border:1px solid rgba(0,0,0,0.25); ${getPatternCss(arch.pattern, arch.color)}"></div>
-                                <span style="flex:1; font-weight:700; font-size:12.5px;">${arch.name}</span>
+                                <span style="flex:1; font-weight:700; font-size:12.5px;">${testoHtml(arch.name)}</span>
                                 <svg class="ico" style="width:15px; height:15px; color:var(--text-muted); transform:rotate(${espanso ? '180' : '0'}deg); transition:transform var(--mov-medio) var(--ease-entra);"><use href="#i-chevron-down"/></svg>
                             </div>
                             <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1px; background:var(--border); font-size:10.5px;">
@@ -74,8 +74,8 @@
                             <div class="arch-card-body expand-region ${espanso ? 'open' : ''}" style="padding:0 11px; border-top:1px solid var(--border);">
                                 <div style="padding:11px 0; display:flex; flex-direction:column; gap:8px;">
                                     <div style="display:flex; align-items:center; gap:8px;">
-                                        <input type="color" value="${arch.color}" data-arch-id="${arch.id}" class="arch-color-pick" style="width:34px; height:34px; border:none; background:none; cursor:pointer; border-radius:6px;">
-                                        <input type="text" value="${arch.name}" data-arch-id="${arch.id}" class="arch-name-input form-control" style="flex:1; font-weight:700;" placeholder="Nome strato">
+                                        <input type="color" value="${coloreSicuro(arch.color)}" data-arch-id="${testoHtml(arch.id)}" class="arch-color-pick" style="width:34px; height:34px; border:none; background:none; cursor:pointer; border-radius:6px;">
+                                        <input type="text" value="${testoHtml(arch.name)}" data-arch-id="${testoHtml(arch.id)}" class="arch-name-input form-control" style="flex:1; font-weight:700;" placeholder="Nome strato">
                                     </div>
                                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                                         <div>
@@ -84,14 +84,14 @@
                                         </div>
                                         <div>
                                             <label style="font-size:9.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:2px;">Geotecnica:</label>
-                                            <select class="form-control arch-behavior-select" data-arch-id="${arch.id}" style="padding:4px 6px; font-size:11px; width:100%;">
+                                            <select class="form-control arch-behavior-select" data-arch-id="${testoHtml(arch.id)}" style="padding:4px 6px; font-size:11px; width:100%;">
                                                 <option value="granulare" ${arch.behavior === 'granulare' ? 'selected' : ''}>Granulare</option>
                                                 <option value="coesivo" ${arch.behavior === 'coesivo' ? 'selected' : ''}>Coesivo</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div style="border-top:1px dashed var(--border); padding-top:9px; margin-top:2px;">
-                                        <button type="button" class="btn-action arch-pref-toggle" data-arch-id="${arch.id}" style="width:100%; background:var(--purple-soft); color:var(--purple); border:1px solid rgba(168,85,247,0.4); font-size:11px; font-weight:700; padding:6px;">
+                                        <button type="button" class="btn-action arch-pref-toggle" data-arch-id="${testoHtml(arch.id)}" style="width:100%; background:var(--purple-soft); color:var(--purple); border:1px solid rgba(168,85,247,0.4); font-size:11px; font-weight:700; padding:6px;">
                                             <svg class="ico" style="width:12px; height:12px;"><use href="#i-flask"/></svg> Parametri Avanzati — preferenze di default ${prefEspanso ? '▲' : '▼'}
                                         </button>
                                         <div class="expand-region ${prefEspanso ? 'open' : ''}">
@@ -113,13 +113,13 @@
                                                             <label style="font-size:9.5px; font-weight:700; color:${WIZ_TESTO_SU_COLORE}; text-transform:uppercase; display:block; margin-bottom:3px;">${cat.label}</label>
                                                             <div style="font-size:11.5px; font-weight:600; color:${WIZ_TESTO_SU_COLORE}; ${p ? '' : 'opacity:.65; font-style:italic;'} overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${etichettaScelta}</div>
                                                         </div>
-                                                        <button type="button" class="btn-icon arch-pref-edit-btn" data-arch-id="${arch.id}" data-cat-id="${cat.id}" title="Modifica" style="flex-shrink:0; background:rgba(255,255,255,0.35); color:${WIZ_TESTO_SU_COLORE};"><svg class="ico" style="width:14px;height:14px;"><use href="#i-edit"/></svg></button>
+                                                        <button type="button" class="btn-icon arch-pref-edit-btn" data-arch-id="${testoHtml(arch.id)}" data-cat-id="${cat.id}" title="Modifica" style="flex-shrink:0; background:rgba(255,255,255,0.35); color:${WIZ_TESTO_SU_COLORE};"><svg class="ico" style="width:14px;height:14px;"><use href="#i-edit"/></svg></button>
                                                     </div>`;
                                                 }).join('')}
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn-action arch-delete-btn" data-arch-id="${arch.id}" style="width:100%; background:transparent; border:1px solid var(--danger); color:var(--danger); font-size:11.5px; font-weight:700; padding:8px; margin-top:2px;">
+                                    <button class="btn-action arch-delete-btn" data-arch-id="${testoHtml(arch.id)}" style="width:100%; background:transparent; border:1px solid var(--danger); color:var(--danger); font-size:11.5px; font-weight:700; padding:8px; margin-top:2px;">
                                         <svg class="ico"><use href="#i-trash"/></svg> Elimina dall'Archivio
                                     </button>
                                 </div>

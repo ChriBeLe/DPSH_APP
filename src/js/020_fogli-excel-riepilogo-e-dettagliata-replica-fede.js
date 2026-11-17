@@ -1054,7 +1054,7 @@ ${contenuto}
                         legendHtml += `
                             <div style="display: flex; align-items: center; gap: 4px; background: var(--bg-card-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">
                                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; ${getPatternCss(s.pattern, s.color)} border: 1px solid rgba(255,255,255,0.4);"></span>
-                                <span style="color: var(--text-main); font-weight: 600;">${s.name}</span>
+                                <span style="color: var(--text-main); font-weight: 600;">${testoHtml(s.name)}</span>
                             </div>
                         `;
                     });
