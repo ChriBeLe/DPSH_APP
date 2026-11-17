@@ -34,13 +34,17 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   clic($('aiPannello').querySelector('.ai-piedi button'));
   await attesa(300);
   if (!chiamate.length) console.log('PANNELLO:', $('aiPannello').textContent);
-  t('Groq fallito → provato Gemini', chiamate[0].includes('groq') && chiamate[1].includes('generativelanguage'));
+  const ch = chiamate.filter(u => /chat\/completions|:generateContent/.test(u));
+  t('Groq fallito → provato Gemini', ch[0].includes('groq') && ch[1].includes('generativelanguage'));
   const conf = $('aiPannello').querySelector('.ai-conferma');
   t('la creazione chiede conferma', !!conf && !app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   clic(conf.querySelector('.si'));
   await attesa(300);
   t('dopo la conferma il progetto esiste', app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   t('risposta finale mostrata', $('aiPannello').textContent.includes('Fatto.'));
+  const arch = JSON.parse(app.E('localStorage.getItem("DPSH_AI_CRONO_V1")'));
+  const pidBari = app.E('state.currentProjectId');
+  t('cronologia salvata per progetto, senza chiavi', arch[pidBari] && arch[pidBari][0].titolo.includes('Bari') && !JSON.stringify(arch).includes('k1'));
   // aggiunta intervalli (con conferma) e lettura
   const r = await app.E(`(async()=>{const s=AI_STRUMENTI.find(x=>x.n==='aggiungi_intervalli');return s.run({colpi:[3,4,5]})})()`);
   t('aggiungi_intervalli scrive 3 intervalli', r.aggiunti === 3 && app.E('state.logs.length') === 3);

@@ -388,25 +388,98 @@
             aiBolla.innerHTML = '<svg class="ico"><use href="#i-sparkles"/></svg>';
             const aiPannello = aiEl('div'); aiPannello.id = 'aiPannello'; aiPannello.setAttribute('role', 'dialog'); aiPannello.setAttribute('aria-label', 'Assistente IA');
             const aiTesta = aiEl('div', 'ai-testa'); aiTesta.append(aiEl('span', null, 'Assistente IA'), aiEl('span', 'ai-spazio'));
-            const aiBtnNuova = aiEl('button', null, 'Nuova chat'), aiBtnChiudi = aiEl('button', null, '✕'); aiBtnChiudi.setAttribute('aria-label', 'Chiudi');
-            aiTesta.append(aiBtnNuova, aiBtnChiudi);
+            const aiBtnCron = aiEl('button', null, 'Cronologia'), aiBtnNuova = aiEl('button', null, '+ Nuova'), aiBtnChiudi = aiEl('button', null, '✕'); aiBtnChiudi.setAttribute('aria-label', 'Chiudi');
+            aiTesta.append(aiBtnCron, aiBtnNuova, aiBtnChiudi);
+            const aiSub = aiEl('div', 'ai-sub'), aiChip = aiEl('div', 'ai-chip-prog');
+            const aiSelProv = aiEl('select'), aiSelMod = aiEl('select'); aiSelProv.setAttribute('aria-label', 'Provider'); aiSelMod.setAttribute('aria-label', 'Modello');
+            const aiRigaSel = aiEl('div', 'ai-sel'); aiRigaSel.append(aiSelProv, aiSelMod);
+            aiSub.append(aiChip, aiRigaSel);
+            const aiElencoCron = aiEl('div', 'ai-cron'); // elenco delle chat del progetto, sopra la chat
             const aiChat = aiEl('div', 'ai-chat'); aiChat.setAttribute('aria-live', 'polite');
             const aiPiedi = aiEl('div', 'ai-piedi');
             const aiCampo = aiEl('textarea'); aiCampo.placeholder = 'Chiedi o ordina qualcosa…'; aiCampo.rows = 1;
             const aiInvia = aiEl('button', null, 'Invia');
             aiPiedi.append(aiCampo, aiInvia);
-            aiPannello.append(aiTesta, aiChat, aiPiedi);
+            aiPannello.append(aiTesta, aiSub, aiElencoCron, aiChat, aiPiedi);
             document.body.append(aiBolla, aiPannello);
 
-            let aiCrono = [], aiOccupato = false;
-            function aiMsg(cls, testo) { const m = aiEl('div', 'ai-msg ' + cls, testo); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight; return m; }
-            function aiSaluto() { aiChat.textContent = ''; aiCrono = []; aiMsg('info', 'Posso leggere i tuoi progetti e prove, aprire schermate e, con la tua conferma, creare progetti e prove, aggiungere colpi e impostare la falda.'); }
+            // CRONOLOGIA PER PROGETTO: le chat si salvano in una voce propria del localStorage (come le chiavi,
+            // fuori da backup e condivisioni), divise per progetto. Una chat per volta è «attiva».
+            const AI_CRONO_CHIAVE = 'DPSH_AI_CRONO_V1', AI_MAX_CHAT = 25, AI_MAX_RIGHE = 80;
+            let aiArchivio = {};
+            try { const g = JSON.parse(localStorage.getItem(AI_CRONO_CHIAVE) || 'null'); if (g && typeof g === 'object') aiArchivio = g; } catch (e) { /* voce rovinata: si riparte vuoti */ }
+            const aiPidAtt = () => state.currentProjectId || '_';
+            const aiNomeProg = pid => pid === '_' ? 'Nessun progetto aperto' : (((state.projects || {})[pid] || {}).name || 'Progetto');
+            function aiScriviArchivio() { try { localStorage.setItem(AI_CRONO_CHIAVE, JSON.stringify(aiArchivio)); } catch (e) { /* spazio pieno: la chat resta solo a schermo */ } }
+            let aiCrono = [], aiOccupato = false, aiChatAtt = null;
+            const aiNuovaChat = pid => ({ id: 'c' + Date.now(), pid, titolo: '', ts: Date.now(), vista: [], crono: [] });
+            function aiSalvaChat() {
+                if (!aiChatAtt || !aiChatAtt.crono.some(m => m.r === 'u')) return;
+                // chat nata senza progetto che ne crea uno: da qui in poi appartiene a quel progetto
+                if (aiChatAtt.pid === '_' && state.currentProjectId) { aiArchivio._ = (aiArchivio._ || []).filter(c => c.id !== aiChatAtt.id); aiChatAtt.pid = state.currentProjectId; aiChip.textContent = 'Progetto: ' + aiNomeProg(aiChatAtt.pid); }
+                aiChatAtt.crono = aiCrono; aiChatAtt.vista = aiChatAtt.vista.slice(-AI_MAX_RIGHE);
+                if (!aiChatAtt.titolo) aiChatAtt.titolo = (aiCrono.find(m => m.r === 'u') || {}).t.slice(0, 48);
+                const lista = aiArchivio[aiChatAtt.pid] = (aiArchivio[aiChatAtt.pid] || []).filter(c => c.id !== aiChatAtt.id);
+                lista.unshift(aiChatAtt); lista.length = Math.min(lista.length, AI_MAX_CHAT);
+                aiScriviArchivio();
+            }
+            function aiMsg(cls, testo, salva) {
+                const m = aiEl('div', 'ai-msg ' + cls, testo); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight;
+                if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
+                return m;
+            }
+            function aiMostraChat(c) {
+                aiChatAtt = c; aiCrono = c.crono;
+                aiChat.textContent = '';
+                c.vista.forEach(([cls, t]) => aiChat.appendChild(aiEl('div', 'ai-msg ' + cls, t)));
+                if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
+                aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
+            }
+            function aiSaluto() { aiMostraChat(aiNuovaChat(aiPidAtt())); }
+            function aiAggiornaTesta() {
+                aiChip.textContent = 'Progetto: ' + aiNomeProg(aiChatAtt ? aiChatAtt.pid : aiPidAtt());
+                const pronti = aiProntiInOrdine();
+                aiSelProv.textContent = '';
+                pronti.forEach(id => { const o = aiEl('option', null, aiDef(id).nome); o.value = id; aiSelProv.appendChild(o); });
+                if (!pronti.length) aiSelProv.appendChild(aiEl('option', null, 'Nessun provider'));
+                aiSelProv.disabled = !pronti.length; aiSelMod.disabled = !pronti.length;
+                if (pronti.length) aiCaricaModelli(pronti[0]);
+            }
+            const aiCacheModelli = {};
+            async function aiCaricaModelli(id) {
+                const c = aiConf(id); aiSelMod.textContent = '';
+                const metti = el => { aiSelMod.textContent = ''; el.forEach(m => { const o = aiEl('option', null, m.nome); o.value = m.id; aiSelMod.appendChild(o); }); aiSelMod.value = c.modello; };
+                metti([{ id: c.modello, nome: c.modello }]);
+                try {
+                    if (!aiCacheModelli[id]) aiCacheModelli[id] = await aiElencoModelli(id, { chiave: c.chiave || '', base: c.base || '' });
+                    const el = aiCacheModelli[id].slice(); if (!el.some(m => m.id === c.modello)) el.unshift({ id: c.modello, nome: c.modello });
+                    if (aiSelProv.value === id) metti(el);
+                } catch (e) { /* elenco non disponibile ora: resta il modello salvato */ }
+            }
+            aiSelProv.onchange = () => { const id = aiSelProv.value; aiCfg.ordine = [id].concat(aiCfg.ordine.filter(x => x !== id)); aiSalva(); aiAggiornaTesta(); };
+            aiSelMod.onchange = () => { const id = aiSelProv.value; if (id && aiSelMod.value) { aiConf(id).modello = aiSelMod.value; aiSalva(); } };
+            function aiMostraCronologia() {
+                aiElencoCron.textContent = '';
+                const lista = (aiArchivio[aiPidAtt()] || []);
+                aiElencoCron.appendChild(aiEl('div', 'ai-cron-tit', 'Chat di «' + aiNomeProg(aiPidAtt()) + '»'));
+                if (!lista.length) aiElencoCron.appendChild(aiEl('div', 'ai-cron-vuota', 'Nessuna chat salvata per questo progetto.'));
+                lista.forEach(c => {
+                    const r = aiEl('div', 'ai-cron-riga'), b = aiEl('button', 'ai-cron-apri'), x = aiEl('button', 'ai-cron-x', '✕');
+                    b.append(aiEl('span', null, c.titolo || 'Chat'), aiEl('small', null, new Date(c.ts).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })));
+                    b.onclick = () => { if (!aiOccupato) aiMostraChat(c); };
+                    x.setAttribute('aria-label', 'Elimina questa chat'); x.onclick = () => { aiArchivio[aiPidAtt()] = lista.filter(k => k.id !== c.id); aiScriviArchivio(); if (aiChatAtt && aiChatAtt.id === c.id) aiSaluto(); aiMostraCronologia(); };
+                    r.append(b, x); aiElencoCron.appendChild(r);
+                });
+                aiElencoCron.classList.add('aperto');
+            }
+            aiBtnCron.onclick = () => { if (aiElencoCron.classList.contains('aperto')) aiElencoCron.classList.remove('aperto'); else aiMostraCronologia(); };
             function aiConferma(testo, pericolo) {
                 return new Promise(res => {
-                    const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo);
+                    const testoM = pericolo ? 'ATTENZIONE, ultima conferma: ' + testo : 'L\'assistente vuole: ' + testo;
+                    const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo, false);
                     const riga = aiEl('div', 'ai-conferma'), si = aiEl('button', 'si', 'Conferma'), no = aiEl('button', null, 'Annulla');
                     riga.append(no, si); m.appendChild(riga);
-                    const fine = v => { riga.remove(); m.appendChild(aiEl('div', null, v ? '✓ Confermato' : '✕ Annullato')); res(v); };
+                    const fine = v => { riga.remove(); m.appendChild(aiEl('div', null, v ? '✓ Confermato' : '✕ Annullato')); if (aiChatAtt) { aiChatAtt.vista.push([pericolo ? 'errore' : 'azione', testoM + (v ? ' — ✓ Confermato' : ' — ✕ Annullato')]); aiSalvaChat(); } res(v); };
                     si.onclick = () => fine(true); no.onclick = () => fine(false);
                 });
             }
@@ -423,9 +496,10 @@
             async function aiInviaDomanda() {
                 const testo = aiCampo.value.trim();
                 if (!testo || aiOccupato) return;
-                aiCampo.value = ''; aiMsg('utente', testo); aiCrono.push({ r: 'u', t: testo });
+                if (!aiChatAtt) aiSaluto();
+                aiCampo.value = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
                 aiOccupato = true; aiInvia.disabled = true;
-                const attesa = aiMsg('info', 'Penso…');
+                const attesa = aiMsg('attesa info', 'Penso…', false);
                 try {
                     for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
                         const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t));
@@ -438,12 +512,20 @@
                         if (giro === AI_MAX_GIRI - 1) aiMsg('info', 'Mi fermo qui: troppi passaggi di fila.');
                     }
                 } catch (e) { aiMsg('errore', e.message); }
-                attesa.remove(); aiOccupato = false; aiInvia.disabled = false; aiCampo.focus();
+                aiSalvaChat(); attesa.remove(); aiOccupato = false; aiInvia.disabled = false; aiCampo.focus();
             }
             aiInvia.onclick = aiInviaDomanda;
             aiCampo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiInviaDomanda(); } });
-            aiBtnNuova.onclick = () => { if (!aiOccupato) aiSaluto(); };
-            const aiApri = su => { aiPannello.classList.toggle('aperto', su); if (su) { if (!aiChat.children.length) aiSaluto(); if (!aiProntiInOrdine().length) aiMsg('info', 'Prima scegli un provider da Impostazioni › Assistente IA.'); setTimeout(() => aiCampo.focus(), 50); } };
+            aiBtnNuova.onclick = () => { if (!aiOccupato) { aiSaluto(); aiAggiornaTesta(); } };
+            const aiApri = su => {
+                aiPannello.classList.toggle('aperto', su);
+                if (!su) return;
+                const pid = aiPidAtt();
+                if (!aiChatAtt || aiChatAtt.pid !== pid) { const ultima = (aiArchivio[pid] || [])[0]; if (ultima) aiMostraChat(ultima); else aiSaluto(); }
+                aiAggiornaTesta();
+                if (!aiProntiInOrdine().length) aiMsg('info', 'Prima scegli un provider da Impostazioni › Assistente IA.', false);
+                setTimeout(() => aiCampo.focus(), 50);
+            };
             aiBolla.onclick = () => aiApri(!aiPannello.classList.contains('aperto'));
             aiBtnChiudi.onclick = () => aiApri(false);
 
