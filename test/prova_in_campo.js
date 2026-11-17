@@ -7,7 +7,7 @@
 //    scelta resta (anche riaprendo l'app); la pressione lunga su +1 registra lo stesso;
 //  - il toast «Registrato … · N colpi» con «Annulla» toglie PROPRIO quell'intervallo, e non tocca
 //    niente se nel frattempo è cambiato qualcosa;
-//  - «Annulla ultimo intervallo» dal ⋯ e tenendo premuto −1 (Fase C: senza dialogo, con «Annulla: togli intervallo»);
+//  - «Annulla ultimo intervallo» dal ⋯ e tenendo premuto −1 (Fase C: toglie senza dialogo e senza «Annulla»);
 //  - note rapide: «Nota sull'ultimo intervallo», «Altra nota…», pillole che vanno a capo;
 //  - Registro: «Registro · N intervalli», Grafico, Aggiungi (un intervallo / multipli), ⋯ strati;
 //  - migrazione 2 → 3: la Modalità Espansa diventa «tasto Registra visibile»;
@@ -135,16 +135,13 @@ async function apriPrimaProva(app) {
   clic(app, $(app, 'btnHeaderMore'));
   clic(app, $(app, 'btnAnnullaUltimoMenu'));
   await attesa(40);
-  // (Fase C) Niente più dialogo: toglie subito e il toast offre «Annulla: togli intervallo».
+  // (Fase C) Niente dialogo e niente «Annulla»: toglie subito, il toast solo informa.
   t('⋯ → Annulla ultimo intervallo: toglie subito, senza dialogo', !app.dialogo() && app.E('state.logs.length') === primaLunga && app.E('state.currentCount') === 2);
   const toastAz = () => app.d.querySelector('#toastApp .toast-azione');
-  t('…e il toast offre «Annulla: togli intervallo»', toastAz() && toastAz().textContent === 'Annulla: togli intervallo');
-  clic(app, toastAz());
-  await attesa(30);
-  t('che rimette l\'intervallo', app.E('state.logs.length') === primaLunga + 1);
+  t('…e il toast non offre nessuna azione', toastAz() && toastAz().style.display === 'none' && toastAz().textContent === '');
   await tieniPremuto(app, $(app, 'btnMinus'));
   await attesa(40);
-  t('tenere premuto −1 fa lo stesso, senza dialogo', !app.dialogo() && app.E('state.logs.length') === primaLunga);
+  t('tenere premuto −1 toglie l\'intervallo, senza dialogo e senza ripristino', !app.dialogo() && app.E('state.logs.length') === primaLunga - 1);
 
   console.log('--- Nascondere il tasto: la scelta resta ---');
   clic(app, $(app, 'btnNascondiRegistra'));

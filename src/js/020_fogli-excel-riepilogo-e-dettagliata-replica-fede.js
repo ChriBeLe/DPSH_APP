@@ -1488,25 +1488,14 @@ ${contenuto}
             }
 
             // ANNULLA ULTIMO STEP
-            // (Fase C) Senza dialogo: toglie subito e il toast offre «Annulla: togli intervallo»,
-            // che rimette l'intervallo e il contatore com'erano. Vale anche per il tasto del menu.
+            // (Fase C) Il «−1» tenuto premuto e «Annulla ultimo intervallo» del ⋯ tolgono l'intervallo
+            // senza dialogo e senza «Annulla»: è una scelta esplicita dell'utente. Il toast resta
+            // solo informativo, così dice quale intervallo è uscito.
             function undoLastStep() {
                 if (state.logs.length === 0) return;
-                const prima = { start: state.currentDepthStart, count: state.currentCount, rod: state.currentRod };
                 const tolto = togliUltimoIntervallo();
                 if (!tolto) return;
-                if (typeof mostraToast === 'function') {
-                    mostraToast(`Tolto l'intervallo ${testoIntervallo(tolto.start, tolto.end)}`, { azione: { etichetta: 'Annulla: togli intervallo', fn: () => {
-                        // Si ripristina solo se nel frattempo non è stato registrato altro sopra.
-                        if (state.logs.length && state.logs[state.logs.length - 1].end > tolto.start + 1e-9) return;
-                        state.logs.push(tolto);
-                        state.currentDepthStart = prima.start;
-                        state.currentCount = prima.count;
-                        state.currentRod = prima.rod;
-                        updateUI();
-                        saveState();
-                    } } });
-                }
+                if (typeof mostraToast === 'function') mostraToast(`Tolto l'intervallo ${testoIntervallo(tolto.start, tolto.end)}`);
             }
 
             // FINESTRA FLUTTUANTE MODALE GPS (RILEVAMENTO AUTOMATICO E IMMISSIONE MANUALE)

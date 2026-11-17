@@ -35,6 +35,26 @@
                 return { totale: strati.length, senzaNome: strati.filter(nomeStratoGenerico).length };
             }
 
+            /** Per la tappa «Parametri» del Progetto (Fase C): quanti strati sono completi.
+             * Criterio = quello della procedura guidata (primoCampoWizardMancante, 017): uno strato è
+             * completo quando ogni categoria APPLICABILE ha una scelta esplicita
+             * (parametriAvanzati[cat].autoreIndex != null); le non tipiche restano facoltative.
+             * Differenza voluta: lì l'applicabilità si legge dall'aggregato della prova aperta e gli
+             * strati senza intervalli in quella prova si saltano; qui la si ricava da strato.behavior
+             * (la stessa regola con cui l'aggregato la costruisce, 015), così il conto vale per tutti
+             * gli strati del PROGETTO e non cambia con la prova aperta. Il primo incompleto è lo
+             * strato che il tocco apre nella procedura guidata. */
+            function riepilogoParametriProgetto() {
+                const strati = state.strati || [];
+                let primoIncompleto = null, completi = 0;
+                strati.forEach(s => {
+                    const app = categorieApplicabili({ isCoesivo: s.behavior === 'coesivo', isIncoerente: s.behavior !== 'coesivo' });
+                    if (categorieConSceltaWizard(s, app) >= app.length) completi++;
+                    else if (!primoIncompleto) primoIncompleto = s.id;
+                });
+                return { totale: strati.length, completi, primoIncompleto };
+            }
+
             function quotaDaiNome(r) {
                 return r.da == null ? 'non compare in questa prova' : `da ${numeroConVirgola(r.da)} a ${numeroConVirgola(r.a)} m`;
             }
