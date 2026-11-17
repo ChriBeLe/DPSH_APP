@@ -934,4 +934,4 @@
             // con la call-to-action corretta: creare o importare un Progetto Cantiere.
             switchView('home');
 
-        })();
+
