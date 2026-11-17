@@ -33,7 +33,7 @@
             }
             function coordinateAreaMappa(lat, lng, quota) {
                 document.getElementById('lblAreaMappaCoord').textContent = Number.isFinite(lat)
-                    ? `${lat.toFixed(6)}, ${lng.toFixed(6)}${Number.isFinite(quota) ? ` · ${numeroConVirgola(quota, 1)} m s.l.m.` : ''}` : '';
+                    ? `${coordNelSr(lat, lng)}${Number.isFinite(quota) ? ` · ${numeroConVirgola(quota, 1)} m s.l.m.` : ''}` : '';
             }
             function misuraAreaMappa(testo) {
                 const el = document.getElementById('lblAreaMappaMisura');
@@ -361,11 +361,12 @@
             }
 
             // ---- I PANNELLI: Livelli a sinistra e Comandi a destra, agganciati (la vista rientra di quanto sono
-            // larghi). Due modi di metterli via, come in HyperGram: il titolo li CHIUDE al loro posto (si
-            // restringono in altezza fino alla testata); il tasto «riduci» ne fa una PILLOLA, che si trascina
+            // larghi). Due modi di metterli via, come in HyperGram: il titolo li CHIUDE al loro posto (diventano
+            // una striscia verticale col nome, e la vista si allarga); il tasto «riduci» ne fa una PILLOLA, che si trascina
             // dove si vuole (un clic la riapre). Tutto si ricorda. Sul telefono galleggiano sopra la scena.
             const LARGHEZZA_PNL = { liv: 250, cmd: 340 };
             const PILLOLA_PNL = { liv: 128, cmd: 142 };
+            const STRISCIA_PNL = 44; // il pannello chiuso sul PC
             const pannelli = (() => {
                 const uno = v => ({ red: !!(v && v.red), chiuso: !!(v && v.chiuso), px: v && Number.isFinite(v.px) ? v.px : null, py: v && Number.isFinite(v.py) ? v.py : null });
                 try { const s = JSON.parse(localStorage.getItem('dpsh.pannelliMappa') || 'null'); if (s && s.liv && s.cmd) return { liv: uno(s.liv), cmd: uno(s.cmd) }; } catch (_) { /* predefiniti */ }
@@ -386,7 +387,7 @@
                     const q = pannelli[k], pil = !!q.red, chiuso = !pil && !!q.chiuso;
                     el.classList.toggle('red', pil || (stretto && chiuso)); // sul telefono, chiuso e pillola sono la testata
                     el.classList.toggle('chiuso', !stretto && chiuso);
-                    el.style.width = stretto ? '' : (pil ? PILLOLA_PNL[k] : LARGHEZZA_PNL[k]) + 'px';
+                    el.style.width = stretto ? '' : (pil ? PILLOLA_PNL[k] : chiuso ? STRISCIA_PNL : LARGHEZZA_PNL[k]) + 'px';
                     el.style.setProperty('--pt', '0px');
                     el.style.setProperty('--ph', '100%');
                     const W = scenaMappa.clientWidth || 360, H = scenaMappa.clientHeight || 600;
@@ -401,11 +402,12 @@
                         el.style.right = 'auto';
                     } else el.style.left = el.style.top = el.style.right = '';
                 });
-                const vista = scenaMappa.querySelector('.am-vista'), occupa = k => !telefonoMappa() && !pannelli[k].red && !pannelli[k].chiuso;
-                vista.style.setProperty('--vl', (occupa('liv') ? LARGHEZZA_PNL.liv : 0) + 'px');
-                vista.style.setProperty('--vr', (occupa('cmd') ? LARGHEZZA_PNL.cmd : 0) + 'px');
-                // la bussola scende sotto i Livelli messi via in alto a sinistra (chiusi, o pillola al suo posto)
-                vista.classList.toggle('liv-pillola', !telefonoMappa() && ((pannelli.liv.red && pannelli.liv.px === null) || (!pannelli.liv.red && pannelli.liv.chiuso)));
+                const vista = scenaMappa.querySelector('.am-vista');
+                const occupa = k => telefonoMappa() || pannelli[k].red ? 0 : pannelli[k].chiuso ? STRISCIA_PNL : LARGHEZZA_PNL[k];
+                vista.style.setProperty('--vl', occupa('liv') + 'px');
+                vista.style.setProperty('--vr', occupa('cmd') + 'px');
+                // la bussola scende sotto la pillola dei Livelli lasciata al suo posto, in alto a sinistra
+                vista.classList.toggle('liv-pillola', !telefonoMappa() && pannelli.liv.red && pannelli.liv.px === null);
                 // La vista ha cambiato misura: alla fine dello scorrimento si ridisegna.
                 clearTimeout(applicaPannelli.t);
                 applicaPannelli.t = setTimeout(() => { if (!areaMappaAperta()) return; if (areaMappa.modo === '3d') renderVista3d(); else if (mappaProgetto.mappa) mappaProgetto.mappa.invalidateSize(); }, 320);

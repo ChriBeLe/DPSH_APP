@@ -345,7 +345,14 @@
              * sulle righe vere (dipende dal carattere, una stima la sbaglierebbe). */
             function altezzaRigaWord(ctx, el, nodi) {
                 const cs = ctx.win.getComputedStyle(el);
-                if (cs.lineHeight !== 'normal') return parseFloat(cs.lineHeight);
+                if (cs.lineHeight !== 'normal') {
+                    // Il corpo vero può stare in un pezzo più grande del paragrafo (il testo che viene
+                    // da Word ha il corpo sui suoi <span>): la riga è alta quanto il pezzo più alto,
+                    // come la disegna il browser. Senza, in Word le righe si accavallavano.
+                    let lh = parseFloat(cs.lineHeight);
+                    el.querySelectorAll('span, strong, em, b, i, u, a, sub, sup').forEach(x => { const v = parseFloat(ctx.win.getComputedStyle(x).lineHeight); if (v > lh) lh = v; });
+                    return lh;
+                }
                 const rg = ctx.doc.createRange();
                 if (nodi && nodi.length === 1) rg.selectNodeContents(nodi[0]); else rg.selectNodeContents(el);
                 const tops = new Set(Array.from(rg.getClientRects()).filter(r => r.height > 0).map(r => Math.round(r.top)));
@@ -616,7 +623,8 @@
                 }
                 const sinistra = f.r.x - xRegione;
                 ctx.regione = null; // dentro una tabella o una scatola la regione è un'altra
-                const conRientro = Object.assign({}, f, { rientroTw: sinistra > 0.5 ? tw(sinistra) : 0 });
+                // Anche negativo: la tabella del piè della carta intestata esce dal margine come nel Word.
+                const conRientro = Object.assign({}, f, { rientroTw: sinistra > 0.5 ? tw(sinistra) : sinistra < -0.5 ? -tw(-sinistra) : 0 });
                 return f.tipo === 'tabella' ? tabellaWord(ctx, conRientro) : scatolaWord(ctx, conRientro);
             }
 
@@ -830,7 +838,8 @@
                 if (ctx.piede) xml += (/<w:ftr[^>]*>([\s\S]*)<\/w:ftr>/.exec(ctx.piede) || [])[1] || '';
                 const fondo = Math.max(...foglie.map(f => f.r.y + f.r.h));
                 const n = ctx.piediTemplate.size + 1;
-                const parte = { rid: 'rIdPiedeT' + n, nome: `footer${n + 1}.xml`, xml, distanzaTw: tw(Math.max(0, rf.bottom - fondo)), tipo: 'footer' };
+                const cima = Math.min(...foglie.map(f => f.r.y));
+                const parte = { rid: 'rIdPiedeT' + n, nome: `footer${n + 1}.xml`, xml, distanzaTw: tw(Math.max(0, rf.bottom - fondo)), altezzaTw: tw(fondo - cima) + 20, tipo: 'footer' };
                 ctx.piediTemplate.set(chiave, parte);
                 return parte;
             }
@@ -963,7 +972,9 @@
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
                 // Col piè di pagina del template il margine inferiore è quello vero (la sua fascia).
-                const sotto = partePiede ? tw(rf.bottom - ri.bottom) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
+                // Col piè del template: fin dove arriva davvero il piè (Word non lascia scrivere sopra), non
+                // oltre il margine del PDF; il contenuto ha così lo stesso agio contro gli arrotondamenti.
+                const sotto = partePiede ? Math.min(tw(rf.bottom - ri.bottom), partePiede.distanzaTw + (partePiede.altezzaTw || 0)) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
                 // Il foglio della sezione è quello del foglio vero: le tavole A3 o orizzontali restano
                 // A3 o orizzontali anche in Word (una sezione per foglio, ognuna col suo formato).
                 const pgW = Math.round(rf.width / 96 * 1440 / 10) * 10, pgH = Math.round(rf.height / 96 * 1440 / 10) * 10;

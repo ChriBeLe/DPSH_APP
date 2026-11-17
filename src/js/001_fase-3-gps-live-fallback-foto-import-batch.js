@@ -195,11 +195,50 @@
                 return closedSomething;
             }
 
+            // UNA FINESTRA ALLA VOLTA. Esc (e il clic sullo sfondo) chiudevano TUTTE le finestre aperte
+            // insieme: dentro l'editor del testo di un blocco, Esc chiudeva anche l'editor del template;
+            // dalla procedura guidata, anche gli Strati. Ora chiude solo quella in cima (l'ultima
+            // aperta), e passando dalla sua ✕: così valgono i suoi controlli e le sue pulizie.
+            const ordineAperture = new Map();
+            let contaAperture = 0;
+            const osservaAperture = new MutationObserver(ms => ms.forEach(m => {
+                const el = m.target;
+                if (el.classList.contains('open')) { if (!ordineAperture.has(el)) ordineAperture.set(el, ++contaAperture); }
+                else ordineAperture.delete(el);
+            }));
+            document.querySelectorAll('.modal').forEach(m => osservaAperture.observe(m, { attributes: true, attributeFilter: ['class'] }));
+            function finestraInCima() {
+                const aperte = Array.from(document.querySelectorAll('.modal.open'));
+                // l'ultima aperta; a parità (aperta prima che si osservasse) l'ultima nella pagina
+                return aperte.reduce((cima, m, i) => !cima || (ordineAperture.get(m) || 0) >= (ordineAperture.get(cima.m) || 0) ? { m, i } : cima, null);
+            }
+            function closeTopModal() {
+                const cima = finestraInCima();
+                if (!cima || MODALS_NO_QUICK_CLOSE.includes(cima.m.id)) return false;
+                const m = cima.m;
+                const x = m.querySelector('[id^="btnClose"][id$="X"], .chiudi-x, [id^="btnClose"], [aria-label="Chiudi"]');
+                const chiudila = () => {
+                    m.classList.remove('open');
+                    const ov = m.previousElementSibling;
+                    if (ov && ov.classList.contains('modal-overlay')) ov.classList.remove('open');
+                    if (!document.querySelector('.modal.open')) document.querySelectorAll('.modal-overlay.open').forEach(ov => ov.classList.remove('open'));
+                };
+                // Con la ✕ decide lei (può chiedere «salvare?»); se dopo non è chiusa e non ha chiesto
+                // niente (una ✕ senza comando), si chiude e basta.
+                if (x && !x.disabled && !x.closest('[hidden]')) {
+                    x.click();
+                    setTimeout(() => { if (m.classList.contains('open') && !document.getElementById('appDialog').classList.contains('open')) chiudila(); }, 0);
+                } else chiudila();
+                return true;
+            }
+
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeAnyOpenModal();
+                // dpshFinestraChiusa: chi ascolta dopo (l'editor del template) sa che questo Esc ha già
+                // chiuso una finestra. Non basta preventDefault: il motore del testo lo fa sempre.
+                if (e.key === 'Escape' && closeTopModal()) { e.preventDefault(); e.dpshFinestraChiusa = true; }
             });
 
             document.querySelectorAll('.modal-overlay').forEach(ov => {
-                ov.addEventListener('click', () => closeAnyOpenModal());
+                ov.addEventListener('click', () => closeTopModal());
             });
 

@@ -959,7 +959,9 @@
                     redoTemplateEditor();
                     return;
                 }
-                if (e.key === 'Escape') {
+                // Esc chiude l'editor solo se è lui in cima: con l'editor del testo o un'altra finestra
+                // sopra, Esc chiude quella (e chi l'ha già chiusa lo segna: dpshFinestraChiusa, 001).
+                if (e.key === 'Escape' && !e.dpshFinestraChiusa && (finestraInCima() || {}).m === modalTemplateEditor && !document.getElementById('appDialog').classList.contains('open')) {
                     e.preventDefault();
                     e.stopPropagation();
                     richiediChiusuraTemplateEditor();

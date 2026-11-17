@@ -1,6 +1,6 @@
 // LA SCHERMATA PROGETTO (Fase 5, punto 1) e il tasto indietro.
 //  - dalla prova «‹» porta al Progetto; dal Progetto «‹ Progetti» alla Home;
-//  - dalla Home «Apri» porta ancora all'ultima prova (decisione H);
+//  - dalla Home la card porta alla schermata del progetto (home_progetti.js);
 //  - il Progetto elenca le prove con profondità, intervalli, spie e avvisi; toccarne una la apre;
 //  - «Riprendi», Nuova prova, Dati, Strati, Note, Consegna, ⋯;
 //  - indietro (popstate): prova → progetto → Home.
@@ -33,12 +33,32 @@ const vista = app => app.E('state.uiState.currentView');
   await attesa(60);
   t('«‹» nella prova porta al Progetto', vista(app) === 'project' && visibile(app, 'viewProject') && !visibile(app, 'viewField') && !visibile(app, 'testataProva'));
   t('col nome del progetto', $(app, 'lblProgettoNome').textContent === proj.name);
+  const testa = $(app, 'btnProgettoDati');
+  t('il nome sta nel riquadro che si tocca, con l\'etichetta «Modifica»', testa.contains($(app, 'lblProgettoNome')) && /Modifica/.test(testa.querySelector('.modifica-dati').textContent));
+  const prima = (a, b) => !!(a.compareDocumentPosition(b) & app.w.Node.DOCUMENT_POSITION_FOLLOWING);
+  t('i tasti (Strati, Note, Terreno, Consegna) stanno prima dell\'elenco delle prove',
+    ['btnProgettoStrati', 'btnProgettoNote', 'btnProgettoTerreno', 'btnProgettoConsegna'].every(id => prima($(app, id), $(app, 'listaProveProgetto'))));
+  clic(app, testa);
+  t('toccare il nome apre i dati del progetto', $(app, 'modalSurveySettings').classList.contains('open'));
+  app.E('closeSurveySettingsModal()');
   const righe = [...$(app, 'listaProveProgetto').querySelectorAll('.prova-riga')];
   t('una riga per ogni prova', righe.length === Object.keys(proj.surveys).length);
   const s1 = Object.values(proj.surveys).find(s => s.logs && s.logs.length);
   const riga1 = righe.find(r => r.dataset.surv === s1.id);
   const fondo = Math.max(...s1.logs.map(l => l.end)).toFixed(2).replace('.', ',');
   t('con profondità e numero di intervalli', riga1.textContent.includes(`${fondo} m · ${s1.logs.length} intervall`));
+  t('sul PC la prima foto si vede in piccolo, e accanto agli strati c\'è la forma della prova',
+    righe.every(r => { const sv = proj.surveys[r.dataset.surv]; const img = r.querySelector('img.prova-foto');
+      return (sv.photos || []).length ? img && img.dataset.foto === sv.photos[0].id : !img; })
+    && riga1.querySelectorAll('.pc-profilo rect').length === s1.logs.length);
+  t('una prova con intervalli ha almeno uno strato, anche senza litologia assegnata; lo stesso segno ripetuto non ne fa due',
+    app.E("contaStrati([{}, {}])") === 1 && app.E("contaStrati([{ lithology: 'a' }, {}, { lithology: 'a' }, { lithology: 'b' }])") === 2
+    && app.E("contaStrati([{}, { lithology: 'a' }])") === 2 && app.E('contaStrati([])') === 0);
+  const conGps = sv => isFinite(parseFloat((sv.header || {}).lat)) && isFinite(parseFloat((sv.header || {}).lng));
+  const nGps = Object.values(proj.surveys).filter(conGps).length;
+  t('nella colonna GPS, oltre al ✓, la mini-pianta: le altre prove col GPS in grigio, questa in evidenza; senza GPS niente',
+    righe.every(r => { const sv = proj.surveys[r.dataset.surv]; const m = r.querySelector('.pc-pianta');
+      return conGps(sv) ? m && m.querySelectorAll('.questa').length === 1 && m.querySelectorAll('circle:not([class])').length === nGps - 1 : !m; }));
   t('e lo stato: «Pronta» o «N avvisi»', righe.every(r => /^(Pronta|\d+ avvis[oi])$/.test(r.querySelector('.prova-riga-stato').textContent)));
   t('la prova aperta è segnata, e «Riprendi» la nomina', righe.find(r => r.classList.contains('attiva')).dataset.surv === provaAperta
     && /^Riprendi la Prova /.test($(app, 'btnProgettoRiprendi').textContent));
@@ -90,6 +110,16 @@ const vista = app => app.E('state.uiState.currentView');
   clic(app, $(app, 'btnProgettoAiProgetti'));
   await attesa(60);
   t('«‹ Progetti» porta alla Home', vista(app) === 'home');
+
+  console.log('--- I dati del progetto giusto, anche cambiando progetto dalla Home ---');
+  const altro = app.E(`Object.keys(state.projects).find(id => id !== ${JSON.stringify(pid)})`);
+  clic(app, [...$(app, 'viewHome').querySelectorAll('.card-progetto-apri')].find(b => b.dataset.id === altro));
+  await attesa(60);
+  clic(app, $(app, 'btnProgettoDati'));
+  t('toccare il nome mostra i dati di QUESTO progetto, non di quello aperto prima',
+    $(app, 'modalSurveySettings').classList.contains('open') && $(app, 'txtNomeProgetto').value === app.E(`state.projects[${JSON.stringify(altro)}].name`)
+    && $(app, 'txtComune').value === app.E(`state.projects[${JSON.stringify(altro)}].surveys[state.currentSurveyId].header.comune`));
+  app.E('closeSurveySettingsModal()');
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

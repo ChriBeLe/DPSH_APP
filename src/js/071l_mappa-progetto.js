@@ -31,7 +31,7 @@
                             <div>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'}</div>
                             <div>${isFinite(falda) ? 'Falda a ' + numeroConVirgola(falda) + ' m' : 'Falda non impostata'} · ${(s.photos || []).length ? (s.photos.length + ' foto') : 'nessuna foto'}</div>
                             ${quota !== null ? `<div>Quota ${numeroConVirgola(quota, 1)} m s.l.m.</div>` : ''}
-                            <div>${parseFloat(h.lat).toFixed(6)}, ${parseFloat(h.lng).toFixed(6)}</div>
+                            <div>${coordNelSr(parseFloat(h.lat), parseFloat(h.lng))}</div>
                             ${h.date ? `<div>${esc(String(h.date))}</div>` : ''}
                             ${sp ? `<div class="spostata">Spostata a mano di ${metriTra(sp.da, sp.a)} m</div>` : ''}
                             <div class="mappa-progetto-strati">${strati.map(([n, c]) => `<span><i style="background:${c}"></i>${esc(n)}</span>`).join('')}</div>

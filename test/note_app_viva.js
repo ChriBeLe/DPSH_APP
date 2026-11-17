@@ -81,8 +81,8 @@ let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;
   t('l app si carica senza errori', errori.length===0); if(errori.length) console.log('      ', errori.slice(0,3));
   // Fase 3: le note non hanno più un bottone sulla card (la card si tocca tutta per aprire il
   // progetto); si aprono dal ⋯ del progetto, «Note di progetto». Stessa nota, stesso editor.
-  d.querySelector('.btn-project-actions').click();
-  d.getElementById('btnProjActNote').click();         // apre la nota del primo progetto in Home
+  d.querySelector('.btn-project-actions[data-id="p1"]').click(); // Nardo: l'ordine della Home lo sceglie l'utente
+  d.getElementById('btnProjActNote').click();         // apre la nota di Nardo
   await attesa(300);
   const corpo=d.getElementById('noteEditorBody');
   const pm=corpo.querySelector('.ProseMirror');

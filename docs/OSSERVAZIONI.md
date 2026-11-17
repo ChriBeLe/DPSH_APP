@@ -20,3 +20,5 @@ quando la si affronta, la fase o il commit che la chiude.
 | 09/10/2026 | PC e telefono | Usabilità dell'intero percorso conteggio → strati → parametri avanzati → template: togliere bug e vicoli ciechi tra i menu. Il telefono resta, cosa togliergli si decide dopo. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` |
 | 09/10/2026 | PC, ufficio | Template: risolvere i margini; intestazione con testo formattato (RTF); il .docx deve sembrare scritto in Word. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` (§3, §4.5–4.7) |
 | 09/10/2026 | PC, ufficio | Le tavole 2D e 3D nel report, come capitolo dopo le prove. | piano in `docs/PIANO_FLUSSO_E_REPORT.md` (§5) |
+| 16/10/2026 | PC, ufficio | L'uso è soprattutto sul PC: menu e funzioni col tasto destro, niente azioni nascoste dietro troppi clic. Il telefono si ripensa dopo. | tasto destro (071v), piano §9 |
+| 16/10/2026 | PC, ufficio | L'intestazione della carta intestata (con la tabella) deve essere testo modificabile, non un'immagine: soprattutto il titolo dell'intervento. | importa da Word come testo, tag nell'intestazione (071s) |
