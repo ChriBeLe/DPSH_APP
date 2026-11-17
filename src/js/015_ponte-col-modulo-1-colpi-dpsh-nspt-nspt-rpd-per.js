@@ -56,7 +56,10 @@
             /** Nspt grezzo e Nspt' (falda-corretto) di un singolo intervallo. */
             function nsptDiLog(log, betaT, falda){
                 const nsptGrezzo = betaT * (log.colpi || 0);
-                const finiscePoiFalda = log.end >= falda.faldaDa && log.end <= falda.faldaA;
+                // Confronto al millimetro (004d): un intervallo che finisce a «2,00» salvato come
+                // 1,9999999999999998 deve ricevere la correzione come quello salvato 2.
+                const fine = profonditaAlMillimetro(log.end);
+                const finiscePoiFalda = fine >= profonditaAlMillimetro(falda.faldaDa) && fine <= profonditaAlMillimetro(falda.faldaA);
                 const nsptFalda = (finiscePoiFalda && nsptGrezzo > 15) ? 15 + 0.5 * (nsptGrezzo - 15) : nsptGrezzo;
                 return { nsptGrezzo, nsptFalda };
             }

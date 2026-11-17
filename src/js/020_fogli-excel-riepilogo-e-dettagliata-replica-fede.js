@@ -873,15 +873,16 @@ ${contenuto}
             function recalculateDepths() {
                 const stepM = state.settings.stepCm / 100;
                 let d = 0.0;
-                state.logs.forEach(log => {
+                state.logs.forEach((log, i) => {
                     const prima = misuraDiIntervallo(log);
-                    log.start = d;
-                    log.end = d + stepM;
+                    // Dal numero dell'intervallo, non sommando il passo: niente errore che si accumula.
+                    log.start = profonditaAlMillimetro(i * state.settings.stepCm / 100);
+                    log.end = profonditaAlMillimetro((i + 1) * state.settings.stepCm / 100);
                     log.asta = getRodForDepth(log.end);
                     // Cambiare il passo sposta le profondità: per gli intervalli che cambiano è una
                     // modifica vera, e resta scritta (004d).
                     segnaIntervalloModificato(log, prima);
-                    d += stepM;
+                    d = log.end;
                 });
                 state.currentDepthStart = d;
                 state.currentRod = getRodForDepth(d + stepM);
@@ -1414,7 +1415,7 @@ ${contenuto}
                 let finalCount = state.currentCount;
 
                 const stepM = state.settings.stepCm / 100;
-                const endDepth = state.currentDepthStart + stepM;
+                const endDepth = profonditaAlMillimetro(state.currentDepthStart + stepM);
                 const rodNum = getRodForDepth(endDepth);
                 
                 state.logs.push(nuovoIntervallo({
