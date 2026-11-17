@@ -35,6 +35,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   console.log('--- coloreSicuro ---');
   t('#hex, rgb() e nomi passano', E(`[coloreSicuro('#a1b2c3'), coloreSicuro('#fff'), coloreSicuro('rgb(1, 2, 3)'), coloreSicuro('rgba(1,2,3,0.5)'), coloreSicuro('teal')].join('|')`) === '#a1b2c3|#fff|rgb(1, 2, 3)|rgba(1,2,3,0.5)|teal');
   t('un colore che esce dall attributo diventa il ripiego', E(`coloreSicuro('#fff" onmouseover="x', '#888')`) === '#888');
+  t('hsl() passa', E(`coloreSicuro('hsl(120, 50%, 40%)', 'z')`) === 'hsl(120, 50%, 40%)');
   t('url() e ; no', E(`coloreSicuro('url(http://x)', 'z') + coloreSicuro('red;background:url(x)', 'z')`) === 'zz');
 
   console.log('--- immagini ---');

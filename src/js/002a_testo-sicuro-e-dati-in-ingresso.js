@@ -59,6 +59,7 @@
                 const c = typeof colore === 'string' ? colore.trim() : '';
                 if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c)) return c;
                 if (/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/.test(c)) return c;
+                if (/^hsla?\(\s*\d{1,3}(?:\.\d+)?(?:deg)?\s*,\s*\d{1,3}(?:\.\d+)?%\s*,\s*\d{1,3}(?:\.\d+)?%\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/.test(c)) return c;
                 if (/^[a-zA-Z]{3,20}$/.test(c)) return c;
                 return ripiego === undefined ? '#888888' : ripiego;
             }
