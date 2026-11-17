@@ -92,6 +92,15 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const rosso = pan.querySelectorAll('.ai-conferma .si'); rosso[rosso.length - 1].click();
   await pr;
   t('dopo la seconda conferma elimina un intervallo', app2.E('state.logs.length') === nPrima - 1);
+  // guidare la schermata: aprire Impostazioni, leggere i controlli, premere/compilare
+  app2.E('openDrawer()'); await attesa(100);
+  const sch = T('leggi_schermata');
+  console.log(JSON.stringify(sch).slice(0,300));
+  t('leggi_schermata vede la finestra aperta e i controlli', sch.controlli.length > 5 && /Impostazioni/.test(sch.finestra || ''));
+  const vib = sch.controlli.find(c => /Vibrazione/i.test(c.etichetta) && c.tipo === 'checkbox');
+  if (vib) { const prima = vib.attivo; T('compila_campo', { id: vib.id, valore: String(!prima) }); t('compila_campo cambia l\'interruttore', app2.E('document.getElementById("chkHaptic").checked') === !prima); }
+  const pul = sch.controlli.find(c => /Elimina|Cancella|Azzera|Reset/i.test(c.etichetta) && c.tipo === 'pulsante');
+  if (pul) { let errore = ''; try { T('clicca', { id: pul.id }); } catch (e) { errore = String(e.message || e); } t('clicca rifiuta i pulsanti che eliminano', /elimina|azzera/i.test(errore)); }
   console.log(`\n${ok} ok, ${ko} KO`); console.log(app.errori ? app.errori.slice(0,5) : '');
   process.exit(ko ? 1 : 0);
 })();

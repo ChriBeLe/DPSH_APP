@@ -25,7 +25,7 @@
                 { id: 'ollama', nome: 'Ollama (sul tuo PC)', tipo: 'openai', base: 'http://localhost:11434/v1', pref: /./, costo: 'Gratis, funziona sul tuo computer', url: 'https://ollama.com/download', senzaChiave: true,
                   passi: ['Installa Ollama dalla pagina qui sopra e avvialo.', 'Da terminale scarica un modello, per esempio: ollama pull llama3.1', 'Per far parlare l\'app con Ollama avvialo con la variabile OLLAMA_ORIGINS="*" (altrimenti il browser blocca la richiesta).', 'L\'indirizzo qui sotto è quello standard: cambialo solo se Ollama è su un altro computer.'] }
             ];
-            const AI_MAX_GIRI = 6;
+            const AI_MAX_GIRI = 14;
 
             // --- configurazione (solo localStorage, voce a parte) ---
             let aiCfg = { attivo: false, ordine: AI_PROVIDER.map(p => p.id), provider: {} };
@@ -70,6 +70,11 @@
                 if (!state.projects || !state.projects[pid]) throw new Error('Progetto non trovato.');
                 if (pid !== state.currentProjectId || (sid && sid !== state.currentSurveyId)) { saveState(); syncProjectToActiveState(pid, sid || undefined); }
             }
+            let aiUiMappa = [], aiUiSchede = {};
+            const aiVisibile = e => { for (let n = e; n && n.nodeType === 1; n = n.parentElement) { if (n.hidden) return false; const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return false; } return true; };
+            // Controlli che eliminano o azzerano: mai da qui. Pulsanti di semplice navigazione: senza conferma.
+            const aiUiVietato = id => { const e = aiUiMappa[id], l = ((aiUiSchede[id] || {}).etichetta || '') + ' ' + (e && e.id || ''); return /elimin|cancell|azzer|rimuov|svuot|reset|pulisci|sostitu|cestin|trash|esci/i.test(l); };
+            const aiUiSicuro = id => /^(apri|chiudi|indietro|avanti|annulla|mostra|nascondi|cerca|vai|scheda|impostazioni|espandi|comprimi|ok|ho capito)\b/i.test(((aiUiSchede[id] || {}).etichetta || '').trim()) && (aiUiSchede[id] || {}).tipo === 'pulsante';
             const AI_STRUMENTI = [
                 { n: 'stato_app', d: 'Dice in che schermata si è e quale progetto e prova sono aperti.', p: {}, run: () => ({ vista: (state.uiState || {}).currentView, progettoId: state.currentProjectId || null, provaId: state.currentSurveyId || null, progetti: Object.keys(state.projects || {}).length }) },
                 { n: 'elenco_progetti', d: 'Elenca tutti i progetti con id, nome, comune e numero di prove.', p: {}, run: () => Object.values(state.projects || {}).map(p => ({ id: p.id, nome: p.name, comune: p.comune, committente: p.committente, data: p.date, prove: Object.keys(p.surveys || {}).length })) },
@@ -266,6 +271,45 @@
                     if (!state.strati.length) state.strati.push({ id: 'strato_' + Date.now(), name: 'Strato 1', color: '#fbbf24' });
                     saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true };
                 } },
+                // --- guidare la schermata: leggere cosa c'è e premere/compilare qualsiasi controllo dell'app,
+                // così l'assistente può fare in più passaggi tutto ciò che si fa a mano. Le cose che
+                // eliminano o azzerano restano escluse (si usano gli strumenti dedicati o si fa a mano).
+                { n: 'leggi_schermata', d: 'Elenca cosa si vede ora: schermata, finestra aperta e i suoi controlli (pulsanti, campi, interruttori, menu) con un id da usare in clicca e compila_campo. Chiamala di nuovo dopo ogni azione: gli id cambiano.', p: {}, run: () => {
+                    const aperte = Array.from(document.querySelectorAll('.modal.open, .drawer.open')).filter(e => !e.closest('#aiPannello, #aiWizOverlay'));
+                    const radice = aperte.length ? aperte[aperte.length - 1] : (document.getElementById(({ home: 'viewHome', project: 'viewProject', field: 'viewField' })[(state.uiState || {}).currentView]) || document.body);
+                    aiUiMappa = [];
+                    Array.from(radice.querySelectorAll('button, input, select, textarea, [role=button], [role=menuitem]')).forEach(e => {
+                        if (e.closest('#aiPannello, #aiWizOverlay') || e.type === 'hidden' || !aiVisibile(e)) return;
+                        if (aiUiMappa.length >= 90) return;
+                        const tipo = e.tagName === 'SELECT' ? 'menu' : e.tagName === 'TEXTAREA' ? 'testo' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'campo') : 'pulsante';
+                        const lab = (e.getAttribute('aria-label') || e.title || e.textContent || e.placeholder || (e.labels && e.labels[0] && e.labels[0].textContent) || ((e.closest('.setting-row, .form-group, .field-row') || {}).querySelector ? ((e.closest('.setting-row, .form-group, .field-row').querySelector('.setting-label, label') || {}).textContent || '') : '') || e.id || '').replace(/\s+/g, ' ').trim().slice(0, 70);
+                        const o = { id: aiUiMappa.length, tipo, etichetta: lab };
+                        if (tipo === 'campo' || tipo === 'testo' || tipo === 'menu') o.valore = String(e.value).slice(0, 60);
+                        if (tipo === 'menu') o.opzioni = Array.from(e.options).slice(0, 15).map(x => x.textContent.trim());
+                        if (tipo === 'checkbox' || tipo === 'radio') o.attivo = e.checked;
+                        if (e.disabled) o.disabilitato = true;
+                        aiUiMappa.push(e); aiUiSchede[o.id] = o;
+                    });
+                    return { vista: (state.uiState || {}).currentView, finestra: aperte.length ? ((aperte[aperte.length - 1].querySelector('.modal-title, .drawer-title') || {}).textContent || aperte[aperte.length - 1].id || '').replace(/\s+/g, ' ').trim() : null, controlli: aiUiMappa.map((_, i) => aiUiSchede[i]) };
+                } },
+                { n: 'clicca', d: 'Preme un controllo di leggi_schermata (id). Non preme controlli che eliminano o azzerano.', p: { id: { type: 'integer' } }, req: ['id'],
+                  w: a => !aiUiSicuro(a.id), ds: a => `Premere «${(aiUiSchede[a.id] || {}).etichetta || a.id}»`, run: a => {
+                    const e = aiUiMappa[a.id]; if (!e || !document.contains(e)) throw new Error('Controllo non più presente: richiama leggi_schermata.');
+                    if (aiUiVietato(a.id)) throw new Error('Questo controllo elimina o azzera dati: usa gli strumenti di eliminazione (con doppia conferma) o chiedi all\'utente di farlo a mano.');
+                    if (e.disabled) throw new Error('Il controllo è disabilitato.');
+                    e.click(); return { ok: true };
+                } },
+                { n: 'compila_campo', d: 'Scrive un valore in un campo, menu (testo dell\'opzione) o interruttore (true/false) di leggi_schermata (id).', p: { id: { type: 'integer' }, valore: { type: 'string' } }, req: ['id', 'valore'], w: true,
+                  ds: a => `Scrivere «${String(a.valore).slice(0, 60)}» in «${(aiUiSchede[a.id] || {}).etichetta || a.id}»`, run: a => {
+                    const e = aiUiMappa[a.id]; if (!e || !document.contains(e)) throw new Error('Controllo non più presente: richiama leggi_schermata.');
+                    if (aiUiVietato(a.id)) throw new Error('Controllo non modificabile da qui.');
+                    if (e.disabled) throw new Error('Il controllo è disabilitato.');
+                    if (e.tagName === 'SELECT') { const o = Array.from(e.options).find(x => x.textContent.trim().toLowerCase() === String(a.valore).trim().toLowerCase() || x.value === a.valore); if (!o) throw new Error('Opzione non trovata.'); e.value = o.value; }
+                    else if (e.type === 'checkbox') e.checked = /^(true|si|sì|on|1)$/i.test(a.valore);
+                    else if (e.type === 'radio') e.checked = true;
+                    else e.value = a.valore;
+                    e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return { ok: true };
+                } },
                 { n: 'imposta_gps', d: 'Imposta la posizione GPS della prova aperta (gradi decimali).', p: { lat: { type: 'number' }, lng: { type: 'number' }, quota_m: { type: 'number' } }, req: ['lat', 'lng'], w: true,
                   ds: a => `Impostare il GPS della prova a ${a.lat}, ${a.lng}`, run: a => {
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
@@ -276,7 +320,7 @@
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
                 'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. Se un\'azione manca tra gli strumenti, usa elenco_comandi/esegui_comando per aprire la finestra giusta. ' +
-                'Se uno strumento dà errore, dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
+                'Se uno strumento dà errore, dillo e proponi un\'alternativa. Per fare in più passaggi qualsiasi cosa dell\'app usa leggi_schermata, poi clicca e compila_campo, e ricontrolla la schermata dopo ogni azione. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
