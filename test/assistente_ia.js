@@ -46,7 +46,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('aggiungi_intervalli scrive 3 intervalli', r.aggiunti === 3 && app.E('state.logs.length') === 3);
   t('leggi_prova legge i colpi', app.E(`AI_STRUMENTI.find(x=>x.n==='leggi_prova').run({}).colpiPerIntervallo.length`) === 3);
   t('imposta_falda', (app.E(`AI_STRUMENTI.find(x=>x.n==='imposta_falda').run({da:'2.5',a:'3'}); state.header.faldaDa`)) === '2.5');
-  t('nessuno strumento elimina', !app.E('AI_STRUMENTI.map(s=>s.n)').some(n => /elimin|cancell|delete/i.test(n)));
+  t('si eliminano solo intervalli e strati, mai prove o progetti', JSON.stringify(app.E('AI_STRUMENTI.map(s=>s.n)').filter(n => /elimin|cancell|delete/i.test(n)).sort()) === '["elimina_intervalli","elimina_strato"]');
   // elenco modelli scaricato dal provider
   w.fetch = async (url) => ({ ok: true, status: 200, json: async () => url.includes('generativelanguage')
     ? { models: [{ name: 'models/gemini-x-flash', displayName: 'Gemini X Flash', supportedGenerationMethods: ['generateContent'] }, { name: 'models/text-embedding-1', supportedGenerationMethods: ['embedContent'] }] }
@@ -78,6 +78,16 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   T('imposta_preferenza', { nome: 'vibrazione', valore: 'false' }); t('imposta_preferenza', app2.E('state.settings.haptic') === false);
   T('aggiungi_nota_progetto', { testo: 'prova <b>' }); t('nota aggiunta, testo protetto', app2.E('state.projects[state.currentProjectId].notes.html').includes('&lt;b&gt;'));
   t('modifica_progetto + GPS', (T('modifica_progetto', { campo: 'committente', valore: 'ACME' }), T('imposta_gps', { lat: 40.1, lng: 18.0 }), app2.E('state.header.lat') === 40.1));
+  // eliminazione con doppia conferma
+  const nPrima = app2.E('state.logs.length');
+  const pr = app2.E(`aiEseguiStrumento({n:'elimina_intervalli',a:{da_numero:1,a_numero:1}})`);
+  await attesa(30);
+  const pan = app2.d.getElementById('aiPannello');
+  pan.querySelector('.ai-conferma .si').click(); await attesa(30);
+  t('prima conferma: non ancora eliminato', app2.E('state.logs.length') === nPrima);
+  const rosso = pan.querySelectorAll('.ai-conferma .si'); rosso[rosso.length - 1].click();
+  await pr;
+  t('dopo la seconda conferma elimina un intervallo', app2.E('state.logs.length') === nPrima - 1);
   console.log(`\n${ok} ok, ${ko} KO`); console.log(app.errori ? app.errori.slice(0,5) : '');
   process.exit(ko ? 1 : 0);
 })();

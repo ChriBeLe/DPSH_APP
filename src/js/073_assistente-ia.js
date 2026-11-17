@@ -242,6 +242,30 @@
                     const esc = String(a.testo).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     pr.notes = pr.notes || {}; pr.notes.html = (pr.notes.html || '') + '<p>' + esc + '</p>'; pr.updatedAt = Date.now(); saveState(); return { ok: true };
                 } },
+                // --- eliminazioni: SOLO intervalli e strati, sempre con doppia conferma (la seconda in rosso).
+                // Prove e progetti non si eliminano da qui (scelta di Romeo, 17/11/2026): si fa a mano con CANCELLA.
+                { n: 'elimina_intervalli', d: 'ELIMINA gli intervalli della prova aperta dal numero da_numero al numero a_numero (da 1, estremi inclusi, al massimo 50). Azione distruttiva: usala solo se l\'utente lo chiede in modo esplicito.', p: { da_numero: { type: 'integer' }, a_numero: { type: 'integer' } }, req: ['da_numero', 'a_numero'], w: 'doppia',
+                  ds: a => `Eliminare gli intervalli dal n. ${a.da_numero} al n. ${a.a_numero} della prova aperta`, run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    const i = a.da_numero - 1, j = a.a_numero - 1;
+                    if (!Number.isInteger(i) || !Number.isInteger(j) || i < 0 || j < i || j >= state.logs.length) throw new Error('Intervalli fuori elenco.');
+                    if (j - i + 1 > 50) throw new Error('Al massimo 50 intervalli per volta.');
+                    copiaPrimaDi('eliminare intervalli (assistente IA)');
+                    state.logs.splice(i, j - i + 1);
+                    state.currentDepthStart = state.logs.length ? Math.max(...state.logs.map(l => l.end)) : 0;
+                    state.currentRod = getRodForDepth(state.currentDepthStart + state.settings.stepCm / 100);
+                    saveState(); updateUI(); return { ok: true, eliminati: j - i + 1, rimasti: state.logs.length };
+                } },
+                { n: 'elimina_strato', d: 'ELIMINA uno strato della prova aperta (gli intervalli che lo usavano restano senza strato). Azione distruttiva: usala solo se l\'utente lo chiede in modo esplicito.', p: { strato_id: { type: 'string' } }, req: ['strato_id'], w: 'doppia',
+                  ds: a => { const st = (state.strati || []).find(x => x.id === a.strato_id); return `Eliminare lo strato «${st ? st.name : a.strato_id}» (gli intervalli assegnati restano senza strato)`; }, run: a => {
+                    const i = state.strati.findIndex(x => x.id === a.strato_id);
+                    if (i < 0) throw new Error('Strato non trovato.');
+                    copiaPrimaDi('eliminare uno strato (assistente IA)');
+                    state.logs.forEach(l => { if (l.lithology === a.strato_id) l.lithology = ''; });
+                    state.strati.splice(i, 1);
+                    if (!state.strati.length) state.strati.push({ id: 'strato_' + Date.now(), name: 'Strato 1', color: '#fbbf24' });
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true };
+                } },
                 { n: 'imposta_gps', d: 'Imposta la posizione GPS della prova aperta (gradi decimali).', p: { lat: { type: 'number' }, lng: { type: 'number' }, quota_m: { type: 'number' } }, req: ['lat', 'lng'], w: true,
                   ds: a => `Impostare il GPS della prova a ${a.lat}, ${a.lng}`, run: a => {
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
@@ -251,7 +275,7 @@
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
-                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. Se un\'azione manca tra gli strumenti, usa elenco_comandi/esegui_comando per aprire la finestra giusta. ' +
+                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. Se un\'azione manca tra gli strumenti, usa elenco_comandi/esegui_comando per aprire la finestra giusta. ' +
                 'Se uno strumento dà errore, dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
@@ -377,9 +401,9 @@
             let aiCrono = [], aiOccupato = false;
             function aiMsg(cls, testo) { const m = aiEl('div', 'ai-msg ' + cls, testo); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight; return m; }
             function aiSaluto() { aiChat.textContent = ''; aiCrono = []; aiMsg('info', 'Posso leggere i tuoi progetti e prove, aprire schermate e, con la tua conferma, creare progetti e prove, aggiungere colpi e impostare la falda.'); }
-            function aiConferma(testo) {
+            function aiConferma(testo, pericolo) {
                 return new Promise(res => {
-                    const m = aiMsg('azione', 'L\'assistente vuole: ' + testo);
+                    const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo);
                     const riga = aiEl('div', 'ai-conferma'), si = aiEl('button', 'si', 'Conferma'), no = aiEl('button', null, 'Annulla');
                     riga.append(no, si); m.appendChild(riga);
                     const fine = v => { riga.remove(); m.appendChild(aiEl('div', null, v ? '✓ Confermato' : '✕ Annullato')); res(v); };
@@ -392,6 +416,7 @@
                 const args = (k.a && typeof k.a === 'object') ? k.a : {};
                 const serveConferma = typeof s.w === 'function' ? s.w(args) : !!s.w;
                 if (serveConferma && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
+                if (s.w === 'doppia' && !(await aiConferma(s.ds(args), true))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 try { const out = s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
                 catch (e) { return { c: JSON.stringify({ errore: e.message }) }; }
             }
