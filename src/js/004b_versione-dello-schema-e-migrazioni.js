@@ -17,8 +17,46 @@
             const MIGRAZIONI_DATI = [
                 { da: 0, a: 1, descrizione: 'versione dello schema; i salvataggi di prima dei progetti diventano progetti', esegui: migrazione0a1 },
                 { da: 1, a: 2, descrizione: 'passaggio telefono ↔ PC: ultima modifica vera, impronte dei passaggi, ora ISO delle foto nuove, progetto nelle correzioni registrate', esegui: migrazione1a2 },
-                { da: 2, a: 3, descrizione: 'la «Modalità Espansa» diventa la preferenza «tasto Registra visibile»', esegui: migrazione2a3 }
+                { da: 2, a: 3, descrizione: 'la «Modalità Espansa» diventa la preferenza «tasto Registra visibile»', esegui: migrazione2a3 },
+                { da: 3, a: 4, descrizione: 'profondità degli intervalli arrotondate al millimetro (1,9999999999999998 → 2)', esegui: migrazione3a4 }
             ];
+
+            /** MIGRAZIONE 3 → 4 (revisione, punto «falda a 2,00 m»). Le profondità si formavano sommando
+             * il passo in virgola mobile (0,2 + 0,2 + ...): a 2,00 m restava 1,9999999999999998, e un
+             * intervallo che finisce alla quota della falda sbagliava lato nel confronto. Da questa
+             * forma le profondità nascono già arrotondate al millimetro (profonditaAlMillimetro, 004d);
+             * qui si arrotondano quelle già salvate: start e end di ogni intervallo (della prova
+             * aperta, dentro `logs`, e di ogni prova dei progetti) e currentDepthStart (la profondità
+             * da cui parte il prossimo intervallo), in cima e in ogni prova.
+             * La formula è scritta qui dentro e non chiama profonditaAlMillimetro: una migrazione è una
+             * funzione pura e non deve dipendere dall'ordine in cui si caricano i pezzi dello script.
+             * Un valore che non è un numero finito (assente, null, testo) resta com'è: non si inventa
+             * e non si corregge a occhio. Non tocca registratoIl, modificatoIl, origine né i colpi:
+             * misuraDiIntervallo (004d) già confronta al millimetro, quindi nessun intervallo risulta
+             * «modificato» da questo arrotondamento. Uno stato parziale ({ versioneSchema, projects })
+             * non ha logs né currentDepthStart in cima: si saltano. */
+            function migrazione3a4(dati) {
+                const mm = (v) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) / 1000 : v;
+                const arrotondaIntervalli = (logs) => {
+                    if (!Array.isArray(logs)) return;
+                    logs.forEach(log => {
+                        if (!log || typeof log !== 'object') return;
+                        if ('start' in log) log.start = mm(log.start);
+                        if ('end' in log) log.end = mm(log.end);
+                    });
+                };
+                const arrotondaProfondita = (contenitore) => {
+                    if (!contenitore || typeof contenitore !== 'object') return;
+                    arrotondaIntervalli(contenitore.logs);
+                    if ('currentDepthStart' in contenitore) contenitore.currentDepthStart = mm(contenitore.currentDepthStart);
+                };
+                arrotondaProfondita(dati);
+                Object.values((dati && dati.projects) || {}).forEach(p => {
+                    Object.values((p && p.surveys) || {}).forEach(arrotondaProfondita);
+                });
+                dati.versioneSchema = 4;
+                return dati;
+            }
 
             /** MIGRAZIONE 2 → 3 (Fase 3, decisione G). La «Modalità Espansa» (settings.expandedMode, e
              * prima ancora il suo contrario compactMode) mostrava i tasti CONFERMA e ANNULLA STEP; di
