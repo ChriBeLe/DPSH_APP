@@ -85,8 +85,8 @@ console.log('--- Ma a video il valore si vede, e cambia col progetto ---');
 console.log('--- Il registro: uno solo, da cui prendono tutti ---');
 {
   t('c e un elenco unico dei tag', /const TAG_DISPONIBILI = \[/.test(codice));
-  t('con i dati del cantiere, quelli dell indagine, lo strumento e le figure',
-     ['Cantiere', 'Indagine', 'Strumento', 'Riferimenti'].every(g => codice.includes("gruppo: '" + g + "'")));
+  t('con i dati del progetto, quelli dell indagine, lo strumento e le figure',
+     ['Progetto', 'Indagine', 'Strumento', 'Riferimenti'].every(g => codice.includes("gruppo: '" + g + "'")));
   t('e le due informazioni che tipicamente arrivano dopo il cantiere',
      /tipo: 'sedeCommittente'[^}]*campo: 'sedeCommittente'/.test(codice)
      && /tipo: 'denominazioneIntervento'[^}]*campo: 'denominazioneIntervento'/.test(codice));
@@ -152,7 +152,7 @@ console.log('--- Toccare la pastiglia: si compila SUL PROGETTO ---');
   // «[object Object]» e poi leggevano una proprieta' che su una stringa non esiste.
   t('e da nessuna parte si chiama appPrompt con un oggetto', !/await appPrompt\(\{/.test(codice));
   t('IL TITOLO DICE QUALE DATO', /title: 'Compila: ' \+ def\.etichetta/.test(codice));
-  t('E IL MESSAGGIO DICE DI QUALE CANTIERE', /'Cantiere: ' \+ dove/.test(codice));
+  t('E IL MESSAGGIO DICE DI QUALE CANTIERE', /'Progetto: ' \+ dove/.test(codice));
   t('con un nome che distingue due cantieri omonimi', /function nomeProgettoPerAvviso\(proj\)/.test(codice));
 
   // DOVE FINISCE IL DATO. comune, localita' e committente vivono nell'INTESTAZIONE DI OGNI

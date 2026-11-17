@@ -218,7 +218,7 @@
                     const comuneGroups = {};
                     keys.forEach(k => {
                         const item = legacyArchive[k];
-                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Cantiere';
+                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Progetto';
                         if (!comuneGroups[comuneKey]) comuneGroups[comuneKey] = [];
                         comuneGroups[comuneKey].push(item);
                     });
@@ -230,7 +230,7 @@
 
                         progetti[projId] = {
                             id: projId,
-                            name: `Cantiere ${cKey}`,
+                            name: `Progetto ${cKey}`,
                             comune: cKey,
                             committente: firstItem.header?.committente || '',
                             localita: firstItem.header?.localita || '',
@@ -259,7 +259,7 @@
                         });
                     });
                 } else if (dati.header) {
-                    const comune = dati.header.comune || 'Nuovo Cantiere';
+                    const comune = dati.header.comune || 'Nuovo progetto';
                     const projId = `PROJ_${Date.now()}`;
                     const survId = `SURV_1`;
                     progetti[projId] = {

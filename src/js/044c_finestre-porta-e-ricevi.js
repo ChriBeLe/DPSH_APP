@@ -206,7 +206,7 @@
                     if (c.relazione !== 'identico') {
                         const suQui = suQuestoDispositivo();
                         const opzioni = [
-                            { id: 'sostituisci', titolo: `Sostituisci quello ${suQui}`, testo: 'Prima viene salvata una copia automatica di quello attuale: puoi tornare indietro dalla Cronologia.' },
+                            { id: 'sostituisci', titolo: `Sostituisci quello ${suQui}`, testo: 'Prima viene salvata una copia automatica di quello attuale: puoi tornare indietro dalle copie automatiche.' },
                             { id: 'entrambi', titolo: 'Tieni entrambi', testo: `Il pacchetto arriva come «${nomeCopiaDaPacchetto(l)}», quello ${suQui} resta com'è.` }
                         ];
                         html += `<div class="scelte" role="radiogroup" aria-label="Cosa fare" style="margin-top: 18px;">${opzioni.map(o => `
@@ -254,7 +254,7 @@
                     if (typeof switchView === 'function' && state.uiState && state.uiState.currentView === 'home') switchView('home');
                     triggerVibrate([40, 60, 40]);
                     let msg = esito.scelta === 'sostituisci'
-                        ? `«${esito.nome}» è stato sostituito con quello del pacchetto. La versione di prima è nella Cronologia.`
+                        ? `«${esito.nome}» è stato sostituito con quello del pacchetto. La versione di prima è nelle copie automatiche.`
                         : (esito.scelta === 'entrambi' ? `Il progetto è arrivato come «${esito.nome}». Quello che c'era resta com'è.` : `«${esito.nome}» è su questo dispositivo.`);
                     if (esito.immagini.rinominate) msg += `\n\n${plurale(esito.immagini.rinominate, 'immagine aveva', 'immagini avevano')} lo stesso nome di una diversa già qui: quella di qui resta, quella del pacchetto è entrata con un nome nuovo.`;
                     msg += testoLibrerieAccolte(esito.librerie);

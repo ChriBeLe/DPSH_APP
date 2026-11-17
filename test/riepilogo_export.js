@@ -50,7 +50,7 @@ t('segnala quando la prova e un interpretazione alternativa', api.avvisiPrimaExp
 
 console.log('--- Cablaggio ---');
 t('il riquadro e nella modale Esporta', src.includes('id="riepilogoPrimaExport"'));
-t('si ricalcola a ogni apertura della modale', /exportModalContext = \{ type: targetType, id: targetId \};\s*renderRiepilogoPrimaExport\(targetType, targetId\);/.test(src));
+t('si ricalcola a ogni apertura della modale', /function openExportModal\([^)]*\) \{[\s\S]{0,900}?exportModalContext = \{ type: targetType, id: targetId[^}]*\};[\s\S]{0,300}?renderRiepilogoPrimaExport\(targetType, targetId\);/.test(src));
 t('ogni avviso porta alla finestra giusta',
   /\{ gps: openGpsModal, foto: openSurveyPhotosModal, falda: openQuickFaldaModal, intestazione: openCantiereInfoModal \}/.test(src));
 t('in Vista Prova controlla i dati appena scritti, non quelli salvati prima',

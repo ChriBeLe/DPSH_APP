@@ -122,7 +122,7 @@
                     const surplus = segs.length - state.strati.length;
                     if (surplus > 0 && getArchiveList().length > 0) {
                         const wantsArchive = await appConfirm(
-                            `Per questo rilevamento servono ${surplus} strat${surplus === 1 ? 'o' : 'i'} in più rispetto a quelli già configurati.\n\nVuoi attingerlo dall'Archivio Litologico Globale invece di crearne uno generico?`
+                            `Per questo rilevamento servono ${surplus} strat${surplus === 1 ? 'o' : 'i'} in più rispetto a quelli già configurati.\n\nVuoi attingerlo dall'Archivio litologico invece di crearne uno generico?`
                         );
                         if (wantsArchive) {
                             closeAutoStratiParamsModal();

@@ -880,7 +880,7 @@
                 btnConfirmNewProject.addEventListener('click', () => {
                     const comune = txtProjComune ? txtProjComune.value.trim() : '';
                     if (!comune) {
-                        alert('Il campo "Comune" è obbligatorio per creare il progetto!');
+                        alert('Il campo "Comune" è obbligatorio per creare il progetto.');
                         txtProjComune.focus();
                         return;
                     }
@@ -888,7 +888,7 @@
                     saveState();
                     const projId = `PROJ_${comune.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
                     const survId = `SURV_1_${Date.now()}`;
-                    const projName = txtProjName && txtProjName.value.trim() ? txtProjName.value.trim() : `${comune} - Cantiere`;
+                    const projName = txtProjName && txtProjName.value.trim() ? txtProjName.value.trim() : `${comune} - Progetto`;
 
                     const newProj = {
                         id: projId,
@@ -977,7 +977,7 @@
             }
 
             function confirmNewSurvey() {
-                const comune = txtNewComune.value.trim() || state.header.comune || 'Cantiere';
+                const comune = txtNewComune.value.trim() || state.header.comune || 'Progetto';
                 const provaNr = txtNewProvaNr.value.trim() || '1';
 
                 saveState();
@@ -1021,7 +1021,7 @@
                     const projId = `PROJ_${comune.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
                     state.projects[projId] = {
                         id: projId,
-                        name: `${comune} - Cantiere`,
+                        name: `${comune} - Progetto`,
                         comune: comune,
                         committente: newSurv.header.committente,
                         localita: newSurv.header.localita,
@@ -1070,7 +1070,7 @@
                                 const p = photos[0];
                                 const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                                 if (pUrl) {
-                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto del progetto: ${p.name || 'Foto 1'}</span></div>`;
                                 }
                             }
 
@@ -1080,7 +1080,7 @@
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
           <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
-          <p style="margin:4px 0;"><strong>Cantiere:</strong> ${proj.name || proj.comune}</p>
+          <p style="margin:4px 0;"><strong>Progetto:</strong> ${proj.name || proj.comune}</p>
           <p style="margin:4px 0;"><strong>Comune:</strong> ${proj.comune || 'N.D.'}</p>
           <p style="margin:4px 0;"><strong>Committente:</strong> ${proj.committente || 'N.D.'}</p>
           <p style="margin:4px 0;"><strong>Località:</strong> ${proj.localita || 'N.D.'}</p>
@@ -1118,7 +1118,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DPSH_Progetto_${(proj.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}_MultiProva.kml`;
+                    a.download = `DPSH_Progetto_${(proj.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}_MultiProva.kml`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -1150,13 +1150,13 @@
                         const p = photos[0];
                         const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                         if (pUrl) {
-                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto del progetto: ${p.name || 'Foto 1'}</span></div>`;
                         }
                     }
 
                     const placemarkXml = `
     <Placemark>
-      <name>Prova N° ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
+      <name>Prova N° ${h.provaNr || '1'} - ${h.comune || 'Progetto'}</name>
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
           <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
@@ -1180,8 +1180,8 @@
                     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>DPSH Prova ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
-    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${h.comune || 'Cantiere'}</description>
+    <name>DPSH Prova ${h.provaNr || '1'} - ${h.comune || 'Progetto'}</name>
+    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${h.comune || 'Progetto'}</description>
     ${placemarkXml}
   </Document>
 </kml>`;
@@ -1190,7 +1190,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DPSH_Prova_${h.provaNr || '1'}_${(h.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
+                    a.download = `DPSH_Prova_${h.provaNr || '1'}_${(h.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -1206,7 +1206,7 @@
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
-                        alert('Progetto non trovato!');
+                        alert('Progetto non trovato.');
                         return;
                     }
                     if (typeof XLSX === 'undefined') {
@@ -1218,8 +1218,8 @@
 
                     // 1. FOGLIO "Sintesi Progetto"
                     const summaryData = [
-                        ["PROGETTO DPSH - SINTESI CANTIERE"],
-                        ["Cantiere / Nome:", proj.name || ''],
+                        ["PROGETTO DPSH - SINTESI PROGETTO"],
+                        ["Nome del progetto:", proj.name || ''],
                         ["Comune:", proj.comune || ''],
                         ["Committente:", proj.committente || ''],
                         ["Località:", proj.localita || ''],
@@ -1316,7 +1316,7 @@
 
                                 sheetData.push([
                                     `Foto ${pIdx + 1}`,
-                                    p.name || `Foto Cantiere ${pIdx + 1}`,
+                                    p.name || `Foto del progetto ${pIdx + 1}`,
                                     p.timestamp || 'N.D.',
                                     gpsText,
                                     fullDataUrl ? 'Foto HD Integrale Presente' : 'Assente',
@@ -1330,7 +1330,7 @@
                         XLSX.utils.book_append_sheet(wb, wsSurv, sheetName);
                     }
 
-                    const fileName = `DPSH_Progetto_${(proj.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}_MultiFoglio.xlsx`;
+                    const fileName = `DPSH_Progetto_${(proj.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}_MultiFoglio.xlsx`;
                     XLSX.writeFile(wb, fileName);
                 } catch(e) {
                     console.error('exportProjectExcel error:', e);

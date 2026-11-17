@@ -15,7 +15,7 @@
                     if (state.uiState && state.uiState.currentView === 'home') {
                         return;
                     }
-                    const comune = state.header.comune || 'Nuovo Cantiere';
+                    const comune = state.header.comune || 'Nuovo progetto';
                     const projId = `PROJ_${Date.now()}`;
                     state.projects[projId] = {
                         id: projId,

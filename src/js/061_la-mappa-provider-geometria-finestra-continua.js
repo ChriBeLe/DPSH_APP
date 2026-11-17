@@ -1265,7 +1265,7 @@
                 const fullDataUrl = p.dataUrl || photoMemoryCache[p.id] || await getPhotoFromIDB(p.id);
                 if (fullDataUrl) photoMemoryCache[p.id] = fullDataUrl;
                 imgFullPreview.src = fullDataUrl || '';
-                lblPhotoTitle.innerHTML = `${ico('camera')} Foto Cantiere ${idx + 1}/${state.photos.length}`;
+                lblPhotoTitle.innerHTML = `${ico('camera')} Foto del progetto ${idx + 1}/${state.photos.length}`;
 
                 const gpsSourceLabel = p.hasExifGps ? '(da EXIF foto)' : '(da GPS prova al momento dello scatto)';
                 // NOTA: qui va usato innerHTML e non textContent, altrimenti il markup delle icone
@@ -1328,7 +1328,7 @@
             async function deletePhoto(idx, id) {
                 if (!state.photos || !state.photos[idx]) return;
 
-                const ok = await appConfirmDelete('Eliminare questa foto dal cantiere?');
+                const ok = await appConfirmDelete('Eliminare questa foto dal progetto?');
                 if (!ok) return;
                 if (!state.photos || !state.photos[idx]) return;
 

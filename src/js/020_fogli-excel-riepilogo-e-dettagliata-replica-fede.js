@@ -614,7 +614,7 @@ ${contenuto}
                 renderPc();
                 segnaRigaScelta();
 
-                // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
+                // Pulsante "Riconoscimento automatico degli strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
                 const btnAutoStratiIntegratedEl = document.getElementById('btnAutoStratiIntegrated');
                 const btnAutoStratiChartEl = document.getElementById('btnAutoStratiChart');

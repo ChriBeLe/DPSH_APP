@@ -90,7 +90,7 @@
                 if (!composizione || !composizioneTela) return;
                 const imp = composizione.imp;
                 if (!imp.centro) {
-                    composizioneTela.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--text-muted); font-size:12px;">Nessuna prova con coordinate GPS in questo cantiere: non c&#39;e&#39; niente da inquadrare.</div>';
+                    composizioneTela.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--text-muted); font-size:12px;">Nessuna prova con coordinate GPS in questo progetto: non c&#39;e&#39; niente da inquadrare.</div>';
                     return;
                 }
                 const punti = imp.mappaTutteLeProve ? composizione.punti : composizione.punti.slice(0, 1);
@@ -128,7 +128,7 @@
             /** RIDISEGNARE SOLO IL DECORO, non tutta la tavola.
              *
              * Segnalato: "quando cambio i colori del nord e della scala il programma va in
-             * freezing... e' davvero cosi' pesante cambiargli colore?". No, e il sospetto era
+             * freezing... e' davvero così pesante cambiargli colore?". No, e il sospetto era
              * giusto. Il peso non era il colore: disegnaComposizione riscrive l'innerHTML
              * dell'intera tela, e cosi' facendo DISTRUGGE E RICREA tutte le immagini — una
              * sessantina di tessere fra mappa, toponimi e riquadro regionale — che il browser
@@ -204,7 +204,7 @@
             // LE REFERENZE DELLA BARRA SI RISOLVONO UNA VOLTA SOLA.
             //
             // Segnalato: "quando cambio i colori del nord e della scala il programma va in
-            // freezing... e' davvero cosi' pesante cambiargli colore?". No, e il sospetto era
+            // freezing... e' davvero così pesante cambiargli colore?". No, e il sospetto era
             // giusto: il colore non c'entrava. Questa funzione girava ad OGNI ridisegno e
             // faceva 25 getElementById piu' 11 querySelectorAll SULL'INTERO DOCUMENTO — che
             // qui e' un'app da 2,8 MB con l'editor del template aperto e le sue pagine dentro.

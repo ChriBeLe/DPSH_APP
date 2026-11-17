@@ -651,7 +651,7 @@
             function openConfirmDeleteModal(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
+                const projName = proj.name || proj.comune || 'Progetto';
 
                 projectToDeleteContext = { projId, cardElem };
                 if (lblDeleteProjName) lblDeleteProjName.textContent = `"${projName}"`;
@@ -693,7 +693,7 @@
             function performDeleteProject(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
+                const projName = proj.name || proj.comune || 'Progetto';
                 copiaPrimaDi(`eliminare il progetto «${projName}»`);
 
                 // Animazione di riduzione e dissolvenza della card prima dell'eliminazione

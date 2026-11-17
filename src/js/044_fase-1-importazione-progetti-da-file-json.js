@@ -24,7 +24,7 @@
 
                 // Formato legacy: singola prova "nuda", senza alcun wrapper progetto/surveys.
                 if (parsed.header && parsed.logs) {
-                    const comune = parsed.header.comune || 'Cantiere Importato';
+                    const comune = parsed.header.comune || 'Progetto importato';
                     const projId = `PROJ_IMPORT_${Date.now()}`;
                     const survId = `SURV_IMPORT_${Date.now()}`;
                     return {

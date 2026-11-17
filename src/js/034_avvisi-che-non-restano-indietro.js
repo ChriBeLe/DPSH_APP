@@ -914,7 +914,7 @@
                                 min: 0.5, max: 60,
                                 notaMin: '0,5m',
                                 notaMax: '60m',
-                                secondarioHtml: profonditaCantiereAttiva ? '· cantiere' : (profonditaAsseAttuale ? '· fisso' : '· automatico'),
+                                secondarioHtml: profonditaCantiereAttiva ? '· progetto' : (profonditaAsseAttuale ? '· fisso' : '· automatico'),
                                 titolo: "Fin dove arriva l'asse delle profondità. Toccandolo passa a manuale; il tasto Auto lo rimette in automatico"
                             })}
                             <!-- LA SPUNTA DEL CANTIERE (richiesta esplicitamente: «in modo che io possa
@@ -927,11 +927,11 @@
                             <div class="tpl-editor-menu-row">
                                 <label style="display:flex; align-items:center; gap:6px; font-size:11px; cursor:pointer; ${profonditaCantiereM > 0 ? '' : 'opacity:.45; cursor:default;'}">
                                     <input type="checkbox" data-action="profondita-cantiere" ${profonditaCantiereAttiva ? 'checked' : ''} ${profonditaCantiereM > 0 ? '' : 'disabled'}>
-                                    Profondità massima del cantiere${profonditaCantiereM > 0 ? ` (${fmtIT(profonditaCantiereM, 1)} m)` : ' — nessun dato'}
+                                    Profondità massima del progetto${profonditaCantiereM > 0 ? ` (${fmtIT(profonditaCantiereM, 1)} m)` : ' — nessun dato'}
                                 </label>
                             </div>
                             ${profonditaAsseAttuale && !profonditaCantiereAttiva ? `<button type="button" class="tpl-editor-menu-btn" data-action="profondita-asse-auto" style="font-weight:800; width:100%; margin-top:-4px;" title="Torna all'adattamento automatico">↺ Torna all'asse automatico</button>` : ''}
-                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px; line-height:1.4;">${profonditaCantiereAttiva ? `Tutte le prove di questo cantiere useranno lo stesso fondo scala.` : (profonditaDatoM != null ? `Questa prova arriva a <b>${fmtIT(profonditaDatoM, 1)} m</b>. ` : '') + (profonditaAsseAttuale ? `Asse fisso a ${fmtIT(profonditaAsseAttuale, 1)} m.` : `In automatico l'asse si ferma a <b>${profonditaDatoM != null ? fmtIT(profonditaAsseAutomatica(profonditaDatoM), 2) : '—'} m</b>.`)}</div>
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px; line-height:1.4;">${profonditaCantiereAttiva ? `Tutte le prove di questo progetto useranno lo stesso fondo scala.` : (profonditaDatoM != null ? `Questa prova arriva a <b>${fmtIT(profonditaDatoM, 1)} m</b>. ` : '') + (profonditaAsseAttuale ? `Asse fisso a ${fmtIT(profonditaAsseAttuale, 1)} m.` : `In automatico l'asse si ferma a <b>${profonditaDatoM != null ? fmtIT(profonditaAsseAutomatica(profonditaDatoM), 2) : '—'} m</b>.`)}</div>
                         </div>
                     </div>
 
@@ -1087,7 +1087,7 @@
                     <div class="tpl-editor-menu-section-label" data-fascia="1">Contenuto</div>
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin:-2px 0 4px;">
                         <span style="font-size:10px; color:var(--text-muted);">Assembla frasi predefinite, differenziando termini e riferimenti al progetto — non è un'intelligenza artificiale.</span>
-                        ${contaDatiMancanti(blk.richHtml) > 0 ? `<span class="badge-dati-mancanti" title="Informazioni del cantiere che mancano nel testo: vanno compilate o scritte a mano"><svg class="ico" style="width:11px;height:11px;"><use href="#i-alert"/></svg> ${contaDatiMancanti(blk.richHtml)}</span>` : ''}
+                        ${contaDatiMancanti(blk.richHtml) > 0 ? `<span class="badge-dati-mancanti" title="Informazioni del progetto che mancano nel testo: vanno compilate o scritte a mano"><svg class="ico" style="width:11px;height:11px;"><use href="#i-alert"/></svg> ${contaDatiMancanti(blk.richHtml)}</span>` : ''}
                     </div>
                     <select data-action="sezione-modello" style="width:100%; font-size:11.5px; padding:7px 8px; border-radius:7px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main);">
                         <option value="">— scegli il capitolo da scrivere —</option>
@@ -2113,7 +2113,7 @@
                         if (esito.mancanti.length > 0) {
                             appAlert('Testo generato, ma ' + esito.mancanti.length + ' '
                                 + (esito.mancanti.length === 1 ? 'informazione manca' : 'informazioni mancano')
-                                + ' e nel testo compaiono tra parentesi quadre.\n\nCompilale nell\'Intestazione Cantiere o nello Strumento, oppure scrivile a mano nel testo.');
+                                + ' e nel testo compaiono tra parentesi quadre.\n\nCompilale nella Scheda della prova, oppure scrivile a mano nel testo.');
                         }
                     });
                 });
