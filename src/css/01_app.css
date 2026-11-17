@@ -717,7 +717,7 @@
         .btn-minus {
             background-color: var(--bg-sunken);
             color: var(--pericolo-testo);
-            font-size: var(--fs-schermata);
+            font-size: 32px;
             height: 120px;
             border: 2px solid var(--danger);
         }
@@ -2524,7 +2524,7 @@
         .gps-altra-prova-pin span {
             transform: rotate(45deg);
             color: #fff;
-            font-size: var(--fs-didascalia);
+            font-size: 10px;
             font-weight: 800;
             font-family: inherit;
         }
@@ -2545,7 +2545,7 @@
         .gps-mia-prova-pin span {
             transform: rotate(45deg);
             color: #fff;
-            font-size: var(--fs-didascalia);
+            font-size: 12px;
             font-weight: 800;
             font-family: inherit;
         }
