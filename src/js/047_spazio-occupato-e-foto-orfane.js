@@ -61,17 +61,30 @@
                 return vivi;
             }
 
+            /** Gli id delle immagini citate da una nota di progetto, in OGNI copia di testo che la nota
+             * conserva: `html` e anche `htmlPrimaDelMotore` (il testo di prima della conversione al nuovo
+             * editor, che «Ripristina nota di prima» rimette). Se l'immagine è stata tolta dalla nota nuova
+             * ma c'è ancora in quella conservata, NON è orfana: cancellarla sarebbe irreversibile. Vale per
+             * ogni campo di testo della nota, così un campo aggiunto in futuro è protetto senza ricordarsene. */
+            function idImmaginiDiUnaNota(notes) {
+                const ids = new Set();
+                if (!notes || typeof notes !== 'object') return ids;
+                Object.keys(notes).forEach(k => {
+                    const html = notes[k];
+                    if (typeof html !== 'string' || html.indexOf('data-note-img-id') === -1) return;
+                    const re = /data-note-img-id="([^"]+)"/g;
+                    let m;
+                    while ((m = re.exec(html)) !== null) ids.add(m[1]);
+                });
+                return ids;
+            }
+
             /** Come sopra per le immagini incorporate nelle Note: lì i riferimenti non sono un
              * elenco ma attributi data-note-img-id dentro l'HTML della nota, quindi si estraggono. */
             function idImmaginiNoteAncoraInUso() {
                 const vivi = new Set();
-                const raccogli = (html) => {
-                    if (!html) return;
-                    const re = /data-note-img-id="([^"]+)"/g;
-                    let m;
-                    while ((m = re.exec(html)) !== null) vivi.add(m[1]);
-                };
-                Object.values(state.projects || {}).forEach(proj => { if (proj && proj.notes) raccogli(proj.notes.html); });
+                // Tutte le copie conservate della nota, non solo quella corrente (vedi idImmaginiDiUnaNota).
+                Object.values(state.projects || {}).forEach(proj => { if (proj && proj.notes) idImmaginiDiUnaNota(proj.notes).forEach(id => vivi.add(id)); });
                 copieAutomatiche.idNote.forEach(id => vivi.add(id)); // come le foto: servono alle copie automatiche
                 if (typeof idImmaginiNoteNellaCronologia === 'function') idImmaginiNoteNellaCronologia().forEach(id => vivi.add(id)); // e ad Annulla (pezzo 004f)
                 // Stesso ragionamento delle foto: l'immagine intera messa da parte prima di un

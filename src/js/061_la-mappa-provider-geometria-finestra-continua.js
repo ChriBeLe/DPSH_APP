@@ -1332,7 +1332,8 @@
                 if (!ok) return;
                 if (!state.photos || !state.photos[idx]) return;
 
-                copiaPrimaDi('eliminare una foto');
+                if (!await copiaOChiedi('eliminare una foto')) return;
+                if (!state.photos || !state.photos[idx]) return;
                 const targetId = id || state.photos[idx].id;
                 const backupPhoto = JSON.parse(JSON.stringify(state.photos[idx]));
                 // Recupera il contenuto dell'immagine prima di rimuoverla, così l'annullamento

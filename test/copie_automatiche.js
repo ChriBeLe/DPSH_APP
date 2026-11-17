@@ -11,7 +11,7 @@ function corpo(nome){
   if(i<0) throw new Error('non trovata: '+nome);
   for(let k=i+1;k<righe.length;k++) if(righe[k]==='            }') return righe.slice(i,k+1).join('\n');
 }
-const NOMI=['firmaTesto','riassuntoStatoPerCopia','copieDaEliminare','promemoriaBackup'];
+const NOMI=['firmaTesto','idImmaginiDiUnaNota','riassuntoStatoPerCopia','copieDaEliminare','promemoriaBackup'];
 const api=new Function(NOMI.map(corpo).join('\n\n')+'\nreturn {'+NOMI.join(',')+'};')();
 let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;console.log('  KO  '+n);} };
 
@@ -89,10 +89,10 @@ t('configurazione in cima, prima di saveState (niente errori all avvio)',
 t('saveState fa la copia periodica con lo stesso testo appena salvato',
   // Fra le due righe ora c'è anche la verifica del salvataggio (Fase 1): la finestra è più larga.
   /localStorage\.setItem\('dpsh_app_state', testoStato\);[\s\S]{0,1800}scriviCopiaAutomatica\('periodica', 'automatica', testoStato\);/.test(src));
-t('una copia prima di ognuna delle 9 azioni che tolgono dati', (src.match(/copiaPrimaDi\(/g) || []).length - 1 === 9);
+t('una copia prima di ognuna delle 9 azioni che tolgono dati', (src.match(/copia(?:PrimaDi|OChiedi)\(/g) || []).length - 3 === 9);
 ['eliminare un intervallo', 'eliminare lo strato', 'azzerare la falda', 'eliminare la Prova', 'eliminare il progetto',
  'eliminare una foto', 'importare un archivio', 'sostituire tutti gli intervalli']
-  .forEach(m => t('  … ' + m, src.includes("copiaPrimaDi('" + m) || src.includes('copiaPrimaDi(`' + m)));
+  .forEach(m => t('  … ' + m, src.includes("copiaPrimaDi('" + m) || src.includes('copiaPrimaDi(`' + m) || src.includes("copiaOChiedi('" + m) || src.includes('copiaOChiedi(`' + m)));
 t('le foto che servono alle copie non si cancellano',
   /function idFotoAncoraInUso\(\) \{[\s\S]{0,1000}copieAutomatiche\.idFoto\.forEach\(id => vivi\.add\(id\)\);/.test(src));
 t('nemmeno le immagini delle note',

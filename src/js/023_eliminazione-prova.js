@@ -58,7 +58,7 @@
             if (modalDeleteSurveyOverlay) modalDeleteSurveyOverlay.addEventListener('click', closeDeleteSurveyModal);
 
             if (btnConfirmDeleteSurvey) {
-                btnConfirmDeleteSurvey.addEventListener('click', () => {
+                btnConfirmDeleteSurvey.addEventListener('click', async () => {
                     if (!pendingDeleteSurveyId) return;
                     if (txtDeleteSurveyConfirm.value.trim().toUpperCase() !== 'CANCELLA') return;
 
@@ -74,7 +74,8 @@
                     const deletedIdx = remainingBefore.indexOf(deletedId);
                     const projIdOfDeleted = state.currentProjectId;
 
-                    copiaPrimaDi(`eliminare la Prova N° ${(proj.surveys[deletedId].header && proj.surveys[deletedId].header.provaNr) || '?'}`);
+                    if (!await copiaOChiedi(`eliminare la Prova N° ${(proj.surveys[deletedId].header && proj.surveys[deletedId].header.provaNr) || '?'}`)) return;
+                    if (!proj.surveys[deletedId]) return; // eliminata nel frattempo (doppio tocco)
                     // Copia di sicurezza per l'annullamento entro 10s.
                     const survBackup = JSON.parse(JSON.stringify(proj.surveys[deletedId]));
                     const survPhotos = (proj.surveys[deletedId].photos || []).slice();

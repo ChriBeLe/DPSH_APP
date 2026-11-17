@@ -805,7 +805,7 @@
             if (btnCloseBulkImportX) btnCloseBulkImportX.addEventListener('click', closeBulkImportModal);
 
             if (btnConfirmBulkImport) {
-                btnConfirmBulkImport.addEventListener('click', () => {
+                btnConfirmBulkImport.addEventListener('click', async () => {
                     const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
                     if (numbers.length === 0 || scartati.length) return; // il bottone è già spento
 
@@ -813,7 +813,7 @@
                     const mode = selectedOpt ? selectedOpt.value : 'append';
 
                     if (mode === 'replace') {
-                        copiaPrimaDi('sostituire tutti gli intervalli');
+                        if (!await copiaOChiedi('sostituire tutti gli intervalli')) return;
                         state.logs = [];
                         state.currentDepthStart = 0;
                     }

@@ -574,8 +574,9 @@
                         // Controllo di integrità su ciò che arriva (004c): si dice alla fine, non blocca.
                         const integrita = verificaIntegrita({ projects: targetState.projects || {} }, { correggi: true });
                         if (await appConfirm('IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
-                            // L'unione sovrascrive i progetti con lo stesso id: prima una copia.
-                            copiaPrimaDi('importare un archivio');
+                            // Niente si sostituisce (i progetti con lo stesso id entrano come copia), ma la
+                            // copia prima di toccare l'archivio si fa lo stesso, e si aspetta.
+                            if (!await copiaOChiedi('importare un archivio')) return;
                             registraCorrezioni(state, integrita.correzioni, 'import');
                             let sostituiti = 0, fotoAssenti = 0;
                             const promesseFoto = [];
@@ -594,29 +595,44 @@
                             }, targetState.projects || {}, { tutte: true, etichetta: 'da backup' });
                             if (targetState.projects) {
                                 if (!state.projects) state.projects = {};
-                                const idsSostituiti = Object.keys(targetState.projects).filter(id => state.projects[id]);
-                                sostituiti = idsSostituiti.length;
-                                // Le foto e le immagini delle note del file vanno in IndexedDB, come negli
-                                // altri import: prima restavano solo in memoria e sparivano al riavvio.
-                                Object.values(targetState.projects).forEach(p => { fotoAssenti += salvaImmaginiImportate(p, promesseFoto).assenti; });
-                                Object.assign(state.projects, targetState.projects);
-                                // Un progetto arrivato dal file porta la sua data di modifica: metterlo al
-                                // posto di quello di qui non è una modifica fatta qui (vedi 004e).
-                                Object.keys(targetState.projects).forEach(accettaContenutoProgetto);
-                                // Se il progetto aperto è stato sostituito, lo stato attivo va ricaricato:
-                                // il primo salvataggio rimetterebbe dentro la prova di prima.
-                                riallineaProgettoAperto(idsSostituiti);
+                                // Stessa regola dello ZIP e di importProjectsFromJSON: un progetto con lo
+                                // stesso id di uno già qui NON lo sostituisce, entra come copia con id nuovo e
+                                // «(Importato)» nel nome. Anche l'id «__proto__» (valido in JSON.parse) prende
+                                // un id nuovo: assegnarlo a state.projects ne cambierebbe il prototipo.
+                                // Le librerie sono già state accolte sopra, che sanno i progetti per id del file.
+                                const giaQui = (id) => id === '__proto__' || Object.prototype.hasOwnProperty.call(state.projects, id);
+                                const entrati = [];
+                                Object.keys(targetState.projects).forEach((origId, n) => {
+                                    const incoming = targetState.projects[origId];
+                                    if (!incoming || typeof incoming !== 'object') return;
+                                    let targetId = origId;
+                                    if (giaQui(targetId)) {
+                                        targetId = `PROJ_IMPORT_${Date.now()}_${n}`;
+                                        incoming.id = targetId;
+                                        incoming.name = (incoming.name || incoming.comune || 'Progetto') + ' (Importato)';
+                                        rinnovaIdProve(incoming); // come nel Duplica: le foto restano condivise, le prove no
+                                        sostituiti++;
+                                    }
+                                    // Le foto e le immagini delle note del file vanno in IndexedDB, come negli
+                                    // altri import, senza sovrascrivere quelle di qui con lo stesso id.
+                                    fotoAssenti += salvaImmaginiImportate(incoming, promesseFoto).assenti;
+                                    state.projects[targetId] = incoming;
+                                    entrati.push(targetId);
+                                });
+                                // Un progetto arrivato dal file porta la sua data di modifica: metterlo
+                                // nell'archivio non è una modifica fatta qui (vedi 004e).
+                                entrati.forEach(accettaContenutoProgetto);
                             }
                             const archImportMsg = testoLibrerieAccolte(librerie);
                             saveState();
                             controllaFotoImportate(promesseFoto);
                             updateUI();
                             if (state.uiState && state.uiState.currentView === 'home') switchView('home');
-                            // L'unione SOSTITUISCE i progetti con lo stesso id: va detto, non solo fatto.
+                            // Le copie rinominate vanno dette: chi importa deve sapere che ci sono due progetti.
                             const sostituitiMsg = sostituiti > 0
-                                ? `\n\n${sostituiti === 1 ? '1 progetto aveva' : sostituiti + ' progetti avevano'} lo stesso id di uno già presente ed è stato sostituito da quello del file. La versione di prima è nella Cronologia (copie automatiche).`
+                                ? `\n\n${sostituiti === 1 ? '1 progetto aveva' : sostituiti + ' progetti avevano'} lo stesso id di uno già presente: ${sostituiti === 1 ? 'è entrato' : 'sono entrati'} come copia separata, con «(Importato)» nel nome. Quello di prima non è stato toccato.`
                                 : '';
-                            // Senza niente da aggiungere è una conferma: toast. Con sostituzioni, foto
+                            // Senza niente da aggiungere è una conferma: toast. Con copie rinominate, foto
                             // assenti, anomalie o librerie accolte resta un dialogo da leggere.
                             toastODialogo('Archivio importato con successo', archImportMsg + sostituitiMsg + testoFotoAssentiNelFile(fotoAssenti) + testoAnomalieImportate(integrita.anomalie));
                             triggerVibrate([50, 50, 50]);
@@ -637,7 +653,7 @@
                     if (!await appConfirm('IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                         return;
                     }
-                    copiaPrimaDi('importare un archivio');
+                    if (!await copiaOChiedi('importare un archivio')) return;
                     const { importedCount, renamedCount, fotoAssenti, anomalie } = await importProjectsFromZip(file);
                     updateUI();
                     if (state.uiState && state.uiState.currentView === 'home' && typeof switchView === 'function') switchView('home');
