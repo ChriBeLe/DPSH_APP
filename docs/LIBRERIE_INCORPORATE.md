@@ -18,6 +18,6 @@ copiare il file indicato, ricalcolare l'impronta, eseguire `node test/esegui_tut
 la mappa resta col nord in alto) e ha licenza **GPL-3.0**: incorporarlo nel file distribuito
 nell'APK potrebbe estendere la GPL all'intera app. Per questo si carica da unpkg come prima, ma con
 l'impronta SRI `sha384-MtIdllebpZyms2pw9K3YJl8BEqrKNQCdSFAySjeglab6z2PkeFdF4Lb9cDsnxQuG` (se la CDN
-servisse un file diverso, il browser non lo esegue). Decisione da confermare con l'utente.
+servisse un file diverso, il browser non lo esegue). Scelta confermata dall'utente il 17/11/2026.
 
 **Content-Security-Policy:** in `src/shell/01_head.html`, con il perché di ogni regola.
