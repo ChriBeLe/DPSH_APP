@@ -42,6 +42,15 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   // (le strutture annidate rotte, es. pagina: null, fanno ancora eccezione in 069: fuori perimetro.)
   // etichette, titoloTesto e divisore sono scritti da 069 (fuori dal perimetro): non coperti qui.
 
+  console.log('--- testi dell\'indice (069) ---');
+  const html2 = E(`buildIndiceReportCompletoHtml({ name: 'P' }, [{ id: 'p1', numero: 1, pagina: 1, livello: 1, etichetta: ${JSON.stringify('1. ' + XSS)} }, { id: 'p"2', numero: 2, pagina: 2, livello: 2, etichetta: 'A & B' }], Object.assign(stileIndiceDiDefault(), { titoloTesto: ${JSON.stringify(XSS)}, divisore: ${JSON.stringify('x"><img src=x onerror="window.__xss=1">')}, gutter: true }))`);
+  const doc2 = new (require('jsdom').JSDOM)('<body>' + html2 + '</body>').window.document;
+  t('titolo, divisore ed etichette: nessun img né onerror', doc2.querySelectorAll('img, [onerror]').length === 0);
+  t('il testo resta leggibile (una sola volta scappato)', doc2.querySelector('h1').textContent === XSS && doc2.querySelectorAll('[data-testo-voce]')[1].textContent === 'A & B');
+  t('window.__xss ancora indefinito', E('typeof window.__xss') === 'undefined');
+  const rotto = E(`(() => { try { return buildIndiceReportCompletoHtml({ name: 'P' }, [{ id: 'p1', numero: 1, pagina: 1, livello: 2, etichetta: 'x' }], { pagina: null, numero: 'z', titolo: null, livelli: { h2: 'x', h1: null } }).length > 100; } catch (e) { return 'eccezione ' + e.message; } })()`);
+  t('struttura rotta (pagina null, livelli.h2 testo): nessuna eccezione', rotto === true);
+
   console.log('--- stile del testo (stesso canale) ---');
   const stTesto = E('cssVariabiliStileTesto()');
   t('predefinito del testo con pila Calibri e numeri di serie', /--tpl-font:'Calibri'/.test(stTesto) && /--tpl-allineamento:justify;/.test(stTesto) && /--tpl-corpo-pt:11pt;/.test(stTesto) && /--tpl-peso-titoli:700;/.test(stTesto));
