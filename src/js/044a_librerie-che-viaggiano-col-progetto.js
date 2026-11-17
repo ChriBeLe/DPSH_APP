@@ -78,7 +78,7 @@
                 const lib = librerie || {};
                 const rt = lib.reportTemplates || {}, it = lib.indiceTemplates || {}, la = lib.lithologyArchive || {};
                 const uscita = { reportTemplates: {}, indiceTemplates: {}, lithologyArchive: {}, usi: {} };
-                const prendi = (dove, da, id) => { if (id && da[id]) dove[id] = JSON.parse(JSON.stringify(da[id])); };
+                const prendi = (dove, da, id) => { if (id && Object.prototype.hasOwnProperty.call(da, id) && da[id]) dove[id] = JSON.parse(JSON.stringify(da[id])); };
                 Object.keys(progetti || {}).forEach(pid => {
                     const proj = progetti[pid];
                     if (!proj || typeof proj !== 'object') return;
@@ -129,10 +129,13 @@
                 const mappe = {};
                 TIPI_LIBRERIA.forEach(tipo => {
                     const daFile = lib[tipo.chiave];
-                    const mappa = mappe[tipo.chiave] = {};
+                    // Senza prototipo: gli id arrivano da un file, e un id «__proto__» o «constructor»
+                    // non deve poter toccare l'oggetto.
+                    const mappa = mappe[tipo.chiave] = Object.create(null);
                     if (!daFile || typeof daFile !== 'object') return;
                     // Quali voci accogliere: tutte, o quelle che i progetti usano.
-                    let ids = Object.keys(daFile);
+                    // Gli id riservati non sono voci: si saltano.
+                    let ids = Object.keys(daFile).filter(id => id !== '__proto__' && id !== 'constructor' && id !== 'prototype');
                     if (!o.tutte) {
                         const usate = librerieUsateDa(progetti, lib)[tipo.chiave];
                         ids = ids.filter(id => usate[id]);
@@ -142,13 +145,21 @@
                     const perContenuto = new Map();
                     Object.keys(qui).forEach(id => { const c = contenutoVoceLibreria(qui[id]); if (!perContenuto.has(c)) perContenuto.set(c, id); });
                     ids.forEach(id => {
-                        const voce = daFile[id];
-                        if (!voce || typeof voce !== 'object') return;
+                        const daVoce = daFile[id];
+                        if (!daVoce || typeof daVoce !== 'object' || Array.isArray(daVoce)) return;
+                        // La voce entra come copia ripulita: senza chiavi riservate e, per i template di
+                        // report, col testo dei blocchi passato dal sanificatore (026). Si confronta e si
+                        // salva la copia, non l'originale: «identica» vuol dire identica a ciò che entrerebbe.
+                        const voce = tipo.chiave === 'reportTemplates' ? sanificaTemplateInIngresso(daVoce) : copiaSenzaChiaviRiservate(daVoce);
+                        if (!voce) return;
+                        if ('name' in voce && typeof voce.name !== 'string') voce.name = String(voce.name);
                         const c = contenutoVoceLibreria(voce);
-                        if (qui[id] && contenutoVoceLibreria(qui[id]) === c) { mappa[id] = id; esito.riusate++; return; }
+                        if (idSicuro(id) && qui[id] && contenutoVoceLibreria(qui[id]) === c) { mappa[id] = id; esito.riusate++; return; }
                         if (perContenuto.has(c)) { mappa[id] = perContenuto.get(c); esito.riusate++; return; }
-                        const copia = JSON.parse(JSON.stringify(voce));
-                        const nuovoId = qui[id] ? `${tipo.prefisso}${Date.now()}_${Math.random().toString(36).slice(2, 7)}` : id;
+                        // Un id che non ha la forma di quelli dell'app (virgolette, '<'…) non diventa mai
+                        // una chiave: se ne genera uno nuovo, e le prove puntano a quello (mappa[id]).
+                        const copia = voce;
+                        const nuovoId = (!idSicuro(id) || qui[id]) ? `${tipo.prefisso}${Date.now()}_${Math.random().toString(36).slice(2, 7)}` : id;
                         copia.id = nuovoId;
                         // Una voce «di serie» che arriva diversa è una voce qualsiasi: si può rinominare
                         // ed eliminare. Quella di serie del dispositivo resta com'è.
