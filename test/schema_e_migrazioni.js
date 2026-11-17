@@ -49,9 +49,10 @@ function bloccoConst(inizio, fine) {
 }
 const NOMI = ['versioneDeiDati', 'migraDati', 'migrazione0a1', 'migrazione1a2', 'migrazione2a3', 'stratiInizialiProgettoNuovo', 'versioneFileImportato', 'controllaVersioneFileImportato', 'leggiStatoSalvato'];
 const versioneRiga = righe.find(r => r.includes('const VERSIONE_SCHEMA_DATI = '));
-const api = new Function(versioneRiga + '\n' + NOMI.map(corpo).join('\n\n') + '\n'
+const letturaRiga = righe.find(r => r.includes('const VERSIONE_SCHEMA_LETTA = '));
+const api = new Function(versioneRiga + '\n' + letturaRiga + '\n' + NOMI.map(corpo).join('\n\n') + '\n'
   + bloccoConst('            const MIGRAZIONI_DATI = [', '            ];')
-  + '\nreturn {' + NOMI.join(',') + ', MIGRAZIONI_DATI, VERSIONE_SCHEMA_DATI};')();
+  + '\nreturn {' + NOMI.join(',') + ', MIGRAZIONI_DATI, VERSIONE_SCHEMA_DATI, VERSIONE_SCHEMA_LETTA};')();
 const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument: { pesoMassa: 63.5 }, settings: { stepCm: 20 } };
 
 (async () => {
@@ -65,7 +66,7 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
   t('senza versioneSchema: formato 0', api.versioneDeiDati({ projects: {} }) === 0);
   t('con versioneSchema intero: quella', api.versioneDeiDati({ versioneSchema: 3 }) === 3);
   t('una versione strana non è 0: è «non valida»', api.versioneDeiDati({ versioneSchema: '1' }) === null && api.versioneDeiDati({ versioneSchema: 1.5 }) === null && api.versioneDeiDati({ versioneSchema: -1 }) === null);
-  const letto = api.leggiStatoSalvato(JSON.stringify({ versioneSchema: V + 1, projects: {} }));
+  const letto = api.leggiStatoSalvato(JSON.stringify({ versioneSchema: api.VERSIONE_SCHEMA_LETTA + 1, projects: {} }));
   t('uno stato salvato da un app più nuova non si carica', !letto.ok && letto.motivo === 'piu-nuovo' && /formato dati/.test(letto.dettaglio));
   t('uno con versione non valida nemmeno', api.leggiStatoSalvato('{"versioneSchema":"x"}').motivo === 'illeggibile');
 
@@ -240,7 +241,7 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
   console.log('--- Un file di un app più nuova si rifiuta, senza scrivere niente ---');
   {
     const futuro = JSON.parse(leggi('progetto_v0.json').toString('utf8'));
-    futuro.versioneSchema = V + 1;
+    futuro.versioneSchema = api.VERSIONE_SCHEMA_LETTA + 1;
     const app = await avviaApp({ stato: STATO_V0, idb: telefonoV0() });
     const prima = app.E('JSON.stringify(Object.keys(state.projects))');
     const fotoPrima = (app.idb._dump('DPSH_PhotoStorageDB') || { photos: [] }).photos.length;
@@ -256,14 +257,14 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
     const enc = new TextEncoder();
     const blob = app.E('buildZipBlob')([
       { name: 'progetti/X/progetto.json', bytes: enc.encode(JSON.stringify({ id: 'X', name: 'Futuro', surveys: {} })) },
-      { name: 'manifest.json', bytes: enc.encode(JSON.stringify({ projectIds: ['X'], versioneSchema: V + 1 })) }
+      { name: 'manifest.json', bytes: enc.encode(JSON.stringify({ projectIds: ['X'], versioneSchema: api.VERSIONE_SCHEMA_LETTA + 1 })) }
     ]);
     let erroreZip = null;
     try { await app.E('importProjectsFromZip')(new app.w.File([await blob.arrayBuffer()], 'f.zip')); } catch (e) { erroreZip = e; }
     t('anche lo ZIP, dal manifest', !!erroreZip && /versione più nuova/.test(erroreZip.message) && app.E('JSON.stringify(Object.keys(state.projects))') === prima);
 
     // Dal menu, come lo farebbe l'utente: il messaggio arriva in un dialogo.
-    app.E('importGlobalJSONBackup')(new app.w.File([JSON.stringify({ version: '1.0', versioneSchema: V + 1, state: { projects: { Z: { id: 'Z', surveys: {} } } } })], 'x.json'));
+    app.E('importGlobalJSONBackup')(new app.w.File([JSON.stringify({ version: '1.0', versioneSchema: api.VERSIONE_SCHEMA_LETTA + 1, state: { projects: { Z: { id: 'Z', surveys: {} } } } })], 'x.json'));
     await attesa(300);
     const dlg = app.dialogo();
     t('dal menu Backup: un dialogo che lo spiega, nessuna domanda di conferma', !!dlg && /versione più nuova/.test(dlg.testo) && dlg.annulla.style.display === 'none');
