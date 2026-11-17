@@ -115,9 +115,12 @@
                         // false anche quando l'ultima copia è identica: in quel caso il testo è già al sicuro.
                         const giaPresente = !scritta && copieAutomatiche.ultimaFirma === firmaTesto(testoPrima);
                         caricamentoDati.migrazione.copia = !!scritta || giaPresente;
-                        if (!caricamentoDati.migrazione.copia) console.warn('Copia prima di aggiornare i dati non riuscita: si prosegue comunque.');
+                        if (!caricamentoDati.migrazione.copia) {
+                            console.warn('Copia prima di aggiornare i dati non riuscita: si prosegue comunque.');
+                            segnalaErrore('migrazione', 'copiaPrimaDiAggiornareIDati', new Error('copia non riuscita'), 'Aggiornamento dei dati: la copia di riserva dei dati vecchi non è riuscita');
+                        }
                     })
-                    .catch(e => { caricamentoDati.migrazione.copia = false; ignoraErrore('copiaPrimaDiAggiornareIDati', e); })
+                    .catch(e => { caricamentoDati.migrazione.copia = false; segnalaErrore('migrazione', 'copiaPrimaDiAggiornareIDati', e, 'Aggiornamento dei dati: la copia di riserva dei dati vecchi non è riuscita'); })
                     .then(() => {
                         if (caricamentoDati.bloccato !== 'migrazione') return;
                         caricamentoDati.bloccato = false;

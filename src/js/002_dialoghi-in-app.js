@@ -282,6 +282,9 @@
                 return appAlert(principale + '\n\n' + extra);
             }
 
+            // var (non let): ignoraErrore puo' girare prima che lo script arrivi qui (vedi 000).
+            var registroErrori = { voci: [], conteggio: 0, tipiAvvisati: {} };
+
             /** Registra un errore che è stato deliberatamente ignorato, dicendo DOVE è successo.
              * Nasce da un problema concreto: nel file c'erano 22 blocchi di cattura errore totalmente
              * vuoti. Ignorare un errore è spesso la scelta giusta (non si deve interrompere una
@@ -291,6 +294,30 @@
              * l'etichetta del punto in cui è avvenuto. */
             function ignoraErrore(dove, e) {
                 try { console.debug('[ignorato] ' + dove + ':', e); } catch (_) { /* console non disponibile */ }
+                // Nell'APK la console non la legge nessuno: l'errore resta anche in memoria
+                // (ultimi 50 + contatore), visibile nel pannello «Spazio occupato». Mai lanciare da qui.
+                try {
+                    if (!registroErrori) registroErrori = { voci: [], conteggio: 0, tipiAvvisati: {} };
+                    registroErrori.conteggio++;
+                    registroErrori.voci.push({
+                        quando: Date.now(),
+                        dove: String(dove),
+                        messaggio: String((e && e.message) || e || '')
+                    });
+                    if (registroErrori.voci.length > 50) registroErrori.voci.shift();
+                } catch (_) { /* il registro non deve mai far fallire chi lo usa */ }
+            }
+
+            /** Come ignoraErrore, ma per i percorsi in cui un fallimento silenzioso conta (copie di
+             * sicurezza, migrazione, controllo d'integrità): in più mostra UN toast per tipo di
+             * problema, non uno a ogni ripetizione. Non blocca niente. */
+            function segnalaErrore(tipo, dove, e, testoToast) {
+                ignoraErrore(dove, e);
+                try {
+                    if (registroErrori.tipiAvvisati[tipo]) return;
+                    registroErrori.tipiAvvisati[tipo] = true;
+                    if (typeof mostraToast === 'function') mostraToast(testoToast);
+                } catch (_) { /* il toast non deve far fallire chi lo usa */ }
             }
 
             /** Sostituto in-app di prompt(). Stesso CONTRATTO del nativo — ritorna il testo inserito
