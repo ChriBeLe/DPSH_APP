@@ -18,7 +18,7 @@
             const SANIFICA_TAG_AMMESSI = new Set(['p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'ins',
                 'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'hr', 'a', 'span', 'div', 'sub', 'sup', 'mark', 'small', 'font',
                 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col', 'caption', 'img', 'label', 'input']);
-            // Questi spariscono INSIEME al loro contenuto (il testo dentro uno <script> o uno <style>
+            // Questi spariscono INSIEME al loro contenuto (il testo dentro un elemento script o style
             // non è testo da mostrare); un tag sconosciuto qualsiasi, invece, perde solo il tag.
             const SANIFICA_TAG_CON_CONTENUTO_VIA = new Set(['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'noscript',
                 'template', 'textarea', 'select', 'option', 'title', 'head', 'meta', 'link', 'base', 'svg', 'math', 'form', 'button', 'audio', 'video',

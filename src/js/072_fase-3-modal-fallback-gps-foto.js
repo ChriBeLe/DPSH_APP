@@ -3,7 +3,7 @@
             /** Leaflet è nel file come testo (vendorLeaflet, vedi shell/03d): si esegue la prima volta
              * che serve una mappa. Prima arrivava da unpkg, quindi senza campo nessuna mappa si apriva.
              * Il suo foglio di stile è già fra gli stili dell'app (css/05_leaflet.css). Si esegue
-             * con un <script> creato qui invece che con eval: è la stessa strada che la CSP
+             * con un elemento script creato qui invece che con eval: è la stessa strada che la CSP
              * concede agli script inline. */
             function ensureLeafletLoaded() {
                 if (leafletLoaded && window.L) return Promise.resolve();
