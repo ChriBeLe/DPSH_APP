@@ -1070,25 +1070,25 @@
                                 const p = photos[0];
                                 const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                                 if (pUrl) {
-                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${testoHtml(pUrl)}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${testoHtml(p.name || 'Foto 1')}</span></div>`;
                                 }
                             }
 
                             placemarksXml += `
     <Placemark>
-      <name>Prova N° ${h.provaNr || '1'} - ${proj.name || proj.comune}</name>
+      <name>Prova N° ${testoXml(h.provaNr || '1')} - ${testoXml(proj.name || proj.comune)}</name>
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
-          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
-          <p style="margin:4px 0;"><strong>Cantiere:</strong> ${proj.name || proj.comune}</p>
-          <p style="margin:4px 0;"><strong>Comune:</strong> ${proj.comune || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Committente:</strong> ${proj.committente || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Località:</strong> ${proj.localita || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Data:</strong> ${h.date || proj.date}</p>
+          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${testoHtml(h.provaNr || '1')}</h3>
+          <p style="margin:4px 0;"><strong>Cantiere:</strong> ${testoHtml(proj.name || proj.comune)}</p>
+          <p style="margin:4px 0;"><strong>Comune:</strong> ${testoHtml(proj.comune || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Committente:</strong> ${testoHtml(proj.committente || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Località:</strong> ${testoHtml(proj.localita || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Data:</strong> ${testoHtml(h.date || proj.date)}</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;"/>
           <p style="margin:4px 0;"><strong>Profondità Raggiunta:</strong> ${maxD.toFixed(2)} m</p>
           <p style="margin:4px 0;"><strong>Totale Colpi N:</strong> ${totalColpi}</p>
-          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? h.faldaDa + ' m' : 'Non rilevata'}</p>
+          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? testoHtml(h.faldaDa) + ' m' : 'Non rilevata'}</p>
           <p style="margin:4px 0;"><strong>Coordinate GPS:</strong> ${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}</p>
           ${photoHtml}
         </div>
@@ -1108,8 +1108,8 @@
                     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${proj.name || proj.comune} - Prove DPSH</name>
-    <description>Rilevamento Georeferenziato Multi-Prova DPSH - ${proj.comune}</description>
+    <name>${testoXml(proj.name || proj.comune)} - Prove DPSH</name>
+    <description>Rilevamento Georeferenziato Multi-Prova DPSH - ${testoXml(proj.comune)}</description>
     ${placemarksXml}
   </Document>
 </kml>`;
@@ -1150,24 +1150,24 @@
                         const p = photos[0];
                         const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                         if (pUrl) {
-                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${testoHtml(pUrl)}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${testoHtml(p.name || 'Foto 1')}</span></div>`;
                         }
                     }
 
                     const placemarkXml = `
     <Placemark>
-      <name>Prova N° ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
+      <name>Prova N° ${testoXml(h.provaNr || '1')} - ${testoXml(h.comune || 'Cantiere')}</name>
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
-          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
-          <p style="margin:4px 0;"><strong>Comune:</strong> ${h.comune || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Committente:</strong> ${h.committente || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Località:</strong> ${h.localita || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Data:</strong> ${h.date || ''}</p>
+          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${testoHtml(h.provaNr || '1')}</h3>
+          <p style="margin:4px 0;"><strong>Comune:</strong> ${testoHtml(h.comune || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Committente:</strong> ${testoHtml(h.committente || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Località:</strong> ${testoHtml(h.localita || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Data:</strong> ${testoHtml(h.date || '')}</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;"/>
           <p style="margin:4px 0;"><strong>Profondità Raggiunta:</strong> ${maxD.toFixed(2)} m</p>
           <p style="margin:4px 0;"><strong>Totale Colpi N:</strong> ${totalColpi}</p>
-          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? h.faldaDa + ' m' : 'Non rilevata'}</p>
+          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? testoHtml(h.faldaDa) + ' m' : 'Non rilevata'}</p>
           <p style="margin:4px 0;"><strong>Coordinate GPS:</strong> ${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}</p>
           ${photoHtml}
         </div>
@@ -1180,8 +1180,8 @@
                     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>DPSH Prova ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
-    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${h.comune || 'Cantiere'}</description>
+    <name>DPSH Prova ${testoXml(h.provaNr || '1')} - ${testoXml(h.comune || 'Cantiere')}</name>
+    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${testoXml(h.comune || 'Cantiere')}</description>
     ${placemarkXml}
   </Document>
 </kml>`;
@@ -1190,7 +1190,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DPSH_Prova_${h.provaNr || '1'}_${(h.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
+                    a.download = `DPSH_Prova_${String(h.provaNr || '1').replace(/[^a-zA-Z0-9]/g, '_')}_${(h.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -1199,6 +1199,30 @@
                     console.error('exportSingleSurveyKML error:', e);
                     alert('Errore durante l\'esportazione KML della prova: ' + e.message);
                 }
+            }
+
+            /** Nome di foglio Excel valido e unico. Excel rifiuta \ / ? * [ ] :, i nomi vuoti, quelli
+             * con apostrofo all'inizio o alla fine, oltre 31 caratteri, e due fogli con lo stesso
+             * nome senza distinguere maiuscole: un solo nome così e l'export intero falliva. Un nome
+             * già valido e libero resta identico; altrimenti i caratteri vietati diventano «-» e un
+             * doppione prende « (2)», « (3)»… tagliando prima il nome per restare entro 31.
+             * `usati` è l'elenco (array) dei nomi già presi in questa cartella: il nome scelto vi
+             * viene aggiunto. */
+            function nomeFoglioExcelValido(nome, usati) {
+                let base = String(nome === null || nome === undefined ? '' : nome)
+                    .replace(/[\\/?*\[\]:]/g, '-')
+                    .replace(/[\u0000-\u001F]/g, '')
+                    .replace(/^'+|'+$/g, '')
+                    .trim();
+                if (!base) base = 'Foglio';
+                const presi = new Set((usati || []).map(u => String(u).toLowerCase()));
+                let candidato = base.slice(0, 31).replace(/^'+|'+$/g, '').trim() || 'Foglio';
+                for (let n = 2; presi.has(candidato.toLowerCase()); n++) {
+                    const suffisso = ' (' + n + ')';
+                    candidato = (base.slice(0, 31 - suffisso.length).replace(/'+$/g, '').trimEnd() || 'Foglio') + suffisso;
+                }
+                if (usati) usati.push(candidato);
+                return candidato;
             }
 
             // MOTORE ESPORTAZIONE EXCEL MULTI-FOGLIO (.xlsx) VIA SHEETJS CON FOTO AD ALTA RISOLUZIONE INTEGRALI (0% COMPRESSIONE)
@@ -1215,6 +1239,7 @@
                     }
 
                     const wb = XLSX.utils.book_new();
+                    const nomiFogli = [];
 
                     // 1. FOGLIO "Sintesi Progetto"
                     const summaryData = [
@@ -1250,7 +1275,7 @@
                     });
 
                     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-                    XLSX.utils.book_append_sheet(wb, wsSummary, "Sintesi Progetto");
+                    XLSX.utils.book_append_sheet(wb, wsSummary, nomeFoglioExcelValido("Sintesi Progetto", nomiFogli));
 
                     // 2. FOGLI INDIVIDUALI "Prova 1", "Prova 2", ... CON TABELLA ED ALLEGATI FOTO HD (100% UNCOMPRESSED)
                     for (let surv of surveys) {
@@ -1326,7 +1351,7 @@
                         }
 
                         const wsSurv = XLSX.utils.aoa_to_sheet(sheetData);
-                        const sheetName = `Prova ${h.provaNr || '1'}`.substring(0, 31);
+                        const sheetName = nomeFoglioExcelValido(`Prova ${h.provaNr || '1'}`, nomiFogli);
                         XLSX.utils.book_append_sheet(wb, wsSurv, sheetName);
                     }
 
