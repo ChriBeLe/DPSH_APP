@@ -96,11 +96,12 @@
                     updateUI();
                     closeAutoStratiParamsModal();
                     triggerVibrate([30, 40, 30]);
-                    // Toast: il suggerimento sulle maniglie lo dà già il grafico (lblDragHandlesHint).
+                    // Il suggerimento sulle maniglie lo dà già il grafico (lblDragHandlesHint).
                     // Il passo dopo: il NOME dello strato decide il comportamento litologico
-                    // (categorieDiTesto), quindi quali parametri avanzati si calcolano. Prima
-                    // finiva qui, con strati dai nomi generici e nessuna strada verso il seguito.
-                    mostraToast(`Rilevati ${segs.length} strat${segs.length === 1 ? 'o' : 'i'}: dai loro un nome`, { durata: 8000, azione: { etichetta: 'Dai un nome', fn: () => openStratiModal() } });
+                    // (categorieDiTesto), quindi quali parametri avanzati si calcolano. (Fase C) Prima
+                    // un toast di 8 secondi apriva l'intera Gestione degli strati e, scaduto, non restava
+                    // niente: ora si apre da solo il foglio «Dai un nome agli strati».
+                    apriDaiNomeStrati();
                 }
 
                 btnRunAutoStrati.addEventListener('click', async () => {
@@ -121,7 +122,7 @@
                     const surplus = segs.length - state.strati.length;
                     if (surplus > 0 && getArchiveList().length > 0) {
                         const wantsArchive = await appConfirm(
-                            `Per questo rilevamento servono ${surplus} strat${surplus === 1 ? 'o' : 'i'} in più rispetto a quelli già configurati.\n\nVuoi attingerlo dall'Archivio Litologico Globale invece di crearne uno generico?`
+                            `Per questo rilevamento servono ${surplus} strat${surplus === 1 ? 'o' : 'i'} in più rispetto a quelli già configurati.\n\nVuoi attingerlo dall'Archivio litologico invece di crearne uno generico?`
                         );
                         if (wantsArchive) {
                             closeAutoStratiParamsModal();

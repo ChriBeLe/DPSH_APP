@@ -95,7 +95,7 @@
                     ? (state.projects[previewProjId]?.strati || [])
                     : (state.strati || []);
                 const provaNr = h.provaNr || '1';
-                const comune = h.comune || 'Cantiere';
+                const comune = h.comune || 'Progetto';
                 const localita = h.localita || 'Non specificata';
                 const committente = h.committente || 'Non specificato';
                 const dateStr = h.date || new Date().toISOString().split('T')[0];

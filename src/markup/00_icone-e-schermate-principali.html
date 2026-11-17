@@ -147,7 +147,7 @@
         <header class="card unified-header testata-prova" id="testataProva">
             <div class="testata-riga">
                 <button type="button" class="bt-icona" id="btnHomeView" aria-label="Al progetto" title="Al progetto"><svg class="ico"><use href="#i-back"/></svg></button>
-                <button type="button" class="testata-titolo" id="btnOpenSurveyDrawer" title="Intestazione di questa prova">
+                <button type="button" class="testata-titolo" id="btnOpenSurveyDrawer" title="Scheda della prova">
                     <span class="testata-titolo-prova" id="lblSurveySummary">Prova</span>
                     <span class="testata-titolo-progetto" id="lblSurveySub"></span>
                 </button>
@@ -157,13 +157,13 @@
                     <button type="button" class="bt-icona" id="btnHeaderMore" aria-label="Altre azioni" title="Altre azioni" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
                     <div class="menu-azioni" id="headerActionsSecondary" role="menu">
                         <!-- Prima si apriva solo tenendo premuto il cerchietto della prova. -->
-                        <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Strumento e impostazioni della prova</button>
+                        <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Scheda della prova</button>
                         <!-- La falda si indica una volta sola per prova: sta qui, non tra le spie
                              (osservazione del 27/09/2026). Il valore si legge nella voce stessa e,
                              impostata, come linea nel Registro; se manca lo dice il controllo prima
                              dell'export. -->
                         <button type="button" role="menuitem" id="btnFaldaMenu"><svg class="ico"><use href="#i-droplet"/></svg><span id="lblFaldaMenu">Falda</span></button>
-                        <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Gestione litologica</button>
+                        <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Strati</button>
                         <button type="button" role="menuitem" id="btnExportHeader"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
                         <button type="button" role="menuitem" id="btnHamburger"><svg class="ico"><use href="#i-settings"/></svg>Impostazioni</button>
                         <div class="menu-sep" aria-hidden="true"></div>
@@ -213,7 +213,7 @@
 
             <div class="home-comandi" id="homeComandi">
                 <button type="button" class="bt bt-principale" id="btnHomeNewProject"><svg class="ico"><use href="#i-plus"/></svg>Nuovo progetto</button>
-                <button type="button" class="bt" id="btnHomeImportProject" title="Ricevi un progetto da un altro dispositivo (pacchetto), oppure importa un JSON o uno ZIP"><svg class="ico"><use href="#i-download"/></svg>Ricevi</button>
+                <button type="button" class="bt" id="btnHomeImportProject" title="Ricevi un progetto da un altro dispositivo (pacchetto), oppure importa un JSON o uno ZIP"><svg class="ico"><use href="#i-download"/></svg>Ricevi un progetto</button>
                 <input type="file" id="fileImportProjectJson" accept="application/json,.json,.zip,application/zip" style="display:none;">
             </div>
 
@@ -255,6 +255,16 @@
             <div class="progetto-sotto" id="lblProgettoSotto"></div>
             <div class="progetto-sotto" id="lblProgettoStato"></div>
             <button type="button" class="bt bt-principale bt-campo" id="btnProgettoRiprendi"></button>
+            <!-- IL PERCORSO (Fase C, passo H): le cinque tappe del progetto, ognuna con il suo stato in
+                 breve e il tasto che porta al punto in cui c'è da lavorare. «Strati» e «Consegna» sono le
+                 card di prima, che diventano tappe (stessi id): gli ingressi non si duplicano. -->
+            <div class="progetto-accessi progetto-percorso" id="progettoPercorso">
+                <button type="button" class="card" id="btnTappaProve"><svg class="ico"><use href="#i-clipboard"/></svg><strong>① Prove</strong><span id="lblTappaProve"></span></button>
+                <button type="button" class="card" id="btnProgettoStrati"><svg class="ico"><use href="#i-stack"/></svg><strong>② Strati</strong><span id="lblTappaStrati"></span></button>
+                <button type="button" class="card" id="btnTappaParametri"><svg class="ico"><use href="#i-flask"/></svg><strong>③ Parametri</strong><span id="lblTappaParametri"></span></button>
+                <button type="button" class="card" id="btnTappaReport"><svg class="ico"><use href="#i-print"/></svg><strong>④ Report</strong><span id="lblTappaReport"></span></button>
+                <button type="button" class="card accento" id="btnProgettoConsegna"><svg class="ico"><use href="#i-download"/></svg><strong>⑤ Consegna</strong><span id="lblTappaConsegna"></span></button>
+            </div>
             <div class="registro-testata">
                 <h2 class="registro-titolo">Prove</h2>
                 <button type="button" class="bt bt-tenue" id="btnProgettoMappa" title="Tutte le prove sulla mappa: aprile, cambiane i dati, spostale"><svg class="ico"><use href="#i-map"/></svg>Mappa</button>
@@ -273,10 +283,8 @@
             </div>
             <div class="progetto-accessi">
                 <button type="button" class="card" id="btnProgettoDati"><svg class="ico"><use href="#i-file"/></svg><strong>Dati del progetto</strong><span>nome, comune, committente</span></button>
-                <button type="button" class="card" id="btnProgettoStrati"><svg class="ico"><use href="#i-stack"/></svg><strong>Strati</strong><span>litologia e parametri</span></button>
                 <button type="button" class="card" id="btnProgettoNote"><svg class="ico"><use href="#i-note"/></svg><strong>Note</strong><span>appunti e immagini</span></button>
                 <button type="button" class="card" id="btnProgettoTerreno"><svg class="ico"><use href="#i-map"/></svg><strong>Terreno e sezioni</strong><span id="lblProgettoTerreno">DTM, quote, sezione, 3D</span></button>
-                <button type="button" class="card accento" id="btnProgettoConsegna"><svg class="ico"><use href="#i-download"/></svg><strong>Consegna</strong><span>report, Excel, KML, foto</span></button>
             </div>
         </div>
 

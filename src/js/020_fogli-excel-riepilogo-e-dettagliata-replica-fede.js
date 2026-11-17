@@ -475,6 +475,13 @@ ${contenuto}
                 state.currentRod = getRodForDepth(endDepth);
                 lblCurrentRod.textContent = String(state.currentRod);
                 if (lblTotalDepth) lblTotalDepth.textContent = state.currentDepthStart.toFixed(2);
+                // Note rapide (Fase C): senza intervalli non c'è a chi applicarle, quindi le pillole
+                // restano spente invece di rispondere con un avviso.
+                document.querySelectorAll('.note-rapide .btn-tag').forEach(b => {
+                    const senza = state.logs.length === 0;
+                    b.disabled = senza;
+                    b.setAttribute('aria-disabled', senza ? 'true' : 'false');
+                });
                 lblTotalSteps.textContent = `Registro · ${state.logs.length} ${state.logs.length === 1 ? 'intervallo' : 'intervalli'}`;
                 // Anche quello del registro integrato, che nella vista Conta non si ridisegna.
                 document.getElementById('lblIntegratedTotalSteps').textContent = lblTotalSteps.textContent;
@@ -607,7 +614,7 @@ ${contenuto}
                 renderPc();
                 segnaRigaScelta();
 
-                // Pulsante "Riconoscimento Automatico Strati": visibile solo con almeno 2 intervalli
+                // Pulsante "Riconoscimento automatico degli strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
                 const btnAutoStratiIntegratedEl = document.getElementById('btnAutoStratiIntegrated');
                 const btnAutoStratiChartEl = document.getElementById('btnAutoStratiChart');
@@ -1352,22 +1359,35 @@ ${contenuto}
                 }
             });
 
-            // NOTE RAPIDE TAGS CON CONFERMA
-            document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {
-                tagBtn.addEventListener('click', async (e) => {
-                    const noteText = e.currentTarget.getAttribute('data-note');
-                    if (state.logs.length === 0) {
-                        alert('Esegui prima un intervallo per applicare la nota!');
-                        return;
-                    }
-                    if (await appConfirm(`Vuoi aggiungere la nota "${noteText}" a questo intervallo?`)) {
-                        const last = state.logs[state.logs.length - 1];
-                        last.note = last.note ? `${last.note}, ${noteText}` : noteText;
-                        segnaIntervalloModificato(last);
-                        triggerVibrate(30);
+            // NOTE RAPIDE (Fase C): il tocco applica subito la nota all'ultimo intervallo e il toast
+            // dice quale; «Annulla» rimette la nota com'era. In campo, coi guanti, un dialogo di
+            // conferma a ogni tocco è un ostacolo e l'alert nativo blocca tutto.
+            function applicaNotaRapida(testoNota) {
+                if (!state.logs || state.logs.length === 0) return false;
+                const last = state.logs[state.logs.length - 1];
+                const notaPrima = last.note;
+                const modificatoPrima = last.modificatoIl;
+                last.note = last.note ? `${last.note}, ${testoNota}` : testoNota;
+                segnaIntervalloModificato(last);
+                triggerVibrate(30);
+                updateUI();
+                saveState();
+                if (typeof mostraToast === 'function') {
+                    mostraToast(`Nota «${testoNota}» su ${testoIntervallo(last.start, last.end)}`, { azione: { etichetta: 'Annulla', fn: () => {
+                        // Solo se l'intervallo c'è ancora: nel frattempo può essere stato tolto.
+                        if (!state.logs.includes(last)) return;
+                        if (notaPrima === undefined) delete last.note; else last.note = notaPrima;
+                        if (modificatoPrima === undefined) delete last.modificatoIl; else last.modificatoIl = modificatoPrima;
                         updateUI();
                         saveState();
-                    }
+                    } } });
+                }
+                return true;
+            }
+            document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {
+                tagBtn.addEventListener('click', (e) => {
+                    if (tagBtn.disabled) return;
+                    applicaNotaRapida(e.currentTarget.getAttribute('data-note'));
                 });
             });
 
@@ -1392,15 +1412,7 @@ ${contenuto}
             if (btnCustomNoteSave) {
                 btnCustomNoteSave.addEventListener('click', () => {
                     const customText = txtCustomNoteInput.value.trim();
-                    if (customText) {
-                        if (state.logs.length > 0) {
-                            const last = state.logs[state.logs.length - 1];
-                            last.note = last.note ? `${last.note}, ${customText}` : customText;
-                            segnaIntervalloModificato(last);
-                        } else {
-                            alert('Esegui prima un intervallo per applicare la nota!');
-                        }
-                    }
+                    if (customText) applicaNotaRapida(customText);
                     triggerVibrate(30);
                     saveState();
                     updateUI();
@@ -1476,11 +1488,14 @@ ${contenuto}
             }
 
             // ANNULLA ULTIMO STEP
-            async function undoLastStep() {
+            // (Fase C) Il «−1» tenuto premuto e «Annulla ultimo intervallo» del ⋯ tolgono l'intervallo
+            // senza dialogo e senza «Annulla»: è una scelta esplicita dell'utente. Il toast resta
+            // solo informativo, così dice quale intervallo è uscito.
+            function undoLastStep() {
                 if (state.logs.length === 0) return;
-                const ok = await appConfirmDelete('Vuoi annullare l\'ultimo intervallo registrato?');
-                if (!ok) return;
-                togliUltimoIntervallo();
+                const tolto = togliUltimoIntervallo();
+                if (!tolto) return;
+                if (typeof mostraToast === 'function') mostraToast(`Tolto l'intervallo ${testoIntervallo(tolto.start, tolto.end)}`);
             }
 
             // FINESTRA FLUTTUANTE MODALE GPS (RILEVAMENTO AUTOMATICO E IMMISSIONE MANUALE)

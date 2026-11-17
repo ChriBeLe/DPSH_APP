@@ -1,4 +1,4 @@
-            // ============ LE FINESTRE «PORTA SU UN ALTRO DISPOSITIVO» E «RICEVI» (Fase 2) ============
+            // ============ LE FINESTRE «PORTA SUL PC» E «RICEVI UN PROGETTO» (Fase 2, nomi della Fase C) ============
             // Come nel prototipo approvato (tavole «Telefono · Porta su un altro dispositivo» e «PC ·
             // Ricevi un progetto»). Il lavoro vero sta in 044b; qui solo cosa si vede e cosa si tocca.
 
@@ -76,7 +76,7 @@
                     scaricaBlobFile(blob, nomeFile);
                     chiudiPortaProgetto();
                     const mancanti = manifest.fotoMancanti.length + manifest.immaginiNoteMancanti.length;
-                    appDialog(`«${nomeFile}» · ${formattaMegabyte(blob.size)}\n\nÈ nei Download. Sull'altro dispositivo apri DPSH, tocca Ricevi nella Home e scegli questo file.`
+                    appDialog(`«${nomeFile}» · ${formattaMegabyte(blob.size)}\n\nÈ nei Download. Sull'altro dispositivo apri DPSH, tocca «Ricevi un progetto» nella Home e scegli questo file.`
                         + (mancanti ? `\n\nNel pacchetto mancano ${plurale(mancanti, 'immagine', 'immagini')} che non erano su questo dispositivo.` : ''),
                         { title: 'Pacchetto creato', okLabel: 'Ho capito', icona: 'check', coloreIcona: 'var(--success)' });
                 } catch (e) {
@@ -101,13 +101,23 @@
                 document.getElementById('btnCreaPacchetto').addEventListener('click', creaEScaricaPacchetto);
                 document.getElementById('btnCambiaNomeDispositivo').addEventListener('click', cambiaNomeDispositivo);
             }
-            const btnProjActPorta = document.getElementById('btnProjActPorta');
-            if (btnProjActPorta) {
-                btnProjActPorta.addEventListener('click', () => {
-                    if (!projectActionsContext) return;
-                    const { projId } = projectActionsContext;
-                    closeProjectActionsModal();
-                    apriPortaProgetto(projId);
+            // Fase C: l'unica porta telefono→PC sta nella Consegna. Vale sempre per tutto il progetto,
+            // anche quando la Consegna è aperta dalla singola prova.
+            const btnOptPortaSulPc = document.getElementById('btnOptPortaSulPc');
+            if (btnOptPortaSulPc) {
+                btnOptPortaSulPc.addEventListener('click', () => {
+                    const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
+                    closeExportModal();
+                    if (projId) apriPortaProgetto(projId);
+                });
+            }
+            // Gli altri formati (JSON in un file solo, ZIP semplice) restano, ma dentro la stessa porta.
+            const btnPortaAltriFormati = document.getElementById('btnPortaAltriFormati');
+            if (btnPortaAltriFormati) {
+                btnPortaAltriFormati.addEventListener('click', () => {
+                    const projId = portaProgettoId;
+                    chiudiPortaProgetto();
+                    if (projId) openBackupChoiceModal({ type: 'project', projId });
                 });
             }
 
@@ -196,7 +206,7 @@
                     if (c.relazione !== 'identico') {
                         const suQui = suQuestoDispositivo();
                         const opzioni = [
-                            { id: 'sostituisci', titolo: `Sostituisci quello ${suQui}`, testo: 'Prima viene salvata una copia automatica di quello attuale: puoi tornare indietro dalla Cronologia.' },
+                            { id: 'sostituisci', titolo: `Sostituisci quello ${suQui}`, testo: 'Prima viene salvata una copia automatica di quello attuale: puoi tornare indietro dalle copie automatiche.' },
                             { id: 'entrambi', titolo: 'Tieni entrambi', testo: `Il pacchetto arriva come «${nomeCopiaDaPacchetto(l)}», quello ${suQui} resta com'è.` }
                         ];
                         html += `<div class="scelte" role="radiogroup" aria-label="Cosa fare" style="margin-top: 18px;">${opzioni.map(o => `
@@ -244,11 +254,13 @@
                     if (typeof switchView === 'function' && state.uiState && state.uiState.currentView === 'home') switchView('home');
                     triggerVibrate([40, 60, 40]);
                     let msg = esito.scelta === 'sostituisci'
-                        ? `«${esito.nome}» è stato sostituito con quello del pacchetto. La versione di prima è nella Cronologia.`
+                        ? `«${esito.nome}» è stato sostituito con quello del pacchetto. La versione di prima è nelle copie automatiche.`
                         : (esito.scelta === 'entrambi' ? `Il progetto è arrivato come «${esito.nome}». Quello che c'era resta com'è.` : `«${esito.nome}» è su questo dispositivo.`);
                     if (esito.immagini.rinominate) msg += `\n\n${plurale(esito.immagini.rinominate, 'immagine aveva', 'immagini avevano')} lo stesso nome di una diversa già qui: quella di qui resta, quella del pacchetto è entrata con un nome nuovo.`;
                     msg += testoLibrerieAccolte(esito.librerie);
-                    appDialog(msg, { title: 'Progetto ricevuto', okLabel: 'Ho capito', icona: 'check', coloreIcona: 'var(--success)' });
+                    // Fase C: dopo «Ricevi» si apre il progetto da qui, senza cercarlo nella Home.
+                    const apri = await appDialog(msg, { confirm: true, title: 'Progetto ricevuto', okLabel: 'Apri il progetto', cancelLabel: 'Chiudi', icona: 'check', coloreIcona: 'var(--success)' });
+                    if (apri === true && esito.projId && state.projects && state.projects[esito.projId] && typeof openProject === 'function') openProject(esito.projId);
                 } catch (e) {
                     console.error('Ricevi progetto:', e);
                     s.lavoro = false;

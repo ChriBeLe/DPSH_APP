@@ -7,7 +7,7 @@
 //    scelta resta (anche riaprendo l'app); la pressione lunga su +1 registra lo stesso;
 //  - il toast «Registrato … · N colpi» con «Annulla» toglie PROPRIO quell'intervallo, e non tocca
 //    niente se nel frattempo è cambiato qualcosa;
-//  - «Annulla ultimo intervallo» dal ⋯ e tenendo premuto −1 (con la domanda di sempre);
+//  - «Annulla ultimo intervallo» dal ⋯ e tenendo premuto −1 (Fase C: toglie senza dialogo e senza «Annulla»);
 //  - note rapide: «Nota sull'ultimo intervallo», «Altra nota…», pillole che vanno a capo;
 //  - Registro: «Registro · N intervalli», Grafico, Aggiungi (un intervallo / multipli), ⋯ strati;
 //  - migrazione 2 → 3: la Modalità Espansa diventa «tasto Registra visibile»;
@@ -55,7 +55,7 @@ async function apriPrimaProva(app) {
   app.E('closeCantiereInfoModal()');
   t('a sinistra Home, a destra il ⋯', $(app, 'btnHomeView').closest('.testata-riga') && $(app, 'btnHeaderMore').getAttribute('aria-haspopup') === 'menu');
   const voci = [...$(app, 'headerActionsSecondary').querySelectorAll('[role="menuitem"]')].map(b => b.textContent.trim());
-  t('nel ⋯: Strumento e impostazioni della prova, Falda, Gestione litologica, Consegna, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Strumento e impostazioni della prova', 'Falda', 'Gestione litologica', 'Consegna', 'Impostazioni', 'Annulla ultimo intervallo']));
+  t('nel ⋯: Scheda della prova, Falda, Strati, Consegna, Impostazioni, Annulla ultimo intervallo', JSON.stringify(voci.map(v => v.replace(/:.*/, ''))) === JSON.stringify(['Scheda della prova', 'Falda', 'Strati', 'Consegna', 'Impostazioni', 'Annulla ultimo intervallo']));
   t('il ⋯ è chiuso finché non lo si tocca', !$(app, 'headerActionsSecondary').classList.contains('open'));
   clic(app, $(app, 'btnHeaderMore'));
   t('toccato si apre (aria-expanded)', $(app, 'headerActionsSecondary').classList.contains('open') && $(app, 'btnHeaderMore').getAttribute('aria-expanded') === 'true');
@@ -135,16 +135,13 @@ async function apriPrimaProva(app) {
   clic(app, $(app, 'btnHeaderMore'));
   clic(app, $(app, 'btnAnnullaUltimoMenu'));
   await attesa(40);
-  t('⋯ → Annulla ultimo intervallo: chiede conferma', !!app.dialogo() && /annullare l'ultimo intervallo/.test(app.dialogo().testo));
-  clic(app, app.dialogo().ok);
-  await attesa(40);
-  t('e confermato toglie l\'ultimo', app.E('state.logs.length') === primaLunga && app.E('state.currentCount') === 2);
+  // (Fase C) Niente dialogo e niente «Annulla»: toglie subito, il toast solo informa.
+  t('⋯ → Annulla ultimo intervallo: toglie subito, senza dialogo', !app.dialogo() && app.E('state.logs.length') === primaLunga && app.E('state.currentCount') === 2);
+  const toastAz = () => app.d.querySelector('#toastApp .toast-azione');
+  t('…e il toast non offre nessuna azione', toastAz() && toastAz().style.display === 'none' && toastAz().textContent === '');
   await tieniPremuto(app, $(app, 'btnMinus'));
   await attesa(40);
-  t('tenere premuto −1 fa la stessa domanda', !!app.dialogo() && /annullare l'ultimo intervallo/.test(app.dialogo().testo));
-  clic(app, app.dialogo().annulla);
-  await attesa(30);
-  t('(e rispondendo Annulla non tocca niente)', app.E('state.logs.length') === primaLunga);
+  t('tenere premuto −1 toglie l\'intervallo, senza dialogo e senza ripristino', !app.dialogo() && app.E('state.logs.length') === primaLunga - 1);
 
   console.log('--- Nascondere il tasto: la scelta resta ---');
   clic(app, $(app, 'btnNascondiRegistra'));

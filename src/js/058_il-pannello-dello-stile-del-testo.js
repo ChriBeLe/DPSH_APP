@@ -281,7 +281,7 @@
                     // Risultato: «Inserisci / [object Object]», e poi `nome.nome` su una
                     // stringa — cioe' un servizio salvato con nome `undefined` nell'elenco.
                     const nome = await appPrompt(
-                        'Resta fra i tuoi servizi, e lo ritrovi in ogni cantiere.\n' + url,
+                        'Resta fra i tuoi servizi, e lo ritrovi in ogni progetto.\n' + url,
                         'Ortofoto ' + (composizione.datiCantiere.comune || ''),
                         { title: 'Salva questo servizio', label: 'Come lo chiamo?', okLabel: 'Salva' }
                     );

@@ -56,12 +56,17 @@
                 const f = Object.assign({ carta: 'A4', verso: 'o' }, (dt && dt.mem.foglio) || (proj.tavole3d && proj.tavole3d.foglio) || {});
                 return `${f.carta} ${f.verso === 'v' ? 'verticale' : 'orizzontale'}`;
             }
-            function popolaListaProveEsportazionePdf(proj) {
+            function popolaListaProveEsportazionePdf(proj, soloProve) {
                 if (!esportaPdfListaProve) return;
                 const tutte = proveInOrdine(proj); // l'ordine in cui escono nel documento
                 // Le interpretazioni alternative partono spente, altrimenti la stessa verticale uscirebbe
                 // due volte nel documento: si accende la versione che si vuole consegnare.
                 esportaPdfSelectedIds = new Set(tutte.filter(s => !(s.header && s.header.interpretazioneDi)).map(s => s.id));
+                // Le prove accese nella scaletta del report (tappa ④, Fase C) sono la selezione di partenza.
+                if (typeof proveAcceseScaletta === 'function') { const ac = new Set(proveAcceseScaletta(proj)); esportaPdfSelectedIds = new Set(tutte.filter(s => ac.has(s.id)).map(s => s.id)); }
+                // Perimetro della Consegna (Fase C): «Questa prova» o le prove scelte nella Consegna
+                // arrivano già spuntate, invece di ripartire sempre da tutto il progetto.
+                if (soloProve && soloProve.size) esportaPdfSelectedIds = new Set(tutte.filter(s => soloProve.has(s.id)).map(s => s.id));
                 const opzioniTemplate = elencoTemplateReportOrdinato();
                 // IL CAPITOLO INTRODUTTIVO, prima riga dell'elenco. Ha la stessa forma delle
                 // prove — spunta a sinistra, template a destra — perche' e' esattamente quello
@@ -334,7 +339,7 @@
                 const mostraSelezione = isMultiProva && numProveProgetto > 1;
 
                 if (esportaPdfListaProveWrap) esportaPdfListaProveWrap.style.display = mostraSelezione ? 'block' : 'none';
-                if (isMultiProva && proj) popolaListaProveEsportazionePdf(proj);
+                if (isMultiProva && proj) popolaListaProveEsportazionePdf(proj, context.soloProve || null);
                 else esportaPdfSelectedIds = new Set();
 
                 if (esportaPdfIndiceRow) esportaPdfIndiceRow.style.display = mostraSelezione ? 'flex' : 'none';
