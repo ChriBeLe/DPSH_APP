@@ -29,7 +29,7 @@ const iA=righe.findIndex(r=>r.includes('// ---- Tabella peso di volume Terzaghi-
 const iB=righe.findIndex(r=>r.includes('// ---- Tassonomia litologica'));
 if(iA<0||iB<=iA) throw new Error('blocco 012 non trovato');
 const blocco012=righe.slice(iA,iB).join('\n');
-const NOMI15=['profonditaAlMillimetro','faldaDaHeader','betaTCalcolato','betaTStrumento','rpdDiLog','nsptDiLog','getEffectiveLithologyIn','getLogsPerStratoIn','stratiEffettiviProva','ensureParametriAvanzati'];
+const NOMI15=['profonditaAlMillimetro','parametriStrumento','faldaDaHeader','betaTCalcolato','betaTStrumento','rpdDiLog','nsptDiLog','getEffectiveLithologyIn','getLogsPerStratoIn','stratiEffettiviProva','ensureParametriAvanzati'];
 const api=new Function(NOMI15.map(corpo).join('\n\n')+'\n'+blocco012+
   '\nreturn {betaTStrumento,rpdDiLog,nsptDiLog,stratiEffettiviProva,CATEGORIE,CATEGORIE_PER_ID,calcolaCr,calcolaN160,condizioneFalda,elaboraStratiProva};')();
 

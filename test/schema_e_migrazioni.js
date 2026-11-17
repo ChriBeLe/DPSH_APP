@@ -355,7 +355,7 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
     let somma = 0; for (let i = 0; i < 10; i++) somma += 0.2;
     t('(il difetto) sommando dieci passi da 0,2 in virgola mobile non si arriva a 2', somma !== 2 && Math.abs(somma - 2) < 1e-12);
     const N = 30;   // 30 colpi: Nspt grezzo con betaT = 1 sopra la soglia 15
-    for (let i = 0; i < 10; i++) { app.E('state.currentCount = ' + N); await app.E('confirmAndNextStep()'); }
+    for (let i = 0; i < 10; i++) { app.E('state.currentCount = ' + N + '; ultimaRegistrazioneMs = -Infinity'); await app.E('confirmAndNextStep()'); }
     const logs = JSON.parse(app.E('JSON.stringify(state.logs)'));
     t('dieci intervalli registrati, l ultimo finisce a 2 esatto', logs.length === 10 && logs[9].end === 2 && logs[9].start === 1.8);
     t('nessuna profondità con resti di virgola mobile', logs.every(l => Math.round(l.start * 1000) / 1000 === l.start && Math.round(l.end * 1000) / 1000 === l.end));

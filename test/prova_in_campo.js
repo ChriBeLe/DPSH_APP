@@ -115,6 +115,7 @@ async function apriPrimaProva(app) {
   t('e i suoi 14 colpi tornano nel contatore, alla sua profondità', app.E('state.currentCount') === 14 && Math.abs(app.E('state.currentDepthStart') - d0) < 1e-9);
   t('senza domande, e con un toast che lo dice', !app.dialogo() && /^Annullato: .* torna nel contatore con 14 colpi$/.test(toast(app)));
   t('gli altri intervalli sono quelli di prima', JSON.stringify(app.E('state.logs.map(l => [l.start, l.colpi])')) === JSON.stringify(app.E('state.logs.slice(0,' + n0 + ').map(l => [l.start, l.colpi])')));
+  app.E('ultimaRegistrazioneMs = -Infinity'); // niente doppio tocco: il test registra a raffica
   clic(app, $(app, 'btnConfirmStepAction'));
   await attesa(30);
   const r2 = app.E('state.logs[state.logs.length - 1]');
@@ -123,6 +124,7 @@ async function apriPrimaProva(app) {
   const annulla = app.E('(l) => annullaRegistrazione(l)');
   t('se si è già contato un colpo del successivo, non toglie niente', annulla(r2) === false && app.E('state.logs.length') === lunghezza && app.E('state.currentCount') === 1);
   clic(app, $(app, 'btnMinus'));
+  app.E('ultimaRegistrazioneMs = -Infinity'); // niente doppio tocco: il test registra a raffica
   clic(app, $(app, 'btnConfirmStepAction'));
   await attesa(30);
   t('e un «Annulla» vecchio non toglie un intervallo diverso da quello del suo toast', annulla(r2) === false && app.E('state.logs.length') === lunghezza + 1);
@@ -130,6 +132,7 @@ async function apriPrimaProva(app) {
   console.log('--- Pressione lunga e «Annulla ultimo» ---');
   const primaLunga = app.E('state.logs.length');
   clic(app, $(app, 'btnPlus')); clic(app, $(app, 'btnPlus'));
+  app.E('ultimaRegistrazioneMs = -Infinity'); // niente doppio tocco: il test registra a raffica
   await tieniPremuto(app, $(app, 'btnPlus'));
   t('tenere premuto +1 registra (senza un colpo in più)', app.E('state.logs.length') === primaLunga + 1 && app.E('state.logs[state.logs.length-1].colpi') === 2);
   clic(app, $(app, 'btnHeaderMore'));
