@@ -257,8 +257,10 @@
              * plausibile (foto non ancora caricata dalla cache/IndexedDB al momento della stima —
              * capita, è solo una stima, non blocchiamo l'utente per leggerla dal disco qui). */
             function stimaByteFotoOriginale(photo) {
-                if (photo && photo.dataUrl && typeof photo.dataUrl === 'string') {
-                    return Math.round(photo.dataUrl.length * 0.75);
+                // Le copie nei progetti non portano più l'immagine: si guarda anche la cache in RAM.
+                const url = photo && (photo.dataUrl || photoMemoryCache[photo.id]);
+                if (url && typeof url === 'string') {
+                    return Math.round(url.length * 0.75);
                 }
                 return 1200000;
             }
