@@ -163,43 +163,60 @@
             }
 
             const COLORI_APP_STRATI = ['#fbbf24', '#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#14b8a6', '#ec4899'];
+            const esc = t => escapeHtmlDidascalia(String(t == null ? '' : t));
 
-            /** Scrive le prove nel progetto scelto (progId, oppure 'nuovo'). Ritorna { progetto, nProve }. */
-            function scriviProveDaExcel(lett, opz) {
+            /** Scrive nel progetto le prove del modello deciso nel pannello (modello.prove con
+             * incluso/nome/falda, modello.strati con usa/nome/hex/unisciA). */
+            function scriviProveDaExcel(modello) {
                 if (!state.projects) state.projects = {};
                 let proj;
-                if (opz.destinazione === 'nuovo' || !state.projects[opz.destinazione]) {
+                if (modello.destinazione === 'nuovo' || !state.projects[modello.destinazione]) {
                     const id = `PROJ_${Date.now()}`;
                     proj = state.projects[id] = {
-                        id, name: opz.nomeProgetto, comune: '', committente: '', localita: '', operator: (state.settings && state.settings.operator) || '',
+                        id, name: modello.nomeProgetto, comune: '', committente: '', localita: '', operator: (state.settings && state.settings.operator) || '',
                         date: new Date().toISOString().split('T')[0], updatedAt: Date.now(), surveys: {}, strati: []
                     };
                 } else {
-                    proj = state.projects[opz.destinazione];
+                    proj = state.projects[modello.destinazione];
                     if (state.currentProjectId === proj.id) { try { syncStateToProject(); } catch (e) { ignoraErrore('importaExcel/sync', e); } }
                 }
                 if (!Array.isArray(proj.strati)) proj.strati = [];
-                const idStrato = new Map();
-                lett.strati.forEach((s, i) => {
-                    const gia = proj.strati.find(x => x.name.trim().toLowerCase() === s.nome.trim().toLowerCase());
-                    if (gia) { idStrato.set(s.chiave, gia.id); return; }
-                    const id = `strato_${Date.now()}_${i}`;
-                    proj.strati.push({ id, name: s.nome, color: opz.coloriExcel && s.hex ? s.hex : COLORI_APP_STRATI[(proj.strati.length) % COLORI_APP_STRATI.length], parametriAvanzati: {} });
-                    idStrato.set(s.chiave, id);
-                });
-                const base = Date.now(); let k = 0;
-                lett.prove.forEach(p => {
-                    const num = (/(\d+)\s*$/.exec(p.nome) || [])[1] || String(Object.keys(proj.surveys).length + 1);
+                const perChiave = new Map(modello.strati.map(s => [s.chiave, s]));
+                const idStrato = new Map(); // chiave -> id strato del progetto (o null = nessuno)
+                const risolvi = (chiave, giri = 0) => {
+                    if (idStrato.has(chiave)) return idStrato.get(chiave);
+                    const st = perChiave.get(chiave);
+                    let r = null;
+                    if (st && st.usa) {
+                        if (st.unisciA && giri < 5) {
+                            if (st.unisciA.startsWith('es:')) r = st.unisciA.slice(3);
+                            else r = risolvi(st.unisciA.slice(2), giri + 1);
+                        } else {
+                            const nome = st.nome.trim() || 'Strato';
+                            const gia = proj.strati.find(x => x.name.trim().toLowerCase() === nome.toLowerCase());
+                            if (gia) r = gia.id;
+                            else {
+                                r = `strato_${Date.now()}_${proj.strati.length}`;
+                                proj.strati.push({ id: r, name: nome, color: st.hex || COLORI_APP_STRATI[proj.strati.length % COLORI_APP_STRATI.length], parametriAvanzati: {} });
+                            }
+                        }
+                    }
+                    idStrato.set(chiave, r);
+                    return r;
+                };
+                const base = Date.now(); let k = 0, n = 0;
+                modello.prove.filter(p => p.incluso).forEach(p => {
+                    const num = (p.nome.match(/(\d+[A-Za-z]?)\s*$/) || [])[1] || String(Object.keys(proj.surveys).length + 1);
                     const id = `SURV_${num}_${base}_${k++}`;
+                    const falda = p.falda !== '' && p.falda != null && isFinite(parseFloat(String(p.falda).replace(',', '.'))) ? String(parseFloat(String(p.falda).replace(',', '.'))) : '';
                     const header = { ...JSON.parse(JSON.stringify(state.header)), committente: proj.committente || '', comune: proj.comune || '', localita: proj.localita || '', date: proj.date, provaNr: num,
-                        faldaDa: p.falda != null ? String(p.falda) : '', faldaA: p.falda != null ? String(p.falda) : '', lat: null, lng: null, alt: null, acc: null };
+                        faldaDa: falda, faldaA: falda, lat: null, lng: null, alt: null, acc: null };
                     delete header.spostamento; delete header.interpretazioneDi;
                     const logs = []; let ultimo = null;
-                    p.intervalli.forEach((iv, i) => {
-                        const fine = Math.round(iv.fineCm) / 100, inizio = Math.round(iv.inizioCm) / 100;
-                        const log = { start: inizio, end: fine, colpi: iv.colpi, asta: Math.max(1, Math.ceil(fine - 1e-9)), note: '' };
-                        const st = iv.strato ? iv.strato.chiave : null;
-                        if (st && st !== ultimo) { log.lithology = idStrato.get(st); ultimo = st; }
+                    p.intervalli.forEach(iv => {
+                        const log = { start: Math.round(iv.inizioCm) / 100, end: Math.round(iv.fineCm) / 100, colpi: iv.colpi, asta: Math.max(1, Math.ceil(Math.round(iv.fineCm) / 100 - 1e-9)), note: '' };
+                        const sid = iv.strato ? risolvi(iv.strato.chiave) : null;
+                        if (sid && sid !== ultimo) { log.lithology = sid; ultimo = sid; }
                         logs.push(log);
                     });
                     if (p.rifiutoCm !== null) logs[logs.length - 1].note = `Rifiuto alla penetrazione a ${(Math.round(p.rifiutoCm) / 100).toFixed(2).replace('.', ',')} m (dal file Excel)`;
@@ -209,41 +226,135 @@
                         currentCount: 0, currentDepthStart: fineUltimo, currentRod: Math.floor(fineUltimo + 1e-9) + 1,
                         logs, photos: [], reportTemplateId: null, templateImages: {}, updatedAt: Date.now()
                     };
+                    n++;
                 });
                 proj.updatedAt = Date.now();
                 if (state.currentProjectId === proj.id) state.strati = JSON.parse(JSON.stringify(proj.strati));
-                return { progetto: proj, nProve: lett.prove.length };
+                return { progetto: proj, nProve: n };
+            }
+
+            /** Pannello a tutto schermo riusabile: titolo, corpo (elemento) e bottoni in fondo.
+             * Un bottone con fn che ritorna false lascia il pannello aperto. */
+            function pannelloApp({ titolo, corpo, bottoni }) {
+                const ov = document.createElement('div');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:10px;';
+                const box = document.createElement('div');
+                box.style.cssText = 'background:var(--bg-card);color:var(--text-main);border:1px solid var(--border);border-radius:14px;width:100%;max-width:720px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;';
+                box.innerHTML = `<div style="padding:12px 14px;font-weight:800;font-size:15px;border-bottom:1px solid var(--border);">${esc(titolo)}</div><div class="pa-corpo" style="padding:12px 14px;overflow:auto;flex:1;"></div><div class="pa-piede" style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;"></div>`;
+                box.querySelector('.pa-corpo').appendChild(corpo);
+                const chiudi = () => ov.remove();
+                bottoni.forEach(b => {
+                    const el = document.createElement('button');
+                    el.type = 'button'; el.className = 'btn-action'; el.textContent = b.testo; if (b.id) el.id = b.id;
+                    el.style.cssText = b.primario ? 'font-weight:800;' : 'background:var(--bg-main);color:var(--text-main);border:1px solid var(--border);';
+                    el.addEventListener('click', async () => { if (!b.fn || (await b.fn(el)) !== false) chiudi(); });
+                    box.querySelector('.pa-piede').appendChild(el);
+                });
+                ov.appendChild(box); document.body.appendChild(ov);
+                return { ov, box, chiudi };
+            }
+            const STILE_CAMPO = 'font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-main);color:var(--text-main);box-sizing:border-box;';
+
+            function svgColonnaProva(p, scala, maxColpi, colori) {
+                const W = 84, H = Math.max(40, Math.ceil(scala.profMax * scala.k) + 4);
+                let g = '';
+                p.intervalli.forEach(iv => {
+                    const y = iv.inizioCm / 100 * scala.k, h = Math.max(1.5, (iv.fineCm - iv.inizioCm) / 100 * scala.k - 0.6);
+                    const w = Math.max(2, Math.min(iv.colpi, maxColpi) / maxColpi * (W - 6));
+                    g += `<rect x="3" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${iv.strato ? (colori.get(iv.strato.chiave) || '#94a3b8') : '#94a3b8'}"/>`;
+                });
+                const yr = v => (v / 100 * scala.k).toFixed(1);
+                if (p.rifiutoCm !== null) g += `<line x1="0" x2="${W}" y1="${yr(p.rifiutoCm)}" y2="${yr(p.rifiutoCm)}" stroke="#ef4444" stroke-width="2"/><text x="${W - 3}" y="${(p.rifiutoCm / 100 * scala.k - 2).toFixed(1)}" font-size="9" fill="#ef4444" text-anchor="end" font-weight="700">RIFIUTO</text>`;
+                const f = parseFloat(String(p.falda).replace(',', '.'));
+                if (isFinite(f) && f > 0) g += `<line x1="0" x2="${W}" y1="${(f * scala.k).toFixed(1)}" y2="${(f * scala.k).toFixed(1)}" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+                return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;background:var(--bg-main);border-radius:6px;">${g}</svg>`;
             }
 
             async function importaProveDaExcel(file) {
                 if (!file) return;
                 let lett;
-                try {
-                    lett = interpretaFoglioProve(await leggiXlsx(new Uint8Array(await file.arrayBuffer())));
-                } catch (e) { await appAlert('Non riesco a leggere questo Excel: ' + e.message + '\n\nNon è stato importato niente.'); return; }
-                const nInt = lett.prove.reduce((a, p) => a + p.intervalli.length, 0);
-                const nRif = lett.prove.filter(p => p.rifiutoCm !== null).length;
-                const righe = [
-                    `Trovate ${lett.prove.length} prove (${lett.prove[0].nome} … ${lett.prove[lett.prove.length - 1].nome}), ${nInt} intervalli da ${lett.passo} cm.`,
-                    `Rifiuto in ${nRif} prove: lo segno come nota sull'ultimo intervallo.`,
-                    `Strati: ${lett.strati.length}` + (lett.strati.length ? ' (' + lett.strati.map(s => s.nome).join('; ') + ')' : '') + '.',
-                    lett.falde.size ? `Falda: ${Array.from(lett.falde, ([n, v]) => `${n} a ${String(v).replace('.', ',')} m`).join('; ')}.` : 'Nessuna falda indicata.',
-                    'Restano da compilare a mano: coordinate, strumento e intestazioni.'
-                ];
-                if (lett.avvisi.length) righe.push('\nDa controllare:\n· ' + lett.avvisi.join('\n· '));
-                const progetti = Object.values(state.projects || {}).filter(p => p && p.id);
+                try { lett = interpretaFoglioProve(await leggiXlsx(new Uint8Array(await file.arrayBuffer()))); }
+                catch (e) { await appAlert('Non riesco a leggere questo Excel: ' + e.message + '\n\nNon è stato importato niente.'); return; }
                 const nomeBase = file.name.replace(/\.xlsx$/i, '');
-                const scelta = await appPromptCampi(righe.join('\n'), [
-                    { name: 'destinazione', label: 'Dove metto le prove?', type: 'select', value: 'nuovo', options: [{ value: 'nuovo', label: `Nuovo progetto «${nomeBase}»` }, ...progetti.map(p => ({ value: p.id, label: `Aggiungi a «${p.name || p.id}»` }))] },
-                    { name: 'colori', label: 'Colori degli strati', type: 'select', value: 'excel', options: [{ value: 'excel', label: 'Quelli dell\'Excel' }, { value: 'app', label: 'Colori dell\'app (li cambi dopo in Strati)' }] }
-                ], { title: 'Importa prove da Excel', okLabel: 'Importa' });
-                if (!scelta) return;
-                try {
-                    const esito = scriviProveDaExcel(lett, { destinazione: scelta.destinazione, nomeProgetto: nomeBase, coloriExcel: scelta.colori === 'excel' });
-                    saveState();
-                    if (typeof renderHomeProjects === 'function') renderHomeProjects();
-                    mostraToast(`Importate ${esito.nProve} prove in «${esito.progetto.name}»`);
-                } catch (e) { await appAlert('Importazione interrotta: ' + e.message); }
+                const progetti = Object.values(state.projects || {}).filter(p => p && p.id);
+                const modello = {
+                    destinazione: 'nuovo', nomeProgetto: nomeBase,
+                    strati: lett.strati.map(s => ({ ...s, usa: true, unisciA: '' })),
+                    prove: lett.prove.map(p => ({ ...p, incluso: true, falda: p.falda != null ? String(p.falda) : '' }))
+                };
+                const profMax = Math.max(...modello.prove.map(p => Math.max(p.rifiutoCm || 0, p.intervalli[p.intervalli.length - 1].fineCm))) / 100;
+                const scala = { profMax, k: Math.min(26, 190 / profMax) };
+                const maxColpi = Math.max(30, ...modello.prove.flatMap(p => p.intervalli.map(i => Math.min(i.colpi, 60))));
+                const corpo = document.createElement('div');
+                const disegna = () => {
+                    const colori = new Map(modello.strati.map(s => [s.chiave, s.usa ? s.hex : '#94a3b8']));
+                    const stratiDest = (modello.destinazione !== 'nuovo' && state.projects[modello.destinazione]) ? (state.projects[modello.destinazione].strati || []) : [];
+                    const nInc = modello.prove.filter(p => p.incluso).length;
+                    corpo.innerHTML = `
+                    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${esc(file.name)} · ${lett.prove.length} colonne trovate, un intervallo ogni ${lett.passo} cm. Decidi tu cosa entra.</div>
+                    <div style="font-weight:800;font-size:13px;margin:6px 0;">1 · Dove metto le prove</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                        <select data-az="dest" style="${STILE_CAMPO}flex:1;min-width:180px;"><option value="nuovo"${modello.destinazione === 'nuovo' ? ' selected' : ''}>Nuovo progetto</option>${progetti.map(p => `<option value="${esc(p.id)}"${modello.destinazione === p.id ? ' selected' : ''}>Aggiungi a «${esc(p.name || p.id)}»</option>`).join('')}</select>
+                        ${modello.destinazione === 'nuovo' ? `<input data-az="nomeProg" value="${esc(modello.nomeProgetto)}" placeholder="Nome del progetto" style="${STILE_CAMPO}flex:1;min-width:160px;">` : ''}
+                    </div>
+                    <div style="font-weight:800;font-size:13px;margin:14px 0 6px;">2 · Gli strati (i colori delle celle)</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                    ${modello.strati.map((s, i) => `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;padding:6px;opacity:${s.usa ? 1 : .5};">
+                        <input type="checkbox" data-az="usa" data-i="${i}" ${s.usa ? 'checked' : ''} title="Usa questo strato">
+                        <input type="color" data-az="hex" data-i="${i}" value="${esc(s.hex || '#94a3b8')}" style="width:34px;height:28px;padding:0;border:none;background:none;">
+                        <input data-az="nomeStrato" data-i="${i}" value="${esc(s.nome)}" style="${STILE_CAMPO}flex:1;min-width:150px;">
+                        <span style="font-size:11px;color:var(--text-muted);">${s.usi} interv.${s.nellaLegenda ? '' : ' · non in legenda'}</span>
+                        <select data-az="unisci" data-i="${i}" style="${STILE_CAMPO}max-width:190px;"><option value="">Strato a sé</option>
+                            ${modello.strati.filter((t, j) => j !== i && t.usa && !t.unisciA).map(t => `<option value="k:${esc(t.chiave)}"${s.unisciA === 'k:' + t.chiave ? ' selected' : ''}>Unisci a «${esc(t.nome.slice(0, 30))}»</option>`).join('')}
+                            ${stratiDest.map(t => `<option value="es:${esc(t.id)}"${s.unisciA === 'es:' + t.id ? ' selected' : ''}>Unisci a «${esc(t.name.slice(0, 30))}» (già nel progetto)</option>`).join('')}</select>
+                    </div>`).join('')}
+                    </div>
+                    <div style="margin-top:6px;"><button type="button" class="btn-action" data-az="coloriApp" style="background:var(--bg-main);color:var(--text-main);border:1px solid var(--border);font-size:11px;padding:5px 9px;">Usa i colori dell'app al posto di quelli dell'Excel</button></div>
+                    <div style="font-weight:800;font-size:13px;margin:14px 0 2px;">3 · Le prove (una colonna ciascuna)</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Ogni barra è un intervallo: lunghezza = colpi, colore = strato, riga rossa = rifiuto, riga azzurra tratteggiata = falda. Tocca la spunta per escludere una prova.</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;">
+                    ${modello.prove.map((p, i) => `<div style="border:1px solid var(--border);border-radius:8px;padding:6px;opacity:${p.incluso ? 1 : .4};">
+                        <div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;"><input type="checkbox" data-az="inc" data-i="${i}" ${p.incluso ? 'checked' : ''}><input data-az="nomeProva" data-i="${i}" value="${esc(p.nome)}" style="${STILE_CAMPO}width:100%;min-width:0;padding:3px 5px;font-weight:700;"></div>
+                        ${svgColonnaProva(p, scala, maxColpi, colori)}
+                        <div style="font-size:10.5px;color:var(--text-muted);margin:4px 0;">${p.intervalli.length} interv. · ${(p.intervalli[p.intervalli.length - 1].fineCm / 100).toFixed(1).replace('.', ',')} m${p.rifiutoCm !== null ? ' · rifiuto' : ''}</div>
+                        <label style="font-size:10.5px;color:var(--text-muted);display:flex;gap:4px;align-items:center;">falda m <input data-az="falda" data-i="${i}" value="${esc(p.falda)}" inputmode="decimal" style="${STILE_CAMPO}width:100%;min-width:0;padding:3px 5px;"></label>
+                    </div>`).join('')}
+                    </div>
+                    ${lett.avvisi.length ? `<div style="margin-top:12px;font-size:12px;border:1px solid #f59e0b;border-radius:8px;padding:8px;"><strong>Da controllare</strong><br>· ${lett.avvisi.map(esc).join('<br>· ')}</div>` : ''}
+                    <div style="margin-top:12px;font-size:12px;font-weight:700;" id="rigaEsitoExcel">Verranno create ${nInc} prove ${modello.destinazione === 'nuovo' ? `in un nuovo progetto «${esc(modello.nomeProgetto)}»` : 'nel progetto scelto'}. Coordinate, strumento e intestazioni restano da compilare.</div>`;
+                };
+                disegna();
+                const rigaEsito = () => { const el = corpo.querySelector('#rigaEsitoExcel'); if (el) el.firstChild.textContent = el.textContent; };
+                corpo.addEventListener('change', e => {
+                    const t = e.target, az = t.dataset.az, i = parseInt(t.dataset.i, 10);
+                    if (az === 'dest') { modello.destinazione = t.value; modello.strati.forEach(s => { if (s.unisciA.startsWith('es:')) s.unisciA = ''; }); disegna(); }
+                    else if (az === 'nomeProg') { modello.nomeProgetto = t.value; }
+                    else if (az === 'usa') { modello.strati[i].usa = t.checked; modello.strati.forEach(s => { if (s.unisciA === 'k:' + modello.strati[i].chiave && !t.checked) s.unisciA = ''; }); disegna(); }
+                    else if (az === 'hex') { modello.strati[i].hex = t.value; disegna(); }
+                    else if (az === 'nomeStrato') { modello.strati[i].nome = t.value; }
+                    else if (az === 'unisci') { modello.strati[i].unisciA = t.value; disegna(); }
+                    else if (az === 'inc') { modello.prove[i].incluso = t.checked; disegna(); }
+                    else if (az === 'nomeProva') { modello.prove[i].nome = t.value; }
+                    else if (az === 'falda') { modello.prove[i].falda = t.value; disegna(); }
+                });
+                corpo.addEventListener('click', e => {
+                    if (e.target.dataset && e.target.dataset.az === 'coloriApp') { modello.strati.forEach((s, i) => { s.hex = COLORI_APP_STRATI[i % COLORI_APP_STRATI.length]; }); disegna(); }
+                });
+                pannelloApp({
+                    titolo: 'Importa prove da Excel', corpo,
+                    bottoni: [
+                        { testo: 'Annulla' },
+                        { testo: 'Importa', primario: true, id: 'btnConfermaImportExcel', fn: async () => {
+                            if (!modello.prove.some(p => p.incluso)) { await appAlert('Nessuna prova selezionata.'); return false; }
+                            try {
+                                const esito = scriviProveDaExcel(modello);
+                                saveState();
+                                if (typeof renderHomeProjects === 'function') renderHomeProjects();
+                                mostraToast(`Importate ${esito.nProve} prove in «${esito.progetto.name}»`);
+                            } catch (e) { await appAlert('Importazione interrotta: ' + e.message); return false; }
+                        } }
+                    ]
+                });
             }
 
             (function () {
