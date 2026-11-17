@@ -40,6 +40,8 @@
                senza bisogno di un colore di stato. */
             --toast-sfondo: var(--text-main);
             --toast-testo: var(--bg-main);
+            /* L'anello di focus da tastiera: uno solo per tutta l'app (vedi sotto). */
+            --focus-anello: var(--accent-ink);
         }
         :root[data-theme="light"] {
             --successo-testo: #047857;
@@ -48,6 +50,15 @@
             --successo-bordo: rgba(4, 120, 87, 0.45);
             --avviso-bordo: rgba(161, 98, 7, 0.55);
         }
+
+        /* ---- Anello di focus ----
+           Chi usa la tastiera (sul PC, Tab e le scorciatoie) deve vedere dove si trova. Uno solo per
+           tutti i comandi: 3 px del colore del testo accento, staccato di 2 px, così resta visibile
+           anche attorno ai tasti pieni. :focus-visible non si accende al tocco né al clic del mouse,
+           quindi in campo non cambia niente. Le regole più specifiche scritte dopo (barra dell'editor)
+           restano valide. */
+        :focus-visible { outline: 3px solid var(--focus-anello); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
 
         /* ---- Testo ---- */
         .t-didascalia { font-size: var(--fs-didascalia); color: var(--text-muted); }
@@ -62,7 +73,7 @@
         .bt {
             box-sizing: border-box; min-height: var(--h-bottone); padding: 0 var(--sp-3);
             display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
-            border-radius: var(--radius-md); border: 1px solid var(--border);
+            border-radius: var(--radius-md); border: 1px solid var(--border-control);
             background: var(--bg-main); color: var(--text-main);
             font-family: inherit; font-size: var(--fs-testo); font-weight: 700; line-height: 1.2;
             cursor: pointer; text-align: center;
@@ -74,7 +85,7 @@
         .bt-campo { min-height: var(--h-bottone-campo); font-size: var(--fs-campo); border-radius: var(--radius-lg); }
         .bt-campo .ico { width: 22px; height: 22px; stroke-width: 3; }
         .bt-pc { min-height: var(--h-bottone-pc); }
-        .bt-pericolo { color: var(--danger); }
+        .bt-pericolo { color: var(--pericolo-testo); }
         .bt[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
         /* Bottone con la sola icona: quadrato di 44, trasparente; il nome sta in aria-label. */
         .bt-icona {
@@ -83,11 +94,11 @@
             background: transparent; border: none; border-radius: var(--radius-md); color: var(--text-main); cursor: pointer;
         }
         .bt-icona .ico { width: 22px; height: 22px; vertical-align: 0; }
-        .bt-icona.bordato { background: var(--bg-card); border: 1px solid var(--border); }
+        .bt-icona.bordato { background: var(--bg-card); border: 1px solid var(--border-control); }
         /* Collegamento testuale che resta un bersaglio da 44. */
         .bt-link {
             min-height: var(--h-bottone); padding: 0 var(--sp-1); background: transparent; border: none;
-            color: var(--text-muted); font-family: inherit; font-size: var(--fs-testo); font-weight: 600;
+            color: var(--text-muted); font-family: inherit; font-size: var(--fs-testo); font-weight: 700;
             text-decoration: underline; cursor: pointer;
         }
         .bt-link.accento { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
@@ -97,7 +108,7 @@
         .pillola {
             box-sizing: border-box; min-height: var(--h-bottone); padding: 0 var(--sp-3);
             display: inline-flex; align-items: center; gap: 6px;
-            border-radius: 22px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main);
+            border-radius: 22px; border: 1px solid var(--border-control); background: var(--bg-card); color: var(--text-main);
             font-family: inherit; font-size: var(--fs-testo); font-weight: 700; cursor: pointer; white-space: nowrap;
         }
         .pillola[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -109,7 +120,7 @@
         .spia {
             box-sizing: border-box; min-width: 0; height: var(--h-bottone); padding: 0 6px;
             display: flex; align-items: center; justify-content: center; gap: 5px;
-            border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main);
+            border-radius: var(--radius-md); border: 1px solid var(--border-control); background: var(--bg-main); color: var(--text-main);
             font-family: inherit; font-size: var(--fs-testo); font-weight: 700; cursor: pointer; position: relative;
         }
         .spia > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -133,7 +144,7 @@
             position: absolute; top: calc(100% + 4px); right: 0; z-index: 60; min-width: 220px;
             display: flex; flex-direction: column; gap: 2px; padding: 6px;
             background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            box-shadow: var(--shadow);
             transform-origin: top right; transform: scale(0.96) translateY(-4px); opacity: 0; pointer-events: none; visibility: hidden;
             transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra), visibility 0s linear var(--mov-breve);
         }
@@ -142,7 +153,7 @@
             box-sizing: border-box; min-height: var(--h-bottone); width: 100%; padding: 0 var(--sp-3);
             display: flex; align-items: center; gap: 10px; text-align: left;
             background: transparent; border: none; border-radius: var(--radius-sm); color: var(--text-main);
-            font-family: inherit; font-size: var(--fs-testo); font-weight: 600; cursor: pointer; white-space: nowrap;
+            font-family: inherit; font-size: var(--fs-testo); font-weight: 700; cursor: pointer; white-space: nowrap;
         }
         .menu-azioni [role="menuitem"] .ico { width: 18px; height: 18px; color: var(--text-muted); vertical-align: 0; }
         .menu-azioni [role="menuitem"]:active { background: var(--bg-card-hover); }
@@ -155,8 +166,8 @@
             position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 9500;
             box-sizing: border-box; width: calc(100vw - 32px); max-width: 520px; min-height: 48px;
             display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2);
-            padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-4); border-radius: 12px;
-            background: var(--toast-sfondo); color: var(--toast-testo); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);
+            padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-4); border-radius: var(--radius-lg);
+            background: var(--toast-sfondo); color: var(--toast-testo); box-shadow: var(--shadow);
             font-size: var(--fs-testo); font-weight: 700; line-height: 1.35;
             transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
             transition: transform var(--mov-medio) var(--ease-entra), opacity var(--mov-medio) var(--ease-entra);
@@ -169,3 +180,15 @@
         }
         /* Sul tema scuro il toast è chiaro: l'accento pieno non si leggerebbe, lo si scurisce. */
         :root:not([data-theme="light"]) .toast-app .toast-azione { color: #0e7c80; color: color-mix(in srgb, var(--accent) 60%, #000); }
+
+        /* ---- Modalità Guanti (Fase D, 11/2026) ----
+           Ingrandisce anche i tasti nuovi (.bt, .pillola, .spia, .bt-icona), non solo le classi
+           vecchie: basta alzare i token, perché tutti li leggono. Con i guanti il tasto comune sale
+           a 56 (l'altezza del campo senza guanti) e le azioni di campo a 64, scelta di Romeo del
+           17/11/2026. Il contatore non si rimpicciolisce più (prima scendeva a 68 px). */
+        body.glove-mode {
+            --h-bottone: 56px;
+            --h-bottone-campo: 64px;
+        }
+        body.glove-mode .bt-icona .ico { width: 26px; height: 26px; }
+        body.glove-mode .bt, body.glove-mode .pillola, body.glove-mode .spia { font-size: var(--fs-campo); }
