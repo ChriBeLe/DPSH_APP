@@ -1608,15 +1608,19 @@
                     closeQuickFaldaModal();
                 });
             }
+            let azzeramentoFaldaInCorso = false;
             if (btnQuickFaldaReset) {
                 btnQuickFaldaReset.addEventListener('click', async () => {
+                    if (azzeramentoFaldaInCorso) return;
+                    azzeramentoFaldaInCorso = true;
+                    try {
                     if (!state.header.faldaDa && !state.header.faldaA) {
                         closeQuickFaldaModal();
                         return;
                     }
                     const ok = await appConfirmDelete('Azzerare i dati della falda acquifera per questa prova?\n\nLa linea della falda scomparirà dal grafico.');
                     if (!ok) return;
-                    copiaPrimaDi('azzerare la falda');
+                    if (!(await copiaOChiedi('azzerare la falda'))) return;
                     {
                         const backupFaldaDa = state.header.faldaDa;
                         const backupFaldaA = state.header.faldaA;
@@ -1638,6 +1642,7 @@
                             updateUI();
                         });
                     }
+                    } finally { azzeramentoFaldaInCorso = false; }
                 });
             }
 
