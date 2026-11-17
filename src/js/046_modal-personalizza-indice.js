@@ -1259,12 +1259,13 @@
                         const logs = surv.logs || [];
                         const photos = surv.photos || [];
                         
+                        const parStrum = parametriStrumento(inst, surv.settings?.stepCm);
                         const sheetData = [
                             [`PROVA PENETROMETRICA DPSH N° ${h.provaNr || '1'}`],
                             ["Comune:", proj.comune || '', "Committente:", proj.committente || ''],
                             ["Località:", proj.localita || '', "Data:", h.date || proj.date],
-                            ["Massa Battente (kg):", inst.pesoMassa || 63.5, "Altezza Caduta (m):", inst.volata || 0.75],
-                            ["Passo Misura (cm):", (surv.settings?.stepCm || 20), "Area Punta (cm²):", inst.areaPunta || 20],
+                            ["Massa Battente (kg):", parStrum.M, "Altezza Caduta (m):", parStrum.volataM],
+                            ["Passo Misura (cm):", (surv.settings?.stepCm || 20), "Area Punta (cm²):", parStrum.A],
                             ["Coordinate GPS:", (h.lat && h.lng) ? `${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}` : 'Non rilevate', "Quota Falda (m):", h.faldaDa || 'Assente'],
                             [],
                             ["Intervallo Da (m)", "Intervallo A (m)", "Asta N°", "Colpi N", "Rpd (kg/cm²)", "Litologia", "Note"]
@@ -1272,17 +1273,10 @@
 
                         logs.forEach((log) => {
                             const N = log.colpi || 0;
-                            const M = inst.pesoMassa || 63.5;
-                            const H = (inst.volata || 0.75) * 100;
-                            const A = inst.areaPunta || 20;
                             const passoCm = (surv.settings?.stepCm || 20);
                             const rodNr = log.asta || Math.floor(log.start / (inst.lunghAsta || 1.0)) + 1;
-                            const Mprime = (inst.pesoSistema || 8.0) + (rodNr * (inst.pesoAsta || 6.3));
-                            
-                            let rpd = 0;
-                            if (N > 0) {
-                                rpd = ((M * M) * H * N) / (A * passoCm * (M + Mprime));
-                            }
+                            // Formula unica in 015 (rpdDiLog): niente copie locali.
+                            const rpd = rpdDiLog(log, inst, passoCm, rodNr);
 
                             const projStrati = proj.strati || surv.strati;
                             const litObj = (projStrati && log.lithology) ? (projStrati.find(s => s.id === log.lithology) || { name: '' }) : { name: '' };

@@ -14,7 +14,21 @@
             const ORIGINI_INTERVALLO = ['contatore', 'inserimento-multiplo', 'modifica-manuale', 'import'];
 
             /** Un intervallo nuovo, con la sua registrazione. `campi` sono start/end/colpi/asta/note... */
+            /** Una profondità in metri arrotondata al millimetro. Le profondità nascono sommando il
+             * passo (0,2 + 0,2 + ...) e in virgola mobile 2,00 m diventa 1,9999999999999998: un
+             * confronto con la falda a 2,00 allora sbaglia lato. Ogni profondità che si scrive in un
+             * intervallo, e ogni confronto con la falda, passa da qui. Ciò che non è un numero
+             * finito (vuoto, Infinity della falda assente) resta com'è. */
+            function profonditaAlMillimetro(v) {
+                return (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) / 1000 : v;
+            }
+
             function nuovoIntervallo(campi, origine) {
+                if (campi && typeof campi === 'object') {
+                    campi = Object.assign({}, campi);
+                    if ('start' in campi) campi.start = profonditaAlMillimetro(campi.start);
+                    if ('end' in campi) campi.end = profonditaAlMillimetro(campi.end);
+                }
                 return Object.assign({}, campi, {
                     registratoIl: new Date().toISOString(),
                     origine: ORIGINI_INTERVALLO.includes(origine) ? origine : 'modifica-manuale'

@@ -218,8 +218,19 @@
 
             // ---- Pre-elaborazione + cascata sigma'v0 (identica al foglio OUTPUT) ----
             function calcolaCr(prof){ return prof<4?0.7:prof<6?0.85:prof<10?0.95:1; }
-            function calcolaN160(nf,cr,s0){ const r=Math.sqrt(0.9765/s0); return r>1.5?nf*cr*1.5:nf*cr*r; }
+            // N1(60) con il fattore CN di Liao & Whitman (1986): CN = √(Pa/σ'v0), tetto 1,5.
+            // Pa e σ'v0 vanno nella STESSA unità. Il foglio ODS di riferimento (Template DPSH 1.5)
+            // scrive 0,9765 (Pa in kg/cm²) ma divide per σ'v0 in t/m², quindi CN usciva più piccolo
+            // di √10. Corretto il 17/11/2026 su decisione di Romeo: qui Pa è in t/m² come σ'v0.
+            function calcolaN160(nf,cr,s0){
+                const PRESSIONE_ATMOSFERICA_T_M2 = 9.765;
+                const r=Math.sqrt(PRESSIONE_ATMOSFERICA_T_M2/s0);
+                return r>1.5?nf*cr*1.5:nf*cr*r;
+            }
             function condizioneFalda(da,a,faldaDa,faldaA){
+                // Confronti al millimetro: 1,9999999999999998 e 2 sono la stessa profondità (004d).
+                da=profonditaAlMillimetro(da); a=profonditaAlMillimetro(a);
+                faldaDa=profonditaAlMillimetro(faldaDa); faldaA=profonditaAlMillimetro(faldaA);
                 if(a<=faldaDa) return 'NO';
                 if(da>=faldaA) return 'NO';
                 if(a>faldaDa && da<faldaDa) return 'IN PARTE';

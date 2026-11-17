@@ -65,6 +65,35 @@ const PIANO_GRADI = [40 + 1000 * (17.99213 - 17.99) + 2000 * (40.19741 - 40.19),
   await attesa(50);
   t('un file che non è un TIFF: lo dice', /Non è un file TIFF/.test($(app, 'statoTerreno').textContent));
 
+  // Finestra enorme (prove a 1 cm per cella: ~36 milioni di celle): si legge a fasce, mai più di 4 M celle
+  // in una volta (prima: tutta la finestra in un Float32Array, il WebView del telefono moriva).
+  {
+    const r = await app.E(`(async () => {
+      const proj = state.projects[${JSON.stringify(idNardo)}], prove = proveConCoordinate(proj);
+      const la = parseFloat(prove[0].header.lat), ln = parseFloat(prove[0].header.lng), zona = Math.floor((ln + 180) / 6) + 1;
+      const c = utmDaGeo(la, ln, zona), d = 0.05, N = 8000, piano = (x, y) => 40 + 0.02 * (x - c.x) + 0.03 * (y - c.y);
+      let maxCelle = 0, chiamate = 0;
+      const sorg = { nx: N, ny: N, dx: d, dy: d, x0: c.x - N * d / 2, y0: c.y + N * d / 2, epsg: 32600 + zona,
+        leggiFinestra: async (c0, r0, c1, r1) => {
+          chiamate++; maxCelle = Math.max(maxCelle, (c1 - c0) * (r1 - r0));
+          const o = new Float32Array((c1 - c0) * (r1 - r0));
+          for (let r = r0; r < r1; r++) for (let k = c0; k < c1; k++) o[(r - r0) * (c1 - c0) + k - c0] = piano(sorg.x0 + (k + .5) * d, sorg.y0 - (r + .5) * d);
+          return o;
+        } };
+      const dtm = await ritaglioDaSorgente(sorg, 'enorme', proj);
+      const u8 = Uint8Array.from(atob(dtm.quote), ch => ch.charCodeAt(0)), cod = new Uint16Array(u8.buffer);
+      const j = Math.floor(dtm.ny / 2), i = Math.floor(dtm.nx / 2), x = dtm.x0 + (i + .5) * dtm.dx, y = dtm.y0 - (j + .5) * dtm.dy;
+      return { maxCelle, chiamate, nx: dtm.nx, ny: dtm.ny, errore: Math.abs(dtm.base + cod[j * dtm.nx + i] * dtm.unita - piano(x, y)) };
+    })()`);
+    t(`finestra da ~36 M celle: letta a fasce (${r.chiamate} letture, al più ${r.maxCelle} celle), non tutta insieme`, r.chiamate > 1 && r.maxCelle <= 4e6);
+    t(`... e il ritaglio è giusto (${r.nx}×${r.ny} celle, scarto dal piano ${r.errore.toFixed(3)} m)`, r.nx <= 250 && r.ny <= 250 && r.errore < 0.02);
+  }
+  const grande = { name: 'enorme.asc', size: 500e6, arrayBuffer: async () => { throw new Error('non si deve leggere'); } };
+  Object.defineProperty($(app, 'fileDtm'), 'files', { value: [grande], configurable: true });
+  $(app, 'fileDtm').dispatchEvent(new app.w.Event('change'));
+  await attesa(50);
+  t('un .asc da 500 MB: errore che dice cosa fare, senza leggerlo', /troppo grande.*Ritaglia/.test($(app, 'statoTerreno').textContent));
+
   clic(app, $(app, 'btnTogliDtm'));
   t('«Togli il DTM» lo toglie subito, con Annulla', !app.E(`state.projects[${JSON.stringify(idNardo)}].dtm`) && $(app, 'undoNotificationBanner').style.display === 'flex');
   clic(app, $(app, 'btnUndoDeleteProject'));

@@ -31,7 +31,14 @@ const uguali = (a, b) => JSON.stringify(senzaOrari(a)) === JSON.stringify(senzaO
 function comeDopoLa2a3(progetti) {
   const p = JSON.parse(JSON.stringify(progetti));
   Object.values(p).forEach(pr => Object.values(pr.surveys || {}).forEach(sv => { if (sv.settings) { delete sv.settings.expandedMode; delete sv.settings.compactMode; } }));
-  return p;
+  return comeDopoLa3a4(p);
+}
+
+// Il cambiamento voluto dalla 3 → 4: start, end e currentDepthStart al millimetro (le fixture
+// portano 1,9999999999999998 e simili). Stessa formula della migrazione, riscritta qui.
+function comeDopoLa3a4(progetti) {
+  const mm = (v) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) / 1000 : v;
+  return JSON.parse(JSON.stringify(progetti, (k, v) => ((k === 'start' || k === 'end' || k === 'currentDepthStart') ? mm(v) : v)));
 }
 
 // ---- Le funzioni pure, estratte dal file come sono ----
@@ -47,7 +54,7 @@ function bloccoConst(inizio, fine) {
   if (i < 0) throw new Error('non trovato: ' + inizio);
   for (let k = i; k < righe.length; k++) if (righe[k] === fine) return righe.slice(i, k + 1).join('\n');
 }
-const NOMI = ['versioneDeiDati', 'migraDati', 'migrazione0a1', 'migrazione1a2', 'migrazione2a3', 'stratiInizialiProgettoNuovo', 'versioneFileImportato', 'controllaVersioneFileImportato', 'leggiStatoSalvato'];
+const NOMI = ['versioneDeiDati', 'migraDati', 'migrazione0a1', 'migrazione1a2', 'migrazione2a3', 'migrazione3a4', 'stratiInizialiProgettoNuovo', 'versioneFileImportato', 'controllaVersioneFileImportato', 'leggiStatoSalvato'];
 const versioneRiga = righe.find(r => r.includes('const VERSIONE_SCHEMA_DATI = '));
 const api = new Function(versioneRiga + '\n' + NOMI.map(corpo).join('\n\n') + '\n'
   + bloccoConst('            const MIGRAZIONI_DATI = [', '            ];')
@@ -164,7 +171,7 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
     const pid = app.E('Object.keys(state.projects)[0]');
     const atteso = JSON.parse(leggi('progetto_v0.json').toString('utf8'));
     const arrivato = JSON.parse(app.E('JSON.stringify(state.projects[' + JSON.stringify(pid) + '])'));
-    t('con gli stessi intervalli e strati', uguali(Object.values(arrivato.surveys).map(s => s.logs), Object.values(atteso.surveys).map(s => s.logs)) && uguali(arrivato.strati, atteso.strati));
+    t('con gli stessi intervalli e strati', uguali(Object.values(arrivato.surveys).map(s => s.logs), comeDopoLa3a4(Object.values(atteso.surveys).map(s => s.logs))) && uguali(arrivato.strati, atteso.strati));
     t('e il campo versioneSchema non entra nel progetto', !('versioneSchema' in arrivato));
     const foto = app.idb._dump('DPSH_PhotoStorageDB');
     // I JSON dell'app di prima non contenevano le foto (vedi backup_foto.js): si contano come
@@ -275,6 +282,93 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
     try { vecchia.E('importProjectsFromJSON')(futuro); } catch (e) { erroreVecchio = e; }
     t('(controprova) l app di prima lo importava senza dire niente', !erroreVecchio && vecchia.E('Object.keys(state.projects).length') === 3);
     vecchia.chiudi();
+  }
+
+  console.log('--- Migrazione 3 → 4: profondità al millimetro ---');
+  {
+    const v3 = () => ({
+      versioneSchema: 3,
+      currentDepthStart: 2.1999999999999997,
+      logs: [{ start: 0, end: 0.2, colpi: 3 }, { start: 1.8, end: 1.9999999999999998, colpi: 20, registratoIl: '2026-01-01T00:00:00.000Z', origine: 'contatore' }],
+      projects: { P: { id: 'P', surveys: {
+        S: { id: 'S', currentDepthStart: 9.999999999999996, logs: [
+          { start: 9.799999999999995, end: 9.999999999999996, colpi: 30, modificatoIl: '2026-02-02T00:00:00.000Z' },
+          { start: 0.6000000000000001, end: 'x', colpi: 1 },
+          null,
+          { colpi: 2 },
+          { start: null, end: Infinity === 1 ? 0 : undefined }
+        ] },
+        T: { id: 'T', logs: 'non un elenco' },
+        U: null
+      } } }
+    });
+    const d = api.migraDati(v3(), 3, PRE).dati;
+    t('versione portata a ' + V, d.versioneSchema === V && V === 4);
+    t('logs in cima: 1,9999999999999998 → 2', d.logs[1].end === 2 && d.logs[1].start === 1.8 && d.logs[0].end === 0.2);
+    t('currentDepthStart in cima e nella prova', d.currentDepthStart === 2.2 && d.projects.P.surveys.S.currentDepthStart === 10);
+    const sl = d.projects.P.surveys.S.logs;
+    t('9,999999999999996 → 10 e 9,799999999999995 → 9,8', sl[0].end === 10 && sl[0].start === 9.8);
+    t('0,6000000000000001 → 0,6; il non numerico resta com è', sl[1].start === 0.6 && sl[1].end === 'x');
+    t('voci nulle, senza profondità o con null/undefined: intatte, senza chiavi nuove', sl[2] === null && JSON.stringify(sl[3]) === '{"colpi":2}' && sl[4].start === null && !('currentDepthStart' in d.projects.P.surveys.T) && d.projects.P.surveys.T.logs === 'non un elenco' && d.projects.P.surveys.U === null);
+    t('date e origine degli intervalli non si toccano', d.logs[1].registratoIl === '2026-01-01T00:00:00.000Z' && d.logs[1].origine === 'contatore' && sl[0].modificatoIl === '2026-02-02T00:00:00.000Z' && !('modificatoIl' in d.logs[1]));
+    t('i colpi non si toccano', d.logs[1].colpi === 20 && sl[0].colpi === 30);
+    const una = JSON.stringify(d), due = JSON.stringify(api.migrazione3a4(JSON.parse(una)));
+    t('idempotente: rifarla non cambia niente (a parte la versione)', una === due);
+
+    const parziale = api.migraDati({ versioneSchema: 3, projects: { P: { surveys: { S: { logs: [{ start: 0, end: 1.9999999999999998 }] } } } } }, 3, PRE).dati;
+    t('stato parziale { versioneSchema, projects }: regge', parziale.versioneSchema === V && parziale.projects.P.surveys.S.logs[0].end === 2 && !('logs' in parziale) && !('currentDepthStart' in parziale));
+    t('nemmeno projects: regge', api.migrazione3a4({ versioneSchema: 3 }).versioneSchema === 4 && api.migrazione3a4({ versioneSchema: 3, projects: null }).versioneSchema === 4 && api.migrazione3a4({ versioneSchema: 3, projects: { X: null, Y: { surveys: null } } }).versioneSchema === 4);
+
+    // Una misura già pulita non cambia: nessun intervallo diventa «modificato» (004d confronta al mm).
+    const gia = { versioneSchema: 3, projects: { P: { surveys: { S: { logs: [{ start: 0.2, end: 0.4 }, { start: 1, end: 1.25 }] } } } } };
+    const copia = JSON.stringify(gia.projects);
+    api.migrazione3a4(gia);
+    t('valori già al millimetro: identici bit per bit', JSON.stringify(gia.projects) === copia);
+
+    // Dalla fixture v0 fino a 4: nessun valore resta in virgola mobile sporca, il resto è identico.
+    const f = api.migraDati(JSON.parse(STATO_V0), 0, PRE).dati;
+    const sporchi = [];
+    JSON.stringify(f.projects, (k, v) => { if ((k === 'start' || k === 'end' || k === 'currentDepthStart') && typeof v === 'number' && Math.round(v * 1000) / 1000 !== v) sporchi.push(v); return v; });
+    t('fixture v0 → ' + V + ': nessuna profondità con resti di virgola mobile', f.versioneSchema === V && sporchi.length === 0);
+    t('e per il resto uguale all originale, arrotondato', JSON.stringify(f.projects) === JSON.stringify(comeDopoLa2a3(JSON.parse(STATO_V0).projects)));
+    const haSporco = JSON.stringify(JSON.parse(STATO_V0).projects).match(/1\.9999999999999998/);
+    t('(controprova) la fixture di partenza ne aveva', !!haSporco);
+  }
+
+  console.log('--- La 3 → 4 e le impronte di modifica ---');
+  {
+    const app = await avviaApp({ stato: STATO_V0, attesaAvvio: 0 });
+    await attesa(900);
+    const modificati = app.E("Object.values(state.projects).flatMap(p => Object.values(p.surveys).flatMap(s => s.logs)).filter(l => l.modificatoIl).length");
+    t('dopo la migrazione all avvio nessun intervallo risulta modificato', modificati === 0);
+    t('e nessun progetto ha una ultima modifica inventata', app.E("Object.values(state.projects).every(p => !p.modificatoIl)"));
+    const conMisura = app.E("(() => { const l = Object.values(Object.values(state.projects)[0].surveys)[0].logs[0]; return misuraDiIntervallo(l) === misuraDiIntervallo(Object.assign({}, l, { end: l.end + 1e-12 })); })()");
+    t('misuraDiIntervallo vede uguali 2 e 1,9999999999999998 (già al millimetro)', conMisura === true);
+    app.chiudi();
+  }
+
+  console.log('--- Il bug della falda a 2,00 m, da capo a fondo ---');
+  {
+    const app = await avviaApp({ stato: null });
+    // Una prova nuova con passo 20 cm: dieci Registra di fila, come in campo.
+    app.E('state.logs = []; state.currentDepthStart = 0; state.settings.stepCm = 20; state.currentCount = 0');
+    let somma = 0; for (let i = 0; i < 10; i++) somma += 0.2;
+    t('(il difetto) sommando dieci passi da 0,2 in virgola mobile non si arriva a 2', somma !== 2 && Math.abs(somma - 2) < 1e-12);
+    const N = 30;   // 30 colpi: Nspt grezzo con betaT = 1 sopra la soglia 15
+    for (let i = 0; i < 10; i++) { app.E('state.currentCount = ' + N + '; ultimaRegistrazioneMs = -Infinity'); await app.E('confirmAndNextStep()'); }
+    const logs = JSON.parse(app.E('JSON.stringify(state.logs)'));
+    t('dieci intervalli registrati, l ultimo finisce a 2 esatto', logs.length === 10 && logs[9].end === 2 && logs[9].start === 1.8);
+    t('nessuna profondità con resti di virgola mobile', logs.every(l => Math.round(l.start * 1000) / 1000 === l.start && Math.round(l.end * 1000) / 1000 === l.end));
+    const falda = { faldaDa: 2.0, faldaA: Infinity };
+    const r = app.E('nsptDiLog')(logs[9], 1, falda);
+    t('l intervallo che finisce a 2,00 riceve Nspt\' = 15 + 0,5·(N − 15)', r.nsptGrezzo === N && r.nsptFalda === 15 + 0.5 * (N - 15));
+    const sporco = Object.assign({}, logs[9], { end: 1.9999999999999998 });
+    t('stesso risultato se la profondità è salvata come 1,9999999999999998', app.E('nsptDiLog')(sporco, 1, falda).nsptFalda === r.nsptFalda);
+    t('l intervallo prima (finisce a 1,8) non è corretto', app.E('nsptDiLog')(logs[8], 1, falda).nsptFalda === N);
+    const cf = app.E('condizioneFalda');
+    t('condizioneFalda(1,8; 1,9999999999999998; 2; 8) = NO, come (1,8; 2; 2; 8)', cf(1.8, 1.9999999999999998, 2, 8) === 'NO' && cf(1.8, 2, 2, 8) === 'NO');
+    t('e l intervallo successivo (2,0 → 2,2) è IN falda', cf(1.9999999999999998, 2.2, 2, 8) === cf(2, 2.2, 2, 8) && cf(2, 2.2, 2, 8) === 'SI');
+    app.chiudi();
   }
 
   console.log('\n' + ok + ' ok, ' + ko + ' KO');
