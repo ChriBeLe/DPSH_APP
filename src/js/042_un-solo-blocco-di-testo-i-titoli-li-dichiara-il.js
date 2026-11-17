@@ -235,13 +235,17 @@
             /** Le variabili CSS che portano lo stile ai blocchi. Un solo punto che le scrive,
              * cosi' anteprima e stampa non possono divergere: e' la stessa stringa. */
             function cssVariabiliStileTesto(stile) {
+                const d = stileTestoDiDefault();
                 const st = Object.assign(stileTestoDiDefault(), stile || {});
-                return `--tpl-font:${pilaFont(st.font)}; --tpl-font-formule:${FONT_FORMULE};`
-                    + ` --tpl-corpo-pt:${st.corpoPt}pt; --tpl-interlinea:${st.interlinea};`
-                    + ` --tpl-allineamento:${st.allineamento}; --tpl-rientro:${st.rientroMm}mm;`
-                    + ` --tpl-spazio-par:${st.spazioParagrafoPt}pt;`
-                    + ` --tpl-h1:${st.h1Pt}pt; --tpl-h2:${st.h2Pt}pt; --tpl-h3:${st.h3Pt}pt;`
-                    + ` --tpl-peso-titoli:${st.pesoTitoli || 700};`;
+                // Anche questo stile può arrivare da un file: numeri e allineamento filtrati.
+                const n = (v, rip, min, max) => numeroSicuro(v, rip, min, max);
+                const allin = ['left', 'right', 'center', 'justify'].includes(st.allineamento) ? st.allineamento : d.allineamento;
+                return `--tpl-font:${pilaFont(fontSicuro(st.font, d.font))}; --tpl-font-formule:${FONT_FORMULE};`
+                    + ` --tpl-corpo-pt:${n(st.corpoPt, d.corpoPt, 1, 200)}pt; --tpl-interlinea:${n(st.interlinea, d.interlinea, 0.5, 5)};`
+                    + ` --tpl-allineamento:${allin}; --tpl-rientro:${n(st.rientroMm, d.rientroMm, 0, 200)}mm;`
+                    + ` --tpl-spazio-par:${n(st.spazioParagrafoPt, d.spazioParagrafoPt, 0, 200)}pt;`
+                    + ` --tpl-h1:${n(st.h1Pt, d.h1Pt, 1, 200)}pt; --tpl-h2:${n(st.h2Pt, d.h2Pt, 1, 200)}pt; --tpl-h3:${n(st.h3Pt, d.h3Pt, 1, 200)}pt;`
+                    + ` --tpl-peso-titoli:${n(st.pesoTitoli || 700, 700, 100, 900)};`;
             }
 
             /** STILE DELL'INDICE (richiesto esplicitamente: tre vesti di partenza — Classico a
@@ -301,15 +305,31 @@
             /** Le variabili CSS dell'indice — stesso principio di cssVariabiliStileTesto: un solo
              * punto che le scrive, cosi' l'anteprima nel modale di personalizzazione e l'export vero
              * non possono mai raccontare due storie diverse. */
+            /** Il template indice può arrivare da un file (viaggia col progetto): ogni campo che
+             * finisce in style="…" passa da un filtro. Il nome del font ammette solo lettere, cifre,
+             * spazi, trattini, virgole e apici semplici; altrimenti il ripiego. Poi pilaFont lo
+             * risolve comunque sull'elenco dei font del documento, quindi in CSS non entra mai
+             * il testo del file. */
+            function fontSicuro(f, ripiego) {
+                const v = typeof f === 'string' ? f.trim() : '';
+                return /^[A-Za-z0-9 ,'-]{1,80}$/.test(v) ? v : ripiego;
+            }
             function cssVariabiliStileIndice(stile) {
+                const d = stileIndiceDiDefault();
                 const st = Object.assign(stileIndiceDiDefault(), stile || {});
-                return `--idx-font:${pilaFont(st.font)};`
-                    + ` --idx-h1-pt:${st.livelli.h1.pt}px; --idx-h2-pt:${st.livelli.h2.pt}px; --idx-h3-pt:${st.livelli.h3.pt}px;`
-                    + ` --idx-h1-peso:${st.livelli.h1.peso}; --idx-h2-peso:${st.livelli.h2.peso}; --idx-h3-peso:${st.livelli.h3.peso};`
-                    + ` --idx-numero-pt:${st.numero.pt}px; --idx-numero-peso:${st.numero.peso};`
-                    + ` --idx-titolo-pt:${st.titolo.pt}px; --idx-titolo-peso:${st.titolo.peso};`
-                    + ` --idx-pagina-pt:${st.pagina.pt}px; --idx-pagina-peso:${st.pagina.peso};`
-                    + ` --idx-colore-testo:${st.coloreTesto}; --idx-colore-divisore:${st.coloreDivisore};`;
+                const ogg = (v, rip) => Object.assign({}, rip, (v && typeof v === 'object') ? v : {});
+                const liv = ogg(st.livelli, d.livelli);
+                const h = ['h1', 'h2', 'h3'].map(k => ogg(liv[k], d.livelli[k]));
+                const num = ogg(st.numero, d.numero), tit = ogg(st.titolo, d.titolo), pag = ogg(st.pagina, d.pagina);
+                const pt = (v, rip) => numeroSicuro(v, rip, 1, 200);
+                const peso = (v, rip) => numeroSicuro(v, rip, 100, 900);
+                return `--idx-font:${pilaFont(fontSicuro(st.font, d.font))};`
+                    + ` --idx-h1-pt:${pt(h[0].pt, d.livelli.h1.pt)}px; --idx-h2-pt:${pt(h[1].pt, d.livelli.h2.pt)}px; --idx-h3-pt:${pt(h[2].pt, d.livelli.h3.pt)}px;`
+                    + ` --idx-h1-peso:${peso(h[0].peso, d.livelli.h1.peso)}; --idx-h2-peso:${peso(h[1].peso, d.livelli.h2.peso)}; --idx-h3-peso:${peso(h[2].peso, d.livelli.h3.peso)};`
+                    + ` --idx-numero-pt:${pt(num.pt, d.numero.pt)}px; --idx-numero-peso:${peso(num.peso, d.numero.peso)};`
+                    + ` --idx-titolo-pt:${pt(tit.pt, d.titolo.pt)}px; --idx-titolo-peso:${peso(tit.peso, d.titolo.peso)};`
+                    + ` --idx-pagina-pt:${pt(pag.pt, d.pagina.pt)}px; --idx-pagina-peso:${peso(pag.peso, d.pagina.peso)};`
+                    + ` --idx-colore-testo:${coloreSicuro(st.coloreTesto, d.coloreTesto)}; --idx-colore-divisore:${coloreSicuro(st.coloreDivisore, d.coloreDivisore)};`;
             }
             /** Stacca da un'etichetta la numerazione già scritta a mano ("1. Introduzione",
              * "2.1.1 Correlazioni") dal testo vero. Serve perché la numerazione dell'indice deve
