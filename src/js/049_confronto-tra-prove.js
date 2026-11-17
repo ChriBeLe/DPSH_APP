@@ -348,7 +348,7 @@
                     boxProve.innerHTML = prove.map(s => {
                         const attiva = confrontoStato.attive.has(s.id);
                         const c = d.colore.get(s.id);
-                        return `<button type="button" data-prova="${s.id}" aria-pressed="${attiva}" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: ${attiva ? 'var(--bg-card)' : 'transparent'}; color: ${attiva ? 'var(--text-main)' : 'var(--text-muted)'}; border: 1.5px solid ${attiva ? c : 'var(--border)'};"><span style="width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: ${attiva ? c : 'transparent'}; border: 2px solid ${c};"></span>DPSH ${testoSicuro((s.header && s.header.provaNr) || '?')}</button>`;
+                        return `<button type="button" data-prova="${testoHtml(s.id)}" aria-pressed="${attiva}" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: ${attiva ? 'var(--bg-card)' : 'transparent'}; color: ${attiva ? 'var(--text-main)' : 'var(--text-muted)'}; border: 1.5px solid ${attiva ? c : 'var(--border)'};"><span style="width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: ${attiva ? c : 'transparent'}; border: 2px solid ${c};"></span>DPSH ${testoSicuro((s.header && s.header.provaNr) || '?')}</button>`;
                     }).join('');
                     boxProve.querySelectorAll('[data-prova]').forEach(b => b.addEventListener('click', () => {
                         const id = b.getAttribute('data-prova');

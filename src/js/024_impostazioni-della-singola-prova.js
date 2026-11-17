@@ -512,7 +512,7 @@
                     // Tutta la card apre il progetto sull'ULTIMA PROVA USATA (decisione H); il ⋯ a
                     // destra, separato da una linea, ha le azioni di progetto (note comprese).
                     card.innerHTML = `
-                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${projId}" aria-label="Apri ${esc(nome)}${nrUltima ? ', riprende dalla Prova ' + esc(nrUltima) : ''}">
+                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${testoHtml(projId)}" aria-label="Apri ${esc(nome)}${nrUltima ? ', riprende dalla Prova ' + esc(nrUltima) : ''}">
                             <span class="card-progetto-riga1">
                                 <span class="card-progetto-nome">${esc(nome)}</span>
                                 ${statoProgetto ? `<span class="card-progetto-stato" style="color: ${statoProgetto.colore}; background: ${statoProgetto.sfondo};">${statoProgetto.etichetta}</span>` : ''}
@@ -521,7 +521,7 @@
                             <span class="card-progetto-numeri">${nProve} ${nProve === 1 ? 'prova' : 'prove'} · ${conGps}/${nProve} GPS · ${nFoto} foto</span>
                             <span class="card-progetto-data">${modificato ? 'Modificato il ' + modificato : 'Mai modificato'}${nrUltima ? ' · riprende dalla Prova ' + esc(nrUltima) : ''}</span>
                         </button>
-                        <button type="button" class="card-progetto-altro btn-project-actions" data-id="${projId}" aria-label="Azioni sul progetto" title="Azioni sul progetto (stato, note, duplica, backup, esporta, elimina)"><svg class="ico"><use href="#i-more"/></svg></button>
+                        <button type="button" class="card-progetto-altro btn-project-actions" data-id="${testoHtml(projId)}" aria-label="Azioni sul progetto" title="Azioni sul progetto (stato, note, duplica, backup, esporta, elimina)"><svg class="ico"><use href="#i-more"/></svg></button>
                     `;
                     homeProjectsContainer.appendChild(card);
                 });

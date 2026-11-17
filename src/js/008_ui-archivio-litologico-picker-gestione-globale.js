@@ -25,11 +25,11 @@
                     const stats = computeArchiveStats(arch.id);
                     const selected = archivePickerSelection.includes(arch.id);
                     return `
-                        <label class="archive-pick-row" data-arch-id="${arch.id}" style="display:flex; align-items:center; gap:10px; padding:9px 10px; background:${selected ? 'var(--purple-soft)' : 'var(--bg-card-hover)'}; border:1px solid ${selected ? 'var(--purple)' : 'var(--border)'}; border-radius:var(--radius-sm); cursor:pointer;">
-                            <input type="checkbox" class="archive-pick-checkbox" data-arch-id="${arch.id}" ${selected ? 'checked' : ''} style="width:18px; height:18px; flex:0 0 auto;">
+                        <label class="archive-pick-row" data-arch-id="${testoHtml(arch.id)}" style="display:flex; align-items:center; gap:10px; padding:9px 10px; background:${selected ? 'var(--purple-soft)' : 'var(--bg-card-hover)'}; border:1px solid ${selected ? 'var(--purple)' : 'var(--border)'}; border-radius:var(--radius-sm); cursor:pointer;">
+                            <input type="checkbox" class="archive-pick-checkbox" data-arch-id="${testoHtml(arch.id)}" ${selected ? 'checked' : ''} style="width:18px; height:18px; flex:0 0 auto;">
                             <div style="width:24px; height:24px; border-radius:6px; flex:0 0 auto; border:1px solid rgba(0,0,0,0.25); ${getPatternCss(arch.pattern, arch.color)}"></div>
                             <div style="flex:1; min-width:0;">
-                                <div style="font-weight:700; font-size:13px; color:var(--text-main);">${arch.name}</div>
+                                <div style="font-weight:700; font-size:13px; color:var(--text-main);">${testoHtml(arch.name)}</div>
                                 <div style="font-size:10px; color:var(--text-muted);">${stats.projectCount} progetti • ${stats.surveyCount} prove${stats.avgColpi !== null ? ' • media ' + stats.avgColpi.toFixed(1) + ' colpi' : ''}</div>
                             </div>
                         </label>
