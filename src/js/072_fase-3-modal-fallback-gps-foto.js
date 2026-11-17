@@ -156,7 +156,7 @@
             // INPUT SYNC CANTIERE
             // Committente e comune: della prova (li leggono i report) e anche del progetto, perché la
             // card della Home li mostra da lì (Fase 4). Le altre prove tengono i loro valori.
-            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); updateUI(); });
+            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); propagaDatoProgettoAlleProve('committente', e.target.value); updateUI(); });
             const txtProvincia = document.getElementById('txtProvincia');
             const txtSedeCommittente = document.getElementById('txtSedeCommittente');
             const txtDenominazioneIntervento = document.getElementById('txtDenominazioneIntervento');
@@ -167,6 +167,16 @@
                 if (!proj) return;
                 proj[chiave] = valore;
                 proj.updatedAt = Date.now();
+                saveState();
+            }
+            /** Un dato del PROGETTO che le prove ripetono nella loro intestazione (committente, comune): cambiandolo
+             * dal gruppo «Del progetto» si aggiorna in tutte le prove. I dati «Di questa prova» (località,
+             * data, numero) restano della prova (richiesta di Romeo, 17/11/2026). */
+            function propagaDatoProgettoAlleProve(chiave, valore) {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[chiave] = valore; });
+                state.header[chiave] = valore;
                 saveState();
             }
             const txtNomeProgetto = document.getElementById('txtNomeProgetto');
@@ -180,7 +190,7 @@
             if (txtProvincia) txtProvincia.addEventListener('input', (e) => scriviDatoProgettoCorrente('provincia', e.target.value));
             if (txtSedeCommittente) txtSedeCommittente.addEventListener('input', (e) => scriviDatoProgettoCorrente('sedeCommittente', e.target.value));
             if (txtDenominazioneIntervento) txtDenominazioneIntervento.addEventListener('input', (e) => scriviDatoProgettoCorrente('denominazioneIntervento', e.target.value));
-            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); updateUI(); });
+            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); propagaDatoProgettoAlleProve('comune', e.target.value); updateUI(); });
             if (txtLocalita) txtLocalita.addEventListener('input', (e) => { state.header.localita = e.target.value; updateUI(); saveState(); });
             if (txtDataIndagine) txtDataIndagine.addEventListener('change', (e) => { state.header.date = e.target.value; updateUI(); saveState(); });
             if (txtProvaNr) txtProvaNr.addEventListener('input', (e) => {

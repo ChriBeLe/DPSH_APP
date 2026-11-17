@@ -238,7 +238,9 @@
                     const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
                     if (!['name', 'comune', 'committente', 'date', 'operator'].includes(a.campo)) throw new Error('Campo non modificabile.');
                     if (a.campo === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(a.valore)) throw new Error('La data deve essere AAAA-MM-GG.');
-                    saveState(); pr[a.campo] = String(a.valore); pr.updatedAt = Date.now(); saveState(); updateUI(); return { ok: true };
+                    saveState(); pr[a.campo] = String(a.valore); pr.updatedAt = Date.now();
+                    if (a.campo === 'comune' || a.campo === 'committente') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[a.campo] = String(a.valore); }); state.header[a.campo] = String(a.valore); }
+                    saveState(); updateUI(); return { ok: true };
                 } },
                 { n: 'leggi_note_progetto', d: 'Legge il testo delle note del progetto aperto.', p: {}, run: () => { const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.'); return { testo: pr.notes && pr.notes.html ? noteHtmlToPlainText(pr.notes.html).slice(0, 6000) : '' }; } },
                 { n: 'aggiungi_nota_progetto', d: 'Aggiunge un paragrafo in fondo alle note del progetto aperto.', p: { testo: { type: 'string' } }, req: ['testo'], w: true,
