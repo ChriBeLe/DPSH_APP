@@ -55,6 +55,29 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('Gemini: solo modelli di chat', mg.length === 1 && mg[0].id === 'gemini-x-flash');
   const mo = await app.E(`aiElencoModelli('openai',{chiave:'x'})`);
   t('OpenAI: niente embedding/whisper', mo.length === 1 && mo[0].id === 'gpt-9-mini');
+  // strati e parametri avanzati sulla prova del progetto di prova (dati realistici)
+  const st0 = require('fs').readFileSync(require('path').join(__dirname, 'dati', 'stato_v0.json'), 'utf8');
+  const app2 = await avviaApp({ stato: st0, idb: require('./dati/app_in_jsdom').telefonoV0() });
+  await attesa(60);
+  app2.E('openProject(Object.keys(state.projects)[0])'); await attesa(100);
+  const T = (n, a) => app2.E(`AI_STRUMENTI.find(x=>x.n===${JSON.stringify(n)}).run(${JSON.stringify(a || {})})`);
+  const strati = T('leggi_strati');
+  t('leggi_strati elenca gli strati', Array.isArray(strati) && strati.length >= 1 && strati[0].id);
+  const conCat = strati.find(x => x.parametri && Object.keys(x.parametri).length);
+  if (conCat) {
+    const cat = Object.keys(conCat.parametri)[0], idx = conCat.parametri[cat].candidati[0][0];
+    T('scegli_parametro_avanzato', { strato_id: conCat.id, categoria: cat, indice: idx });
+    t('scegli_parametro_avanzato scrive la scelta', app2.E(`state.strati.find(s=>s.id===${JSON.stringify(conCat.id)}).parametriAvanzati[${JSON.stringify(cat)}].autoreIndex`) === idx);
+  } else t('(nessuno strato con categorie nella fixture)', true);
+  T('modifica_strato', { strato_id: strati[0].id, nome: 'Sabbia test', colore: '#112233', comportamento: 'coesivo' });
+  t('modifica_strato', app2.E('state.strati[0].name') === 'Sabbia test' && app2.E('state.strati[0].behavior') === 'coesivo');
+  T('aggiungi_strato', { nome: 'Nuovo' }); T('sposta_strato', { strato_id: app2.E('state.strati[state.strati.length-1].id'), posizione: 1 });
+  t('aggiungi + sposta strato', app2.E('state.strati[0].name') === 'Nuovo');
+  const n0 = app2.E('state.logs.length'); if (n0) { T('modifica_intervallo', { numero: 1, colpi: 7, note: 'x' }); t('modifica_intervallo', app2.E('state.logs[0].colpi') === 7); }
+  T('modifica_strumento', { campo: 'pesoMassa', valore: 64 }); t('modifica_strumento', app2.E('state.instrument.pesoMassa') === 64);
+  T('imposta_preferenza', { nome: 'vibrazione', valore: 'false' }); t('imposta_preferenza', app2.E('state.settings.haptic') === false);
+  T('aggiungi_nota_progetto', { testo: 'prova <b>' }); t('nota aggiunta, testo protetto', app2.E('state.projects[state.currentProjectId].notes.html').includes('&lt;b&gt;'));
+  t('modifica_progetto + GPS', (T('modifica_progetto', { campo: 'committente', valore: 'ACME' }), T('imposta_gps', { lat: 40.1, lng: 18.0 }), app2.E('state.header.lat') === 40.1));
   console.log(`\n${ok} ok, ${ko} KO`); console.log(app.errori ? app.errori.slice(0,5) : '');
   process.exit(ko ? 1 : 0);
 })();

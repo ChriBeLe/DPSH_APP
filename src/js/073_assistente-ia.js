@@ -135,11 +135,123 @@
                     if (!['localita', 'committente', 'comune', 'provaNr', 'date'].includes(a.campo)) throw new Error('Campo non modificabile.');
                     if (a.campo === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(a.valore)) throw new Error('La data deve essere AAAA-MM-GG.');
                     state.header[a.campo] = String(a.valore); saveState(); updateUI(); return { ok: true };
+                } },
+                // --- strati e parametri avanzati ---
+                { n: 'leggi_strati', d: 'Legge gli strati della prova aperta con comportamento, Nspt, e per ogni categoria di parametro avanzato (peso di volume, angolo di attrito, coesione, moduli…) gli autori candidati [indice, autore, valore] e quello scelto.', p: {}, run: () => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    let ris = {}; try { ris = calcolaRisultatiPerStratiCorrenti(); } catch (e) { /* senza intervalli i calcoli mancano: si leggono solo i dati dello strato */ }
+                    return state.strati.map((st, i) => {
+                        const r = ris[st.id], o = { posizione: i + 1, id: st.id, nome: st.name, colore: st.color, comportamento: st.behavior || 'granulare', pattern: st.pattern || 'none' };
+                        if (r) {
+                            o.nsptFalda = r.agg.nsptFalda; o.nsptGrezzo = r.agg.nsptGrezzo;
+                            o.parametri = {};
+                            Object.keys(r.ris.categorie).forEach(cid => { const c = r.ris.categorie[cid]; if (c.candidati.length) o.parametri[cid] = { scelto: c.selezionato ? c.selezionato.index : null, candidati: c.candidati.map(k => [k.index, k.autore, k.valore]) }; });
+                        }
+                        return o;
+                    });
+                } },
+                { n: 'scegli_parametro_avanzato', d: 'Sceglie per uno strato l\'autore (formula) di una categoria di parametro avanzato, usando gli indici di leggi_strati. indice null toglie la scelta.', p: { strato_id: { type: 'string' }, categoria: { type: 'string' }, indice: { type: 'integer' } }, req: ['strato_id', 'categoria', 'indice'], w: true,
+                  ds: a => `Parametro avanzato «${a.categoria}» dello strato ${a.strato_id}: scegliere il candidato n. ${a.indice}`, run: a => {
+                    const st = state.strati.find(x => x.id === a.strato_id);
+                    if (!st) throw new Error('Strato non trovato.');
+                    const r = calcolaRisultatiPerStratiCorrenti()[st.id];
+                    const cat = r && r.ris.categorie[a.categoria];
+                    if (!cat) throw new Error('Categoria sconosciuta o strato senza intervalli assegnati.');
+                    if (a.indice == null) { delete ensureParametriAvanzati(st)[a.categoria]; }
+                    else { if (!cat.candidati.some(k => k.index === a.indice)) throw new Error('Indice non valido per questa categoria.'); seleziona(st, a.categoria, a.indice); }
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true };
+                } },
+                { n: 'autocompila_parametri', d: 'Sceglie automaticamente le formule consigliate per i parametri avanzati ancora vuoti, di uno strato o di tutti.', p: { strato_id: { type: 'string' } }, w: true,
+                  ds: a => a.strato_id ? `Compilare automaticamente i parametri avanzati dello strato ${a.strato_id}` : 'Compilare automaticamente i parametri avanzati di tutti gli strati', run: a => {
+                    const lista = a.strato_id ? state.strati.filter(x => x.id === a.strato_id) : state.strati;
+                    if (!lista.length) throw new Error('Strato non trovato.');
+                    lista.forEach(st => { ensureParametriAvanzati(st); autoCompilaStrato(st); });
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true, strati: lista.length };
+                } },
+                { n: 'modifica_strato', d: 'Cambia nome, colore (#rrggbb) o comportamento (granulare/coesivo) di uno strato della prova aperta.', p: { strato_id: { type: 'string' }, nome: { type: 'string' }, colore: { type: 'string' }, comportamento: { type: 'string', enum: ['granulare', 'coesivo'] } }, req: ['strato_id'], w: true,
+                  ds: a => `Modificare lo strato ${a.strato_id}:` + [a.nome && ` nome «${a.nome}»`, a.colore && ` colore ${a.colore}`, a.comportamento && ` comportamento ${a.comportamento}`].filter(Boolean).join(','), run: a => {
+                    const st = state.strati.find(x => x.id === a.strato_id);
+                    if (!st) throw new Error('Strato non trovato.');
+                    if (a.colore != null && !/^#[0-9a-f]{6}$/i.test(a.colore)) throw new Error('Il colore deve essere #rrggbb.');
+                    if (a.nome != null) { if (!String(a.nome).trim()) throw new Error('Nome vuoto.'); st.name = String(a.nome).trim(); }
+                    if (a.colore != null) st.color = a.colore;
+                    if (a.comportamento != null) { if (!['granulare', 'coesivo'].includes(a.comportamento)) throw new Error('Comportamento non valido.'); st.behavior = a.comportamento; }
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true };
+                } },
+                { n: 'aggiungi_strato', d: 'Aggiunge uno strato in fondo alla prova aperta.', p: { nome: { type: 'string' }, colore: { type: 'string' }, comportamento: { type: 'string', enum: ['granulare', 'coesivo'] } }, req: ['nome'], w: true,
+                  ds: a => `Aggiungere lo strato «${a.nome}»`, run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    if (a.colore != null && !/^#[0-9a-f]{6}$/i.test(a.colore)) throw new Error('Il colore deve essere #rrggbb.');
+                    const st = { id: 'strato_' + Date.now(), name: String(a.nome).trim() || 'Nuovo strato', color: a.colore || '#94a3b8', behavior: a.comportamento || 'granulare' };
+                    state.strati.push(st); saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true, id: st.id };
+                } },
+                { n: 'sposta_strato', d: 'Sposta uno strato a una nuova posizione (1 = primo) nell\'elenco della prova aperta.', p: { strato_id: { type: 'string' }, posizione: { type: 'integer' } }, req: ['strato_id', 'posizione'], w: true,
+                  ds: a => `Spostare lo strato ${a.strato_id} alla posizione ${a.posizione}`, run: a => {
+                    const i = state.strati.findIndex(x => x.id === a.strato_id), j = a.posizione - 1;
+                    if (i < 0) throw new Error('Strato non trovato.');
+                    if (!Number.isInteger(j) || j < 0 || j >= state.strati.length) throw new Error('Posizione fuori elenco.');
+                    state.strati.splice(j, 0, state.strati.splice(i, 1)[0]);
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true };
+                } },
+                { n: 'assegna_strato', d: 'Assegna uno strato a tutti gli intervalli della prova aperta compresi tra due profondità (metri).', p: { strato_id: { type: 'string' }, da_m: { type: 'number' }, a_m: { type: 'number' } }, req: ['strato_id', 'da_m', 'a_m'], w: true,
+                  ds: a => `Assegnare lo strato ${a.strato_id} agli intervalli da ${a.da_m} a ${a.a_m} m`, run: a => {
+                    if (!state.strati.some(x => x.id === a.strato_id)) throw new Error('Strato non trovato.');
+                    let n = 0; state.logs.forEach(l => { if (l.end > a.da_m + 1e-6 && l.start < a.a_m - 1e-6) { l.lithology = a.strato_id; l.modificatoIl = new Date().toISOString(); n++; } });
+                    if (!n) throw new Error('Nessun intervallo in quel tratto.');
+                    saveState(); updateUI(); return { ok: true, intervalli: n };
+                } },
+                { n: 'modifica_intervallo', d: 'Modifica un intervallo della prova aperta (numero d\'ordine da 1): colpi e/o note.', p: { numero: { type: 'integer' }, colpi: { type: 'integer' }, note: { type: 'string' } }, req: ['numero'], w: true,
+                  ds: a => `Modificare l'intervallo n. ${a.numero}:` + [a.colpi != null && ` colpi ${a.colpi}`, a.note != null && ` note «${a.note}»`].filter(Boolean).join(','), run: a => {
+                    const l = state.logs[a.numero - 1];
+                    if (!l) throw new Error('Intervallo non trovato.');
+                    if (a.colpi != null && (!Number.isInteger(a.colpi) || a.colpi < 0 || a.colpi > 999)) throw new Error('Colpi non validi.');
+                    const prima = misuraDiIntervallo(l);
+                    if (a.colpi != null) l.colpi = a.colpi; if (a.note != null) l.note = String(a.note);
+                    segnaIntervalloModificato(l, prima); saveState(); updateUI(); return { ok: true };
+                } },
+                // --- strumento, preferenze, progetto, note, GPS ---
+                { n: 'leggi_strumento_e_preferenze', d: 'Legge i dati dello strumento della prova aperta e le preferenze dell\'app.', p: {}, run: () => ({ strumento: state.instrument, passoCm: state.settings.stepCm, operatore: state.settings.operator, vibrazione: !!state.settings.haptic, bip: !!state.settings.audio, schermoAcceso: !!state.settings.wakeLock, tema: state.settings.darkMode ? 'scuro' : 'chiaro', guanti: !!(document.getElementById('chkGloveMode') || {}).checked, tastoRegistra: state.settings.tastoRegistraVisibile !== false }) },
+                { n: 'modifica_strumento', d: 'Cambia un dato dello strumento della prova aperta: pesoMassa, pesoAsta, lunghAsta, cambioAsta, pesoSistema, volata, passo, areaPunta, angoloPunta (numeri positivi).', p: { campo: { type: 'string', enum: ['pesoMassa', 'pesoAsta', 'lunghAsta', 'cambioAsta', 'pesoSistema', 'volata', 'passo', 'areaPunta', 'angoloPunta'] }, valore: { type: 'number' } }, req: ['campo', 'valore'], w: true,
+                  ds: a => `Strumento: impostare ${a.campo} a ${a.valore}`, run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    if (!(a.campo in state.instrument)) throw new Error('Campo dello strumento non valido.');
+                    if (!(typeof a.valore === 'number' && isFinite(a.valore) && a.valore > 0 && a.valore < 10000)) throw new Error('Il valore deve essere un numero positivo.');
+                    state.instrument[a.campo] = a.valore; saveState(); updateUI(); return { ok: true };
+                } },
+                { n: 'imposta_preferenza', d: 'Cambia una preferenza dell\'app: vibrazione, bip, schermo_acceso, guanti, tasto_registra (valore true/false) oppure tema (valore «chiaro» o «scuro»).', p: { nome: { type: 'string', enum: ['vibrazione', 'bip', 'schermo_acceso', 'guanti', 'tasto_registra', 'tema'] }, valore: { type: 'string' } }, req: ['nome', 'valore'], w: true,
+                  ds: a => `Preferenza «${a.nome}»: ${a.valore}`, run: a => {
+                    if (a.nome === 'tema') {
+                        const scuro = a.valore === 'scuro'; if (a.valore !== 'scuro' && a.valore !== 'chiaro') throw new Error('Il tema è «chiaro» o «scuro».');
+                        if (!!state.settings.darkMode !== scuro) document.getElementById('btnThemeToggle').click(); return { ok: true };
+                    }
+                    const id = { vibrazione: 'chkHaptic', bip: 'chkAudio', schermo_acceso: 'chkWakeLock', guanti: 'chkGloveMode', tasto_registra: 'chkTastoRegistra' }[a.nome];
+                    const el = id && document.getElementById(id); if (!el) throw new Error('Preferenza sconosciuta.');
+                    el.checked = /^(true|si|sì|on|1)$/i.test(String(a.valore)); el.dispatchEvent(new Event('change', { bubbles: true })); return { ok: true, valore: el.checked };
+                } },
+                { n: 'modifica_progetto', d: 'Cambia un dato del progetto aperto: nome, comune, committente, date (AAAA-MM-GG) o operator.', p: { campo: { type: 'string', enum: ['name', 'comune', 'committente', 'date', 'operator'] }, valore: { type: 'string' } }, req: ['campo', 'valore'], w: true,
+                  ds: a => `Progetto: cambiare «${a.campo}» in «${a.valore}»`, run: a => {
+                    const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    if (!['name', 'comune', 'committente', 'date', 'operator'].includes(a.campo)) throw new Error('Campo non modificabile.');
+                    if (a.campo === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(a.valore)) throw new Error('La data deve essere AAAA-MM-GG.');
+                    saveState(); pr[a.campo] = String(a.valore); pr.updatedAt = Date.now(); saveState(); updateUI(); return { ok: true };
+                } },
+                { n: 'leggi_note_progetto', d: 'Legge il testo delle note del progetto aperto.', p: {}, run: () => { const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.'); return { testo: pr.notes && pr.notes.html ? noteHtmlToPlainText(pr.notes.html).slice(0, 6000) : '' }; } },
+                { n: 'aggiungi_nota_progetto', d: 'Aggiunge un paragrafo in fondo alle note del progetto aperto.', p: { testo: { type: 'string' } }, req: ['testo'], w: true,
+                  ds: a => `Aggiungere alle note del progetto: «${String(a.testo).slice(0, 80)}»`, run: a => {
+                    const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    const esc = String(a.testo).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    pr.notes = pr.notes || {}; pr.notes.html = (pr.notes.html || '') + '<p>' + esc + '</p>'; pr.updatedAt = Date.now(); saveState(); return { ok: true };
+                } },
+                { n: 'imposta_gps', d: 'Imposta la posizione GPS della prova aperta (gradi decimali).', p: { lat: { type: 'number' }, lng: { type: 'number' }, quota_m: { type: 'number' } }, req: ['lat', 'lng'], w: true,
+                  ds: a => `Impostare il GPS della prova a ${a.lat}, ${a.lng}`, run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    if (!(Math.abs(a.lat) <= 90 && Math.abs(a.lng) <= 180)) throw new Error('Coordinate non valide.');
+                    state.header.lat = a.lat; state.header.lng = a.lng; if (a.quota_m != null) state.header.alt = a.quota_m; saveState(); updateUI(); return { ok: true };
                 } }
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
-                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Non puoi eliminare dati: se serve, spiega come farlo a mano. ' +
+                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. Se un\'azione manca tra gli strumenti, usa elenco_comandi/esegui_comando per aprire la finestra giusta. ' +
                 'Se uno strumento dà errore, dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
