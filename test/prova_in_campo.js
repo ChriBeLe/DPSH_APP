@@ -206,11 +206,11 @@ async function apriPrimaProva(app) {
     await apriPrimaProva(a);
     const s = JSON.parse(a.salvato());
     t(`Modalità Espansa ${espansa ? 'attiva' : 'spenta'}: il tasto Registra si vede`, visibile(a, 'btnConfirmStepAction'));
-    t('  preferenza «tasto Registra visibile», expandedMode sparito anche dalle prove', s.versioneSchema === 3 && s.settings.tastoRegistraVisibile === true && !('expandedMode' in s.settings)
+    t('  preferenza «tasto Registra visibile», expandedMode sparito anche dalle prove', s.versioneSchema === a.E('VERSIONE_SCHEMA_DATI') && s.settings.tastoRegistraVisibile === true && !('expandedMode' in s.settings)
       && !/expandedMode|compactMode/.test(JSON.stringify(s.projects)));
     const copie = a.idb._dump('DPSH_CopieAutomatiche');
-    const voce = copie.indice.find(v => v.motivo === 'prima di aggiornare i dati (formato 2 → 3)');
-    t('  con la copia «prima di aggiornare i dati (formato 2 → 3)», col testo di prima', !!voce && copie.copie.find(c => c.id === voce.id).json === testo);
+    const voce = copie.indice.find(v => v.motivo === 'prima di aggiornare i dati (formato 2 → ' + a.E('VERSIONE_SCHEMA_DATI') + ')');
+    t('  con la copia «prima di aggiornare i dati (formato 2 → versione attuale)», col testo di prima', !!voce && copie.copie.find(c => c.id === voce.id).json === testo);
     a.chiudi();
   }
   {
