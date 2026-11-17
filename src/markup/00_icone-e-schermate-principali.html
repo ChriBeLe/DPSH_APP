@@ -442,7 +442,7 @@
             <div class="card" id="cardChart" style="display: none;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
                     <h2 class="registro-titolo">Profilo penetrometrico dinamico (N vs m)</h2>
-                    <button type="button" class="btn-icon btn-icon-sm" id="btnToggleModificaStratiGrafico" aria-pressed="false" title="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico"><svg class="ico"><use href="#i-edit"/></svg></button>
+                    <button type="button" class="btn-icon btn-icon-sm" id="btnToggleModificaStratiGrafico" aria-pressed="false" title="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico" aria-label="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico"><svg class="ico"><use href="#i-edit"/></svg></button>
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; display:none; align-items:center; gap:5px;" id="lblDragHandlesHint">
                     <svg class="ico"><use href="#i-move-y"/></svg> Trascina le maniglie sul lato destro del grafico per spostare manualmente il contatto tra due strati.
@@ -469,7 +469,7 @@
 
         <!-- Elementi nascosti mantenuti per compatibilità con le funzioni di export esistenti
              (la logica vera vive nei loro event listener, richiamati dalla modale unificata) -->
-        <button type="button" id="btnExportExcel" style="display:none;"></button>
-        <button type="button" id="btnExportKmlSingle" style="display:none;"></button>
+        <button type="button" id="btnExportExcel" style="display:none;" aria-label="Esporta in Excel"></button>
+        <button type="button" id="btnExportKmlSingle" style="display:none;" aria-label="Esporta in KML"></button>
 
     </main>

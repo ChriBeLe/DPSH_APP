@@ -5,10 +5,10 @@
          Immagini offloadate su IndexedDB (store 'noteImages') con lo stesso schema delle foto:
          vedi stripNoteImagesHtml/saveNoteImageToIDB/getNoteImageFromIDB. -->
     <div class="modal-overlay" id="modalProjectNotesOverlay"></div>
-    <div class="modal" id="modalProjectNotes" style="max-height: 92vh; overflow-y: auto; max-width: 620px; display:flex; flex-direction:column;">
-        <div class="modal-title" style="justify-content: space-between;">
+    <div class="modal" id="modalProjectNotes" role="dialog" aria-modal="true" aria-labelledby="modalProjectNotesTitolo" style="max-height: 92vh; overflow-y: auto; max-width: 620px; display:flex; flex-direction:column;">
+        <div class="modal-title" id="modalProjectNotesTitolo" style="justify-content: space-between;">
             <span><svg class="ico"><use href="#i-file"/></svg> <span id="lblNoteProjectTitle">Note di progetto</span></span>
-            <button class="btn-icon" id="btnCloseProjectNotesX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon" id="btnCloseProjectNotesX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
 
         <!-- LA BARRA, LETTA PER GRUPPI. Ogni gruppo raccoglie i comandi che agiscono sulla
@@ -49,10 +49,10 @@
                     <button type="button" class="note-tb-btn" id="btnNoteAllinea" data-comando-nota="allineamento" title="Allineamento del testo: sinistra, centro, destra, giustificato" aria-label="Allineamento"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left" id="usoIconaAllinea"/></svg></button>
                     <div class="note-shape-popover" id="noteAllineaPopover" style="display:none;">
                         <div style="display:flex; align-items:center; gap:3px;">
-                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra" aria-label="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro" aria-label="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra" aria-label="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato" aria-label="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
                         </div>
                     </div>
                 </div>
@@ -141,7 +141,7 @@
             <button type="button" class="note-tb-btn" data-img-flusso="sinistra" title="A sinistra, con il testo che le scorre a destra" aria-label="Testo a destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-flusso-sx"/></svg></button>
             <button type="button" class="note-tb-btn" data-img-flusso="destra" title="A destra, con il testo che le scorre a sinistra" aria-label="Testo a sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-flusso-dx"/></svg></button>
             <span class="note-tb-sep"></span>
-            <button type="button" class="note-tb-btn" id="btnNoteImageDelete" title="Rimuovi questa immagine" style="color:var(--danger);"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+            <button type="button" class="note-tb-btn" id="btnNoteImageDelete" title="Rimuovi questa immagine" style="color:var(--danger);" aria-label="Rimuovi questa immagine"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
         </div>
 
         <!-- Il contenteditable non è più questo div: qui dentro monta il suo il motore dell'editor
@@ -163,8 +163,8 @@
         <div class="note-bolla" id="noteBubbleMenu">
             <button type="button" class="note-tb-btn" data-bolla="bold" title="Grassetto"><b>B</b></button>
             <button type="button" class="note-tb-btn" data-bolla="italic" title="Corsivo"><i>I</i></button>
-            <button type="button" class="note-tb-btn" data-bolla="highlight" title="Evidenzia"><svg class="ico" style="width:15px;height:15px;"><use href="#i-highlighter"/></svg></button>
-            <button type="button" class="note-tb-btn" data-bolla="link" title="Link"><svg class="ico" style="width:15px;height:15px;"><use href="#i-link"/></svg></button>
+            <button type="button" class="note-tb-btn" data-bolla="highlight" title="Evidenzia" aria-label="Evidenzia"><svg class="ico" style="width:15px;height:15px;"><use href="#i-highlighter"/></svg></button>
+            <button type="button" class="note-tb-btn" data-bolla="link" title="Link" aria-label="Link"><svg class="ico" style="width:15px;height:15px;"><use href="#i-link"/></svg></button>
         </div>
 
         <!-- Compare solo col cursore dentro una tabella: prima non poteva esistere, perche' una
@@ -177,7 +177,7 @@
             <button type="button" class="note-tb-btn" data-tab-cmd="col-via" title="Elimina questa colonna">− col.</button>
             <span class="note-tb-sep"></span>
             <button type="button" class="note-tb-btn" data-tab-cmd="intestazione" title="Prima riga come intestazione">Intestazione</button>
-            <button type="button" class="note-tb-btn" data-tab-cmd="tabella-via" title="Elimina tutta la tabella" style="color:var(--danger);"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
+            <button type="button" class="note-tb-btn" data-tab-cmd="tabella-via" title="Elimina tutta la tabella" style="color:var(--danger);" aria-label="Elimina tutta la tabella"><svg class="ico" style="width:14px;height:14px;"><use href="#i-trash"/></svg></button>
         </div>
 
         <div id="noteEditorBody" class="note-editor-body" data-placeholder="Scrivi qui gli appunti del progetto... puoi anche incollare o inserire immagini."></div>

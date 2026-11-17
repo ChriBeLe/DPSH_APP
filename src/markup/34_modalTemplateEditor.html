@@ -12,8 +12,8 @@
          finiti su due pagine diverse in stampa per via delle coordinate GPS mancanti nella prova
          usata come anteprima). -->
     <div class="modal-overlay tier-editor" id="modalTemplateEditorOverlay"></div>
-    <div class="modal tier-editor" id="modalTemplateEditor" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+    <div class="modal tier-editor" id="modalTemplateEditor" role="dialog" aria-modal="true" aria-labelledby="modalTemplateEditorTitolo" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
+        <div class="modal-title" id="modalTemplateEditorTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
             <span class="tpl-barra-titolo">
                 <span class="tpl-barra-badge"><svg class="ico"><use href="#i-edit"/></svg></span>
                 <span id="lblTemplateEditorTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Modifica Template</span>
@@ -99,7 +99,7 @@
                  #btnTemplateEditorMobileAddBlock e chiusa da btnCloseMobilePalette o toccando fuori.
                  Su desktop il bottone di chiusura resta invisibile e il comportamento è invariato. -->
             <div id="templateEditorPaletteSidebar" style="width: 216px; flex-shrink: 0; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; overflow-y: auto;">
-                <button type="button" id="btnCloseMobilePalette" class="tpl-editor-mobile-palette-close" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+                <button type="button" id="btnCloseMobilePalette" class="tpl-editor-mobile-palette-close" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
                 <!-- LA BARRA LATERALE, IN ORDINE (segnalato: «che bordello è diventato questo menù»).
                      Prima: dieci titoli in fila, stessi pesi, comandi della pagina mescolati a quelli
                      del template, ogni margine su due righe, l'intestazione con otto controlli uno
@@ -122,7 +122,7 @@
                                 <option value="4">4</option>
                                 <option value="6">6</option>
                             </select>
-                            <button type="button" id="btnToggleGridGuides" class="tpl-icona-bt" title="Mostra guide di colonne e righe sul foglio" aria-pressed="false"><svg class="ico"><use href="#i-table"/></svg></button>
+                            <button type="button" id="btnToggleGridGuides" class="tpl-icona-bt" title="Mostra guide di colonne e righe sul foglio" aria-pressed="false" aria-label="Mostra guide di colonne e righe sul foglio"><svg class="ico"><use href="#i-table"/></svg></button>
                         </div>
                         <!-- Spaziatura verticale distribuita: per pagina (le pagine foto restano compatte in alto). -->
                         <label class="tpl-spunta" title="Se la pagina non è piena, distribuisce lo spazio vuoto in mezzo alle righe invece di lasciarlo tutto sopra al piè di pagina">
@@ -162,7 +162,7 @@
                              maniglie sul foglio (sincronizzaControlliMarginiSidebar). -->
                         <div class="tpl-sottotitolo tpl-sottotitolo-riga">
                             <span>Margini <small>(cm)</small></span>
-                            <button type="button" id="btnResetMarginiTemplate" class="tpl-icona-bt" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)"><svg class="ico"><use href="#i-undo"/></svg></button>
+                            <button type="button" id="btnResetMarginiTemplate" class="tpl-icona-bt" title="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)" aria-label="Ripristina i margini predefiniti dell'app (1,4 cm sopra e sotto, 1,2 cm ai lati)"><svg class="ico"><use href="#i-undo"/></svg></button>
                         </div>
                         <div class="margini-preimpostati" id="marginiPreimpostati">
                             <button type="button" data-margini-preset="normale" title="Superiore 2,5 · Inferiore 2 · Sinistro 2 · Destro 2 cm">Normale</button>
@@ -286,7 +286,7 @@
                      che su schermi piccoli è scomodo da avviare con precisione col dito. Il tocco su
                      un blocco della palette, quando questo FAB è visibile, chiama
                      inserisciBloccoATocco() invece di avviaTrascinamentoEditor(). -->
-                <button type="button" id="btnTemplateEditorMobileAddBlock" class="tpl-editor-mobile-fab" title="Aggiungi blocco"><svg class="ico"><use href="#i-plus"/></svg></button>
+                <button type="button" id="btnTemplateEditorMobileAddBlock" class="tpl-editor-mobile-fab" title="Aggiungi blocco" aria-label="Aggiungi blocco"><svg class="ico"><use href="#i-plus"/></svg></button>
             </div>
         </div>
 
@@ -309,7 +309,7 @@
                 <span id="lblPageSelectionCount" style="font-size: 11.5px; font-weight: 800; color: var(--accent-ink); flex: 1;">0 pagine selezionate</span>
                 <button type="button" id="btnSelectAllPages" class="btn-action" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); font-weight: 700; font-size: 11.5px; padding: 6px 12px;">Seleziona tutti</button>
                 <button type="button" id="btnDeleteSelectedPages" class="btn-action" style="background: var(--danger); color: var(--on-solid); border: none; font-weight: 700; font-size: 11.5px; display: flex; align-items: center; gap: 5px; padding: 6px 12px;"><svg class="ico" style="width: 13px; height: 13px;"><use href="#i-trash"/></svg> Elimina</button>
-                <button type="button" id="btnCancelPageSelection" class="btn-icon" title="Annulla selezione" style="width: 30px; height: 30px;"><svg class="ico"><use href="#i-x"/></svg></button>
+                <button type="button" id="btnCancelPageSelection" class="btn-icon" title="Annulla selezione" style="width: 30px; height: 30px;" aria-label="Annulla selezione"><svg class="ico"><use href="#i-x"/></svg></button>
             </div>
 
             <!-- Chiudi/Salva ora vivono nella barra del titolo (vedi sopra): questa riga in fondo è
@@ -317,7 +317,7 @@
                  modale invece di doverla condividere con due bottoni che restavano isolati accanto a
                  lei quando le miniature erano espanse a piena altezza. -->
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-shrink: 0;">
-                <button type="button" id="btnToggleTemplatePagesPreview" title="Mostra/nascondi anteprime pagine" style="flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main);"><svg class="ico" id="iconToggleTemplatePagesPreview" style="width: 14px; height: 14px; transition: transform var(--mov-breve) var(--ease-entra);"><use href="#i-chevron-down"/></svg></button>
+                <button type="button" id="btnToggleTemplatePagesPreview" title="Mostra/nascondi anteprime pagine" style="flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main);" aria-label="Mostra/nascondi anteprime pagine"><svg class="ico" id="iconToggleTemplatePagesPreview" style="width: 14px; height: 14px; transition: transform var(--mov-breve) var(--ease-entra);"><use href="#i-chevron-down"/></svg></button>
                 <div id="templateEditorPagesStrip" style="position: relative; display: flex; gap: 8px; align-items: center; overflow-x: auto; flex: 1; min-width: 0;"></div>
             </div>
         </div>
