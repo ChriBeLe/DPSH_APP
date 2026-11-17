@@ -41,3 +41,8 @@
         .ai-azioni button.pri { background: var(--accent); color: var(--on-solid, #fff); border: none; }
         .ai-esito { font-size: 12px; padding: 8px 10px; border-radius: var(--radius-md); }
         .ai-esito.ok { background: var(--accent-soft); } .ai-esito.ko { background: var(--danger-soft); }
+
+        /* Maniglia di trascinamento degli strati (js/007): area larga per il dito, niente scroll della pagina mentre si trascina. */
+        .strato-maniglia { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 32px; margin-left: -4px; color: var(--text-muted); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: var(--radius-sm); }
+        .strato-maniglia:hover { background: var(--bg-card); color: var(--text-main); }
+        .strato-maniglia .ico { width: 16px; height: 16px; }
