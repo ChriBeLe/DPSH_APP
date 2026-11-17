@@ -1663,6 +1663,8 @@
                     selModalLithology.value = state.logs[editingIndex].lithology || '';
                 }
                 updateUI();
+                // (Fase C) Il percorso del Progetto dice quanti strati sono senza nome: si aggiorna.
+                if (typeof renderSchermataProgetto === 'function' && state.uiState && state.uiState.currentView === 'project') renderSchermataProgetto();
             }
 
             const btnOpenStratiHeader = document.getElementById('btnOpenStratiHeader');

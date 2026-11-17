@@ -24,10 +24,13 @@ async function aspetta(cond, ms = 4000) { const fine = Date.now() + ms; while (D
   const tel = await avviaApp(Object.assign({ stato: STATO_V0, idb: telefonoV0() }));
   const pid = tel.E('Object.keys(state.projects)[0]');
   tel.E('openProjectActionsModal(' + JSON.stringify(pid) + ')');
-  t('nel ⋯ del progetto c è «Porta su un altro dispositivo»', /Porta su un altro dispositivo/.test($(tel, 'btnProjActPorta').textContent));
-  clic(tel, $(tel, 'btnProjActPorta'));
-  t('si apre il foglio, e il ⋯ si chiude', aperta(tel, 'modalPortaProgetto') && !aperta(tel, 'modalProjectActions'));
-  t('titolo e nome del progetto', $(tel, 'titoloPortaProgetto').textContent === 'Porta su un altro dispositivo' && $(tel, 'lblPortaProgettoNome').textContent === 'Nardò - Scuola Via Roma');
+  t('(Fase C) nel ⋯ del progetto non ci sono più «Backup» né «Porta su un altro dispositivo»', !$(tel, 'btnProjActBackup') && !$(tel, 'btnProjActPorta'));
+  clic(tel, $(tel, 'btnProjActExport'));
+  await attesa(40);
+  t('la Consegna ha «Porta sul PC» e non ha più «Backup Strutturato (JSON)»', /Porta sul PC/.test($(tel, 'btnOptPortaSulPc').textContent) && !$(tel, 'btnOptExportJSON'));
+  clic(tel, $(tel, 'btnOptPortaSulPc'));
+  t('si apre il foglio, e la Consegna si chiude', aperta(tel, 'modalPortaProgetto') && !aperta(tel, 'modalExportFormats'));
+  t('titolo e nome del progetto', $(tel, 'titoloPortaProgetto').textContent === 'Porta sul PC' && $(tel, 'lblPortaProgettoNome').textContent === 'Nardò - Scuola Via Roma');
   const numeri = [...$(tel, 'portaProgettoNumeri').querySelectorAll('.numero')].map(n => n.querySelector('b').textContent + ' ' + n.querySelector('span').textContent);
   t('quattro numeri: prove, intervalli, foto, strati (con parametri)', numeri.length === 4 && numeri[0] === '4 prove' && /^\d+ intervalli$/.test(numeri[1]) && numeri[2] === '3 foto' && numeri[3] === '3 strati, con parametri');
   t('tre righe con la spunta verde', $(tel, 'modalPortaProgetto').querySelectorAll('.spunta').length === 3 && /copia esatta/.test($(tel, 'modalPortaProgetto').querySelector('.spunta').textContent));
@@ -61,7 +64,7 @@ async function aspetta(cond, ms = 4000) { const fine = Date.now() + ms; while (D
 
   console.log('--- PC: Ricevi in Home ---');
   const pc = await avviaApp(Object.assign({ stato: null }, conNome('PC ufficio')));
-  t('in Home il bottone si chiama «Ricevi»', /Ricevi/.test($(pc, 'btnHomeImportProject').textContent) && !/Importa/.test($(pc, 'btnHomeImportProject').textContent));
+  t('in Home il bottone si chiama «Ricevi un progetto»', $(pc, 'btnHomeImportProject').textContent.trim() === 'Ricevi un progetto' && !/Importa/.test($(pc, 'btnHomeImportProject').textContent));
   t('e accetta ancora .json e .zip', /\.json/.test($(pc, 'fileImportProjectJson').accept) && /\.zip/.test($(pc, 'fileImportProjectJson').accept));
   const file = new pc.w.File([pacchetto], scaricato.nome, { type: 'application/zip' });
   const ricevi = pc.E('handleImportJsonFile')(file);
@@ -77,8 +80,12 @@ async function aspetta(cond, ms = 4000) { const fine = Date.now() + ms; while (D
   clic(pc, $(pc, 'btnRiceviConferma'));
   await aspetta(() => pc.dialogo());
   t('importato: il progetto è sul PC e un messaggio lo dice', pc.E('!!state.projects[' + JSON.stringify(pid) + ']') && pc.dialogo().titolo === 'Progetto ricevuto' && !aperta(pc, 'modalRiceviProgetto'));
-  t('e compare in Home', /Nardò - Scuola Via Roma/.test($(pc, 'homeProjectsContainer') ? $(pc, 'homeProjectsContainer').textContent : pc.d.body.textContent));
+  t('(Fase C) dopo Ricevi il dialogo offre «Apri il progetto»', /Apri il progetto/.test(pc.dialogo().ok.textContent));
   clic(pc, pc.dialogo().ok);
+  await attesa(80);
+  t('(Fase C) e toccandolo il progetto si apre', pc.E('state.currentProjectId') === pid && pc.E('state.uiState.currentView') !== 'home');
+  pc.E('switchView("home")');
+  t('e compare in Home', /Nardò - Scuola Via Roma/.test($(pc, 'homeProjectsContainer') ? $(pc, 'homeProjectsContainer').textContent : pc.d.body.textContent));
 
   console.log('--- Lo stesso pacchetto di nuovo: identico ---');
   pc.E('handleImportJsonFile')(new pc.w.File([pacchetto], scaricato.nome));

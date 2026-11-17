@@ -23,7 +23,7 @@ const titoli = app => [...$(app, 'drawerMenu').querySelectorAll('.drawer-section
   await attesa(80);
 
   t('le sezioni nell\'ordine del prototipo', JSON.stringify(titoli(app)) === JSON.stringify(
-    ['In campo', 'Spazio occupato', 'Copie automatiche', 'Backup Completo Archivio', 'Libreria', 'Aspetto', 'Funzioni Sperimentali', 'Reset']));
+    ['In campo', 'Spazio occupato', 'Copie automatiche', 'Copia di tutti i progetti', 'Libreria', 'Aspetto', 'Funzioni Sperimentali', 'Reset']));
 
   const chk = $(app, 'chkTastoRegistra');
   t('«Tasto Registra» in «In campo», acceso come nella prova', chk.checked && chk.closest('.drawer-section').textContent.includes('In campo'));

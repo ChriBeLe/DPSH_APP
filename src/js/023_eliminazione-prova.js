@@ -8,6 +8,15 @@
             const btnConfirmDeleteSurvey = document.getElementById('btnConfirmDeleteSurvey');
             let pendingDeleteSurveyId = null;
 
+            // (Fase C) Il tasto spento non deve solo sembrarlo: con disabled e aria-disabled lo è anche
+            // per la tastiera (Invio) e per chi usa la lettura dello schermo.
+            function impostaTastoEliminaProva(acceso) {
+                btnConfirmDeleteSurvey.disabled = !acceso;
+                btnConfirmDeleteSurvey.setAttribute('aria-disabled', acceso ? 'false' : 'true');
+                btnConfirmDeleteSurvey.style.opacity = acceso ? '1' : '0.45';
+                btnConfirmDeleteSurvey.style.pointerEvents = acceso ? 'auto' : 'none';
+            }
+
             function openDeleteSurveyModal(survId) {
                 const proj = state.projects && state.projects[state.currentProjectId];
                 if (!proj || !proj.surveys || !proj.surveys[survId]) return;
@@ -32,8 +41,7 @@
                     `${ico('camera')} ${nPhotos} foto associate`;
 
                 txtDeleteSurveyConfirm.value = '';
-                btnConfirmDeleteSurvey.style.opacity = '0.45';
-                btnConfirmDeleteSurvey.style.pointerEvents = 'none';
+                impostaTastoEliminaProva(false);
 
                 modalDeleteSurveyOverlay.classList.add('open');
                 modalDeleteSurvey.classList.add('open');
@@ -49,8 +57,7 @@
             if (txtDeleteSurveyConfirm) {
                 txtDeleteSurveyConfirm.addEventListener('input', (e) => {
                     const ok = e.target.value.trim().toUpperCase() === 'CANCELLA';
-                    btnConfirmDeleteSurvey.style.opacity = ok ? '1' : '0.45';
-                    btnConfirmDeleteSurvey.style.pointerEvents = ok ? 'auto' : 'none';
+                    impostaTastoEliminaProva(ok);
                 });
             }
 

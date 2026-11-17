@@ -55,7 +55,7 @@
                     };
                 }
 
-                throw new Error('Formato non riconosciuto. Seleziona un file JSON esportato da questa app (Progetto o Backup Completo).');
+                throw new Error('Formato non riconosciuto. Seleziona un file JSON esportato da questa app (un progetto o la copia di tutti i progetti).');
             }
 
             // Unisce i progetti importati nell'archivio corrente. In caso di ID già esistente (stesso
@@ -316,14 +316,6 @@
                 });
             }
 
-            if (btnOptExportJSON) {
-                btnOptExportJSON.addEventListener('click', async () => {
-                    closeExportModal();
-                    if (exportModalContext.type === 'project') {
-                        await exportProjectJSON(exportModalContext.id);
-                    } else {
-                        await exportSingleJSON();
-                    }
-                });
-            }
+            // (Fase C) Il tasto «Backup Strutturato (JSON)» non c'è più nella Consegna: il JSON si
+            // sceglie da «Altri formati» dentro la finestra «Porta sul PC».
 

@@ -101,16 +101,6 @@
                 document.getElementById('btnCreaPacchetto').addEventListener('click', creaEScaricaPacchetto);
                 document.getElementById('btnCambiaNomeDispositivo').addEventListener('click', cambiaNomeDispositivo);
             }
-            const btnProjActPorta = document.getElementById('btnProjActPorta');
-            if (btnProjActPorta) {
-                btnProjActPorta.addEventListener('click', () => {
-                    if (!projectActionsContext) return;
-                    const { projId } = projectActionsContext;
-                    closeProjectActionsModal();
-                    apriPortaProgetto(projId);
-                });
-            }
-
             // Fase C: l'unica porta telefono→PC sta nella Consegna. Vale sempre per tutto il progetto,
             // anche quando la Consegna è aperta dalla singola prova.
             const btnOptPortaSulPc = document.getElementById('btnOptPortaSulPc');

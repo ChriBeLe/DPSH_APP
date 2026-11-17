@@ -100,7 +100,6 @@
             const btnOptExportCompleteWord = document.getElementById('btnOptExportCompleteWord');
             const btnOptExportKML = document.getElementById('btnOptExportKML');
             const btnOptExportPhotos = document.getElementById('btnOptExportPhotos');
-            const btnOptExportJSON = document.getElementById('btnOptExportJSON');
 
             let exportModalContext = { type: 'project', id: null };
 
