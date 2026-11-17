@@ -1,8 +1,8 @@
 
     <!-- MODAL FLUTTUANTE FOTO PROVA -->
     <div class="modal-overlay" id="modalSurveyPhotosOverlay"></div>
-    <div class="modal" id="modalSurveyPhotos" style="max-width: 500px; max-height: 88vh; display: flex; flex-direction: column;">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+    <div class="modal" id="modalSurveyPhotos" role="dialog" aria-modal="true" aria-labelledby="modalSurveyPhotosTitolo" style="max-width: 500px; max-height: 88vh; display: flex; flex-direction: column;">
+        <div class="modal-title" id="modalSurveyPhotosTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span><svg class="ico"><use href="#i-camera"/></svg> Foto della prova (<span id="lblPhotoCount">0</span>)</span>
             <button type="button" class="chiudi-x" id="btnClosePhotosModalX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>

@@ -730,7 +730,7 @@ console.log('--- La barra del compositore: allineata e compatta ---');
   t('ma non sotto il dito su mobile, dove tornano a 30',
      /@media \(max-width: 640px\) \{[\s\S]{0,200}#composizioneBarra \.note-tb-btn \{ height: 30px;/.test(src));
   t('le note esplicative hanno una classe loro, piccola',
-     /#composizioneBarra \.comp-nota \{ font-size: 9\.5px;/.test(src));
+     /#composizioneBarra \.comp-nota \{ font-size: var\(--fs-didascalia\);/.test(src));
   t('e sono davvero usate, invece di stili ripetuti a mano',
      (src.match(/class="comp-nota"/g) || []).length >= 6);
   t('nessuna nota lunga e rimasta con lo stile scritto in linea',

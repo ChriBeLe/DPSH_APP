@@ -4,15 +4,15 @@
          singola prova e da tempo vivono altrove (vedi i commenti 1-3 qui sotto): il nome
          prometteva cose che qui dentro non ci sono più. -->
     <div class="drawer-overlay" id="drawerOverlay"></div>
-    <div class="drawer" id="drawerMenu">
+    <div class="drawer" id="drawerMenu" role="dialog" aria-modal="true" aria-labelledby="drawerMenuTitolo">
         <div class="drawer-header">
-            <div class="drawer-title" style="display: flex; align-items: center; gap: 9px;">
+            <div class="drawer-title" id="drawerMenuTitolo" style="display: flex; align-items: center; gap: 9px;">
                 <div style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <svg class="ico" style="color: var(--accent-ink);"><use href="#i-settings"/></svg>
                 </div>
                 Impostazioni
             </div>
-            <button class="btn-icon btn-icon-sm" id="btnCloseDrawer"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon btn-icon-sm" id="btnCloseDrawer" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div class="drawer-body">
             

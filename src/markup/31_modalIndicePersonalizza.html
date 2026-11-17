@@ -17,8 +17,8 @@
          (buildIndiceReportCompletoHtml) con righe finte — nessuna seconda implementazione dello
          stile che potrebbe disallinearsi da quella reale. -->
     <div class="modal-overlay tier-editor" id="modalIndicePersonalizzaOverlay"></div>
-    <div class="modal tier-editor" id="modalIndicePersonalizza" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+    <div class="modal tier-editor" id="modalIndicePersonalizza" role="dialog" aria-modal="true" aria-labelledby="modalIndicePersonalizzaTitolo" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
+        <div class="modal-title" id="modalIndicePersonalizzaTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
             <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
                 <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <svg class="ico" style="color: var(--accent-ink);"><use href="#i-list"/></svg>
@@ -28,7 +28,7 @@
             <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                 <button class="btn-action" id="btnIndicePersSalva" style="height: 32px; padding: 0 12px; font-size: 11.5px; background: var(--accent); color: var(--on-accent); font-weight: 800;">Salva</button>
                 <span style="width: 1px; height: 20px; background: var(--border); margin: 0 2px;"></span>
-                <button class="btn-icon" id="btnCloseIndicePersonalizzaX" title="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+                <button class="btn-icon" id="btnCloseIndicePersonalizzaX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
             </span>
         </div>
 

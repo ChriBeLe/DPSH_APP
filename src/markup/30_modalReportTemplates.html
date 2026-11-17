@@ -4,8 +4,8 @@
          crea una copia con nome proprio ma contenuto identico (stesso layout storico) — la
          possibilità di ridisporre/ridimensionare i blocchi arriva con l'editor a griglia. -->
     <div class="modal-overlay" id="modalReportTemplatesOverlay"></div>
-    <div class="modal" id="modalReportTemplates" style="max-width: 460px;">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+    <div class="modal" id="modalReportTemplates" role="dialog" aria-modal="true" aria-labelledby="modalReportTemplatesTitolo" style="max-width: 460px;">
+        <div class="modal-title" id="modalReportTemplatesTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
                 <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <svg class="ico" style="color: var(--accent-ink);"><use href="#i-stack"/></svg>
@@ -34,8 +34,8 @@
         </div>
         <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <span style="display: flex; gap: 8px;">
-                <button type="button" class="btn-icon" id="btnExportReportTemplates" title="Esporta i template personalizzati in un file di backup"><svg class="ico"><use href="#i-download"/></svg></button>
-                <button type="button" class="btn-icon" id="btnImportReportTemplates" title="Importa template da un file di backup"><svg class="ico"><use href="#i-upload"/></svg></button>
+                <button type="button" class="btn-icon" id="btnExportReportTemplates" title="Esporta i template personalizzati in un file di backup" aria-label="Esporta i template personalizzati in un file di backup"><svg class="ico"><use href="#i-download"/></svg></button>
+                <button type="button" class="btn-icon" id="btnImportReportTemplates" title="Importa template da un file di backup" aria-label="Importa template da un file di backup"><svg class="ico"><use href="#i-upload"/></svg></button>
                 <input type="file" id="inputImportReportTemplates" accept="application/json,.json" style="display:none;">
             </span>
             <!-- (Fase 3) Niente «Chiudi»: c'è già la X in alto. -->
