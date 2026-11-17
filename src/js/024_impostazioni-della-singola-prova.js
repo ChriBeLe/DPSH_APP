@@ -669,11 +669,12 @@
                 openConfirmDeleteModal(projId, cardElem);
             }
 
-            function performDeleteProject(projId, cardElem) {
+            async function performDeleteProject(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
                 const projName = proj.name || proj.comune || 'Cantiere';
-                copiaPrimaDi(`eliminare il progetto «${projName}»`);
+                if (!await copiaOChiedi(`eliminare il progetto «${projName}»`)) return;
+                if (state.projects[projId] !== proj) return; // già eliminato o cambiato nel frattempo
 
                 // Animazione di riduzione e dissolvenza della card prima dell'eliminazione
                 if (cardElem) {

@@ -361,7 +361,10 @@
                     attrs.style = `width: ${opts.width || 32}px; height: ${opts.height || 32}px;`;
                 }
                 noteImageMemoryCache[imgId] = dataUrl;
-                try { saveNoteImageToIDB(imgId, dataUrl); } catch (e) { ignoraErrore('inserisciImmagineDataUrlNellaNota', e); }
+                // Scrittura attesa: se non riesce l'immagine esiste solo in memoria e sparirebbe al riavvio.
+                saveNoteImageToIDB(imgId, dataUrl).then(ok => {
+                    if (ok !== true) avvisaFotoNonSalvate([{ id: imgId, dataUrl, nome: `Immagine_nota_${imgId}` }]);
+                }).catch(e => ignoraErrore('inserisciImmagineDataUrlNellaNota', e));
                 editorNote.chain().focus().insertContent({ type: 'image', attrs }).run();
                 dopoComandoTesto(true);
             }

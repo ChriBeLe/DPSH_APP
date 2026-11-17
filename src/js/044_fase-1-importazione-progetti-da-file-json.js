@@ -216,20 +216,37 @@
              * segnapostoFoto). Scriverlo in IndexedDB avrebbe sostituito con un testo senza senso la
              * foto vera con lo stesso id, se c'era sul telefono. Quel segnaposto si toglie e si conta:
              * chi importa deve sapere che nel file quelle foto non ci sono.
-             * Ritorna { ripristinate, assenti }. */
+             *
+             * Niente di ciò che c'è già su questo dispositivo viene sovrascritto (stessa regola del
+             * pacchetto di progetto, 044b): con lo stesso id e gli stessi byte non si scrive nulla; con lo
+             * stesso id e byte diversi (per esempio una foto ritagliata dopo il backup) quella di qui resta
+             * e quella in arrivo prende un id nuovo, aggiornato nel progetto importato. Il controllo legge
+             * IndexedDB, quindi è asincrono: il progetto entra subito con gli id del file e gli id che
+             * cambiano si correggono a scrittura finita (controllaFotoImportate salva di nuovo).
+             * Ritorna { ripristinate, assenti, conclusione }: `ripristinate` sono le immagini da
+             * scrivere, `conclusione` è una promessa con { ripristinate, fallite } a cose fatte, dove
+             * contano solo quelle riuscite davvero. */
             function salvaImmaginiImportate(incoming, promesseFoto) {
-                let ripristinate = 0, assenti = 0;
+                let daScrivere = 0, assenti = 0;
+                const proprie = [];
+                const lancia = (archivio, id, dataUrl, nome, cambiaId) => {
+                    // Una alla volta, in coda: due immagini con lo stesso id nello stesso file non devono
+                    // controllare «c'è già?» nello stesso istante e scriversi addosso.
+                    const coda = promesseFoto._coda || Promise.resolve();
+                    const p = coda.then(() => scriviImmagineImportataSenzaSovrascrivere(archivio, id, dataUrl, nome, (nuovoId) => {
+                        cambiaId(nuovoId);
+                        promesseFoto.rinominate = (promesseFoto.rinominate || 0) + 1;
+                    }));
+                    promesseFoto._coda = p.catch(() => {});
+                    promesseFoto.push(p);
+                    proprie.push(p);
+                    daScrivere++;
+                };
                 Object.values((incoming && incoming.surveys) || {}).forEach(surv => {
                     (surv && surv.photos || []).forEach(p => {
                         if (!p || !p.id) return;
                         if (typeof p.dataUrl === 'string' && p.dataUrl.indexOf('data:') === 0) {
-                            photoMemoryCache[p.id] = p.dataUrl;
-                            promesseFoto.push(
-                                salvaFotoConGaranzia(p.id, p.dataUrl)
-                                    .then(ok => ok ? null : { id: p.id, dataUrl: p.dataUrl, nome: p.name || `Foto_${p.id}` })
-                                    .catch(() => ({ id: p.id, dataUrl: p.dataUrl, nome: p.name || `Foto_${p.id}` }))
-                            );
-                            ripristinate++;
+                            lancia('photos', p.id, p.dataUrl, p.name || `Foto_${p.id}`, (nuovoId) => { p.id = nuovoId; });
                         } else if (p.dataUrl !== undefined) {
                             delete p.dataUrl;
                             assenti++;
@@ -241,24 +258,76 @@
                 // le contiene già come dataUrl (rehydrateProjectPhotosForExport le reincorpora
                 // in esportazione), quindi basta rimandarle su IndexedDB con lo stesso id.
                 // Anche la nota com'era prima del nuovo motore (htmlPrimaDelMotore): fino alla Fase 1
-                // le sue immagini non viaggiavano.
+                // le sue immagini non viaggiavano. La stessa immagine citata da entrambe le copie si
+                // scrive una volta sola.
+                const notaImmagini = new Map();
                 ['html', 'htmlPrimaDelMotore'].forEach(campo => {
                     const html = incoming && incoming.notes && incoming.notes[campo];
-                    if (!html || html.indexOf('data-note-img-id') === -1) return;
+                    if (typeof html !== 'string' || html.indexOf('data-note-img-id') === -1) return;
                     try {
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         doc.querySelectorAll('img[data-note-img-id]').forEach(img => {
                             const id = img.getAttribute('data-note-img-id');
                             const src = img.getAttribute('src');
-                            if (id && src && src.indexOf('data:') === 0) {
-                                try { saveNoteImageToIDB(id, src); } catch (idbErr) { ignoraErrore('salvaImmaginiImportate', idbErr); }
-                                noteImageMemoryCache[id] = src;
-                                ripristinate++;
-                            }
+                            if (id && src && src.indexOf('data:') === 0 && !notaImmagini.has(id)) notaImmagini.set(id, src);
                         });
                     } catch (e) { ignoraErrore('salvaImmaginiImportate', e); }
                 });
-                return { ripristinate, assenti };
+                notaImmagini.forEach((src, id) => {
+                    lancia('noteImages', id, src, `Immagine_nota_${id}`, (nuovoId) => {
+                        ['html', 'htmlPrimaDelMotore'].forEach(campo => {
+                            const h = incoming.notes[campo];
+                            if (typeof h === 'string') incoming.notes[campo] = h.split(`data-note-img-id="${id}"`).join(`data-note-img-id="${nuovoId}"`);
+                        });
+                    });
+                });
+                const conclusione = Promise.all(proprie).then(esiti => {
+                    const fallite = esiti.filter(Boolean);
+                    return { ripristinate: esiti.length - fallite.length, fallite };
+                });
+                return { ripristinate: daScrivere, assenti, conclusione };
+            }
+
+            /** Scrive UNA immagine importata (archivio 'photos' o 'noteImages') senza toccare quella che
+             * ha già lo stesso id su questo dispositivo con byte diversi: in quel caso scrive la nuova
+             * sotto un id nuovo e chiama cambiaId(nuovoId) perché il progetto importato punti lì.
+             * Ritorna null se l'immagine è al sicuro, altrimenti { id, dataUrl, nome } (il formato che
+             * avvisaFotoNonSalvate sa mostrare). Non lancia mai. */
+            async function scriviImmagineImportataSenzaSovrascrivere(archivio, id, dataUrl, nome, cambiaId) {
+                const fallita = (idQui) => ({ id: idQui, dataUrl, nome });
+                const eFoto = archivio === 'photos';
+                try {
+                    const valida = (v) => typeof v === 'string' && v.indexOf('data:') === 0 && v.indexOf(',') > 0;
+                    const inMemoria = (eFoto ? photoMemoryCache : noteImageMemoryCache)[id];
+                    const suDisco = eFoto ? await getPhotoFromIDB(id) : await getNoteImageFromIDB(id);
+                    const uguale = async (altra) => {
+                        if (altra === dataUrl) return true;
+                        try { return await sha256Async(byteDaDataUrl(altra)) === await sha256Async(byteDaDataUrl(dataUrl)); } catch (e) { return false; }
+                    };
+                    let diversa = false;
+                    for (const altra of [suDisco, inMemoria]) {
+                        if (valida(altra) && !(await uguale(altra))) { diversa = true; break; }
+                    }
+                    if (!diversa && valida(suDisco)) return null; // già qui, stessi byte: niente da scrivere
+                    let idQui = id;
+                    if (diversa) {
+                        // Stesso schema del pacchetto (044b): la foto di qui resta, quella in arrivo diventa «_r…».
+                        idQui = `${id}_r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+                    }
+                    let ok;
+                    if (eFoto) {
+                        ok = await salvaFotoConGaranzia(idQui, dataUrl);
+                    } else {
+                        ok = (await saveNoteImageToIDB(idQui, dataUrl)) === true && (await getNoteImageFromIDB(idQui)) === dataUrl;
+                        if (ok) noteImageMemoryCache[idQui] = dataUrl;
+                    }
+                    if (!ok) return fallita(idQui);
+                    if (idQui !== id) cambiaId(idQui);
+                    return null;
+                } catch (e) {
+                    ignoraErrore('scriviImmagineImportataSenzaSovrascrivere', e);
+                    return fallita(id);
+                }
             }
 
             /** Controllo dell'esito di TUTTE le scritture delle foto importate, senza bloccare il
@@ -268,6 +337,9 @@
             function controllaFotoImportate(promesseFoto) {
                 if (promesseFoto.length === 0) return;
                 Promise.all(promesseFoto).then(esiti => {
+                    // Foto con lo stesso id ma byte diversi da quelle di qui: nel progetto importato l'id è
+                    // cambiato a scrittura finita, quindi si salva di nuovo.
+                    if (promesseFoto.rinominate) { saveState(); if (typeof renderHomeProjects === 'function') renderHomeProjects(); }
                     const fallite = esiti.filter(Boolean);
                     if (fallite.length > 0) avvisaFotoNonSalvate(fallite);
                 }).catch(e => console.warn('Controllo foto importate fallito:', e));

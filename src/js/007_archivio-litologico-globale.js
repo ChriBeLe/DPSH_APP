@@ -576,7 +576,8 @@
                         const ok = await appConfirmDelete(`Eliminare lo strato "${state.strati[i].name}"? Potrai comunque annullare entro 10 secondi dopo la conferma.`);
                         if (!ok) return;
                         if (!state.strati[i]) return;
-                        copiaPrimaDi(`eliminare lo strato «${state.strati[i].name}»`);
+                        if (!await copiaOChiedi(`eliminare lo strato «${state.strati[i].name}»`)) return;
+                        if (!state.strati[i]) return;
                         const deletedId = state.strati[i].id;
                         const backupStrato = JSON.parse(JSON.stringify(state.strati[i]));
                         // Memorizza quali intervalli erano assegnati a questo strato, per poterli
