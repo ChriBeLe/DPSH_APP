@@ -1411,7 +1411,14 @@ ${contenuto}
 
             // CONFERMA STEP & AVANTI
             // =========================================================================
+            // Guardia contro il doppio tocco (coi guanti capita): un secondo «Registra» entro questo
+            // tempo dal primo è lo stesso gesto e non crea un altro intervallo.
+            const PAUSA_DOPPIO_REGISTRA_MS = 600;
+            let ultimaRegistrazioneMs = -Infinity;
             async function confirmAndNextStep() {
+                const adesso = Date.now();
+                if (adesso - ultimaRegistrazioneMs < PAUSA_DOPPIO_REGISTRA_MS) return;
+                ultimaRegistrazioneMs = adesso;
                 let finalCount = state.currentCount;
 
                 const stepM = state.settings.stepCm / 100;
@@ -1451,6 +1458,12 @@ ${contenuto}
              * contatore e basta registrare di nuovo. */
             function togliUltimoIntervallo() {
                 if (!state.logs || state.logs.length === 0) return null;
+                // Nel contatore ci sono già colpi del prossimo intervallo: riportarci quelli
+                // dell'intervallo tolto li cancellerebbe. Non si tocca niente e lo si dice.
+                if (state.currentCount > 0) {
+                    if (typeof mostraToast === 'function') mostraToast('Non annullato: nel contatore ci sono ' + state.currentCount + ' colpi già contati. Azzerali o registrali, poi annulla l\'intervallo');
+                    return null;
+                }
                 const last = state.logs.pop();
                 state.currentDepthStart = last.start;
                 state.currentCount = last.colpi;
@@ -1481,6 +1494,8 @@ ${contenuto}
                 if (state.logs.length === 0) return;
                 const ok = await appConfirmDelete('Vuoi annullare l\'ultimo intervallo registrato?');
                 if (!ok) return;
+                // Il dialogo era aperto: nel frattempo il contatore può essere cambiato, e
+                // togliUltimoIntervallo lo controlla di nuovo.
                 togliUltimoIntervallo();
             }
 

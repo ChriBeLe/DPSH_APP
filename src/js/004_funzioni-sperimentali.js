@@ -95,6 +95,11 @@
                     } catch (err) { ignoraErrore('requestWakeLock', err); }
                 }
             }
+            // Il browser rilascia il blocco quando la pagina va in secondo piano (altra app, telefono
+            // bloccato): al ritorno lo si richiede, se la preferenza è ancora attiva.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.settings && state.settings.wakeLock) requestWakeLock();
+            });
 
             /** Porta nello stato dell'app i dati salvati, GIÀ migrati alla versione attuale (vedi
              * migraDati, pezzo 004b). Era migrateLegacyState: la conversione dal formato senza
