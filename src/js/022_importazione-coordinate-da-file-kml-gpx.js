@@ -385,14 +385,16 @@
                 const aMano = Array.isArray(proj.ordineProve) && proj.ordineProve.length > 0;
                 $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '') + (aMano ? ' · ordine scelto a mano' : '');
                 // IL PERCORSO (Fase C): lo stato di ogni tappa solo se si calcola in modo affidabile
-                // dai dati che ci sono; altrimenti resta il nome. Parametri e Consegna non hanno uno
-                // stato certo (dipende dalla prova e dalle scelte fatte), quindi niente numeri finti.
+                // dai dati che ci sono; altrimenti resta il nome. Parametri conta gli strati con tutte le scelte fatte
+                // (riepilogoParametriProgetto); la Consegna non ha uno stato certo, quindi niente numeri finti.
                 $('lblTappaProve').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '');
                 const riepStrati = typeof riepilogoStratiProgetto === 'function' ? riepilogoStratiProgetto() : null;
                 $('lblTappaStrati').textContent = riepStrati && riepStrati.totale ? `${riepStrati.totale} · ${riepStrati.senzaNome ? riepStrati.senzaNome + ' senza nome' : 'tutti con il nome'}` : '';
-                const tplReport = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
-                $('lblTappaReport').textContent = tplReport && tplReport.name ? tplReport.name : '';
-                $('lblTappaParametri').textContent = '';
+                // ④ Report: lo stato è quello della scaletta («7 sezioni · Classico»), calcolato dalle stesse proprietà dell'esportazione.
+                $('lblTappaReport').textContent = typeof riepilogoScalettaReport === 'function' ? riepilogoScalettaReport(proj) : '';
+                const riepPar = typeof riepilogoParametriProgetto === 'function' ? riepilogoParametriProgetto() : null;
+                $('lblTappaParametri').textContent = !riepPar || !riepPar.totale ? (riepPar ? 'nessuno strato' : '')
+                    : riepPar.completi === riepPar.totale ? `${riepPar.totale} · tutti completi` : `${riepPar.completi}/${riepPar.totale} strati completi`;
                 $('lblTappaConsegna').textContent = '';
                 $('btnProgettoOrdina').textContent = ordinandoProve ? 'Fatto' : 'Ordina';
                 $('btnProgettoOrdina').setAttribute('aria-pressed', String(ordinandoProve));
@@ -501,11 +503,13 @@
             });
             // ③ Parametri: la procedura guidata, sul primo strato a cui manca una scelta.
             document.getElementById('btnTappaParametri').addEventListener('click', () => {
-                const manca = typeof primoCampoWizardMancante === 'function' ? primoCampoWizardMancante() : null;
-                apriWizardParametri(manca && state.strati[manca.stratoIdx] ? state.strati[manca.stratoIdx].id : undefined);
+                // Il primo strato incompleto secondo lo stesso conto della tappa (Fase C); con tutti
+                // completi apre dal primo.
+                const riep = typeof riepilogoParametriProgetto === 'function' ? riepilogoParametriProgetto() : null;
+                apriWizardParametri(riep && riep.primoIncompleto ? riep.primoIncompleto : undefined);
             });
-            // ④ Report: la libreria dei template (il modello del report); la Consegna è la tappa ⑤.
-            document.getElementById('btnTappaReport').addEventListener('click', () => openReportTemplatesModal());
+            // ④ Report: la scaletta del documento (Fase C); da lì «Modifica template» apre la libreria, la Consegna è la tappa ⑤.
+            document.getElementById('btnTappaReport').addEventListener('click', () => apriScalettaReport());
             document.getElementById('btnProgettoNote').addEventListener('click', () => apriNoteProgetto(state.currentProjectId));
             document.getElementById('btnProgettoConsegna').addEventListener('click', () => openExportModal('project', state.currentProjectId));
 

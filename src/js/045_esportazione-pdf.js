@@ -62,6 +62,8 @@
                 // Le interpretazioni alternative partono spente, altrimenti la stessa verticale uscirebbe
                 // due volte nel documento: si accende la versione che si vuole consegnare.
                 esportaPdfSelectedIds = new Set(tutte.filter(s => !(s.header && s.header.interpretazioneDi)).map(s => s.id));
+                // Le prove accese nella scaletta del report (tappa ④, Fase C) sono la selezione di partenza.
+                if (typeof proveAcceseScaletta === 'function') { const ac = new Set(proveAcceseScaletta(proj)); esportaPdfSelectedIds = new Set(tutte.filter(s => ac.has(s.id)).map(s => s.id)); }
                 // Perimetro della Consegna (Fase C): «Questa prova» o le prove scelte nella Consegna
                 // arrivano già spuntate, invece di ripartire sempre da tutto il progetto.
                 if (soloProve && soloProve.size) esportaPdfSelectedIds = new Set(tutte.filter(s => soloProve.has(s.id)).map(s => s.id));

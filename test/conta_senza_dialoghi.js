@@ -1,7 +1,7 @@
 // NIENTE DIALOGHI BLOCCANTI NELLA VISTA CONTA (Fase C, F-15 e F-22).
 //  - le note rapide si applicano al tocco, con toast «Nota «X» su a–b m» e «Annulla»;
 //  - senza intervalli le pillole sono disabilitate e non compare nessun alert;
-//  - «−1» tenuto premuto toglie l'intervallo senza dialogo, con toast e «Annulla: togli intervallo».
+//  - «−1» tenuto premuto toglie l'intervallo senza dialogo e senza «Annulla»: il toast solo informa.
 const fs = require('fs');
 const path = require('path');
 const { avviaApp, attesa, telefonoV0 } = require('./dati/app_in_jsdom');
@@ -51,13 +51,15 @@ const toast = (app) => { const e = app.d.getElementById('toastApp'); return e ? 
 
   console.log('--- «−1» tenuto premuto ---');
   const n = app.E('state.logs.length');
+  const tolto = app.E('testoIntervallo(state.logs[state.logs.length-1].start, state.logs[state.logs.length-1].end)');
   app.E('undoLastStep()');
   await attesa(20);
   t('toglie l\'intervallo senza dialogo', app.E('state.logs.length') === n - 1 && !app.dialogo());
-  t('il toast dice quale e offre «Annulla: togli intervallo»', /^Tolto l'intervallo /.test(toast(app).testo) && toast(app).azione.textContent === 'Annulla: togli intervallo');
+  t('il toast dice quale intervallo è uscito', toast(app) && toast(app).testo === `Tolto l'intervallo ${tolto}`);
+  t('il toast non ha nessuna azione («Annulla» tolto)', toast(app).azione.style.display === 'none' && toast(app).azione.textContent === '');
   clic(app, toast(app).azione);
   await attesa(20);
-  t('l\'azione lo rimette, con la nota', app.E('state.logs.length') === n && app.E('state.logs[state.logs.length-1].note') === 'Ciottoli');
+  t('cliccare il toast non rimette niente', app.E('state.logs.length') === n - 1);
   t('mai un alert', alertChiamato === 0);
 
   app.chiudi();
