@@ -10,10 +10,10 @@
          z-index con l'editor template finiva sotto per ordine nel DOM (segnalato esplicitamente
          come finestra "in underlay", coperta dall'interfaccia). -->
     <div class="modal-overlay tier-editor-top" id="modalTplTextEditorOverlay"></div>
-    <div class="modal tier-editor-top" id="modalTplTextEditor" style="max-height: 92vh; overflow-y: auto; max-width: 560px; display:flex; flex-direction:column;">
-        <div class="modal-title" style="justify-content: space-between;">
+    <div class="modal tier-editor-top" id="modalTplTextEditor" role="dialog" aria-modal="true" aria-labelledby="modalTplTextEditorTitolo" style="max-height: 92vh; overflow-y: auto; max-width: 560px; display:flex; flex-direction:column;">
+        <div class="modal-title" id="modalTplTextEditorTitolo" style="justify-content: space-between;">
             <span><svg class="ico"><use href="#i-edit"/></svg> <span id="lblTplTextEditorTitle">Modifica testo</span></span>
-            <button class="btn-icon" id="btnCloseTplTextEditorX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon" id="btnCloseTplTextEditorX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <!-- LA STESSA BARRA DELLE NOTE, non una piu' povera.
              Segnalato: "nell'editor del testo sono sparite alcune formattazioni che servivano
@@ -58,10 +58,10 @@
                     <button type="button" class="note-tb-btn" id="btnTplAllinea" data-comando-nota="allineamento" title="Allineamento del testo: sinistra, centro, destra, giustificato" aria-label="Allineamento"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left" id="usoTplIconaAllinea"/></svg></button>
                     <div class="note-shape-popover" id="tplAllineaPopover" style="display:none;">
                         <div style="display:flex; align-items:center; gap:3px;">
-                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
-                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="left" title="A sinistra" aria-label="A sinistra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-left"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="center" title="Al centro" aria-label="Al centro"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-center"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="right" title="A destra" aria-label="A destra"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-right"/></svg></button>
+                            <button type="button" class="note-tb-btn" data-allinea="justify" title="Giustificato" aria-label="Giustificato"><svg class="ico" style="width:15px;height:15px;"><use href="#i-align-justify"/></svg></button>
                         </div>
                     </div>
                 </div>

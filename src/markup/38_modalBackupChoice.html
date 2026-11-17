@@ -2,15 +2,15 @@
     <!-- MODAL SCELTA FORMATO BACKUP (JSON vs ZIP) — usata sia per il backup di un singolo
          progetto sia per il backup completo dell'archivio (vedi impostazioni). -->
     <div class="modal-overlay" id="modalBackupChoiceOverlay"></div>
-    <div class="modal" id="modalBackupChoice" style="max-width: 440px;">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+    <div class="modal" id="modalBackupChoice" role="dialog" aria-modal="true" aria-labelledby="modalBackupChoiceTitolo" style="max-width: 440px;">
+        <div class="modal-title" id="modalBackupChoiceTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
                 <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--info-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <svg class="ico" style="color: var(--info);"><use href="#i-download"/></svg>
                 </span>
                 <span id="lblBackupChoiceTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Scegli il formato del backup</span>
             </span>
-            <button class="btn-icon" id="btnCloseBackupChoiceX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon" id="btnCloseBackupChoiceX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px; flex-shrink: 0;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">In entrambi i formati vengono salvate <strong>tutte</strong> le foto, senza perdita di qualità: cambia solo il modo in cui vengono incluse nel file.</div>
         <!-- Controllo dei dati (Fase 1): come nella finestra Esporta. Vedi renderIntegritaPrimaExport. -->

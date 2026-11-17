@@ -1,10 +1,10 @@
 
     <!-- MODAL GESTIONE ARCHIVIO LITOLOGICO GLOBALE (elenco, statistiche, export/import) -->
     <div class="modal-overlay tier-strati-top" id="modalArchiveManagerOverlay"></div>
-    <div class="modal tier-strati-top" id="modalArchiveManager" style="max-height: 88vh; overflow-y: auto; max-width: 480px;">
-        <div class="modal-title" style="justify-content: space-between;">
+    <div class="modal tier-strati-top" id="modalArchiveManager" role="dialog" aria-modal="true" aria-labelledby="modalArchiveManagerTitolo" style="max-height: 88vh; overflow-y: auto; max-width: 480px;">
+        <div class="modal-title" id="modalArchiveManagerTitolo" style="justify-content: space-between;">
             <span><svg class="ico"><use href="#i-database"/></svg> Archivio Litologico Globale</span>
-            <button class="btn-icon" id="btnCloseArchiveManagerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon" id="btnCloseArchiveManagerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div style="font-size: 11px; color: var(--text-muted); background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--purple); margin-bottom: 14px; line-height: 1.4;">
             <svg class="ico"><use href="#i-info"/></svg> Voci comuni a tutti i progetti del software. Le statistiche sono calcolate in tempo reale su tutto l'archivio prove.

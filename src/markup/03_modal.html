@@ -1,15 +1,15 @@
 
     <!-- MODAL EDITING COMPLETO SINGOLO STEP -->
     <div class="modal-overlay" id="modalOverlay"></div>
-    <div class="modal" id="modalEditStep">
+    <div class="modal" id="modalEditStep" role="dialog" aria-modal="true" aria-labelledby="modalEditStepTitolo">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px;">
-            <div class="modal-title" style="margin-bottom: 0;"><svg class="ico"><use href="#i-edit"/></svg> Modifica Intervallo</div>
-            <button class="btn-icon" id="btnCloseEditModalX" title="Chiudi" style="flex: 0 0 auto; background: transparent; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <div class="modal-title" id="modalEditStepTitolo" style="margin-bottom: 0;"><svg class="ico"><use href="#i-edit"/></svg> Modifica Intervallo</div>
+            <button class="btn-icon" id="btnCloseEditModalX" title="Chiudi" style="flex: 0 0 auto; background: transparent; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         
         <!-- CAMPO PRINCIPALE COLPI (IN PRIMISSIMO PIANO) -->
         <div class="form-group" style="margin-bottom: 12px; text-align: center;">
-            <label style="font-size: 13px; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px;">Numero Colpi (N) *</label>
+            <label for="numModalColpi" style="font-size: 13px; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px;">Numero Colpi (N) *</label>
             <!-- − e + (Fase 6): si corregge un colpo senza aprire la tastiera. -->
             <div class="colpi-passo">
                 <button type="button" class="bt-icona" id="btnModalColpiMeno" aria-label="Un colpo in meno">−</button>
@@ -22,17 +22,17 @@
 
         <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px;">
             <div class="form-group">
-                <label>Profondità Da (m)</label>
+                <label for="numModalStart">Profondità Da (m)</label>
                 <input type="number" id="numModalStart" class="form-control" step="0.01">
             </div>
             <div class="form-group">
-                <label>Profondità A (m)</label>
+                <label for="numModalEnd">Profondità A (m)</label>
                 <input type="number" id="numModalEnd" class="form-control" step="0.01">
             </div>
         </div>
 
         <div class="form-group" style="margin-bottom: 10px;">
-            <label><svg class="ico"><use href="#i-layers"/></svg> Strato Litologico (Ereditario per step successivi)</label>
+            <label for="selModalLithology"><svg class="ico"><use href="#i-layers"/></svg> Strato Litologico (Ereditario per step successivi)</label>
             <div style="display: flex; gap: 6px; align-items: center;">
                 <select id="selModalLithology" class="form-control" style="flex: 1;"></select>
                 <button class="btn-action" id="btnManageStrati" title="Gestisci Strati" style="padding: 8px 12px; white-space: nowrap; font-size: 13px;"><svg class="ico"><use href="#i-settings"/></svg> Strati</button>
@@ -40,7 +40,7 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 12px;">
-            <label>Note / Eventi Intervallo</label>
+            <label for="txtModalNote">Note / Eventi Intervallo</label>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
                 <button class="btn-tag btn-modal-tag" data-note="Ciottoli"><svg class="ico"><use href="#i-layers"/></svg> Ciottoli</button>
                 <button class="btn-tag btn-modal-tag" data-note="Cavità"><svg class="ico"><use href="#i-alert"/></svg> Cavità</button>

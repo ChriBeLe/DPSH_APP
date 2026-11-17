@@ -1,10 +1,10 @@
 
     <!-- MODAL FINESTRA FLUTTUANTE RILEVAMENTO / MODIFICA GPS -->
     <div class="modal-overlay" id="modalGpsOverlay"></div>
-    <div class="modal" id="modalGpsSettings" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-        <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="modal" id="modalGpsSettings" role="dialog" aria-modal="true" aria-labelledby="modalGpsSettingsTitolo" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+        <div class="modal-title" id="modalGpsSettingsTitolo" style="display:flex; justify-content:space-between; align-items:center;">
             <span><svg class="ico"><use href="#i-pin"/></svg> Posizione GPS Cantiere</span>
-            <button class="btn-action" id="btnCloseGpsModalX" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:${padV} 6px;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-action" id="btnCloseGpsModalX" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:${padV} 6px;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
 
         <!-- STATO SEMPRE VISIBILE: qualunque metodo venga usato qui sotto, questo badge resta
@@ -93,11 +93,11 @@
                 <div class="gps-accordion-body-inner">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
                         <div class="form-group">
-                            <label style="font-size: 11px;">Latitudine (°)</label>
+                            <label for="numModalGpsLat" style="font-size: 11px;">Latitudine (°)</label>
                             <input type="number" step="0.000001" id="numModalGpsLat" class="form-control" placeholder="es. 41.845912">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 11px;">Longitudine (°)</label>
+                            <label for="numModalGpsLng" style="font-size: 11px;">Longitudine (°)</label>
                             <input type="number" step="0.000001" id="numModalGpsLng" class="form-control" placeholder="es. 12.562424">
                         </div>
                     </div>
