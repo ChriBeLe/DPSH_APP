@@ -149,7 +149,7 @@ console.log('--- Il pannello ---');
   // (nessun bordo) e per le variabili dello stile (corpo e carattere di serie invece dei
   // tuoi). Un titolo che si legge come il testo attorno non e' piu' un titolo.
   t('IL PESO DEI TITOLI e un dato dello stile, non una riga di CSS sepolta',
-     /pesoTitoli: 700/.test(codice) && /--tpl-peso-titoli:\$\{st\.pesoTitoli \|\| 700\}/.test(codice));
+     /pesoTitoli: 700/.test(codice) && /--tpl-peso-titoli:\$\{n\(st\.pesoTitoli \|\| 700, 700, 100, 900\)\}/.test(codice));
   t('la regola del foglio lo legge', /font-weight: var\(--tpl-peso-titoli, 700\); color: #0f172a/.test(codice));
   // IL NUMERO, non var(--tpl-peso-titoli): una variabile CSS si risolve solo se qualcuno
   // l'ha definita sopra, e basta un contenitore fuori dalla catena — il Word, una miniatura

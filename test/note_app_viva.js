@@ -18,7 +18,10 @@ const stato = { projects: {
 const dom=new JSDOM(src,{runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc,url:'https://locale.test/',
   beforeParse(w){
     w.localStorage.setItem('dpsh_app_state', JSON.stringify(stato));
-    w.indexedDB={open(){const r={};setTimeout(()=>{r.onerror&&r.onerror({target:{error:new Error('no idb')}});},0);return r;}};
+    // Archivio finto ma funzionante: il ritaglio ora attende l'esito della scrittura e, se
+    // l'archivio la rifiuta, NON cambia l'immagine (giusto cosi). Con l'archivio sempre guasto
+    // non si potrebbe provare il caso buono.
+    w.indexedDB=require('./dati/idb_finto').creaIndexedDB();
     w.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}});
     // Una tela finta che TIENE NOTA di cosa le viene chiesto di dipingere: senza un browser
     // vero e' l'unico modo di sapere se lo sfondo bianco e' stato riempito, dove sono finite
