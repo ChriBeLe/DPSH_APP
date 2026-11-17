@@ -1608,8 +1608,12 @@
                     closeQuickFaldaModal();
                 });
             }
+            let azzeramentoFaldaInCorso = false;
             if (btnQuickFaldaReset) {
                 btnQuickFaldaReset.addEventListener('click', async () => {
+                    if (azzeramentoFaldaInCorso) return;
+                    azzeramentoFaldaInCorso = true;
+                    try {
                     if (!state.header.faldaDa && !state.header.faldaA) {
                         closeQuickFaldaModal();
                         return;
@@ -1638,6 +1642,7 @@
                             updateUI();
                         });
                     }
+                    } finally { azzeramentoFaldaInCorso = false; }
                 });
             }
 

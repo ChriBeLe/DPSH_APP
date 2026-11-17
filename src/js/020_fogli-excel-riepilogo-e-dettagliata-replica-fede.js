@@ -888,7 +888,15 @@ ${contenuto}
             }
 
             // ELIMINAZIONE INTERVALLO (PRESERVA PROFONDITA E ASTE DEGLI ALTRI STEP)
+            // Una sola eliminazione alla volta: mentre la copia o la conferma sono in corso, un secondo
+            // tocco sullo stesso indice cancellerebbe l'intervallo successivo.
+            let eliminazioneIntervalloInCorso = false;
             async function deleteLogStep(idx) {
+                if (eliminazioneIntervalloInCorso) return;
+                eliminazioneIntervalloInCorso = true;
+                try { await deleteLogStepInterno(idx); } finally { eliminazioneIntervalloInCorso = false; }
+            }
+            async function deleteLogStepInterno(idx) {
                 if (idx < 0 || idx >= state.logs.length) return;
                 // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
                 // dell'editor). In più resta la copia automatica.

@@ -74,6 +74,15 @@ const pericolosi = (app, ...ids) => ids.length ? ids.reduce((n, id) => n + app.d
     await attesa(200);
     t('accettando, l intervallo viene eliminato', E('state.logs.length') === 1);
 
+    // Doppio tocco mentre la conferma è aperta: un solo intervallo eliminato.
+    E(`state.logs = [{ start: 0, end: 0.2, colpi: 5, asta: 1 }, { start: 0.2, end: 0.4, colpi: 7, asta: 1 }, { start: 0.4, end: 0.6, colpi: 9, asta: 1 }]; saveState()`);
+    const p1 = E('deleteLogStep(0)'); const p2 = E('deleteLogStep(0)');
+    await attesa(400);
+    clic(app, app.dialogo() && app.dialogo().ok);
+    await Promise.all([p1, p2]);
+    await attesa(200);
+    t('due eliminazioni ravvicinate: un solo intervallo eliminato', E('state.logs.length') === 2 && E('state.logs[0].colpi') === 7);
+
     console.log('--- Azzera falda: copia che fallisce ---');
     const bottone = app.d.getElementById('btnQuickFaldaReset');
     t('(il bottone c è)', !!bottone);
