@@ -3,9 +3,8 @@
 // Un cantiere «Rossi & Figli <srl> "Ø"» e due prove con lo stesso numero «1/A» non devono
 // rompere i file consegnati: il KML resta XML valido col testo originale, il report mostra il
 // testo letterale (non lo interpreta come tag), l'Excel ha fogli con nomi validi e distinti.
-// SheetJS (XLSX) arriva da CDN e nei test non c'è: qui un finto XLSX applica le STESSE regole di
-// SheetJS sui nomi dei fogli (caratteri vietati, 31 caratteri, doppioni senza maiuscole), così
-// il test fallisce dove fallirebbe l'export vero.
+// Dalla revisione 2026-11 SheetJS è dentro il file: l'export usa la libreria vera, che rifiuta
+// da sola i nomi di foglio non validi o doppi. Si intercetta solo la scrittura su disco.
 const { avviaApp } = require('./dati/app_in_jsdom');
 
 let ok = 0, ko = 0;
@@ -22,23 +21,9 @@ const progetto = {
 
 (async () => {
   const fogliCreati = [];
-  const app = await avviaApp({
-    stato: null,
-    primaDellApp(w) {
-      w.XLSX = {
-        utils: {
-          book_new: () => ({ nomi: [] }),
-          aoa_to_sheet: (a) => ({ a }),
-          book_append_sheet: (wb, ws, nome) => {
-            if (!nome || nome.length > 31 || /[\\/?*\[\]:]/.test(nome) || /^'|'$/.test(nome)) throw new Error('Nome foglio non valido: ' + nome);
-            if (wb.nomi.some(n => n.toLowerCase() === nome.toLowerCase())) throw new Error('Nome foglio doppio: ' + nome);
-            wb.nomi.push(nome);
-          }
-        },
-        writeFile: (wb) => { fogliCreati.push(...wb.nomi); }
-      };
-    }
-  });
+  const app = await avviaApp({ stato: null });
+  t('SheetJS vero è nel file', !!(app.w.XLSX && app.w.XLSX.utils && app.w.XLSX.version));
+  app.w.XLSX.writeFile = (wb) => { fogliCreati.push(...wb.SheetNames); };
   const E = (s) => app.E(s);
   E(`state.projects['proj_1'] = ${JSON.stringify(progetto)}; 0`);
 
