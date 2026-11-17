@@ -23,6 +23,19 @@
                     points.push({ name: (nameEl && nameEl.textContent.trim()) || `Punto ${points.length + 1}`, lat, lng });
                 });
 
+                // KML senza punti: primo vertice di linee e poligoni (percorsi, aree)
+                if (points.length === 0) {
+                    xml.querySelectorAll('Placemark').forEach(pm => {
+                        const coordEl = pm.querySelector('LineString coordinates, LinearRing coordinates');
+                        if (!coordEl || !coordEl.textContent) return;
+                        const parts = coordEl.textContent.trim().split(/\s+/)[0].split(',');
+                        const lng = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+                        if (isNaN(lat) || isNaN(lng)) return;
+                        const nameEl = pm.querySelector('name');
+                        points.push({ name: ((nameEl && nameEl.textContent.trim()) || `Elemento ${points.length + 1}`) + ' (inizio)', lat, lng });
+                    });
+                }
+
                 // GPX: waypoint singoli, il caso tipico per "un punto salvato"
                 if (points.length === 0) {
                     xml.querySelectorAll('wpt').forEach(pt => {
@@ -47,6 +60,39 @@
                 }
 
                 return points;
+            }
+
+            // KMZ = archivio ZIP con dentro un KML (di solito doc.kml). Lettura offline con il
+            // decompressore del browser (DecompressionStream): niente librerie, niente rete.
+            async function leggiTestoKmz(file) {
+                const buf = new Uint8Array(await file.arrayBuffer());
+                const dv = new DataView(buf.buffer);
+                let eocd = -1;
+                for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+                    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+                }
+                if (eocd < 0) throw new Error('Il file KMZ non è un archivio valido.');
+                const n = dv.getUint16(eocd + 10, true);
+                let p = dv.getUint32(eocd + 16, true);
+                const voci = [];
+                for (let k = 0; k < n && dv.getUint32(p, true) === 0x02014b50; k++) {
+                    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+                    voci.push({
+                        metodo: dv.getUint16(p + 10, true), csize: dv.getUint32(p + 20, true),
+                        off: dv.getUint32(p + 42, true),
+                        nome: new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nl))
+                    });
+                    p += 46 + nl + el + cl;
+                }
+                const kmls = voci.filter(v => /\.kml$/i.test(v.nome));
+                const v = kmls.find(x => /(^|\/)doc\.kml$/i.test(x.nome)) || kmls[0];
+                if (!v) throw new Error('Nel KMZ non c\'è nessun file KML.');
+                const lh = v.off, start = lh + 30 + dv.getUint16(lh + 26, true) + dv.getUint16(lh + 28, true);
+                const dati = buf.subarray(start, start + v.csize);
+                if (v.metodo === 0) return new TextDecoder().decode(dati);
+                if (v.metodo !== 8 || typeof DecompressionStream === 'undefined') throw new Error('Questo dispositivo non riesce ad aprire il KMZ: apri il KMZ sul PC, salvalo come KML e importa quello.');
+                const flusso = new Blob([dati]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                return new TextDecoder().decode(await new Response(flusso).arrayBuffer());
             }
 
             function applyGpsCoordsToModal(lat, lng, sourceLabel) {
@@ -77,10 +123,10 @@
                     if (!file) return;
                     if (gpsKmlImportResults) { gpsKmlImportResults.style.display = 'none'; gpsKmlImportResults.innerHTML = ''; }
                     try {
-                        const text = await file.text();
+                        const text = /\.kmz$/i.test(file.name) ? await leggiTestoKmz(file) : await file.text();
                         const points = parseGeoFileText(text);
                         if (points.length === 0) {
-                            appAlert('Nessuna coordinata trovata in questo file. Sono supportati KML (Placemark/Point) e GPX (waypoint o traccia). I file KMZ (compressi) vanno prima estratti in KML.');
+                            appAlert('Nessuna coordinata trovata in questo file. Sono supportati KML, KMZ e GPX (punti, percorsi, aree).');
                             return;
                         }
                         if (points.length === 1) {
