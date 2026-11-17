@@ -67,6 +67,7 @@ shell/05_tra-motore-e-app.html
 js/000_avvio-stato-e-salvataggio.js
 js/001_fase-3-gps-live-fallback-foto-import-batch.js
 js/002_dialoghi-in-app.js
+js/002a_testo-sicuro-e-dati-in-ingresso.js
 js/003_toggle-tema-sole-luna.js
 js/004_funzioni-sperimentali.js
 js/004a_dati-salvati-lettura-e-quarantena.js
