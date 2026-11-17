@@ -24,8 +24,8 @@
                 if (versione === null) {
                     return { ok: false, motivo: 'illeggibile', dettaglio: 'versione dei dati non valida: ' + JSON.stringify(dati.versioneSchema) };
                 }
-                if (versione > VERSIONE_SCHEMA_DATI) {
-                    return { ok: false, motivo: 'piu-nuovo', versione, dettaglio: `formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_DATI}` };
+                if (versione > VERSIONE_SCHEMA_LETTA) {
+                    return { ok: false, motivo: 'piu-nuovo', versione, dettaglio: `formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_LETTA}` };
                 }
                 return { ok: true, dati, versione };
             }

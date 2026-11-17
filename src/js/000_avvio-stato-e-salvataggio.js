@@ -40,6 +40,9 @@
             //   esito: 'in-corso' | 'ok' | 'vuoto' | 'illeggibile' | 'piu-nuovo' | 'inaccessibile'
             //   bloccato: perché saveState non scrive ('avvio', 'dati-non-letti', 'migrazione') o false
             const VERSIONE_SCHEMA_DATI = 3;
+            // Il formato 4 (versione ridisegnata) differisce solo per le profondità arrotondate al
+            // millimetro: questa versione lo legge così com'è e lo salva nel formato 3 (vedi migraDati).
+            const VERSIONE_SCHEMA_LETTA = 4;
             const caricamentoDati = {
                 esito: 'in-corso', bloccato: 'avvio', salvataggiEvitati: 0,
                 dettaglio: '', testoGrezzo: null, quarantena: null, scaricato: false, migrazione: null

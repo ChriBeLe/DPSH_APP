@@ -78,6 +78,14 @@
                 const applicate = [];
                 let v = versione;
                 let corrente = dati;
+                // Formato 4 (versione ridisegnata): stessa forma del 3 con le profondità già arrotondate.
+                // Si legge com'è e si registra come passo 4 → 3, così all'avvio la copia automatica
+                // «prima di aggiornare i dati» salva il testo originale prima che lo si riscriva.
+                if (v > VERSIONE_SCHEMA_DATI && v <= VERSIONE_SCHEMA_LETTA) {
+                    applicate.push({ da: v, a: VERSIONE_SCHEMA_DATI, descrizione: 'dati di una versione più nuova, stessa forma: letti così come sono e salvati nel formato ' + VERSIONE_SCHEMA_DATI });
+                    corrente.versioneSchema = VERSIONE_SCHEMA_DATI;
+                    v = VERSIONE_SCHEMA_DATI;
+                }
                 while (v < VERSIONE_SCHEMA_DATI) {
                     const passo = MIGRAZIONI_DATI.find(m => m.da === v);
                     if (!passo || passo.a !== v + 1) throw new Error('nessuna migrazione registrata dalla versione ' + v);
@@ -141,8 +149,8 @@
                 if (versione === null) {
                     throw new Error('Il file dichiara una versione dei dati non valida: non è stato importato niente.');
                 }
-                if (versione > VERSIONE_SCHEMA_DATI) {
-                    throw new Error(`Il file è stato creato da una versione più nuova dell'app (formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_DATI}).\n\nAggiorna l'app e riprova: non è stato importato niente.`);
+                if (versione > VERSIONE_SCHEMA_LETTA) {
+                    throw new Error(`Il file è stato creato da una versione più nuova dell'app (formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_LETTA}).\n\nAggiorna l'app e riprova: non è stato importato niente.`);
                 }
             }
 
