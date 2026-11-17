@@ -1616,7 +1616,7 @@
                     }
                     const ok = await appConfirmDelete('Azzerare i dati della falda acquifera per questa prova?\n\nLa linea della falda scomparirà dal grafico.');
                     if (!ok) return;
-                    copiaPrimaDi('azzerare la falda');
+                    if (!(await copiaOChiedi('azzerare la falda'))) return;
                     {
                         const backupFaldaDa = state.header.faldaDa;
                         const backupFaldaA = state.header.faldaA;
