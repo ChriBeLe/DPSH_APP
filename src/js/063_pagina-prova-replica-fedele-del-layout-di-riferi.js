@@ -161,7 +161,7 @@
                 const betaT = betaTStrumento(inst, passoCm);
                 const schede = [
                     {
-                        titolo: [`PROVA N°${numero}`, 'DATI INDAGINE'], colonne: 2,
+                        titolo: [`PROVA N°${testoHtml(numero)}`, 'DATI INDAGINE'], colonne: 2,
                         righe: [
                             ['comune', comune || ''],
                             ['località', localita || ''],
@@ -203,7 +203,7 @@
                     const sfondo = (zebra && indice % 2 === 1) ? ` background:${T.alt};` : '';
                     const tds = celle.map((c, i) => {
                         const st = eIntestazione(riga) ? stIntestazione : (i === 0 ? stEtichetta : stValore);
-                        return `<td style="${st}">${c}</td>`;
+                        return `<td style="${st}">${testoHtml(c)}</td>`;
                     }).join('');
                     return `<tr style="${sfondo}">${tds}</tr>`;
                 }
@@ -228,8 +228,8 @@
                         const a = celleDi(r), b = destra[i] ? celleDi(destra[i]) : ['', ''];
                         const sfondo = (zebra && i % 2 === 1) ? ` background:${T.alt};` : '';
                         return `<tr style="${sfondo}">`
-                            + `<td style="${stEtichetta}">${a[0]}</td><td style="${stValore}">${a[1] || ''}</td>`
-                            + `<td style="${stEtichetta}">${b[0]}</td><td style="${stValore}">${b[1] || ''}</td></tr>`;
+                            + `<td style="${stEtichetta}">${testoHtml(a[0])}</td><td style="${stValore}">${testoHtml(a[1] || '')}</td>`
+                            + `<td style="${stEtichetta}">${testoHtml(b[0])}</td><td style="${stValore}">${testoHtml(b[1] || '')}</td></tr>`;
                     }).join('');
                     return tabella(col, corpo);
                 }

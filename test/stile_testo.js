@@ -92,11 +92,11 @@ console.log('--- Lo stile del documento: un punto solo che decide ---');
      /function cssVariabiliStileTesto\(stile\)/.test(codice));
   t('scritte in UN SOLO posto, sul foglio', (codice.match(/\.dpsh-sheet \{ \$\{cssVariabiliStileTesto/g) || []).length === 1);
   t('e i blocchi le leggono con var()',
-     /blockObj\.fontSizePt \+ 'pt' : 'var\(--tpl-corpo-pt, 11pt\)'/.test(codice)
+     /numeroSicuro\(blockObj\.fontSizePt, 0, 1, 400\) \+ 'pt' : 'var\(--tpl-corpo-pt, 11pt\)'/.test(codice)
      && /line-height:var\(--tpl-interlinea, 1\.5\)/.test(codice)
      && /text-align:var\(--tpl-allineamento, justify\)/.test(codice));
   t('e una misura scelta per il singolo blocco vince, come eccezione dichiarata',
-     /const ptTesto = blockObj\.fontSizePt \? blockObj\.fontSizePt \+ 'pt'/.test(codice));
+     /const ptTesto = numeroSicuro\(blockObj\.fontSizePt, 0, 1, 400\) \? numeroSicuro\(blockObj\.fontSizePt, 0, 1, 400\) \+ 'pt'/.test(codice));
   t('anche il titolo, che prende la misura dal suo livello',
      /var\(--tpl-h\$\{Math\.max\(1, Math\.min\(3, livelloNum\)\)\}, 16pt\)/.test(codice));
 
@@ -149,7 +149,7 @@ console.log('--- Il pannello ---');
   // (nessun bordo) e per le variabili dello stile (corpo e carattere di serie invece dei
   // tuoi). Un titolo che si legge come il testo attorno non e' piu' un titolo.
   t('IL PESO DEI TITOLI e un dato dello stile, non una riga di CSS sepolta',
-     /pesoTitoli: 700/.test(codice) && /--tpl-peso-titoli:\$\{st\.pesoTitoli \|\| 700\}/.test(codice));
+     /pesoTitoli: 700/.test(codice) && /--tpl-peso-titoli:\$\{n\(st\.pesoTitoli \|\| 700, 700, 100, 900\)\}/.test(codice));
   t('la regola del foglio lo legge', /font-weight: var\(--tpl-peso-titoli, 700\); color: #0f172a/.test(codice));
   // IL NUMERO, non var(--tpl-peso-titoli): una variabile CSS si risolve solo se qualcuno
   // l'ha definita sopra, e basta un contenitore fuori dalla catena — il Word, una miniatura
@@ -264,7 +264,7 @@ console.log('--- UN SOLO BLOCCO: i titoli li dichiara il contenuto ---');
   // prima si sciolgono i riferimenti e poi si marcano i titoli. L'ordine conta — un titolo
   // che contenesse un tag deve arrivare all'indice col valore, non col segnaposto.
   t('il render del testo passa dalla marcatura, dopo aver sciolto i tag',
-     /marcaTitoliPerIndice\(risolviTagInStampa\(blockObj\.richHtml, ctx, blockObj\), \(typeof templateEditorState/.test(codice));
+     /marcaTitoliPerIndice\(risolviTagInStampa\(sanificaHtmlTemplate\(blockObj\.richHtml\), ctx, blockObj\), \(typeof templateEditorState/.test(codice));
   t('l indice continua a cercare lo stesso marcatore, senza modifiche',
      /querySelectorAll\('\[data-titolo-indice\]'\)/.test(codice));
 

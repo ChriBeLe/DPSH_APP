@@ -172,7 +172,7 @@
                     const totale = appCatsS.length;
                     const fatte = categorieConSceltaWizard(s, appCatsS);
                     return `<button class="wiz-strato-tab ${i===wizStratoIdx?'wiz-attivo':''} ${totale>0 && fatte===totale?'wiz-completo':''}" data-strato-idx="${i}" title="${testoSicuroStrati(s.name)}">
-                        <span class="wiz-swatch" style="background:${s.color}"></span>
+                        <span class="wiz-swatch" style="background:${coloreSicuro(s.color)}"></span>
                         <span class="wiz-strato-nome">${testoSicuroStrati(s.name)}</span>
                         ${totale>0 ? `<span class="wiz-badge-count">${fatte}/${totale}</span>` : ''}
                     </button>`;
@@ -225,7 +225,7 @@
                     ${trovato && stratoRischioCarbonatico(strato.name) ? (() => {
                         const aperto = wizAvvisiCarbonaticiAperti.has(strato.id);
                         return `
-                        <button type="button" class="wiz-avviso-carbonatico ${aperto?'wiz-avviso-aperto':''}" data-wiz-avviso-toggle="${strato.id}">
+                        <button type="button" class="wiz-avviso-carbonatico ${aperto?'wiz-avviso-aperto':''}" data-wiz-avviso-toggle="${testoHtml(strato.id)}">
                             <svg class="wiz-avviso-ico" viewBox="0 0 20 20" fill="none"><path d="M10 2L18 17H2L10 2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8v4M10 14v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
                             <div class="wiz-avviso-testo">
                                 <b>Nome riconosciuto come roccia arenacea/calcarenitica, assimilata a sabbia.</b>
@@ -235,7 +235,7 @@
                         </button>`;
                     })() : ''}
                     <div class="wiz-card">
-                        <div class="wiz-core-strip" style="background:${strato.color}; ${getPatternCss(strato.pattern||'none', strato.color)}"></div>
+                        <div class="wiz-core-strip" style="background:${coloreSicuro(strato.color)}; ${getPatternCss(strato.pattern||'none', strato.color)}"></div>
                         <div class="wiz-body">${bodyHtml}</div>
                     </div>
                     ${trovato && !wizModoRiepilogo ? `<p class="wiz-foot-note">Le varianti con il badge <strong>consigliato</strong> sono quelle il cui tipo di terreno è interamente compatibile con ciò che è stato riconosciuto nel nome dello strato — mai una formula che nomini anche un materiale non presente nello strato. I pallini grigi in alto sono parametri non tipici per questo terreno: restano scelte facoltative e comunque disponibili. La scelta finale resta sempre tua.</p>` : ''}
@@ -627,7 +627,7 @@
 
                 return `
                     <div class="wiz-categoria-header">
-                        <h2>Riepilogo — ${strato.name}</h2>
+                        <h2>Riepilogo — ${testoHtml(strato.name)}</h2>
                     </div>
                     <div>${righe}${derivatiRiga}</div>
                     <div class="wiz-nav-row">
