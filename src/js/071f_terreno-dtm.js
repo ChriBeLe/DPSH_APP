@@ -7,11 +7,15 @@
 
             const DTM_MAX_CELLE = 250;
             const DTM_MARGINE_M = 150;
+            // Al massimo tante celle (Float32: 4 byte l'una) lette in una volta dal file: 4 M = 16 MB.
+            const DTM_MAX_FASCIA = 4e6;
+            // Oltre questa dimensione un .asc (testo) non si apre intero in memoria: si chiede un GeoTIFF o un ritaglio.
+            const DTM_MAX_ASC_BYTE = 200e6;
 
             // ---- Coordinate: da latitudine e longitudine a UTM (ellissoide WGS84; GRS80 differisce di
             // meno di un millimetro) ----
-            function utmDaGeo(lat, lng, zona) {
-                const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996;
+            function utmDaGeo(lat, lng, zona, a = 6378137, f = 1 / 298.257223563) {
+                const k0 = 0.9996; // a, f: l'ellissoide (di base WGS84)
                 const e2 = f * (2 - f), ep2 = e2 / (1 - e2);
                 const fi = lat * Math.PI / 180, lambda = lng * Math.PI / 180;
                 const lambda0 = ((zona - 1) * 6 - 180 + 3) * Math.PI / 180;
@@ -29,8 +33,9 @@
 
             /** Il contrario di utmDaGeo (emisfero nord, come quella): serve a sapere dove sta sulla
              * mappa un punto del terreno della vista 3D, per stenderci sopra l'immagine. */
-            function geoDaUtm(x, y, zona) {
-                const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996;
+            function geoDaUtm(x, y, zona, a = 6378137, f = 1 / 298.257223563) {
+                // a, f: l'ellissoide (di base WGS84; per ED50 serve quello internazionale di Hayford)
+                const k0 = 0.9996;
                 const e2 = f * (2 - f), ep2 = e2 / (1 - e2), e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
                 const mu = y / k0 / (a * (1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256));
                 const fi1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu) + (21 * e1 ** 2 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu)
@@ -258,9 +263,20 @@
 
             async function ritaglioDtmPerProgetto(file, proj) {
                 const nome = file.name || 'DTM';
-                const buf = await file.arrayBuffer();
-                const sorg = /\.(asc|txt)$/i.test(nome) ? leggiAsciiGrid(new TextDecoder().decode(buf)) : leggiGeoTiff(buf);
-                return ritaglioDaSorgente(sorg, nome, proj);
+                if (/\.(asc|txt)$/i.test(nome)) {
+                    if (file.size > DTM_MAX_ASC_BYTE) throw new Error(`Il file ASCII Grid è troppo grande (${Math.round(file.size / 1e6)} MB) per essere aperto sul telefono: ritaglialo attorno alle prove (QGIS: Raster › Estrai › Ritaglia) o salvalo come GeoTIFF con compressione.`);
+                    return ritaglioDaSorgente(leggiAsciiGrid(new TextDecoder().decode(await file.arrayBuffer())), nome, proj);
+                }
+                // GeoTIFF grande: non si legge intero, si leggono le intestazioni e poi solo le strisce/tessere
+                // della finestra (File.slice). Se le intestazioni non stanno all'inizio, si ripiega sul file intero.
+                if (file.size > 64e6 && typeof file.slice === 'function') {
+                    try {
+                        const testa = await file.slice(0, 4e6).arrayBuffer();
+                        const sorg = leggiGeoTiff(testa, async (off, n) => new Uint8Array(await file.slice(off, off + n).arrayBuffer()));
+                        return await ritaglioDaSorgente(sorg, nome, proj);
+                    } catch (e) { if (!(e instanceof RangeError)) throw e; }
+                }
+                return ritaglioDaSorgente(leggiGeoTiff(await file.arrayBuffer()), nome, proj);
             }
 
             /** Il ritaglio attorno alle prove da una griglia qualunque (file, servizio in rete, tessere):
@@ -294,19 +310,27 @@
                 const r0 = Math.max(0, Math.floor((sorg.y0 - Math.max(...ys) - margine) / sorg.dy));
                 const r1 = Math.min(sorg.ny, Math.ceil((sorg.y0 - Math.min(...ys) + margine) / sorg.dy));
                 const passo = Math.max(1, Math.ceil(Math.max(c1 - c0, r1 - r0) / DTM_MAX_CELLE));
-                const valori = await sorg.leggiFinestra(c0, r0, c1, r1);
                 const w = c1 - c0, nx = Math.ceil(w / passo), ny = Math.ceil((r1 - r0) / passo);
 
                 // Media di ogni blocco, senza i buchi del DTM; poi in centimetri (o decimetri se il
                 // dislivello supera 650 m) sopra la quota minima, in Uint16: 65535 = nessun dato.
+                // La finestra si legge a fasce di righe (multiple di «passo», così i blocchi non si
+                // spezzano e il risultato è identico): in memoria non c'è mai più di DTM_MAX_FASCIA celle,
+                // anche con prove a chilometri di distanza e un DTM a 1 m (su un telefono il WebView
+                // muore se si legge tutta la finestra a piena risoluzione).
                 const medie = new Float32Array(nx * ny);
-                for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-                    let s = 0, n = 0;
-                    for (let r = j * passo; r < Math.min((j + 1) * passo, r1 - r0); r++) for (let c = i * passo; c < Math.min((i + 1) * passo, w); c++) {
-                        const v = valori[r * w + c];
-                        if (isFinite(v) && v > -1000 && v < 9000) { s += v; n++; }
+                const righeFascia = Math.max(passo, Math.floor(DTM_MAX_FASCIA / Math.max(1, w) / passo) * passo);
+                for (let ra = 0; ra < r1 - r0; ra += righeFascia) {
+                    const rb = Math.min(r1 - r0, ra + righeFascia);
+                    const valori = await sorg.leggiFinestra(c0, r0 + ra, c1, r0 + rb);
+                    for (let j = ra / passo; j < Math.ceil(rb / passo); j++) for (let i = 0; i < nx; i++) {
+                        let s = 0, n = 0;
+                        for (let r = j * passo; r < Math.min((j + 1) * passo, rb); r++) for (let c = i * passo; c < Math.min((i + 1) * passo, w); c++) {
+                            const v = valori[(r - ra) * w + c];
+                            if (isFinite(v) && v > -1000 && v < 9000) { s += v; n++; }
+                        }
+                        medie[j * nx + i] = n ? s / n : NaN;
                     }
-                    medie[j * nx + i] = n ? s / n : NaN;
                 }
                 const finiti = Array.from(medie).filter(isFinite);
                 if (!finiti.length) throw new Error('Nella zona delle prove il DTM non ha dati (solo celle vuote).');

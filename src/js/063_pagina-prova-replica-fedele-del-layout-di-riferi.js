@@ -172,14 +172,14 @@
                     {
                         titolo: ['DATI STRUMENTO'], colonne: 2,
                         righe: [
-                            ['peso massa', fmtIT(parseFloat(inst.pesoMassa || 63.50), 2) + ' kg'],
-                            ['peso asta', fmtIT(parseFloat(inst.pesoAsta || 6.30), 2) + ' kg'],
+                            ['peso massa', fmtIT(parametriStrumento(inst).M, 2) + ' kg'],
+                            ['peso asta', fmtIT(parametriStrumento(inst).pesoAsta, 2) + ' kg'],
                             ['lungh. asta', fmtIT(parseFloat(inst.lunghAsta || 1.00), 2) + ' m'],
                             ['cambio asta', fmtIT(parseFloat(inst.cambioAsta || 1.00), 2) + ' m'],
-                            ['peso sistema', fmtIT(parseFloat(inst.pesoSistema || 8.00), 2) + ' kg'],
-                            ['volata', fmtIT(parseFloat(inst.volata || 0.75), 2) + ' m'],
+                            ['peso sistema', fmtIT(parametriStrumento(inst).pesoSistema, 2) + ' kg'],
+                            ['volata', fmtIT(parametriStrumento(inst).volataM, 2) + ' m'],
                             ['passo', fmtIT(parseFloat(passoCm || 20) / 100, 2) + ' m'],
-                            ['area punta', fmtIT(parseFloat(inst.areaPunta || 20), 0) + ' cm²'],
+                            ['area punta', fmtIT(parametriStrumento(inst).A, 0) + ' cm²'],
                             ['angolo punta', fmtIT(parseFloat(inst.angoloPunta || 90), 0) + ' °'],
                             ['βt', fmtIT(betaT, 3)]
                         ]

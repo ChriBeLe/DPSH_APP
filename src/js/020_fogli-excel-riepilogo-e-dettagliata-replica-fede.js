@@ -873,15 +873,16 @@ ${contenuto}
             function recalculateDepths() {
                 const stepM = state.settings.stepCm / 100;
                 let d = 0.0;
-                state.logs.forEach(log => {
+                state.logs.forEach((log, i) => {
                     const prima = misuraDiIntervallo(log);
-                    log.start = d;
-                    log.end = d + stepM;
+                    // Dal numero dell'intervallo, non sommando il passo: niente errore che si accumula.
+                    log.start = profonditaAlMillimetro(i * state.settings.stepCm / 100);
+                    log.end = profonditaAlMillimetro((i + 1) * state.settings.stepCm / 100);
                     log.asta = getRodForDepth(log.end);
                     // Cambiare il passo sposta le profondità: per gli intervalli che cambiano è una
                     // modifica vera, e resta scritta (004d).
                     segnaIntervalloModificato(log, prima);
-                    d += stepM;
+                    d = log.end;
                 });
                 state.currentDepthStart = d;
                 state.currentRod = getRodForDepth(d + stepM);
@@ -1418,11 +1419,18 @@ ${contenuto}
 
             // CONFERMA STEP & AVANTI
             // =========================================================================
+            // Guardia contro il doppio tocco (coi guanti capita): un secondo «Registra» entro questo
+            // tempo dal primo è lo stesso gesto e non crea un altro intervallo.
+            const PAUSA_DOPPIO_REGISTRA_MS = 600;
+            let ultimaRegistrazioneMs = -Infinity;
             async function confirmAndNextStep() {
+                const adesso = Date.now();
+                if (adesso - ultimaRegistrazioneMs < PAUSA_DOPPIO_REGISTRA_MS) return;
+                ultimaRegistrazioneMs = adesso;
                 let finalCount = state.currentCount;
 
                 const stepM = state.settings.stepCm / 100;
-                const endDepth = state.currentDepthStart + stepM;
+                const endDepth = profonditaAlMillimetro(state.currentDepthStart + stepM);
                 const rodNum = getRodForDepth(endDepth);
                 
                 state.logs.push(nuovoIntervallo({
@@ -1458,6 +1466,12 @@ ${contenuto}
              * contatore e basta registrare di nuovo. */
             function togliUltimoIntervallo() {
                 if (!state.logs || state.logs.length === 0) return null;
+                // Nel contatore ci sono già colpi del prossimo intervallo: riportarci quelli
+                // dell'intervallo tolto li cancellerebbe. Non si tocca niente e lo si dice.
+                if (state.currentCount > 0) {
+                    if (typeof mostraToast === 'function') mostraToast('Non annullato: nel contatore ci sono ' + state.currentCount + ' colpi già contati. Azzerali o registrali, poi annulla l\'intervallo');
+                    return null;
+                }
                 const last = state.logs.pop();
                 state.currentDepthStart = last.start;
                 state.currentCount = last.colpi;
@@ -1488,6 +1502,8 @@ ${contenuto}
                 if (state.logs.length === 0) return;
                 const ok = await appConfirmDelete('Vuoi annullare l\'ultimo intervallo registrato?');
                 if (!ok) return;
+                // Il dialogo era aperto: nel frattempo il contatore può essere cambiato, e
+                // togliUltimoIntervallo lo controlla di nuovo.
                 togliUltimoIntervallo();
             }
 

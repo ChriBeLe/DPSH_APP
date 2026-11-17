@@ -88,7 +88,8 @@ t('configurazione in cima, prima di saveState (niente errori all avvio)',
   src.indexOf('const copieAutomatiche = {') > 0 && src.indexOf('const copieAutomatiche = {') < src.indexOf('function saveState()'));
 t('saveState fa la copia periodica con lo stesso testo appena salvato',
   // Fra le due righe ora c'è anche la verifica del salvataggio (Fase 1): la finestra è più larga.
-  /localStorage\.setItem\('dpsh_app_state', testoStato\);[\s\S]{0,1800}scriviCopiaAutomatica\('periodica', 'automatica', testoStato\);/.test(src));
+  /localStorage\.setItem\('dpsh_app_state', testoStato\);[\s\S]{0,1800}avviaCopiaPeriodica\(testoStato\);/.test(src) &&
+  /function avviaCopiaPeriodica[\s\S]{0,400}scriviCopiaAutomatica\('periodica', 'automatica', testoStato\)/.test(src));
 t('una copia prima di ognuna delle 9 azioni che tolgono dati', (src.match(/copia(?:PrimaDi|OChiedi)\(/g) || []).length - 3 === 9);
 ['eliminare un intervallo', 'eliminare lo strato', 'azzerare la falda', 'eliminare la Prova', 'eliminare il progetto',
  'eliminare una foto', 'importare un archivio', 'sostituire tutti gli intervalli']

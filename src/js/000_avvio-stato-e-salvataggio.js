@@ -39,7 +39,7 @@
             // in MIGRAZIONI_DATI (pezzo 004b); dati più nuovi non si caricano e non si importano.
             //   esito: 'in-corso' | 'ok' | 'vuoto' | 'illeggibile' | 'piu-nuovo' | 'inaccessibile'
             //   bloccato: perché saveState non scrive ('avvio', 'dati-non-letti', 'migrazione') o false
-            const VERSIONE_SCHEMA_DATI = 3;
+            const VERSIONE_SCHEMA_DATI = 4;
             const caricamentoDati = {
                 esito: 'in-corso', bloccato: 'avvio', salvataggiEvitati: 0,
                 dettaglio: '', testoGrezzo: null, quarantena: null, scaricato: false, migrazione: null

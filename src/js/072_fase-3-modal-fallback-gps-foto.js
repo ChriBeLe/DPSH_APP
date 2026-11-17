@@ -350,6 +350,17 @@
             [numPesoMassa, numPesoAsta, numVolata, numAreaPunta, numPesoSistema].forEach(campo => {
                 if (campo) campo.addEventListener('input', aggiornaPannelloBetaT);
             });
+            // Zero o negativo non sono valori fisici: nei calcoli (βt, Rpd) si usa il valore standard
+            // (regola in parametriStrumento, 015). Lo si dice all'uscita dal campo, non a ogni tasto.
+            [numPesoMassa, numPesoAsta, numVolata, numAreaPunta, numPesoSistema].forEach(campo => {
+                if (!campo) return;
+                campo.addEventListener('change', () => {
+                    const v = parseFloat(campo.value);
+                    if (campo.value !== '' && !(v > 0) && typeof mostraToast === 'function') {
+                        mostraToast('Valore non valido: nei calcoli si usa il valore standard dello strumento');
+                    }
+                });
+            });
 
             // DRAWER HANDLERS
             function openDrawer() {
@@ -812,12 +823,13 @@
                     return;
                 }
 
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
+                // Parametri e formula Rpd: unica fonte in 015 (parametriStrumento / rpdDiLog).
+                const parStrum = parametriStrumento(state.instrument, state.settings.stepCm);
+                const M = parStrum.M;
+                const A = parStrum.A;
+                const deltaS = parStrum.s;
+                const pesoAsta = parStrum.pesoAsta;
+                const pesoSistema = parStrum.pesoSistema;
                 const maxColpiInLogs = Math.max(...state.logs.map(l => l.colpi), 1);
 
                 // --- FOGLIO 1: REGISTRO E PROFILO COLPI ---
@@ -828,7 +840,7 @@
                     ["1. DATI CANTIERE & INDAGINE", "", "", "2. STRUMENTO & GEOMETRIA", "", "", ""],
                     ["Committente / Cliente:", state.header.committente || 'Non specificato', "", "Penetrometro:", state.settings.penetrometer || 'DPSH (63.5kg)', "", ""],
                     ["Comune:", state.header.comune || 'Non specificato', "", "Massa Battente (M):", `${M} kg`, "", ""],
-                    ["Località / Indirizzo:", state.header.localita || 'Non specificata', "", "Altezza Caduta (H):", `${state.instrument.volata || 0.75} m`, "", ""],
+                    ["Località / Indirizzo:", state.header.localita || 'Non specificata', "", "Altezza Caduta (H):", `${parStrum.volataM} m`, "", ""],
                     ["Data Esecuzione:", state.header.date || new Date().toISOString().split('T')[0], "", "Passo Avanzamento (Δs):", `${deltaS} cm`, "", ""],
                     ["Prova N°:", state.header.provaNr || '1', "", "Area Punta (A):", `${A} cm²`, "", ""],
                     ["Coordinate GPS:", state.header.lat ? `${state.header.lat.toFixed(5)}°, ${state.header.lng.toFixed(5)}°` : 'Non acquisite', "", "Angolo Punta (α):", `${state.instrument.angoloPunta || 90}°`, "", ""],
@@ -842,10 +854,9 @@
 
                 state.logs.forEach(log => {
                     totalBlows += log.colpi;
-                    const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
                     if (log.colpi > 0) {
-                        const rpd = (M * M * H * log.colpi) / (A * deltaS * (M + M_prime));
+                        const rpd = rpdDiLog(log, state.instrument, deltaS);
                         rpdVal = parseFloat(rpd.toFixed(2));
                     }
 
@@ -932,18 +943,18 @@
                 csvContent += `Falda_m:,${state.header.faldaDa || ''} - ${state.header.faldaA || ''}\n\n`;
                 csvContent += `Profondita_Da_m,Profondita_A_m,Colpi_N${state.settings.stepCm},Asta,Rpd_kg_cm2,Note\n`;
 
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
+                // Parametri e formula Rpd: unica fonte in 015 (parametriStrumento / rpdDiLog).
+                const parStrum = parametriStrumento(state.instrument, state.settings.stepCm);
+                const M = parStrum.M;
+                const A = parStrum.A;
+                const deltaS = parStrum.s;
+                const pesoAsta = parStrum.pesoAsta;
+                const pesoSistema = parStrum.pesoSistema;
 
                 state.logs.forEach(log => {
-                    const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
                     if (log.colpi > 0) {
-                        rpdVal = ((M * M * H * log.colpi) / (A * deltaS * (M + M_prime))).toFixed(2);
+                        rpdVal = rpdDiLog(log, state.instrument, deltaS).toFixed(2);
                     }
                     csvContent += `${log.start.toFixed(2)},${log.end.toFixed(2)},${log.colpi},${log.asta},${rpdVal},"${log.note}"\n`;
                 });
@@ -960,6 +971,10 @@
 
             // Inizializzazione
             loadState();
+            // Le preferenze salvate vanno riapplicate ora: le funzioni in 003 e 004 girano prima di
+            // loadState() e da sole leggerebbero uno stato ancora vuoto.
+            if (typeof applyGloveMode === 'function') applyGloveMode();
+            if (typeof applyDebugMode === 'function') applyDebugMode();
             requestWakeLock();
 
             // Schermata iniziale SEMPRE la Home View.
