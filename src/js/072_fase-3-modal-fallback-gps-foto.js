@@ -156,7 +156,7 @@
             // INPUT SYNC CANTIERE
             // Committente e comune: della prova (li leggono i report) e anche del progetto, perché la
             // card della Home li mostra da lì (Fase 4). Le altre prove tengono i loro valori.
-            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); updateUI(); });
+            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); propagaDatoProgettoAlleProve('committente', e.target.value); updateUI(); });
             const txtProvincia = document.getElementById('txtProvincia');
             const txtSedeCommittente = document.getElementById('txtSedeCommittente');
             const txtDenominazioneIntervento = document.getElementById('txtDenominazioneIntervento');
@@ -169,6 +169,29 @@
                 proj.updatedAt = Date.now();
                 saveState();
             }
+            /** Un dato del PROGETTO che le prove ripetono nella loro intestazione (committente, comune): cambiandolo
+             * dal gruppo «Del progetto» si aggiorna in tutte le prove. I dati «Di questa prova» (località,
+             * data, numero) restano della prova (richiesta di Romeo, 17/11/2026). */
+            function propagaDatoProgettoAlleProve(chiave, valore) {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[chiave] = valore; });
+                state.header[chiave] = valore;
+                saveState();
+            }
+            /** La località del PROGETTO vale per tutte le prove che la seguono: quelle il cui valore è ancora
+             * quello precedente del progetto (o vuoto) passano al nuovo; quelle cambiate a mano nella singola
+             * prova restano com'erano. */
+            const txtLocalitaProgetto = document.getElementById('txtLocalitaProgetto');
+            if (txtLocalitaProgetto) txtLocalitaProgetto.addEventListener('input', (e) => {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                const vecchia = proj.localita || '', nuova = e.target.value;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header && (sv.header.localita || '') === vecchia) sv.header.localita = nuova; });
+                if ((state.header.localita || '') === vecchia) state.header.localita = nuova;
+                proj.localita = nuova; proj.updatedAt = Date.now();
+                saveState(); updateUI();
+            });
             const txtNomeProgetto = document.getElementById('txtNomeProgetto');
             // Un nome vuoto non si salva: il progetto resterebbe senza nome in Home e nei file.
             if (txtNomeProgetto) txtNomeProgetto.addEventListener('input', (e) => {
@@ -180,7 +203,7 @@
             if (txtProvincia) txtProvincia.addEventListener('input', (e) => scriviDatoProgettoCorrente('provincia', e.target.value));
             if (txtSedeCommittente) txtSedeCommittente.addEventListener('input', (e) => scriviDatoProgettoCorrente('sedeCommittente', e.target.value));
             if (txtDenominazioneIntervento) txtDenominazioneIntervento.addEventListener('input', (e) => scriviDatoProgettoCorrente('denominazioneIntervento', e.target.value));
-            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); updateUI(); });
+            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); propagaDatoProgettoAlleProve('comune', e.target.value); updateUI(); });
             if (txtLocalita) txtLocalita.addEventListener('input', (e) => { state.header.localita = e.target.value; updateUI(); saveState(); });
             if (txtDataIndagine) txtDataIndagine.addEventListener('change', (e) => { state.header.date = e.target.value; updateUI(); saveState(); });
             if (txtProvaNr) txtProvaNr.addEventListener('input', (e) => {
@@ -354,7 +377,7 @@
             // Impostazioni generale, e non esiste alcuna scorciatoia per aprirla da Home (dove non
             // c'è una prova specifica a cui riferirli).
             // L'intestazione è la linguetta «Dati» della scheda della prova (Fase 4).
-            function openCantiereInfoModal() { openSurveySettingsModal(state.currentSurveyId, 'dati'); }
+            function openCantiereInfoModal() { apriDatiProgetto(); }
             function closeCantiereInfoModal() { closeSurveySettingsModal(); }
 
             if (btnHamburger) btnHamburger.addEventListener('click', openDrawer);
@@ -934,4 +957,4 @@
             // con la call-to-action corretta: creare o importare un Progetto Cantiere.
             switchView('home');
 
-        })();
+
