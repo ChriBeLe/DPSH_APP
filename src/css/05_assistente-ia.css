@@ -5,6 +5,10 @@
         #aiBolla .ico { width: 24px; height: 24px; }
         #aiPannello { position: fixed; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); width: min(400px, calc(100vw - 32px)); height: min(560px, calc(100vh - 110px)); background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,.45); display: none; flex-direction: column; z-index: 9001; overflow: hidden; }
         #aiPannello.aperto { display: flex; }
+        #aiBolla { touch-action: none; cursor: grab; }
+        #aiPannello .ai-presa { cursor: grab; touch-action: none; user-select: none; }
+        #aiPannello .ai-presa::before { content: ''; width: 36px; height: 4px; border-radius: 2px; background: var(--border); position: absolute; left: 50%; top: 4px; transform: translateX(-50%); }
+        #aiPannello .ai-testa { position: relative; }
         .ai-testa { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 13px; }
         .ai-testa .ai-spazio { flex: 1; }
         .ai-testa button, .ai-chip { background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 9px; font-size: 11.5px; cursor: pointer; }

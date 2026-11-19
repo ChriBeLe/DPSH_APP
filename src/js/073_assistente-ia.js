@@ -322,9 +322,11 @@
                 } }
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
+                'REGOLA PRINCIPALE: se l\'utente chiede di fare qualcosa, LA FAI TU con gli strumenti. Non dirgli mai di premere, cliccare, aprire un menu, andare su una schermata o compilare un campo: fallo tu e poi riassumi in una frase cosa hai fatto. Chiedi all\'utente solo i dati che mancano davvero. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
-                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. Se un\'azione manca tra gli strumenti, usa elenco_comandi/esegui_comando per aprire la finestra giusta. ' +
-                'Se uno strumento dà errore, dillo e proponi un\'alternativa. Per fare in più passaggi qualsiasi cosa dell\'app usa leggi_schermata, poi clicca e compila_campo, e ricontrolla la schermata dopo ogni azione. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
+                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
+                'Se non c\'è uno strumento diretto per l\'azione: prima prova elenco_comandi/esegui_comando o vai_a; altrimenti usa leggi_schermata, poi clicca e compila_campo, e rileggi la schermata dopo ogni azione (e dopo ogni apertura di finestra) finché il lavoro non è finito. ' +
+                'Se uno strumento dà errore, riprova in un altro modo prima di arrenderti; solo se non è possibile dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
@@ -541,6 +543,8 @@
                 try { const out = s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
                 catch (e) { return { c: JSON.stringify({ errore: e.message }) }; }
             }
+            // vero se la risposta spiega all'utente cosa premere invece di farlo (l'assistente deve agire da sé)
+            const aiDaIstruzioni = t => /\b(premi|clicca|cliccare|tocca|apri il menu|apri le impostazioni|vai (su|in|nel|alla|a)|seleziona|scegli la voce|puoi (premere|cliccare|aprire))\b/i.test(t || '');
             async function aiInviaDomanda() {
                 const testo = aiCampo.value.trim();
                 if (!testo || aiOccupato) return;
@@ -548,12 +552,16 @@
                 aiCampo.value = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
                 aiOccupato = true; aiInvia.disabled = true;
                 const attesa = aiMsg('attesa info', 'Penso…', false);
+                let spinto = false;
                 try {
                     for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
                         const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t));
                         aiCrono.push({ r: 'a', t: r.t, calls: r.calls });
                         if (r.t) aiMsg('ia', r.t);
-                        if (!r.calls.length) break;
+                        if (!r.calls.length) {
+                            if (!spinto && aiDaIstruzioni(r.t)) { spinto = true; aiCrono.push({ r: 'u', t: 'Non dirmi come fare: fallo tu adesso con gli strumenti (esegui_comando, vai_a, leggi_schermata, clicca, compila_campo) e poi dimmi in una frase cosa hai fatto.' }); continue; }
+                            break;
+                        }
                         const res = [];
                         for (const k of r.calls) { const o = await aiEseguiStrumento(k); res.push({ id: k.id, n: k.n, c: o.c }); }
                         aiCrono.push({ r: 't', res });
@@ -568,13 +576,53 @@
             const aiApri = su => {
                 aiPannello.classList.toggle('aperto', su);
                 if (!su) return;
+                aiPosizionaPannello();
                 const pid = aiPidAtt();
                 if (!aiChatAtt || aiChatAtt.pid !== pid) { const ultima = (aiArchivio[pid] || [])[0]; if (ultima) aiMostraChat(ultima); else aiSaluto(); }
                 aiAggiornaTesta();
                 if (!aiProntiInOrdine().length) aiMsg('info', 'Prima scegli un provider da Impostazioni › Assistente IA.', false);
                 setTimeout(() => aiCampo.focus(), 50);
             };
-            aiBolla.onclick = () => aiApri(!aiPannello.classList.contains('aperto'));
+            aiBolla.onclick = () => { if (aiDopoTrascina) return; aiApri(!aiPannello.classList.contains('aperto')); };
+            // POSIZIONE LIBERA: bolla e pannello si trascinano (puntatore o dito) e la posizione si ricorda.
+            const AI_POS_CHIAVE = 'DPSH_AI_POS_V1';
+            let aiPos = {};
+            try { const g = JSON.parse(localStorage.getItem(AI_POS_CHIAVE) || 'null'); if (g && typeof g === 'object') aiPos = g; } catch (e) { /* senza posizione salvata */ }
+            const aiSalvaPos = () => { try { localStorage.setItem(AI_POS_CHIAVE, JSON.stringify(aiPos)); } catch (e) { /* non grave */ } };
+            const aiLimita = (el, x, y) => { const w = el.offsetWidth || 52, h = el.offsetHeight || 52; return { x: Math.max(4, Math.min(innerWidth - w - 4, x)), y: Math.max(4, Math.min(innerHeight - h - 4, y)) }; };
+            const aiPonia = (el, k) => { const p = aiPos[k]; if (!p) return; const c = aiLimita(el, p.x, p.y); el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; };
+            let aiDopoTrascina = false;
+            function aiRendiTrascinabile(el, maniglia, k) {
+                maniglia.style.touchAction = 'none';
+                maniglia.addEventListener('pointerdown', e => {
+                    if (e.button > 0 || (e.target.closest && e.target.closest('button') && e.target !== maniglia && maniglia !== el)) return;
+                    const r = el.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top, x0 = e.clientX, y0 = e.clientY; let mosso = false;
+                    const muovi = ev => {
+                        if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+                        mosso = true; const c = aiLimita(el, ev.clientX - dx, ev.clientY - dy);
+                        el.style.left = c.x + 'px'; el.style.top = c.y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; aiPos[k] = c;
+                    };
+                    const fine = () => {
+                        removeEventListener('pointermove', muovi); removeEventListener('pointerup', fine); removeEventListener('pointercancel', fine);
+                        if (mosso) { aiSalvaPos(); aiDopoTrascina = true; setTimeout(() => { aiDopoTrascina = false; }, 0); }
+                    };
+                    addEventListener('pointermove', muovi); addEventListener('pointerup', fine); addEventListener('pointercancel', fine);
+                });
+            }
+            aiRendiTrascinabile(aiBolla, aiBolla, 'bolla');
+            aiRendiTrascinabile(aiPannello, aiTesta, 'pannello');
+            aiTesta.classList.add('ai-presa');
+            // il pannello nuovo si apre accanto alla bolla, a meno che l'utente non l'abbia già spostato
+            const aiPosizionaPannello = () => {
+                if (aiPos.pannello) { aiPonia(aiPannello, 'pannello'); return; }
+                if (!aiPos.bolla) return;
+                const rb = aiBolla.getBoundingClientRect(), w = aiPannello.offsetWidth || 400, h = aiPannello.offsetHeight || 560;
+                const c = aiLimita(aiPannello, rb.left + rb.width - w, rb.top - h - 10 < 4 ? rb.bottom + 10 : rb.top - h - 10);
+                aiPannello.style.left = c.x + 'px'; aiPannello.style.top = c.y + 'px'; aiPannello.style.right = 'auto'; aiPannello.style.bottom = 'auto';
+            };
+            const aiRiadatta = () => { aiPonia(aiBolla, 'bolla'); if (aiPannello.classList.contains('aperto')) aiPosizionaPannello(); };
+            addEventListener('resize', aiRiadatta); aiPonia(aiBolla, 'bolla');
+
             aiBtnChiudi.onclick = () => aiApri(false);
 
             // --- procedura guidata dei provider ---

@@ -42,6 +42,27 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   await attesa(300);
   t('dopo la conferma il progetto esiste', app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   t('risposta finale mostrata', $('aiPannello').textContent.includes('Fatto.'));
+  // l'assistente che spiega invece di agire viene rimandato a usare gli strumenti
+  { let n = 0, vistoSpinta = false;
+    w.fetch = async (url, opz) => {
+      if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota' } }) };
+      const corpo = JSON.parse(opz.body); n++;
+      const ult = corpo.contents[corpo.contents.length - 1].parts[0];
+      if (ult.text && /fallo tu/i.test(ult.text)) vistoSpinta = true;
+      const r = n === 1 ? { text: 'Premi il menu e poi clicca su Impostazioni.' } : ult.functionResponse ? { text: 'Fatto, ho elencato i progetti.' } : { functionCall: { name: 'elenco_progetti', args: {} } };
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [r] } }] }) };
+    };
+    $('aiPannello').querySelector('textarea').value = 'Mostrami i progetti';
+    clic($('aiPannello').querySelector('.ai-piedi button')); await attesa(400);
+    t('se spiega invece di agire, viene spinto a usare gli strumenti', vistoSpinta && $('aiPannello').textContent.includes('Fatto, ho elencato'));
+  }
+  // bolla trascinabile: la posizione si salva e un trascinamento non apre il pannello
+  { const b = $('aiBolla'), PE = (tipo, x, y) => new w.MouseEvent(tipo, { bubbles: true, clientX: x, clientY: y });
+    const apertoPrima = $('aiPannello').classList.contains('aperto');
+    b.dispatchEvent(PE('pointerdown', 10, 10)); w.dispatchEvent(PE('pointermove', 60, 80)); w.dispatchEvent(PE('pointerup', 60, 80)); clic(b);
+    t('trascinare la bolla non apre/chiude il pannello', $('aiPannello').classList.contains('aperto') === apertoPrima);
+    t('la posizione della bolla è salvata', !!JSON.parse(app.E('localStorage.getItem("DPSH_AI_POS_V1")')).bolla && b.style.left !== '');
+  }
   const arch = JSON.parse(app.E('localStorage.getItem("DPSH_AI_CRONO_V1")'));
   const pidBari = app.E('state.currentProjectId');
   t('cronologia salvata per progetto, senza chiavi', arch[pidBari] && arch[pidBari][0].titolo.includes('Bari') && !JSON.stringify(arch).includes('k1'));
