@@ -91,6 +91,11 @@ circa 40 punti che li leggono cambia. Cambia solo cosa scrive `saveState`.
 Misura attesa: la chiave `dpsh_app_state` torna alle dimensioni dei soli dati di prova, e un +1
 non riscrive più carte intestate e DTM.
 
+**Esito (23/11/2026).** Codice in `src/js/004g_dati-grandi-fuori-da-localstorage.js`, migrazione
+4→5 in 004b, suite `test/dati_grandi.js`. Misura: chiave `dpsh_app_state` da 3,0 a 1,0 M caratteri,
+`saveState` dopo un +1 da ~52 a ~43 ms. Da sapere: anche i file esportati dichiarano formato 5,
+quindi un'app di prima li rifiuta («versione più nuova»): telefono e PC vanno aggiornati insieme.
+
 ### Passo 3 — Salvare solo il progetto che cambia (da decidere)
 Una chiave di `localStorage` per progetto più un indice, con la stessa scrittura sincrona e
 verificata di oggi: il costo di un +1 diventa proporzionale al progetto aperto, non all'archivio.
