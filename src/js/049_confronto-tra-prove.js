@@ -392,6 +392,7 @@
             }
 
             async function scaricaConfronto(formato) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const figura = disegnoConfrontoPerFile();
                 if (!figura) return;
                 const { d, dis } = figura;
@@ -479,6 +480,7 @@
                     elDettaglio.innerHTML = [
                         `Progetti, prove e template: <strong>${formattaByte(s.localStorageBytes)}</strong>`,
                         `Foto: <strong>${formattaByte(s.fotoBytes)}</strong> (${s.fotoCount})`,
+                        s.grandiCount > 0 ? `Dati grandi (carte intestate, DTM): <strong>${formattaByte(s.grandiBytes)}</strong> (${s.grandiCount})` : '',
                         s.noteCount > 0 ? `Immagini nelle note: <strong>${formattaByte(s.noteBytes)}</strong> (${s.noteCount})` : '',
                         copieAutomatiche.indice.length > 0 ? `Copie automatiche: <strong>${formattaByte(copieAutomatiche.indice.reduce((n, v) => n + (v.byte || 0), 0))}</strong> (${copieAutomatiche.indice.length})` : '',
                         s.orfaneCount > 0

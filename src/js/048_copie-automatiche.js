@@ -242,6 +242,12 @@
                 const nome = progetto.name || progetto.comune || 'Progetto';
                 await scriviCopiaAutomatica('prima', `prima di ripristinare «${nome}»`, localStorage.getItem('dpsh_app_state'));
                 state.projects[projId] = JSON.parse(JSON.stringify(progetto));
+                // DATI GRANDI (004g): la copia conserva il testo salvato, quindi può portare riferimenti
+                // «dpsh-grande:» al posto di carte intestate e DTM (i blob non si cancellano mai). Si
+                // rimettono le stringhe vere PRIMA del salvataggio e del ridisegno qui sotto.
+                if (JSON.stringify(progetto).indexOf('dpsh-grande:') !== -1) {
+                    await risolviRiferimentiDatiGrandi({ projects: { [projId]: state.projects[projId] } });
+                }
                 // Se è il progetto su cui state lavora (anche dalla Home, dove state tiene l'ultima prova
                 // aperta) state va ricaricato dal progetto ripristinato: altrimenti il salvataggio qui sotto
                 // riscriverebbe la prova e gli strati con i dati di prima del ripristino.
