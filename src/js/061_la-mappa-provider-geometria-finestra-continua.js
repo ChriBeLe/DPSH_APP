@@ -1115,8 +1115,10 @@
                     // 2. Legge l'immagine in DataURL SENZA alcuna compressione (Inner Reader)
                     const dataReader = new FileReader();
                     dataReader.onload = async (dEvt) => {
-                        const rawDataUrl = dEvt.target.result;
-                        if (!rawDataUrl) return;
+                        if (!dEvt.target.result) return;
+                        // Il GPS è già stato letto qui sopra, dal file com'era; ora la foto si raddrizza
+                        // (l'EXIF di rotazione passa nei pixel) e si ricomprime (072a).
+                        const rawDataUrl = await preparaFotoImportata(file, bEvt.target.result, dEvt.target.result);
 
                         // Cascata di fallback (IDEA 1): EXIF > GPS live del dispositivo > GPS statico del cantiere
                         let photoLat, photoLng, gpsSource;
@@ -1135,6 +1137,8 @@
                         state.photos.push({
                             id: photoId,
                             dataUrl: rawDataUrl,
+                            // Il nome del file com'era (IMG_0042.jpg): ritorna nel pacchetto «Esporta cantiere».
+                            nomeFile: String(file.name || '').slice(0, 120),
                             lat: photoLat,
                             lng: photoLng,
                             alt: photoAlt,

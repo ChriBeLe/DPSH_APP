@@ -413,6 +413,47 @@
                 } catch (e) { /* mai bloccare l'export per un errore qui: nel dubbio resta l'ultimo salvataggio valido */ }
             }
 
+            /** Il documento HTML del report, quello che va in stampa e che Word e PDF/A leggono (071i):
+             * lo stesso per tutti e tre, scritto in un posto solo. perFile: true quando non si stampa
+             * (Word, PDF/A, pacchetto ZIP): niente controllo di impaginazione dentro. */
+            function htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, perFile) {
+                // Lo stile del testo del template che sta producendo questo report: e' il
+                // dato che decide carattere, corpo e interlinea del PDF. Si legge dal template
+                // in uso sulla prova, non da una copia — cosi' cambiare stile e ristampare da'
+                // davvero il documento nuovo.
+                const tplStampa = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
+                const stileTestoStampa = stileTestoDelTemplate(tplStampa);
+
+                return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${titolo}</title>
+    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}${regolePagineTavole(pagesHtml)}</style>
+</head>
+<body>
+    ${getIconSpriteHtml()}
+    <!-- La barra dei comandi vive FUORI dalla pila dei fogli (prima era dentro .a4-page insieme
+         alle pagine): la pila deve contenere SOLO fogli veri, altrimenti la regola strutturale
+         .dpsh-sheet:last-child — quella che impedisce il foglio bianco finale — ragionerebbe su un
+         elemento che non è una pagina. È comunque .no-print, quindi non compare mai nel PDF. -->
+    <!-- Il bottone giallo "Stampa / Salva in PDF" è stato RIMOSSO insieme alla seconda scheda:
+         era il ripiego per quando la stampa automatica non partiva, ma viveva DENTRO il documento
+         e ora quel documento sta in un iframe fuori schermo, dove nessuno potrebbe mai vederlo né
+         toccarlo. Un comando irraggiungibile è peggio di un comando assente, perché lascia credere
+         che una via d'uscita esista. Se la stampa non parte, la via d'uscita vera è il bottone
+         "PDF da immagine" dentro l'anteprima 🖨️, che è nella pagina principale e si può cliccare. -->
+    <!-- Contenitore neutro: nessun padding/larghezza propri. I margini del template ora vivono
+         dentro ogni singolo foglio (.dpsh-sheet), non più in un wrapper condiviso + @page — è
+         proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
+         da cui nascevano le pagine bianche. -->
+    <div class="dpsh-sheet-stack">${marcaCartePrimaEAltre(pagesHtml)}</div>
+    ${perFile ? '' : getControlloImpaginazioneScriptTag(true)}
+</body>
+</html>`;
+            }
+
             /** Orchestratore della generazione vera e propria.
              *
              * La SECONDA SCHEDA È STATA RIMOSSA del tutto. Storia in breve: nasceva dal vincolo dei
@@ -523,41 +564,7 @@
                     });
                     saveState();
 
-                    // Lo stile del testo del template che sta producendo questo report: e' il
-                    // dato che decide carattere, corpo e interlinea del PDF. Si legge dal template
-                    // in uso sulla prova, non da una copia — cosi' cambiare stile e ristampare da'
-                    // davvero il documento nuovo.
-                    const tplStampa = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
-                    const stileTestoStampa = stileTestoDelTemplate(tplStampa);
-
-                    const fullDoc = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>${titolo}</title>
-    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}${regolePagineTavole(pagesHtml)}</style>
-</head>
-<body>
-    ${getIconSpriteHtml()}
-    <!-- La barra dei comandi vive FUORI dalla pila dei fogli (prima era dentro .a4-page insieme
-         alle pagine): la pila deve contenere SOLO fogli veri, altrimenti la regola strutturale
-         .dpsh-sheet:last-child — quella che impedisce il foglio bianco finale — ragionerebbe su un
-         elemento che non è una pagina. È comunque .no-print, quindi non compare mai nel PDF. -->
-    <!-- Il bottone giallo "Stampa / Salva in PDF" è stato RIMOSSO insieme alla seconda scheda:
-         era il ripiego per quando la stampa automatica non partiva, ma viveva DENTRO il documento
-         e ora quel documento sta in un iframe fuori schermo, dove nessuno potrebbe mai vederlo né
-         toccarlo. Un comando irraggiungibile è peggio di un comando assente, perché lascia credere
-         che una via d'uscita esista. Se la stampa non parte, la via d'uscita vera è il bottone
-         "PDF da immagine" dentro l'anteprima 🖨️, che è nella pagina principale e si può cliccare. -->
-    <!-- Contenitore neutro: nessun padding/larghezza propri. I margini del template ora vivono
-         dentro ogni singolo foglio (.dpsh-sheet), non più in un wrapper condiviso + @page — è
-         proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
-         da cui nascevano le pagine bianche. -->
-    <div class="dpsh-sheet-stack">${marcaCartePrimaEAltre(pagesHtml)}</div>
-    ${esportaPdfContext.formato === 'word' ? '' : getControlloImpaginazioneScriptTag(true)}
-</body>
-</html>`;
+                    const fullDoc = htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, esportaPdfContext.formato === 'word');
 
                     // STAMPA DA IFRAME NASCOSTO, NON PIÙ DALLA SECONDA SCHEDA (segnalato: nella
                     // versione APK "carica ma poi non si apre nessuna pagina secondaria").
@@ -1264,14 +1271,18 @@
             }
 
             // MOTORE ESPORTAZIONE EXCEL MULTI-FOGLIO (.xlsx) VIA SHEETJS CON FOTO AD ALTA RISOLUZIONE INTEGRALI (0% COMPRESSIONE)
-            async function exportProjectExcel(projId, soloProve) {
+            // opz.perPacchetto(nomeFile, byte): invece di scaricare, consegna il file al pacchetto ZIP
+            // di «Esporta cantiere» (044d), e gli errori risalgono invece di finire in un avviso.
+            async function exportProjectExcel(projId, soloProve, opz) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
+                        if (opz && opz.perPacchetto) throw new Error('Progetto non trovato.');
                         alert('Progetto non trovato.');
                         return;
                     }
                     if (typeof XLSX === 'undefined') {
+                        if (opz && opz.perPacchetto) throw new Error('La libreria Excel non è caricata.');
                         alert('La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
                         return;
                     }
@@ -1388,9 +1399,11 @@
                     }
 
                     const fileName = `DPSH_Progetto_${(proj.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}_MultiFoglio.xlsx`;
+                    if (opz && opz.perPacchetto) { opz.perPacchetto(fileName, new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }))); return; }
                     XLSX.writeFile(wb, fileName);
                 } catch(e) {
                     console.error('exportProjectExcel error:', e);
+                    if (opz && opz.perPacchetto) throw e;
                     alert('Errore durante l\'esportazione Excel del progetto: ' + e.message);
                 }
             }

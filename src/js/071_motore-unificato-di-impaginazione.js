@@ -688,17 +688,21 @@
                     let exifData = { lat: null, lng: null, dateTimeOriginal: null };
                     try { exifData = parseExifData(arrBuf); } catch (e) { ignoraErrore('handleGalleryBatchFiles', e); }
 
-                    const dataUrl = await new Promise((resolve) => {
+                    const dataUrlOriginale = await new Promise((resolve) => {
                         const r = new FileReader();
                         r.onload = (e) => resolve(e.target.result);
                         r.onerror = () => resolve(null);
                         r.readAsDataURL(file);
                     });
-                    if (!dataUrl) continue;
+                    if (!dataUrlOriginale) continue;
+                    // Coordinate e data sono già state lette dal file com'era (sopra); ora la foto si
+                    // raddrizza e si ricomprime (072a), una alla volta per non tenere troppe tele in memoria.
+                    const dataUrl = await preparaFotoImportata(file, arrBuf, dataUrlOriginale);
 
                     const exifTs = parseExifDateStr(exifData.dateTimeOriginal);
                     entries.push({
                         dataUrl,
+                        nomeFile: String(file.name || '').slice(0, 120),
                         lat: exifData.lat,
                         lng: exifData.lng,
                         ts: exifTs !== null ? exifTs : (file.lastModified || Date.now()),
@@ -760,6 +764,7 @@
                     state.photos.push({
                         id: photoId,
                         dataUrl: entry.dataUrl,
+                        nomeFile: entry.nomeFile,
                         lat: entry.lat,
                         lng: entry.lng,
                         alt: state.header.alt,

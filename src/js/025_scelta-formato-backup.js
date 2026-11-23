@@ -256,7 +256,7 @@
                     ? 'Tutte le prove. Tocca una prova per toglierla da PDF, Word, Excel, KML e foto.'
                     : n === 0 ? 'Scegli almeno una prova.'
                     : `${n} prove su ${prove.length} per PDF, Word, Excel, KML e foto. Parametri e porta sul PC restano di tutto il progetto.`;
-                ['btnOptExportExcel', 'btnOptExportKML', 'btnOptExportPhotos', 'btnOptExportCompletePdf', 'btnOptExportCompleteWord'].forEach(id => document.getElementById(id).classList.toggle('spenta', n === 0));
+                ['btnOptExportExcel', 'btnOptExportKML', 'btnOptExportPhotos', 'btnOptExportCompletePdf', 'btnOptExportCompleteWord', 'btnOptEsportaCantiere'].forEach(id => document.getElementById(id).classList.toggle('spenta', n === 0));
             }
             document.getElementById('pilloleProveConsegna').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-prova]');

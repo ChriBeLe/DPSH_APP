@@ -41,6 +41,7 @@ markup/24_modalSurveySettings.html
 markup/26_modalConfirmDelete.html
 markup/27_modalBulkImport.html
 markup/28_modalExport.html
+markup/28b_modalPacchettoZip.html
 markup/29_modalEsportaPdf.html
 markup/30_modalReportTemplates.html
 markup/31_modalIndicePersonalizza.html
@@ -76,6 +77,10 @@ shell/04b_chiude-motore-apre-pdfjs.html
 vendor/pdfjs.min.js
 shell/04c_apre-pdfjs-worker.html
 vendor/pdfjs-worker.min.js
+shell/04d_chiude-worker-apre-pdflib.html
+vendor/pdf-lib.min.js
+shell/04e_chiude-pdflib-apre-fontkit.html
+vendor/fontkit.umd.min.js
 shell/05_tra-motore-e-app.html
 js/000_avvio-stato-e-salvataggio.js
 js/001_fase-3-gps-live-fallback-foto-import-batch.js
@@ -135,6 +140,7 @@ js/044_fase-1-importazione-progetti-da-file-json.js
 js/044a_librerie-che-viaggiano-col-progetto.js
 js/044b_pacchetto-di-progetto.js
 js/044c_finestre-porta-e-ricevi.js
+js/044d_esporta-progetto-zip.js
 js/045_esportazione-pdf.js
 js/046_modal-personalizza-indice.js
 js/047_spazio-occupato-e-foto-orfane.js
@@ -172,6 +178,8 @@ js/071fs_sistema-di-riferimento.js
 js/071g_sezione.js
 js/071h_vista-3d.js
 js/071i_export-word.js
+js/071i1_pdfa-scrittore.js
+js/071i2_pdfa-dal-documento-di-stampa.js
 js/071j_sezioni-tracciate.js
 js/071k_geopackage.js
 js/071l_mappa-progetto.js
@@ -194,6 +202,7 @@ js/071s_importa-da-word.js
 js/071v_tasto-destro.js
 js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
+js/072a_foto-in-ingresso-orienta-e-comprimi.js
 js/072b_leggi-foglio-di-campo.js
 js/073_assistente-ia.js
 shell/06_fine.html
