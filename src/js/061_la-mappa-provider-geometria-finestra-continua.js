@@ -1537,8 +1537,8 @@
                     try {
                         if (editingIndex >= 0 && editingIndex < state.logs.length) {
                             const misuraPrima = misuraDiIntervallo(state.logs[editingIndex]);
-                            const endDepth = parseFloat(numModalEnd.value) || 0;
-                            state.logs[editingIndex].start = parseFloat(numModalStart.value) || 0;
+                            const endDepth = profonditaAlMillimetro(parseFloat(numModalEnd.value) || 0);
+                            state.logs[editingIndex].start = profonditaAlMillimetro(parseFloat(numModalStart.value) || 0);
                             state.logs[editingIndex].end = endDepth;
                             state.logs[editingIndex].colpi = Math.max(0, parseInt(numModalColpi.value) || 0);
                             state.logs[editingIndex].asta = getRodForDepth(endDepth);

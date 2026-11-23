@@ -152,6 +152,7 @@
             }
 
             async function scriviCopiaAutomaticaOra(tipo, motivo, testoStato) {
+                copieAutomatiche.ultimaScritturaFallita = false;
                 try {
                     const json = typeof testoStato === 'string' ? testoStato : localStorage.getItem('dpsh_app_state');
                     if (!json) return false;
@@ -183,7 +184,8 @@
                     return true;
                 } catch (e) {
                     copieAutomatiche.ultimaFirma = null;
-                    ignoraErrore('scriviCopiaAutomatica', e);
+                    copieAutomatiche.ultimaScritturaFallita = true;
+                    segnalaErrore('copia', 'scriviCopiaAutomatica', e, 'Copia di sicurezza non riuscita: i dati sono salvati, ma questa copia di riserva no');
                     return false;
                 }
             }

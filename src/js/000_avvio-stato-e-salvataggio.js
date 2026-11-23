@@ -39,9 +39,12 @@
             // in MIGRAZIONI_DATI (pezzo 004b); dati più nuovi non si caricano e non si importano.
             //   esito: 'in-corso' | 'ok' | 'vuoto' | 'illeggibile' | 'piu-nuovo' | 'inaccessibile'
             //   bloccato: perché saveState non scrive ('avvio', 'dati-non-letti', 'migrazione') o false
-            const VERSIONE_SCHEMA_DATI = 3;
-            // Il formato 4 (versione ridisegnata) differisce solo per le profondità arrotondate al
-            // millimetro: questa versione lo legge così com'è e lo salva nel formato 3 (vedi migraDati).
+            // Formato 4 (revisione dei calcoli, Fase B): le profondità sono arrotondate al millimetro.
+            // L'app scrive SEMPRE il formato 4. Legge il 3 (e i più vecchi) passando dalle migrazioni,
+            // che prima salvano una copia automatica del testo di prima; legge il 4 così com'è.
+            // VERSIONE_SCHEMA_LETTA è il massimo formato accettato: una forma futura identica a
+            // quella corrente si leggerebbe com'è (vedi migraDati), oltre si rifiuta senza toccare nulla.
+            const VERSIONE_SCHEMA_DATI = 4;
             const VERSIONE_SCHEMA_LETTA = 4;
             const caricamentoDati = {
                 esito: 'in-corso', bloccato: 'avvio', salvataggiEvitati: 0,

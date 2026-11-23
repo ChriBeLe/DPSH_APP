@@ -121,7 +121,9 @@ const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
     const V = a.E('VERSIONE_SCHEMA_DATI');
     t('i dati del formato 1 si caricano e si riscrivono nel formato attuale', salvato.versioneSchema === V && V >= 2);
     const FUORI = new Set(['updatedAt', 'expandedMode', 'compactMode', 'tastoRegistraVisibile']);
-    const senza = (x) => JSON.parse(JSON.stringify(x, (k, v) => (FUORI.has(k) ? undefined : v)));
+    // La 3 → 4 arrotonda al millimetro start, end e currentDepthStart (le fixture hanno 1,9999999999999998).
+    const PROF = new Set(['start', 'end', 'currentDepthStart']);
+    const senza = (x) => JSON.parse(JSON.stringify(x, (k, v) => (FUORI.has(k) ? undefined : (PROF.has(k) && typeof v === 'number' ? Math.round(v * 1000) / 1000 : v))));
     t('con progetti, prove, intervalli, strati e note identici', JSON.stringify(senza(salvato.projects)) === JSON.stringify(senza(v1.projects)));
     t('senza nessuna data inventata', !/modificatoIl|passaggi|scattataIl/.test(JSON.stringify(salvato.projects)));
     const copie = a.idb._dump('DPSH_CopieAutomatiche');

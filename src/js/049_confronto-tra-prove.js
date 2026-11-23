@@ -486,6 +486,18 @@
                             : `<span style="color:var(--success);">✓ Nessuna immagine da recuperare</span>`
                     ].filter(Boolean).join('<br>');
                 }
+                // «Errori recenti»: gli errori ignorati (registroErrori, 002), utili in un APK senza console.
+                const elErrori = document.getElementById('spazioErrori');
+                if (elErrori) {
+                    const reg = registroErrori;
+                    if (!reg || reg.conteggio === 0) {
+                        elErrori.innerHTML = '';
+                    } else {
+                        const ultimi = reg.voci.slice(-5).reverse().map(v =>
+                            `${new Date(v.quando).toLocaleTimeString('it-IT')} · ${testoSicuro(v.dove)}: ${testoSicuro(v.messaggio).slice(0, 80)}`);
+                        elErrori.innerHTML = `<strong>Errori recenti: ${reg.conteggio}</strong> (non bloccanti)<br>${ultimi.join('<br>')}`;
+                    }
+                }
                 if (btnOrfane) {
                     btnOrfane.disabled = s.orfaneCount === 0;
                     btnOrfane.style.opacity = s.orfaneCount === 0 ? '0.5' : '1';

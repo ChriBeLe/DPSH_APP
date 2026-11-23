@@ -107,7 +107,7 @@
                 const pMax = profondita.length ? Math.max(...profondita) : null;
                 const stessaQuota = pMin !== null && Math.abs(pMax - pMin) < 0.005;
 
-                const areaPunta = parseFloat(inst.areaPunta || 20);
+                const areaPunta = parametriStrumento(inst).A;
                 const diametro = 2 * Math.sqrt(areaPunta / Math.PI) * 10; // cm² -> mm
                 const beta = betaTStrumento(inst, passo);
 
@@ -131,13 +131,13 @@
 
                 metti('nomePenetrometro', inst.nomePenetrometro, 'Nome del penetrometro', 'Strumento');
                 metti('rivestimentoFanghi', inst.rivestimentoFanghi, 'Rivestimento / fanghi', 'Strumento');
-                metti('massaBattente', fmtIT(parseFloat(inst.pesoMassa || 63.5), 1), 'Massa battente (kg)', 'Strumento');
-                metti('altezzaCaduta', fmtIT(parseFloat(inst.volata || 0.75), 2), 'Altezza di caduta (m)', 'Strumento');
-                metti('pesoSistemaBattuta', fmtIT(parseFloat(inst.pesoSistema || 8), 1), 'Massa sistema di battuta (kg)', 'Strumento');
+                metti('massaBattente', fmtIT(parametriStrumento(inst).M, 1), 'Massa battente (kg)', 'Strumento');
+                metti('altezzaCaduta', fmtIT(parametriStrumento(inst).volataM, 2), 'Altezza di caduta (m)', 'Strumento');
+                metti('pesoSistemaBattuta', fmtIT(parametriStrumento(inst).pesoSistema, 1), 'Massa sistema di battuta (kg)', 'Strumento');
                 metti('areaPunta', fmtIT(areaPunta, 0), 'Area di base punta (cm²)', 'Strumento');
                 metti('diametroPunta', fmtIT(diametro, 2), 'Diametro punta (mm)', 'Calcolato dall\'area');
                 metti('lunghezzaAste', fmtIT(parseFloat(inst.lunghAsta || 1), 0), 'Lunghezza aste (m)', 'Strumento');
-                metti('pesoAsteMetro', fmtIT(parseFloat(inst.pesoAsta || 6.3), 1), 'Massa aste al metro (kg/m)', 'Strumento');
+                metti('pesoAsteMetro', fmtIT(parametriStrumento(inst).pesoAsta, 1), 'Massa aste al metro (kg/m)', 'Strumento');
                 metti('avanzamentoPunta', fmtIT(passo / 100, 2), 'Avanzamento punta (m)', 'Impostazioni prova');
                 metti('numeroColpiPunta', 'N(' + Math.round(passo) + ')', 'Numero colpi per avanzamento', 'Impostazioni prova');
                 metti('coeffCorrelazione', fmtIT(beta, 3), 'Coefficiente di correlazione βt', 'Calcolato dallo strumento');

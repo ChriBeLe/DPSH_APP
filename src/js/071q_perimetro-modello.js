@@ -81,27 +81,70 @@
                 return out;
             }
 
-            /** Il sistema di riferimento da un .prj (WKT): UTM con la zona, geografico, o «non gestito». */
+            // ED50 (European Datum 1950, ellissoide internazionale di Hayford): in Italia è ancora nei vecchi
+            // file di cartografia e di catasto. Letto come WGS84 sposta il perimetro di 100-200 m, in silenzio.
+            // Si porta in WGS84 con la traslazione geocentrica a 3 parametri dTX,dTY,dTZ = -87, -98, -121 m
+            // (EPSG «ED50 to WGS 84 (1)», il set medio per l'Europa, quello che i software GIS scrivono come
+            // towgs84=-87,-98,-121): l'errore residuo è di qualche metro, contro i 100-200 m dell'ignorarlo.
+            const ED50_TOWGS84 = [-87, -98, -121];
+            const ED50_ELLISSOIDE = { a: 6378388, f: 1 / 297 }, WGS84_ELLISSOIDE = { a: 6378137, f: 1 / 298.257223563 };
+            /** Da gradi ED50 a gradi WGS84 (traslazione geocentrica: gradi → X,Y,Z → +[dX,dY,dZ] → gradi). */
+            function wgs84DaEd50(lat, lng) {
+                const e1 = ED50_ELLISSOIDE, e2 = WGS84_ELLISSOIDE, rad = Math.PI / 180;
+                const es1 = e1.f * (2 - e1.f), es2 = e2.f * (2 - e2.f);
+                const fi = lat * rad, la = lng * rad, N = e1.a / Math.sqrt(1 - es1 * Math.sin(fi) ** 2);
+                const X = N * Math.cos(fi) * Math.cos(la) + ED50_TOWGS84[0], Y = N * Math.cos(fi) * Math.sin(la) + ED50_TOWGS84[1], Z = N * (1 - es1) * Math.sin(fi) + ED50_TOWGS84[2];
+                const p = Math.hypot(X, Y);
+                let f2 = Math.atan2(Z, p * (1 - es2));
+                for (let i = 0; i < 6; i++) { const N2 = e2.a / Math.sqrt(1 - es2 * Math.sin(f2) ** 2); f2 = Math.atan2(Z + es2 * N2 * Math.sin(f2), p); }
+                return { lat: f2 / rad, lng: Math.atan2(Y, X) / rad };
+            }
+            /** EPSG di un file vettoriale: ED50 (geografico 4230, UTM 23028-23038) o quelli già noti. */
+            function crsPerimetroDaEpsg(epsg) {
+                if (epsg === 4230) return { tipo: 'geo', datum: 'ed50' };
+                if (epsg >= 23028 && epsg <= 23038) return { tipo: 'utm', zona: epsg - 23000, datum: 'ed50' };
+                return crsDaEpsg(epsg);
+            }
+
+            /** Il sistema di riferimento da un .prj (WKT): UTM con la zona, geografico (anche ED50), «non gestito»
+             * ('no') o null se il testo non si capisce. In geografico con un datum che non si riconosce
+             * c'è sconosciuto: true, e chi importa avvisa l'utente invece di fingere WGS84. */
             function crsDaWkt(wkt) {
                 if (!wkt) return null;
                 const t = String(wkt);
+                const ed50 = /European[_ ]?(Datum[_ ])?1950|\bED[_ ]?1950|\bED50\b/i.test(t);
                 const epsg = /AUTHORITY\["EPSG",\s*"(\d+)"\]\s*\]\s*$/i.exec(t.trim());
-                if (epsg) { const c = crsDaEpsg(Number(epsg[1])); if (c) return c; }
                 const utm = /UTM[_ ]?zone[_ ]?(\d{1,2})\s*N/i.exec(t) || /UTM_(\d{1,2})N/i.exec(t) || /_(\d{2})N"/.exec(t);
+                if (ed50) {
+                    if (/PROJCS/i.test(t)) return utm ? { tipo: 'utm', zona: Number(utm[1]), datum: 'ed50' } : 'no';
+                    return { tipo: 'geo', datum: 'ed50' };
+                }
+                if (epsg) { const c = crsPerimetroDaEpsg(Number(epsg[1])); if (c) return c; }
                 if (/PROJCS/i.test(t)) {
                     if (utm) return { tipo: 'utm', zona: Number(utm[1]) };
-                    if (/Monte_Mario|Gauss|Italy_[12]|Roma40/i.test(t)) return 'no';
-                    return 'no';
+                    return 'no'; // Gauss-Boaga (Monte Mario, Roma 40), Lambert, ecc.
                 }
-                if (/GEOGCS/i.test(t)) return { tipo: 'geo' };
+                if (/GEOGCS/i.test(t)) {
+                    if (/Monte_?Mario|Roma[_ ]?40/i.test(t)) return 'no';
+                    if (/WGS[_ ]?(19)?84|ETRS|ETRF|RDN2008|GRS[_ ]?(19)?80|NAD[_ ]?83|CRS84|EPSG["',\s]+(4326|4258|6706)/i.test(t)) return { tipo: 'geo' };
+                    return { tipo: 'geo', sconosciuto: true };
+                }
                 return null;
+            }
+
+            /** Un punto (x, y) del file in gradi WGS84, nel sistema crs (con il cambio di datum per ED50). */
+            function gradiDaCrs(crs, x, y) {
+                let q = crs.tipo === 'geo' ? { lat: y, lng: x }
+                    : geoDaUtm(x, y, crs.zona, ...(crs.datum === 'ed50' ? [ED50_ELLISSOIDE.a, ED50_ELLISSOIDE.f] : []));
+                if (crs.datum === 'ed50') q = wgs84DaEd50(q.lat, q.lng);
+                return q;
             }
 
             function leggiGeoJson(testo) {
                 const g = JSON.parse(testo), poligoni = [];
                 let crs = null;
                 const nomeCrs = g.crs && g.crs.properties && g.crs.properties.name;
-                if (nomeCrs) { const m = /EPSG:{1,2}(\d+)/i.exec(nomeCrs); if (m) crs = crsDaEpsg(Number(m[1])); else if (/CRS84/i.test(nomeCrs)) crs = { tipo: 'geo' }; }
+                if (nomeCrs) { const m = /EPSG:{1,2}(\d+)/i.exec(nomeCrs); if (m) crs = crsPerimetroDaEpsg(Number(m[1])); else if (/CRS84/i.test(nomeCrs)) crs = { tipo: 'geo' }; }
                 const geom = (geo, nome) => {
                     if (!geo) return;
                     if (geo.type === 'Polygon') poligoni.push({ nome, anello: geo.coordinates[0] });
@@ -151,7 +194,7 @@
                     n++;
                     p += 8 + lung;
                 }
-                return { poligoni, crs: crsDaWkt(prj ? new TextDecoder().decode(prj) : null) };
+                return { poligoni, crs: crsDaWkt(prj ? new TextDecoder().decode(prj) : null), senzaPrj: !prj };
             }
             /** Dal .dbf: il valore del primo campo «nome/name/id» (o il primo campo di testo) di ogni riga. */
             function nomiDaDbf(dbf) {
@@ -241,7 +284,7 @@
                     });
                 });
                 const epsg = srsId !== null ? (srs.get(srsId) || srsId) : null;
-                return { poligoni, crs: crsDaEpsg(epsg) };
+                return { poligoni, crs: crsPerimetroDaEpsg(epsg) };
             }
             /** WKB: gli anelli esterni dei poligoni (anche multipli, con Z/M). */
             function wkbPoligoni(b) {
@@ -285,16 +328,23 @@
                 let crs = letti.crs;
                 if (crs === 'no') throw new Error('Il sistema di coordinate del file non è gestito (es. Gauss-Boaga): salvalo in WGS84 o in UTM (WGS84, ETRS89, RDN2008).');
                 const tutte = letti.poligoni.flatMap(p => p.anello);
+                const avvisi = [];
+                if (crs && crs.sconosciuto) avvisi.push('Il sistema di coordinate del file (.prj) non è tra quelli che l\'app conosce: l\'ho letto come WGS84. Se il perimetro risulta spostato, salvalo in WGS84 o UTM e riprova.');
                 if (!crs) {
+                    avvisi.push(letti.senzaPrj ? 'Il file non ha il .prj: non so in che sistema di coordinate sia, l\'ho dedotto dai numeri (gradi WGS84 o UTM della zona delle prove). Controlla il perimetro sulla mappa.'
+                        : 'Il sistema di coordinate del file non si riconosce: l\'ho dedotto dai numeri (gradi WGS84 o UTM della zona delle prove). Controlla il perimetro sulla mappa.');
                     // senza sistema dichiarato: gradi se lo sembrano, altrimenti UTM nella zona delle prove
                     const gradi = tutte.every(([x, y]) => Math.abs(x) <= 180 && Math.abs(y) <= 90);
                     const proj = state.projects[state.currentProjectId], una = proj && proveConCoordinate(proj)[0];
                     crs = gradi ? { tipo: 'geo' } : { tipo: 'utm', zona: una ? Math.floor((parseFloat(una.header.lng) + 180) / 6) + 1 : 33 };
                 }
-                const inGradi = ([x, y]) => crs.tipo === 'geo' ? { lat: y, lng: x } : geoDaUtm(x, y, crs.zona);
-                return letti.poligoni.map(p => ({ nome: String(p.nome).slice(0, 60), punti: p.anello.map(inGradi).filter((q, i, a) => !i || Math.abs(q.lat - a[i - 1].lat) + Math.abs(q.lng - a[i - 1].lng) > 1e-10) }))
+                if (crs.datum === 'ed50') avvisi.push('Il file è in ED50: l\'ho convertito in WGS84 (traslazione -87, -98, -121 m, precisione di qualche metro).');
+                const inGradi = ([x, y]) => gradiDaCrs(crs, x, y);
+                const risultato = letti.poligoni.map(p => ({ nome: String(p.nome).slice(0, 60), punti: p.anello.map(inGradi).filter((q, i, a) => !i || Math.abs(q.lat - a[i - 1].lat) + Math.abs(q.lng - a[i - 1].lng) > 1e-10) }))
                     .map(p => { if (p.punti.length > 3 && Math.abs(p.punti[0].lat - p.punti[p.punti.length - 1].lat) + Math.abs(p.punti[0].lng - p.punti[p.punti.length - 1].lng) < 1e-10) p.punti.pop(); return p; })
                     .filter(p => p.punti.length >= 3);
+                risultato.avvisi = avvisi;
+                return risultato;
             }
 
             /** IMPORTA IL PERIMETRO: il file, la scelta del poligono (se più d'uno, il più grande di base),
@@ -314,6 +364,8 @@
                 const x = creaDisegno('poligono', scelto.punti);
                 x.nome = scelto.nome || x.nome;
                 usaPerimetroModello(x.id);
+                // gli avvisi (ED50 convertito, sistema non riconosciuto) dopo il toast del perimetro, che altrimenti li copre
+                if (poligoni.avvisi && poligoni.avvisi.length) appAlert(poligoni.avvisi.join('\n\n'));
             }
 
             // ---- I comandi: scheda «Modello e tagli» del 3D ----

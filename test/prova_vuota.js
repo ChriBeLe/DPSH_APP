@@ -12,7 +12,7 @@ function corpo(nome){
   for(let k=i+1;k<righe.length;k++) if(righe[k]==='            }') return righe.slice(i,k+1).join('\n');
   throw new Error('fine non trovata: '+nome);
 }
-const NOMI=['betaTStrumento','betaTCalcolato','nsptDiLog','rpdDiLog','arricchisciLogsConNsptRpd',
+const NOMI=['parametriStrumento','profonditaAlMillimetro','betaTStrumento','betaTCalcolato','nsptDiLog','rpdDiLog','arricchisciLogsConNsptRpd',
             'getLogsPerStratoIn','stratiEffettiviProva','faldaDaHeader','elencoItaliano','formattaCoordinateProve','valoriCantiere','fmtIT','formattaDataIT',
             // la quota del piano campagna viene dal DTM del progetto (qui assente: null)
             'quotaDellaProva','quotaDtm',

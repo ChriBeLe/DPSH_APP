@@ -95,6 +95,11 @@
                     } catch (err) { ignoraErrore('requestWakeLock', err); }
                 }
             }
+            // Il browser rilascia il blocco quando la pagina va in secondo piano (altra app, telefono
+            // bloccato): al ritorno lo si richiede, se la preferenza è ancora attiva.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.settings && state.settings.wakeLock) requestWakeLock();
+            });
 
             /** Porta nello stato dell'app i dati salvati, GIÀ migrati alla versione attuale (vedi
              * migraDati, pezzo 004b). Era migrateLegacyState: la conversione dal formato senza
@@ -354,7 +359,7 @@
                 updateUI();
                 // Asincrono (legge gli id delle foto in IndexedDB) e dopo l'avvio: non rallenta
                 // l'apertura, e l'eventuale avviso arriva quando l'app è già in piedi.
-                setTimeout(() => { controllaIntegritaDopoAvvio().catch(e => ignoraErrore('controllaIntegritaDopoAvvio', e)); }, 0);
+                setTimeout(() => { controllaIntegritaDopoAvvio().catch(e => segnalaErrore('integrita', 'controllaIntegritaDopoAvvio', e, 'Il controllo dei dati salvati non è riuscito: i dati non sono stati verificati')); }, 0);
             }
 
             // CACHE IN-MEMORY PER FOTO ORIGINALI (RAM)
@@ -453,8 +458,7 @@
                     // dall'ultima copia (lo controlla scriviCopiaAutomatica). La scrittura va avanti da
                     // sola e non blocca il salvataggio.
                     if (copieAutomatiche.pronto && Date.now() - copieAutomatiche.ultimaPeriodica >= COPIE_REGOLE.intervalloMs) {
-                        copieAutomatiche.ultimaPeriodica = Date.now();
-                        scriviCopiaAutomatica('periodica', 'automatica', testoStato);
+                        avviaCopiaPeriodica(testoStato);
                     }
                     // Un salvataggio riuscito riarma l'avviso: se lo spazio è stato liberato e più
                     // avanti si riempie di nuovo, l'utente va avvisato un'altra volta.
@@ -463,6 +467,18 @@
                     console.warn('saveState error:', e);
                     avvisaSalvataggioFallito(e);
                 }
+            }
+
+            /** Lancia la copia periodica senza attenderla. `ultimaPeriodica` si sposta subito, per non
+             * lanciarne due insieme mentre la prima scrive, ma se la scrittura FALLISCE non si aspetta
+             * un intervallo intero (5 minuti senza copie e nessuno che lo sa): si riprova tra un minuto. */
+            function avviaCopiaPeriodica(testoStato) {
+                copieAutomatiche.ultimaPeriodica = Date.now();
+                return Promise.resolve(scriviCopiaAutomatica('periodica', 'automatica', testoStato)).then(() => {
+                    if (copieAutomatiche.ultimaScritturaFallita) {
+                        copieAutomatiche.ultimaPeriodica = Date.now() - COPIE_REGOLE.intervalloMs + 60000;
+                    }
+                });
             }
 
             /** Vero da quando l'utente è stato avvisato che i salvataggi non passano più, fino al

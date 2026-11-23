@@ -10,7 +10,7 @@ function corpo(nome){
   if(i<0) throw new Error('non trovata: '+nome);
   for(let k=i+1;k<righe.length;k++) if(righe[k]==='            }') return righe.slice(i,k+1).join('\n');
 }
-const NOMI=['betaTCalcolato','betaTStrumento'];
+const NOMI=['parametriStrumento','betaTCalcolato','betaTStrumento'];
 const api=new Function(NOMI.map(corpo).join('\n\n')+'\nreturn {'+NOMI.join(',')+'};')();
 let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;console.log('  KO  '+n);} };
 const r3 = x => Math.round(x*1000)/1000;
