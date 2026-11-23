@@ -211,7 +211,7 @@
                 const proj = state.projects && state.projects[projId];
                 const punti = puntiProveDelProgetto(proj);
                 if (punti.length === 0) {
-                    appAlert('Nessuna prova di questo cantiere ha coordinate GPS: non ci sono punti da inquadrare.');
+                    appAlert('Nessuna prova di questo progetto ha coordinate GPS: non ci sono punti da inquadrare.');
                     return;
                 }
                 // Comune e località per l'etichetta. Il comune sta sul progetto, la località

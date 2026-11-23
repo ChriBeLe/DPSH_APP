@@ -7,7 +7,7 @@
                 const photos = survData.photos || [];
                 const strati = (projData && projData.strati) || survData.strati || state.strati || [];
 
-                const comune = h.comune || (projData ? projData.comune : 'Cantiere');
+                const comune = h.comune || (projData ? projData.comune : 'Progetto');
                 const committente = h.committente || (projData ? projData.committente : 'Non specificato');
                 const localita = h.localita || (projData ? projData.localita : 'Non specificata');
                 const dateStr = h.date || (projData ? projData.date : new Date().toISOString().split('T')[0]);

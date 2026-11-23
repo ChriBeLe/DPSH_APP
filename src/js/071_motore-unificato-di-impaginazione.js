@@ -597,7 +597,7 @@
             async function downloadAllSurveyPhotosJpg() {
                 const photos = state.photos || [];
                 if (photos.length === 0) {
-                    alert('Nessuna foto allegata a questa prova!');
+                    alert('Nessuna foto allegata a questa prova.');
                     return;
                 }
 
@@ -607,7 +607,7 @@
                     if (pUrl) {
                         const a = document.createElement('a');
                         a.href = pUrl;
-                        a.download = `${p.name || 'Foto_Cantiere_' + (i+1)}.jpg`;
+                        a.download = `${p.name || 'Foto_progetto_' + (i+1)}.jpg`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -627,7 +627,7 @@
                         if (pUrl) {
                             const a = document.createElement('a');
                             a.href = pUrl;
-                            a.download = `${p.name || 'Foto_Cantiere_' + (currentPreviewPhotoIdx+1)}.jpg`;
+                            a.download = `${p.name || 'Foto_progetto_' + (currentPreviewPhotoIdx+1)}.jpg`;
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);

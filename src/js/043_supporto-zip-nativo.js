@@ -414,7 +414,7 @@
                     // Il pacchetto di progetto (Fase 2) ha la sua strada, con verifica e anteprima
                     // (044b): qui non si importa, invece di importare zero progetti in silenzio.
                     if (manifest && manifest.tipo === TIPO_PACCHETTO_PROGETTO) {
-                        throw new Error('Questo è un pacchetto di progetto: si apre da «Ricevi» nella Home.');
+                        throw new Error('Questo è un pacchetto di progetto: si apre da «Ricevi un progetto» nella Home.');
                     }
                     // La versione è del manifest: la si controlla subito, prima di leggere i progetti.
                     controllaVersioneFileImportato(versioneFileImportato(manifest));

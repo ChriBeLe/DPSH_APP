@@ -2,14 +2,14 @@
 //
 //  - testata «Progetti» con «N progetti · N prove»; Impostazioni, e i template di report e
 //    l'archivio litologico ancora a un tocco;
-//  - niente card dentro una card; «Nuovo progetto» (principale) e «Ricevi»;
+//  - niente card dentro una card; «Nuovo progetto» (principale) e «Ricevi un progetto»;
 //  - promemoria del backup in una riga compatta con «Fai backup»;
 //  - ricerca e filtri a pillola SENZA conteggi;
 //  - card del progetto tutta toccabile: apre l'ULTIMA PROVA USATA, anche dopo aver chiuso l'app;
 //    il ⋯ a destra ha le azioni di progetto, note comprese;
 //  - dentro la card: stato, «Comune · Committente: X», «N prove · n/N GPS · N foto»,
 //    «Modificato il gg/mm/aaaa · ultima aperta: Prova N»;
-//  - stato vuoto con un solo «Nuovo progetto» e un solo «Ricevi»;
+//  - stato vuoto con un solo «Nuovo progetto» e un solo «Ricevi un progetto»;
 //  - template: niente «in uso su questa prova» dalla Home, niente «non modificabile»;
 //  - via i «Chiudi» doppi (Esporta, Foto, Template) e i doppioni del cassetto;
 //  - la striscia «Salvataggio sospeso» spinge giù il contenuto;
@@ -42,7 +42,7 @@ const chiudiAvvisi = async app => { for (let i = 0; i < 3 && app.dialogo(); i++)
   app.E('closeDrawer()');
   t('template di report e archivio litologico a un tocco dalla Home', home.contains($(app, 'btnOpenReportTemplatesHome')) && home.contains($(app, 'btnOpenArchiveManagerHome'))
     && $(app, 'btnOpenReportTemplatesHome').getAttribute('aria-label') === 'Template di report');
-  t('«Nuovo progetto» principale e «Ricevi»', $(app, 'btnHomeNewProject').classList.contains('bt-principale') && $(app, 'btnHomeNewProject').textContent.trim() === 'Nuovo progetto' && $(app, 'btnHomeImportProject').textContent.trim() === 'Ricevi');
+  t('«Nuovo progetto» principale e «Ricevi»', $(app, 'btnHomeNewProject').classList.contains('bt-principale') && $(app, 'btnHomeNewProject').textContent.trim() === 'Nuovo progetto' && $(app, 'btnHomeImportProject').textContent.trim() === 'Ricevi un progetto');
   t('nessuna card dentro una card', !$(app, 'homeProjectsContainer').closest('.card') && !home.querySelector('.card .card-progetto'));
 
   console.log('--- Promemoria, ricerca e filtri ---');
@@ -132,7 +132,7 @@ const chiudiAvvisi = async app => { for (let i = 0; i < 3 && app.dialogo(); i++)
   vuota.E("switchView('home')");
   await attesa(30);
   const conta = re => [...$(vuota, 'viewHome').querySelectorAll('button')].filter(b => !nascosto(vuota.w, b) && re.test(b.textContent.trim())).length;
-  t('un solo «Nuovo progetto» e un solo «Ricevi»', conta(/^Nuovo progetto$/i) === 1 && conta(/^Ricevi$/) === 1);
+  t('un solo «Nuovo progetto» e un solo «Ricevi un progetto»', conta(/^Nuovo progetto$/i) === 1 && conta(/^Ricevi un progetto$/) === 1);
   t('e il testo che spiega cosa fare', /Nessun progetto/.test($(vuota, 'homeProjectsContainer').textContent));
   t('«0 progetti · 0 prove»', $(vuota, 'lblHomeConteggi').textContent === '0 progetti · 0 prove');
   vuota.chiudi();

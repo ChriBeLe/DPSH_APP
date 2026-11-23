@@ -14,15 +14,15 @@
                 // così entrano nell'indice col nome giusto. Valori in valoriDellaProva.
                 { tipo: 'nomeProva', etichetta: 'Nome della prova', gruppo: 'Prova' },
                 { tipo: 'numeroProva', etichetta: 'Numero della prova', gruppo: 'Prova' },
-                { tipo: 'committente', etichetta: 'Committente', gruppo: 'Cantiere', campo: 'committente' , dove: 'prova' },
-                { tipo: 'sedeCommittente', etichetta: 'Sede del committente', gruppo: 'Cantiere', campo: 'sedeCommittente' , dove: 'progetto' },
-                { tipo: 'denominazioneIntervento', etichetta: 'Denominazione dell\'intervento', gruppo: 'Cantiere', campo: 'denominazioneIntervento' , dove: 'progetto' },
-                { tipo: 'comune', etichetta: 'Comune', gruppo: 'Cantiere', campo: 'comune' , dove: 'prova' },
-                { tipo: 'provincia', etichetta: 'Provincia', gruppo: 'Cantiere', campo: 'provincia' , dove: 'progetto' },
-                { tipo: 'localita', etichetta: 'Località', gruppo: 'Cantiere', campo: 'localita' , dove: 'prova' },
-                { tipo: 'data', etichetta: 'Data dell\'indagine', gruppo: 'Cantiere' },
-                { tipo: 'coordinate', etichetta: 'Coordinate geografiche', gruppo: 'Cantiere' },
-                { tipo: 'quotaPianoCampagna', etichetta: 'Quota del piano campagna', gruppo: 'Cantiere' },
+                { tipo: 'committente', etichetta: 'Committente', gruppo: 'Progetto', campo: 'committente' , dove: 'prova' },
+                { tipo: 'sedeCommittente', etichetta: 'Sede del committente', gruppo: 'Progetto', campo: 'sedeCommittente' , dove: 'progetto' },
+                { tipo: 'denominazioneIntervento', etichetta: 'Denominazione dell\'intervento', gruppo: 'Progetto', campo: 'denominazioneIntervento' , dove: 'progetto' },
+                { tipo: 'comune', etichetta: 'Comune', gruppo: 'Progetto', campo: 'comune' , dove: 'prova' },
+                { tipo: 'provincia', etichetta: 'Provincia', gruppo: 'Progetto', campo: 'provincia' , dove: 'progetto' },
+                { tipo: 'localita', etichetta: 'Località', gruppo: 'Progetto', campo: 'localita' , dove: 'prova' },
+                { tipo: 'data', etichetta: 'Data dell\'indagine', gruppo: 'Progetto' },
+                { tipo: 'coordinate', etichetta: 'Coordinate geografiche', gruppo: 'Progetto' },
+                { tipo: 'quotaPianoCampagna', etichetta: 'Quota del piano campagna', gruppo: 'Progetto' },
                 { tipo: 'numeroProve', etichetta: 'Numero di prove', gruppo: 'Indagine' },
                 { tipo: 'elencoProve', etichetta: 'Elenco delle prove', gruppo: 'Indagine' },
                 { tipo: 'profonditaMax', etichetta: 'Profondità massima', gruppo: 'Indagine' },
@@ -192,14 +192,14 @@
              * mettendo mano — e in un'app dove si tengono aperti piu' cantieri e si sceglie
              * quale usare per l'anteprima, e' esattamente l'informazione che serve. */
             function nomeProgettoPerAvviso(proj) {
-                if (!proj) return 'nessun cantiere';
+                if (!proj) return 'nessun progetto';
                 const parti = [];
                 if (proj.name) parti.push(proj.name);
                 if (proj.comune && proj.comune !== proj.name) parti.push(proj.comune);
                 if (proj.provincia) parti[parti.length - 1] = parti[parti.length - 1] + ' (' + proj.provincia + ')';
                 const n = Object.keys(proj.surveys || {}).length;
                 const quante = n === 0 ? 'nessuna prova' : (n === 1 ? '1 prova' : n + ' prove');
-                return (parti.join(' — ') || 'cantiere senza nome') + ', ' + quante;
+                return (parti.join(' — ') || 'progetto senza nome') + ', ' + quante;
             }
 
             /** SCRIVE UN DATO DEL CANTIERE DOVE VIVE DAVVERO.

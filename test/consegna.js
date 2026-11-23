@@ -60,7 +60,7 @@ const visibile = (app, id) => !!$(app, id) && !nascosto(app.w, $(app, id));
   const tolta = pillole()[0];
   const nrTolta = tolta.title;
   clic(app, tolta);
-  t('togliendone una lo dice: per Excel, KML e foto; il PDF sceglie dopo', pillole()[0].getAttribute('aria-pressed') === 'false' && /su \d+ per Excel, KML e foto/.test($(app, 'lblProveConsegna').textContent));
+  t('togliendone una lo dice: per Excel, KML e foto; anche per PDF e Word', pillole()[0].getAttribute('aria-pressed') === 'false' && /su \d+ per PDF, Word, Excel, KML e foto/.test($(app, 'lblProveConsegna').textContent));
   const n0 = app.scaricati.length;
   clic(app, $(app, 'btnOptExportKML'));
   await attesa(150);

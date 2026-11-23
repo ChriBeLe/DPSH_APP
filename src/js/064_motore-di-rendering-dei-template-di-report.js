@@ -62,7 +62,7 @@
 
             /** Tutti i valori che il testo puo' chiedere, letti dal progetto e dalle sue prove.
              * Ogni voce dice anche DA DOVE viene e se manca: e' quell'informazione, non il
-             * valore, a rendere possibile il pannello "Dati del cantiere" e il conteggio delle
+             * valore, a rendere possibile il pannello "Dati del progetto" e il conteggio delle
              * informazioni assenti. */
             /** Le coordinate del cantiere in forma leggibile. Una sola prova: il suo punto.
              * Piu' prove: il punto medio, perche' "le coordinate del sito" sono una cosa sola e
@@ -117,13 +117,13 @@
                     v[chiave] = { testo: s, etichetta, origine, mancante: s.length === 0 };
                 };
 
-                metti('committente', proj && proj.committente, 'Committente', 'Intestazione cantiere');
-                metti('sedeCommittente', proj && proj.sedeCommittente, 'Sede del committente', 'Intestazione cantiere');
-                metti('denominazioneIntervento', proj && proj.denominazioneIntervento, 'Denominazione intervento', 'Intestazione cantiere');
-                metti('comune', proj && proj.comune, 'Comune', 'Intestazione cantiere');
-                metti('localita', proj && proj.localita, 'Località', 'Intestazione cantiere');
-                metti('provincia', proj && proj.provincia, 'Provincia', 'Intestazione cantiere');
-                metti('data', formattaDataIT(proj && proj.date), 'Data', 'Intestazione cantiere');
+                metti('committente', proj && proj.committente, 'Committente', 'Scheda della prova');
+                metti('sedeCommittente', proj && proj.sedeCommittente, 'Sede del committente', 'Scheda della prova');
+                metti('denominazioneIntervento', proj && proj.denominazioneIntervento, 'Denominazione intervento', 'Scheda della prova');
+                metti('comune', proj && proj.comune, 'Comune', 'Scheda della prova');
+                metti('localita', proj && proj.localita, 'Località', 'Scheda della prova');
+                metti('provincia', proj && proj.provincia, 'Provincia', 'Scheda della prova');
+                metti('data', formattaDataIT(proj && proj.date), 'Data', 'Scheda della prova');
                 metti('numeroProve', n > 0 ? n : '', 'Numero di prove', 'Conteggio delle prove');
                 metti('elencoProve', elencoItaliano(prove.map(s => 'DPSH ' + ((s.header && s.header.provaNr) || '?'))), 'Elenco delle prove', 'Prove del progetto');
                 metti('profonditaMax', pMax !== null ? fmtIT(pMax, 1) : '', 'Profondità massima (m)', 'Registro misurazioni');

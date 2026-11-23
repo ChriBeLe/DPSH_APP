@@ -248,10 +248,10 @@ const clic = el => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })
       t('IL TITOLO DICE QUALE DATO SI STA COMPILANDO', /Sede del committente/i.test(titolo));
       t('E IL MESSAGGIO DICE DI QUALE CANTIERE', /Sava/.test(messaggio));
       t('con quante prove ha, per non confondere due cantieri omonimi', /3 prove/.test(messaggio));
-      t('e dice anche dove verra salvato', /anagrafica del cantiere/i.test(messaggio));
+      t('e dice anche dove verra salvato', /anagrafica del progetto/i.test(messaggio));
       t('il campo mostra il valore attuale, non uno vuoto',
          !!campo && campo.value === 'Via Roma 14, Sava (TA)');
-      t('e il tasto dice cosa fa', /salva nel cantiere/i.test((d.getElementById('appDialogOk') || {}).textContent || ''));
+      t('e il tasto dice cosa fa', /salva nel progetto/i.test((d.getElementById('appDialogOk') || {}).textContent || ''));
 
       // Si compila e si conferma.
       if (campo) { campo.value = 'Corso Umberto 3, Manduria (TA)'; }
@@ -278,7 +278,7 @@ const clic = el => el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })
         await attesa(400);
         const messaggio = (d.getElementById('appDialogMessage') || {}).textContent || '';
         t('per un dato che vive nella prova, la finestra lo dice',
-           /Intestazione Cantiere/i.test(messaggio) && /tutte le prove/i.test(messaggio));
+           /Scheda della prova/i.test(messaggio) && /tutte le prove/i.test(messaggio));
         const campo = d.querySelector('#appDialogFields [data-campo="valore"]');
         if (campo) campo.value = 'Calò Impianti SRL';
         clic(d.getElementById('appDialogOk'));

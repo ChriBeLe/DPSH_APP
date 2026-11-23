@@ -177,13 +177,13 @@
                     <button type="button" class="bt-icona" id="btnHeaderMore" aria-label="Altre azioni" title="Altre azioni" aria-haspopup="menu" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
                     <div class="menu-azioni" id="headerActionsSecondary" role="menu">
                         <!-- Prima si apriva solo tenendo premuto il cerchietto della prova. -->
-                        <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Strumento e impostazioni della prova</button>
+                        <button type="button" role="menuitem" id="btnImpostazioniProvaMenu"><svg class="ico"><use href="#i-ruler"/></svg>Scheda della prova</button>
                         <!-- La falda si indica una volta sola per prova: sta qui, non tra le spie
                              (osservazione del 27/09/2026). Il valore si legge nella voce stessa e,
                              impostata, come linea nel Registro; se manca lo dice il controllo prima
                              dell'export. -->
                         <button type="button" role="menuitem" id="btnFaldaMenu"><svg class="ico"><use href="#i-droplet"/></svg><span id="lblFaldaMenu">Falda</span></button>
-                        <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Gestione litologica</button>
+                        <button type="button" role="menuitem" id="btnOpenStratiHeader"><svg class="ico"><use href="#i-stack"/></svg>Strati</button>
                         <button type="button" role="menuitem" id="btnExportHeader"><svg class="ico"><use href="#i-download"/></svg>Consegna</button>
                         <button type="button" role="menuitem" id="btnHamburger"><svg class="ico"><use href="#i-settings"/></svg>Impostazioni</button>
                         <div class="menu-sep" aria-hidden="true"></div>
@@ -233,7 +233,7 @@
 
             <div class="home-comandi" id="homeComandi">
                 <button type="button" class="bt bt-principale" id="btnHomeNewProject"><svg class="ico"><use href="#i-plus"/></svg>Nuovo progetto</button>
-                <button type="button" class="bt" id="btnHomeImportProject" title="Ricevi un progetto da un altro dispositivo (pacchetto), oppure importa un JSON o uno ZIP"><svg class="ico"><use href="#i-download"/></svg>Ricevi</button>
+                <button type="button" class="bt" id="btnHomeImportProject" title="Ricevi un progetto da un altro dispositivo (pacchetto), oppure importa un JSON o uno ZIP"><svg class="ico"><use href="#i-download"/></svg>Ricevi un progetto</button>
                 <button type="button" class="bt" id="btnHomeImportExcel" title="Importa da un Excel le prove (colpi ogni 20 cm) e gli strati"><svg class="ico"><use href="#i-upload"/></svg>Da Excel</button>
                 <input type="file" id="fileImportExcel" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
                 <input type="file" id="fileImportProjectJson" accept="application/json,.json,.zip,application/zip" style="display:none;">
@@ -288,11 +288,19 @@
             </button>
             <div style="margin:8px 0;"><button type="button" class="bt" id="btnProgettoGps" title="Coordinate GPS di tutte le prove, anche da un file KML/KMZ/GPX"><svg class="ico"><use href="#i-pin"/></svg>Coordinate GPS delle prove</button></div>
             <button type="button" class="bt bt-principale bt-campo" id="btnProgettoRiprendi"></button>
+            <!-- IL PERCORSO (Fase C, passo H): le cinque tappe del progetto, ognuna con il suo stato in
+                 breve e il tasto che porta al punto in cui c'è da lavorare. «Strati» e «Consegna» sono le
+                 card di prima, che diventano tappe (stessi id): gli ingressi non si duplicano. -->
+            <div class="progetto-accessi progetto-percorso" id="progettoPercorso">
+                <button type="button" class="card" id="btnTappaProve"><svg class="ico"><use href="#i-clipboard"/></svg><strong>① Prove</strong><span id="lblTappaProve"></span></button>
+                <button type="button" class="card" id="btnProgettoStrati"><svg class="ico"><use href="#i-stack"/></svg><strong>② Strati</strong><span id="lblTappaStrati"></span></button>
+                <button type="button" class="card" id="btnTappaParametri"><svg class="ico"><use href="#i-flask"/></svg><strong>③ Parametri</strong><span id="lblTappaParametri"></span></button>
+                <button type="button" class="card" id="btnTappaReport"><svg class="ico"><use href="#i-print"/></svg><strong>④ Report</strong><span id="lblTappaReport"></span></button>
+                <button type="button" class="card accento" id="btnProgettoConsegna"><svg class="ico"><use href="#i-download"/></svg><strong>⑤ Consegna</strong><span id="lblTappaConsegna"></span></button>
+            </div>
             <div class="progetto-accessi">
-                <button type="button" class="card" id="btnProgettoStrati" title="Strati: litologia e parametri"><svg class="ico"><use href="#i-stack"/></svg><strong>Strati</strong><span>litologia e parametri</span></button>
                 <button type="button" class="card" id="btnProgettoNote" title="Note: appunti e immagini"><svg class="ico"><use href="#i-note"/></svg><strong>Note</strong><span>appunti e immagini</span></button>
                 <button type="button" class="card" id="btnProgettoTerreno" title="Terreno e sezioni: DTM, quote, sezione, 3D"><svg class="ico"><use href="#i-map"/></svg><strong>Terreno e sezioni</strong><span id="lblProgettoTerreno">DTM, quote, sezione, 3D</span></button>
-                <button type="button" class="card accento" id="btnProgettoConsegna" title="Consegna: report, Excel, KML, foto"><svg class="ico"><use href="#i-download"/></svg><strong>Consegna</strong><span>report, Excel, KML, foto</span></button>
             </div>
             <div class="registro-testata">
                 <div class="registro-testata-sx">

@@ -15,6 +15,8 @@ markup/02_modalGps.html
 markup/03_modal.html
 markup/04_modalCustomNote.html
 markup/06_modalStrati.html
+markup/06b_modalDaiNome.html
+markup/06c_modalScalettaReport.html
 markup/07_modalArchivePicker.html
 markup/08_modalArchiveManager.html
 markup/09_modalArchPrefEdit.html
@@ -174,6 +176,8 @@ js/071s_confini-province.js
 js/071t_trova-dtm.js
 js/071u_carta-intestata.js
 js/071q_strati-senza-vicoli-ciechi.js
+js/071q_dai-un-nome-agli-strati.js
+js/071v_scaletta-del-report.js
 js/071r_tavole-nel-report.js
 js/071s_importa-da-word.js
 js/071v_tasto-destro.js

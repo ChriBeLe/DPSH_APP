@@ -218,7 +218,7 @@
                     const comuneGroups = {};
                     keys.forEach(k => {
                         const item = legacyArchive[k];
-                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Cantiere';
+                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Progetto';
                         if (!comuneGroups[comuneKey]) comuneGroups[comuneKey] = [];
                         comuneGroups[comuneKey].push(item);
                     });
@@ -230,7 +230,7 @@
 
                         progetti[projId] = {
                             id: projId,
-                            name: `Cantiere ${cKey}`,
+                            name: `Progetto ${cKey}`,
                             comune: cKey,
                             committente: firstItem.header?.committente || '',
                             localita: firstItem.header?.localita || '',
@@ -259,7 +259,7 @@
                         });
                     });
                 } else if (dati.header) {
-                    const comune = dati.header.comune || 'Nuovo Cantiere';
+                    const comune = dati.header.comune || 'Nuovo progetto';
                     const projId = `PROJ_${Date.now()}`;
                     const survId = `SURV_1`;
                     progetti[projId] = {
@@ -493,10 +493,10 @@
                     ? 'SPAZIO ESAURITO: da questo momento i dati NON vengono più salvati.\n\n'
                       + 'Non continuare a lavorare: tutto quello che aggiungerai andrebbe perso alla chiusura dell\'app.\n\n'
                       + 'Cosa fare, in questo ordine:\n'
-                      + '1) Impostazioni → Backup Completo → Esporta (mette al sicuro quello che hai già)\n'
+                      + '1) Impostazioni → Copia di tutti i progetti → Esporta (mette al sicuro quello che hai già)\n'
                       + '2) Impostazioni → Spazio occupato → "Foto orfane" (libera spazio senza perdere niente)'
                     : 'Non è stato possibile salvare i dati su questo dispositivo.\n\n'
-                      + 'Non continuare a lavorare prima di aver fatto un backup: Impostazioni → Backup Completo → Esporta.\n\n'
+                      + 'Non continuare a lavorare prima di aver fatto un backup: Impostazioni → Copia di tutti i progetti → Esporta.\n\n'
                       + 'Dettaglio tecnico: ' + ((e && e.message) || e);
                 appAlert(messaggio);
             }
