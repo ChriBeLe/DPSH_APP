@@ -83,18 +83,23 @@ circa 40 punti che li leggono cambia. Cambia solo cosa scrive `saveState`.
 6. **Niente cancellazioni in questo passo.** Le copie automatiche e la cronologia possono citare un
    id vecchio: un blob non si cancella mai in automatico. «Spazio occupato» mostra il peso di
    `DPSH_DatiGrandi`; la pulizia sicura (scansione di stato e copie) è un lavoro a parte.
-7. **Migrazione 4→5.** Non tocca i dati (i riferimenti compaiono man mano), ma alza
-   `VERSIONE_SCHEMA_DATI` a 5: un'app vecchia che trova riferimenti rifiuta i dati con il
-   messaggio «dati di una versione più nuova» invece di mostrare carte intestate vuote e salvarci
-   sopra.
+7. **Formato dei dati: resta 4.** Nessuna migrazione e nessun salto di versione, per la
+   compatibilità all'indietro. I file esportati non contengono mai riferimenti (gli export
+   aspettano `attendiDatiGrandi`), quindi sono formato 4 puro e un'app di prima li apre. In
+   `localStorage` il riferimento è una breve stringa che un'app di prima tiene e riscrive com'è:
+   il blob in `DPSH_DatiGrandi` non si perde e l'app nuova lo risolve di nuovo. `VERSIONE_SCHEMA_LETTA`
+   resta 5 solo perché per qualche ora l'app ha scritto dati e file come 5: si leggono ancora e si
+   risalvano come 4.
 
 Misura attesa: la chiave `dpsh_app_state` torna alle dimensioni dei soli dati di prova, e un +1
 non riscrive più carte intestate e DTM.
 
-**Esito (23/11/2026).** Codice in `src/js/004g_dati-grandi-fuori-da-localstorage.js`, migrazione
-4→5 in 004b, suite `test/dati_grandi.js`. Misura: chiave `dpsh_app_state` da 3,0 a 1,0 M caratteri,
-`saveState` dopo un +1 da ~52 a ~43 ms. Da sapere: anche i file esportati dichiarano formato 5,
-quindi un'app di prima li rifiuta («versione più nuova»): telefono e PC vanno aggiornati insieme.
+**Esito (23/11/2026).** Codice in `src/js/004g_dati-grandi-fuori-da-localstorage.js`, suite
+`test/dati_grandi.js`. Misura: chiave `dpsh_app_state` da 3,0 a 1,0 M caratteri, `saveState` dopo un
++1 da ~52 a ~43 ms. Nessun formato 5: le app di prima aprono tutto, dati e file esportati (la suite
+lo prova con una build di fc32ce1). Su uno stesso dispositivo un'app vecchia mostra come mancante
+soltanto l'immagine o il DTM a cui il riferimento punta; il blob resta in IndexedDB e l'app nuova lo
+ritrova.
 
 ### Passo 3 — Salvare solo il progetto che cambia (da decidere)
 Una chiave di `localStorage` per progetto più un indice, con la stessa scrittura sincrona e

@@ -3,12 +3,14 @@
 // Carte intestate, DTM e ogni stringa da 64 KB in su escono dal testo salvato in localStorage e
 // vanno in IndexedDB (DPSH_DatiGrandi); nel testo resta «dpsh-grande:<id>». In memoria niente cambia.
 // Qui si verifica l'ordine che non perde niente (prima il dato, poi il riferimento), la lettura
-// all'avvio, il riferimento che non si trova, IndexedDB che non scrive, la migrazione 4 → 5 e,
+// all'avvio, il riferimento che non si trova, IndexedDB che non scrive, il formato dei dati che resta 4 (compatibilità con le app di prima) e,
 // come controprova, che il codice di prima lascia le stringhe grandi dentro il testo.
 //
 //   node test/dati_grandi.js [dist_di_confronto]
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
 const { avviaApp, attesa, telefonoV0, RIFERIMENTO } = require('./dati/app_in_jsdom');
 
 let ok = 0, ko = 0;
@@ -52,7 +54,7 @@ const dblob = (app) => (app.idb._dump('DPSH_DatiGrandi') || { blob: [] }).blob;
     app.E('saveState()');
     const senzaOra = (x) => x.replace(/"updatedAt":\d+/g, '');
     t('un altro salvataggio dà lo stesso testo (a parte le ore) e non riscrive blob', senzaOra(app.salvato()) === senzaOra(dopo) && dblob(app).length === 2);
-    t('versione dei dati 5 nel testo salvato', JSON.parse(app.salvato()).versioneSchema === 5);
+    t('versione dei dati 4 nel testo salvato anche con i riferimenti', JSON.parse(app.salvato()).versioneSchema === 4);
     t('nessun avviso all\'utente', !app.dialogo());
     testoConRiferimenti = app.salvato();
     idbDopo = app.idb;
@@ -133,20 +135,28 @@ const dblob = (app) => (app.idb._dump('DPSH_DatiGrandi') || { blob: [] }).blob;
     app.chiudi();
   }
 
-  console.log('--- (e) Formato 4 → 5 ---');
+  console.log('--- (e) Il formato resta 4 ---');
   {
     const v4 = JSON.parse(STATO_V0);
     v4.versioneSchema = 4;
     const app = await avviaApp({ stato: JSON.stringify(v4), idb: telefonoV0() });
     await attesa(400);
     t('i dati del formato 4 si caricano', app.E('Object.keys(state.projects).length') === Object.keys(v4.projects).length);
-    const m = app.E('caricamentoDati.migrazione');
-    t('migrazione registrata 4 → 5, con descrizione', m && m.da === 4 && m.a === 5 && m.applicate.length === 1 && /dati grandi/.test(m.applicate[0].descrizione));
+    t('nessuna migrazione: 4 è già la forma attuale', !app.E('caricamentoDati.migrazione'));
     app.E('saveState()');
-    t('il testo salvato dichiara il formato 5', JSON.parse(app.salvato()).versioneSchema === 5);
-    const copie = (app.idb._dump('DPSH_CopieAutomatiche') || { indice: [] }).indice;
-    t('la copia «prima di aggiornare i dati (formato 4 → 5)» c\'è', copie.some(v => /formato 4 → 5/.test(v.motivo)));
-    t('registro: 5 è la versione attuale e quella letta', app.E('VERSIONE_SCHEMA_DATI') === 5 && app.E('VERSIONE_SCHEMA_LETTA') === 5 && app.E('MIGRAZIONI_DATI.length') === 5);
+    t('il testo salvato dichiara il formato 4', JSON.parse(app.salvato()).versioneSchema === 4);
+    t('registro: 4 è la versione scritta, 5 la massima letta, 4 migrazioni', app.E('VERSIONE_SCHEMA_DATI') === 4 && app.E('VERSIONE_SCHEMA_LETTA') === 5 && app.E('MIGRAZIONI_DATI.length') === 4);
+    app.chiudi();
+  }
+  {
+    // Dati scritti come 5 nelle ore in cui l'app ha avuto quel numero: si leggono e si risalvano come 4.
+    const v5 = JSON.parse(STATO_V0);
+    v5.versioneSchema = 5;
+    const app = await avviaApp({ stato: JSON.stringify(v5), idb: telefonoV0() });
+    await attesa(400);
+    t('i dati salvati come 5 si caricano', app.E('caricamentoDati.esito') === 'ok' && app.E('Object.keys(state.projects).length') === Object.keys(v5.projects).length);
+    app.E('saveState()');
+    t('...e vengono salvati di nuovo come 4', JSON.parse(app.salvato()).versioneSchema === 4);
     app.chiudi();
   }
   {
@@ -172,6 +182,46 @@ const dblob = (app) => (app.idb._dump('DPSH_DatiGrandi') || { blob: [] }).blob;
     t('(riferimento) il DTM resta nel testo salvato, nessun riferimento', s.includes(QUOTE) && !s.includes(PREFISSO));
     t('(riferimento) nessun database dei dati grandi', !app.idb._dump('DPSH_DatiGrandi'));
     app.chiudi();
+  }
+
+  console.log('--- (g) L\'export non ha riferimenti ed è formato 4 ---');
+  {
+    const app = await avviaApp({ stato: testoConRiferimenti, idb: idbDopo, attesaAvvio: 0 });
+    await app.E('exportProjectJSON')(pid);
+    await attesa(100);
+    const file = await app.scaricati[app.scaricati.length - 1].blob.text();
+    t('progetto esportato: versioneSchema 4', JSON.parse(file).versioneSchema === 4);
+    t('progetto esportato: nessun «dpsh-grande:» e dati veri dentro', !file.includes(PREFISSO) && file.includes(QUOTE));
+    app.chiudi();
+  }
+
+  console.log('--- (h) Compatibilità all\'indietro: l\'app di prima del passo 2 (fc32ce1) ---');
+  {
+    let vecchio = null, dir = null;
+    const wt = path.join(os.tmpdir(), 'dpsh_wt_fc32ce1_' + process.pid);
+    try {
+      execSync(`git worktree add --detach "${wt}" fc32ce1`, { cwd: path.join(__dirname, '..'), stdio: 'pipe' });
+      dir = wt;
+      execSync('python3 build.py', { cwd: wt, stdio: 'pipe' });
+      vecchio = path.join(os.tmpdir(), 'DPSH_fc32ce1_' + process.pid + '.html');
+      fs.copyFileSync(path.join(wt, 'dist', 'DPSH.html'), vecchio);
+    } catch (e) {
+      console.log('  --  saltata: non riesco a costruire fc32ce1 (' + String(e.message).split('\n')[0] + ')');
+      vecchio = null;
+    } finally {
+      if (dir) { try { execSync(`git worktree remove --force "${dir}"`, { cwd: path.join(__dirname, '..'), stdio: 'pipe' }); } catch (e) { fs.rmSync(dir, { recursive: true, force: true }); } }
+    }
+    if (vecchio) {
+      const app = await avviaApp({ stato: testoConRiferimenti, idb: idbDopo, file: vecchio, attesaAvvio: 0 });
+      await attesa(400);
+      t('l\'app di prima apre il testo con i riferimenti (niente «versione più nuova»)', app.E('caricamentoDati.esito') === 'ok');
+      t('...e i progetti ci sono', app.E('Object.keys(state.projects).length') === Object.keys(JSON.parse(testoConRiferimenti).projects).length);
+      app.E('saveState()');
+      t('dopo un saveState il riferimento è ancora nel testo', app.salvato().includes(PREFISSO) && !app.salvato().includes(QUOTE));
+      t('...e i blob in IndexedDB sono intatti', dblob(app).length === 2);
+      app.chiudi();
+      fs.rmSync(vecchio, { force: true });
+    }
   }
 
   console.log(`\n${ok} ok, ${ko} KO`);
