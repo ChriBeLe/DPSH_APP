@@ -15,7 +15,7 @@
                     if (state.uiState && state.uiState.currentView === 'home') {
                         return;
                     }
-                    const comune = state.header.comune || 'Nuovo Cantiere';
+                    const comune = state.header.comune || 'Nuovo progetto';
                     const projId = `PROJ_${Date.now()}`;
                     state.projects[projId] = {
                         id: projId,
@@ -42,6 +42,18 @@
                 scriviStatoAttivoNelProgetto(proj);
             }
 
+            /** Copia di una foto senza `dataUrl` (l'immagine piena va in photoMemoryCache). Copia
+             * profonda dei soli metadati, come prima. Una voce non-oggetto si copia com'è. */
+            function fotoSenzaImmagine(p) {
+                if (!p || typeof p !== 'object') return p;
+                // Un dataUrl vuoto resta com'è: il salvataggio lo scriveva così, e il testo salvato
+                // non deve cambiare nemmeno di un carattere.
+                if (!p.dataUrl) return JSON.parse(JSON.stringify(p));
+                photoMemoryCache[p.id] = p.dataUrl;
+                const { dataUrl, ...resto } = p;
+                return JSON.parse(JSON.stringify(resto));
+            }
+
             /** La prova aperta (stato attivo) scritta dentro `proj`: la parte di syncStateToProject che
              * tocca il progetto, separata perché serve anche a sapere cosa scriverà il prossimo
              * salvataggio senza scriverlo davvero (accettaNormalizzazioneApertura, pezzo 004e). */
@@ -56,7 +68,11 @@
                     currentDepthStart: state.currentDepthStart,
                     currentRod: state.currentRod,
                     logs: JSON.parse(JSON.stringify(state.logs)),
-                    photos: state.photos ? JSON.parse(JSON.stringify(state.photos)) : [],
+                    // Le foto della prova si copiano SENZA l'immagine: il dataUrl pesa megabyte e il
+                    // salvataggio lo toglieva comunque dalla copia (saveState lo scartava dopo averlo
+                    // clonato, a ogni tocco). Qui il pieno passa in photoMemoryCache, che è dove lo
+                    // cercano tutti i lettori (insieme a IndexedDB), e la copia resta solo metadati.
+                    photos: state.photos ? state.photos.map(p => fotoSenzaImmagine(p)) : [],
                     reportTemplateId: state.reportTemplateId || null,
                     // Immagini dei blocchi "immagine-libera" del template di report: per PROVA (non
                     // per template, che è condiviso tra più prove — vedi buildBlockContentHtml).
@@ -69,11 +85,23 @@
                 proj.strati = JSON.parse(JSON.stringify(state.strati));
 
                 proj.updatedAt = Date.now();
-                if (state.header.comune) proj.comune = state.header.comune;
-                if (state.header.committente) proj.committente = state.header.committente;
-                if (state.header.localita) proj.localita = state.header.localita;
+                // Comune e committente sono del PROGETTO: si cambiano dal gruppo «Del progetto» e da lì
+                // arrivano a tutte le prove. Una prova con un valore suo non li trascina più sul progetto;
+                // si copiano su dal header della prova solo se il progetto è ancora senza.
+                if (state.header.comune && !proj.comune) proj.comune = state.header.comune;
+                if (state.header.committente && !proj.committente) proj.committente = state.header.committente;
+                if (state.header.localita && !proj.localita) proj.localita = state.header.localita; // la località del progetto non segue l'ultima prova salvata
                 if (state.header.date) proj.date = state.header.date;
                 if (state.settings.operator) proj.operator = state.settings.operator;
+            }
+
+            /** Le preferenze dell'APP (non della prova) che passando da una prova all'altra devono
+             * restare quelle correnti: la lista è IMPOSTAZIONI_DELL_APP (004e), l'unica. Essendo una
+             * const dichiarata in un pezzo successivo, se qualcuno chiamasse syncProjectToActiveState
+             * prima che sia inizializzata (zona morta) si ripiega su un elenco minimo, senza errori. */
+            function chiaviPreferenzeApp() {
+                try { return Array.from(IMPOSTAZIONI_DELL_APP); }
+                catch (e) { return ['darkMode', 'themeHue', 'tastoRegistraVisibile', 'integratedChart', 'registroEspanso', 'contatoreSuPc', 'guidaPcVista', 'intervalliRecentiInCima']; }
             }
 
             // Carica nello stato attivo la prova selezionata del progetto corrente
@@ -101,6 +129,16 @@
                 const globalContatoreSuPc = !!(state.settings && state.settings.contatoreSuPc === true);
                 const globalGuidaPcVista = !!(state.settings && state.settings.guidaPcVista === true);
                 const globalRecentiInCima = !!(state.settings && state.settings.intervalliRecentiInCima === true);
+                // Tutte le altre preferenze dell'app (audio, vibrazione, guanti, schermo sempre
+                // acceso, sfondi, WMS...): se ci sono nelle impostazioni correnti, passano alla prova
+                // che si apre. Quelle gestite sopra hanno già il loro valore di ripiego.
+                const altrePreferenze = {};
+                chiaviPreferenzeApp().forEach(k => {
+                    if (k === 'expandedMode' || k === 'compactMode') return;
+                    if (state.settings && Object.prototype.hasOwnProperty.call(state.settings, k) && state.settings[k] !== undefined) {
+                        altrePreferenze[k] = JSON.parse(JSON.stringify(state.settings[k]));
+                    }
+                });
 
                 state.currentProjectId = projId;
                 state.currentSurveyId = survId;
@@ -120,6 +158,7 @@
                 state.settings = JSON.parse(JSON.stringify(surv.settings || state.settings));
 
                 // Riapplica le impostazioni universali dell'applicazione
+                Object.keys(altrePreferenze).forEach(k => { state.settings[k] = altrePreferenze[k]; });
                 state.settings.darkMode = globalDarkMode;
                 state.settings.themeHue = globalThemeHue;
                 state.settings.tastoRegistraVisibile = globalTastoRegistra;
@@ -182,6 +221,109 @@
             // salvate): niente ESC/click-sfondo generico che la scavalchi silenziosamente.
             const MODALS_NO_QUICK_CLOSE = ['modalConfirmDelete', 'appDialog', 'modalTemplateEditor'];
 
+            // FINESTRE E DATI NON SALVATI (Fase C): prima ESC e il clic sullo sfondo chiudevano TUTTE
+            // le finestre aperte insieme, anche con un campo appena modificato: si perdeva il lavoro
+            // senza una parola. Ora si chiude solo la finestra più in alto, e se ha campi cambiati
+            // dall'apertura si chiede conferma. «Sporco» si rileva in modo generico, senza toccare le
+            // singole finestre: un osservatore registra i valori dei campi quando .open compare, e
+            // conta come modificato solo un campo su cui l'utente ha scritto (eventi input/change) e
+            // il cui valore ora differisce da quello d'apertura: un campo riempito dal codice dopo
+            // l'apertura non fa scattare nulla da solo.
+            const _statoFinestre = new Map();   // modal -> { seq, base: Map(campo -> valore), toccati: Set }
+            let _seqFinestre = 0;
+            const _SEL_CAMPI = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
+            function _valoreCampo(el) {
+                if (el.type === 'checkbox' || el.type === 'radio') return el.checked ? '1' : '0';
+                if (!('value' in el)) return el.innerHTML;
+                return String(el.value == null ? '' : el.value);
+            }
+            function _campoControllabile(el) {
+                const tipo = (el.type || '').toLowerCase();
+                return !['hidden', 'button', 'submit', 'reset', 'file', 'image'].includes(tipo);
+            }
+            function _fotografaFinestra(modalEl) {
+                const base = new Map();
+                modalEl.querySelectorAll(_SEL_CAMPI).forEach(c => { if (_campoControllabile(c)) base.set(c, _valoreCampo(c)); });
+                _statoFinestre.set(modalEl, { seq: ++_seqFinestre, base, toccati: new Set() });
+            }
+            function _finestraSporca(modalEl) {
+                const st = _statoFinestre.get(modalEl);
+                if (!st) return false;
+                for (const c of st.toccati) {
+                    if (!modalEl.contains(c)) continue;
+                    const prima = st.base.has(c) ? st.base.get(c)
+                        : ((c.type === 'checkbox' || c.type === 'radio') ? (c.defaultChecked ? '1' : '0') : String(c.defaultValue || ''));
+                    if (_valoreCampo(c) !== prima) return true;
+                }
+                return false;
+            }
+            new MutationObserver(() => {
+                document.querySelectorAll('.modal').forEach(m => {
+                    const aperta = m.classList.contains('open');
+                    if (aperta && !_statoFinestre.has(m)) _fotografaFinestra(m);
+                    else if (!aperta && _statoFinestre.has(m)) _statoFinestre.delete(m);
+                });
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'], subtree: true });
+            ['input', 'change'].forEach(ev => document.addEventListener(ev, (e) => {
+                const m = e.target && e.target.closest && e.target.closest('.modal');
+                const st = m && _statoFinestre.get(m);
+                if (st && e.target.matches && e.target.matches(_SEL_CAMPI)) st.toccati.add(e.target);
+            }, true));
+            // Un campo comparso dopo l'apertura (righe aggiunte dall'utente) non ha un valore d'apertura:
+            // lo si registra appena prende il fuoco, prima che l'utente lo cambi.
+            document.addEventListener('focusin', (e) => {
+                const m = e.target && e.target.closest && e.target.closest('.modal');
+                const st = m && _statoFinestre.get(m);
+                if (st && e.target.matches && e.target.matches(_SEL_CAMPI) && _campoControllabile(e.target) && !st.base.has(e.target)) st.base.set(e.target, _valoreCampo(e.target));
+            }, true);
+
+            /** La finestra più in alto: z-index più alto, a parità l'ultima aperta. */
+            function finestraInCima() {
+                let migliore = null, mz = -Infinity, ms = -Infinity;
+                document.querySelectorAll('.modal.open').forEach(m => {
+                    const z = parseInt(getComputedStyle(m).zIndex, 10) || 0;
+                    const s = (_statoFinestre.get(m) || { seq: 0 }).seq;
+                    if (z > mz || (z === mz && s >= ms)) { migliore = m; mz = z; ms = s; }
+                });
+                return migliore;
+            }
+            function _chiudiFinestraSemplice(modalEl) {
+                modalEl.classList.remove('open');
+                const ov = modalEl.previousElementSibling;
+                if (ov && ov.classList.contains('modal-overlay')) ov.classList.remove('open');
+                if (!document.querySelector('.modal.open')) document.querySelectorAll('.modal-overlay.open').forEach(o => o.classList.remove('open'));
+            }
+            let _confermaChiusuraAperta = false;
+            /** Chiede se perdere i dati non salvati; risolve true se l'utente vuole chiudere. */
+            function _confermaPerditaDati() {
+                if (_confermaChiusuraAperta) return Promise.resolve(false);
+                _confermaChiusuraAperta = true;
+                return appDialog('Hai dati non salvati in questa finestra. Chiudere e perderli?', {
+                    confirm: true, okLabel: 'Chiudi senza salvare', cancelLabel: 'Torna alla finestra'
+                }).then(r => r === true, () => false).finally(() => { _confermaChiusuraAperta = false; });
+            }
+            /** Chiude la finestra più in alto (ESC, Indietro). Ritorna true se c'era una finestra da
+             * gestire (anche se resta aperta in attesa della risposta dell'utente). */
+            function chiudiFinestraInCima(giaConfermato) {
+                const m = finestraInCima();
+                if (!m) return false;
+                if (MODALS_NO_QUICK_CLOSE.includes(m.id)) return true;
+                if (!giaConfermato && _finestraSporca(m)) {
+                    _confermaPerditaDati().then(chiudi => { if (chiudi && m.classList.contains('open')) _chiudiFinestraSemplice(m); });
+                    return true;
+                }
+                if (giaConfermato) { _chiudiFinestraSemplice(m); return true; }
+                // Finestra pulita: si passa dalla sua ✕, così valgono i suoi controlli e le sue pulizie
+                // (può chiedere «salvare?»); se dopo non è chiusa e non ha chiesto niente (una ✕ senza
+                // comando), si chiude e basta.
+                const x = m.querySelector('[id^="btnClose"][id$="X"], .chiudi-x, [id^="btnClose"], [aria-label="Chiudi"]');
+                if (x && !x.disabled && !x.closest('[hidden]')) {
+                    x.click();
+                    setTimeout(() => { if (m.classList.contains('open') && !document.getElementById('appDialog').classList.contains('open')) _chiudiFinestraSemplice(m); }, 0);
+                } else _chiudiFinestraSemplice(m);
+                return true;
+            }
+            /** Chiusura da codice (palette, aprire un'altra schermata): chiude tutte le finestre, senza chiedere. */
             function closeAnyOpenModal() {
                 let closedSomething = false;
                 document.querySelectorAll('.modal.open').forEach(modalEl => {
@@ -189,17 +331,38 @@
                     modalEl.classList.remove('open');
                     closedSomething = true;
                 });
-                if (closedSomething) {
-                    document.querySelectorAll('.modal-overlay.open').forEach(ov => ov.classList.remove('open'));
-                }
+                if (closedSomething) document.querySelectorAll('.modal-overlay.open').forEach(ov => ov.classList.remove('open'));
                 return closedSomething;
             }
 
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') closeAnyOpenModal();
+                // dpshFinestraChiusa: chi ascolta dopo (l'editor del template) sa che questo Esc ha già
+                // chiuso una finestra. Non basta preventDefault: il motore del testo lo fa sempre.
+                if (e.key === 'Escape' && !MODALS_NO_QUICK_CLOSE.includes((finestraInCima() || {}).id) && chiudiFinestraInCima()) { e.preventDefault(); e.dpshFinestraChiusa = true; }
             });
 
+            // Clic sullo sfondo: se la finestra è sporca il clic viene fermato in cattura, prima dei
+            // gestori delle singole finestre; dopo la conferma lo si rilancia segnato come «già
+            // confermato», così gira la loro chiusura normale (che fa anche le sue pulizie).
+            const _sfondoConfermato = new WeakSet();
+            document.addEventListener('click', (e) => {
+                const ov = e.target;
+                if (!ov || !ov.classList || !ov.classList.contains('modal-overlay')) return;
+                if (_sfondoConfermato.has(ov)) return;
+                const m = ov.nextElementSibling;
+                if (!m || !m.classList.contains('modal') || MODALS_NO_QUICK_CLOSE.includes(m.id) || !_finestraSporca(m)) return;
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                _confermaPerditaDati().then(chiudi => {
+                    if (chiudi && m.classList.contains('open')) { _sfondoConfermato.add(ov); ov.click(); }
+                });
+            }, true);
+
             document.querySelectorAll('.modal-overlay').forEach(ov => {
-                ov.addEventListener('click', () => closeAnyOpenModal());
+                ov.addEventListener('click', () => {
+                    // Clic già confermato in cattura: qui non si richiede una seconda volta.
+                    const confermato = _sfondoConfermato.delete(ov);
+                    chiudiFinestraInCima(confermato);
+                });
             });
 

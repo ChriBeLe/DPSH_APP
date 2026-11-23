@@ -372,7 +372,7 @@
                 box.hidden = !c;
                 const bt = document.getElementById('btnCaricaCarta');
                 if (bt) bt.lastChild.textContent = c ? ' Cambia carta intestata…' : ' Carica carta intestata…';
-                ['btnCartaMargini', 'btnTogliCarta'].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = !c; });
+                ['btnCartaMargini', 'btnTogliCarta', 'btnCartaModificabile'].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = !c; });
                 if (!c) return;
                 document.getElementById('imgCartaPrima').src = c.prima;
                 const altre = document.getElementById('imgCartaAltre');

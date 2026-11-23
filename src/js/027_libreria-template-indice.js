@@ -109,16 +109,16 @@
                 chiudiMenuAzioniTemplate();
                 indiceTemplatesList.innerHTML = elencoIndiceTemplateOrdinato().map(t => `
                     <div style="display:flex; align-items:center; gap:10px; background:${t.builtIn ? 'var(--bg-sunken)' : 'var(--bg-main)'}; border:1px solid ${t.builtIn ? 'var(--border-strong)' : 'var(--border)'}; border-style:${t.builtIn ? 'dashed' : 'solid'}; border-radius:var(--radius-sm); padding:9px 10px;">
-                        <button type="button" class="tpl-riga-thumb-wrap idx-tpl-personalizza" data-tpl-id="${t.id}" title="Apri lo stile di &quot;${t.name}&quot;">${miniaturaTemplateIndiceHtml(t)}</button>
+                        <button type="button" class="tpl-riga-thumb-wrap idx-tpl-personalizza" data-tpl-id="${testoHtml(t.id)}" title="Apri lo stile di &quot;${testoHtml(t.name)}&quot;">${miniaturaTemplateIndiceHtml(t)}</button>
                         <div style="flex:1; min-width:0;">
                             <div style="display:flex; align-items:center; gap:5px; font-weight:700; font-size:13px; color:var(--text-main); overflow:hidden;">
                                 ${t.builtIn ? `<svg class="ico" style="width:12px; height:12px; color:var(--text-muted); flex-shrink:0;" title="Non rinominabile né eliminabile"><use href="#i-lock"/></svg>` : ''}
-                                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</span>
+                                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${testoHtml(t.name)}</span>
                             </div>
                             <div style="font-size:10px; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.builtIn ? 'Preimpostato' : ''}${t.updatedAt ? `${t.builtIn ? ' · ' : ''}modificato il ${new Date(t.updatedAt).toLocaleDateString('it-IT')}` : ''}</div>
                         </div>
-                        <button type="button" class="tpl-riga-primaria idx-tpl-personalizza" data-tpl-id="${t.id}"><svg class="ico"><use href="#i-indice-pagina"/></svg>Stile</button>
-                        <button type="button" class="tpl-riga-kebab idx-tpl-azioni" data-tpl-id="${t.id}" title="Altre azioni"><svg class="ico"><use href="#i-more"/></svg></button>
+                        <button type="button" class="tpl-riga-primaria idx-tpl-personalizza" data-tpl-id="${testoHtml(t.id)}"><svg class="ico"><use href="#i-indice-pagina"/></svg>Stile</button>
+                        <button type="button" class="tpl-riga-kebab idx-tpl-azioni" data-tpl-id="${testoHtml(t.id)}" title="Altre azioni"><svg class="ico"><use href="#i-more"/></svg></button>
                     </div>
                 `).join('');
 

@@ -62,7 +62,7 @@
 
             /** Tutti i valori che il testo puo' chiedere, letti dal progetto e dalle sue prove.
              * Ogni voce dice anche DA DOVE viene e se manca: e' quell'informazione, non il
-             * valore, a rendere possibile il pannello "Dati del cantiere" e il conteggio delle
+             * valore, a rendere possibile il pannello "Dati del progetto" e il conteggio delle
              * informazioni assenti. */
             /** Le coordinate del cantiere in forma leggibile. Una sola prova: il suo punto.
              * Piu' prove: il punto medio, perche' "le coordinate del sito" sono una cosa sola e
@@ -107,7 +107,7 @@
                 const pMax = profondita.length ? Math.max(...profondita) : null;
                 const stessaQuota = pMin !== null && Math.abs(pMax - pMin) < 0.005;
 
-                const areaPunta = parseFloat(inst.areaPunta || 20);
+                const areaPunta = parametriStrumento(inst).A;
                 const diametro = 2 * Math.sqrt(areaPunta / Math.PI) * 10; // cm² -> mm
                 const beta = betaTStrumento(inst, passo);
 
@@ -117,13 +117,13 @@
                     v[chiave] = { testo: s, etichetta, origine, mancante: s.length === 0 };
                 };
 
-                metti('committente', proj && proj.committente, 'Committente', 'Intestazione cantiere');
-                metti('sedeCommittente', proj && proj.sedeCommittente, 'Sede del committente', 'Intestazione cantiere');
-                metti('denominazioneIntervento', proj && proj.denominazioneIntervento, 'Denominazione intervento', 'Intestazione cantiere');
-                metti('comune', proj && proj.comune, 'Comune', 'Intestazione cantiere');
-                metti('localita', proj && proj.localita, 'Località', 'Intestazione cantiere');
-                metti('provincia', proj && proj.provincia, 'Provincia', 'Intestazione cantiere');
-                metti('data', formattaDataIT(proj && proj.date), 'Data', 'Intestazione cantiere');
+                metti('committente', proj && proj.committente, 'Committente', 'Scheda della prova');
+                metti('sedeCommittente', proj && proj.sedeCommittente, 'Sede del committente', 'Scheda della prova');
+                metti('denominazioneIntervento', proj && proj.denominazioneIntervento, 'Denominazione intervento', 'Scheda della prova');
+                metti('comune', proj && proj.comune, 'Comune', 'Scheda della prova');
+                metti('localita', proj && proj.localita, 'Località', 'Scheda della prova');
+                metti('provincia', proj && proj.provincia, 'Provincia', 'Scheda della prova');
+                metti('data', formattaDataIT(proj && proj.date), 'Data', 'Scheda della prova');
                 metti('numeroProve', n > 0 ? n : '', 'Numero di prove', 'Conteggio delle prove');
                 metti('elencoProve', elencoItaliano(prove.map(s => 'DPSH ' + ((s.header && s.header.provaNr) || '?'))), 'Elenco delle prove', 'Prove del progetto');
                 metti('profonditaMax', pMax !== null ? fmtIT(pMax, 1) : '', 'Profondità massima (m)', 'Registro misurazioni');
@@ -131,13 +131,13 @@
 
                 metti('nomePenetrometro', inst.nomePenetrometro, 'Nome del penetrometro', 'Strumento');
                 metti('rivestimentoFanghi', inst.rivestimentoFanghi, 'Rivestimento / fanghi', 'Strumento');
-                metti('massaBattente', fmtIT(parseFloat(inst.pesoMassa || 63.5), 1), 'Massa battente (kg)', 'Strumento');
-                metti('altezzaCaduta', fmtIT(parseFloat(inst.volata || 0.75), 2), 'Altezza di caduta (m)', 'Strumento');
-                metti('pesoSistemaBattuta', fmtIT(parseFloat(inst.pesoSistema || 8), 1), 'Massa sistema di battuta (kg)', 'Strumento');
+                metti('massaBattente', fmtIT(parametriStrumento(inst).M, 1), 'Massa battente (kg)', 'Strumento');
+                metti('altezzaCaduta', fmtIT(parametriStrumento(inst).volataM, 2), 'Altezza di caduta (m)', 'Strumento');
+                metti('pesoSistemaBattuta', fmtIT(parametriStrumento(inst).pesoSistema, 1), 'Massa sistema di battuta (kg)', 'Strumento');
                 metti('areaPunta', fmtIT(areaPunta, 0), 'Area di base punta (cm²)', 'Strumento');
                 metti('diametroPunta', fmtIT(diametro, 2), 'Diametro punta (mm)', 'Calcolato dall\'area');
                 metti('lunghezzaAste', fmtIT(parseFloat(inst.lunghAsta || 1), 0), 'Lunghezza aste (m)', 'Strumento');
-                metti('pesoAsteMetro', fmtIT(parseFloat(inst.pesoAsta || 6.3), 1), 'Massa aste al metro (kg/m)', 'Strumento');
+                metti('pesoAsteMetro', fmtIT(parametriStrumento(inst).pesoAsta, 1), 'Massa aste al metro (kg/m)', 'Strumento');
                 metti('avanzamentoPunta', fmtIT(passo / 100, 2), 'Avanzamento punta (m)', 'Impostazioni prova');
                 metti('numeroColpiPunta', 'N(' + Math.round(passo) + ')', 'Numero colpi per avanzamento', 'Impostazioni prova');
                 metti('coeffCorrelazione', fmtIT(beta, 3), 'Coefficiente di correlazione βt', 'Calcolato dallo strumento');

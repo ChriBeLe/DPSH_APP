@@ -116,17 +116,33 @@
                 if (survId !== state.currentSurveyId) {
                     saveState();
                     syncProjectToActiveState(state.currentProjectId, survId);
-                    updateUI();
                     saveState();
                 }
+                // I campi si riempiono in updateUI, che gira solo dentro la prova: aperta dalla scheda
+                // del progetto (o dalla barra del PC, dopo aver cambiato progetto) la finestra
+                // mostrerebbe ancora i dati del progetto aperto prima.
+                updateUI();
                 const surv = proj.surveys[survId];
                 const h = surv.header || {};
                 if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = `Prova ${h.provaNr || '1'}`;
+                modalSurveySettings.removeAttribute('data-modo');
                 mostraSchedaProva(scheda);
                 surveySettingsContext = { survId };
                 if (modalSurveySettingsOverlay) modalSurveySettingsOverlay.classList.add('open');
                 if (modalSurveySettings) modalSurveySettings.classList.add('open');
                 triggerVibrate(30);
+            }
+            /** «Dati del progetto»: la stessa finestra, ma solo il gruppo «Del progetto» (nome, committente,
+             * comune, provincia, sede, denominazione). Quello che si scrive vale per tutte le prove. Si apre dal
+             * nome del progetto, non dalla prova che era aperta (richiesta di Romeo, 17/11/2026). */
+            function apriDatiProgetto() {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                const survId = state.currentSurveyId && proj.surveys && proj.surveys[state.currentSurveyId] ? state.currentSurveyId : Object.keys(proj.surveys || {})[0];
+                if (!survId) return;
+                openSurveySettingsModal(survId, 'dati');
+                modalSurveySettings.setAttribute('data-modo', 'progetto');
+                if (lblSurveySettingsTitle) lblSurveySettingsTitle.textContent = 'Dati del progetto';
             }
             function closeSurveySettingsModal() {
                 surveySettingsContext = null;
@@ -269,14 +285,18 @@
                     tabBtn.addEventListener('click', () => {
                         if (longPressFired) { longPressFired = false; return; }
                         if (survId !== state.currentSurveyId) {
-                            saveState();
-                            syncProjectToActiveState(state.currentProjectId, survId);
-                            pendingBarGrowAnim = true;
-                            updateUI();
-                            pendingBarGrowAnim = false;
-                            saveState();
+                            // Col morph (071v) ogni pezzo si trasforma nella prova nuova: niente barre che
+                            // ricrescono da zero né lampeggio delle schede, che ci si sovrapporrebbero.
+                            const conMorph = morphProva((animato) => {
+                                saveState();
+                                syncProjectToActiveState(state.currentProjectId, survId);
+                                pendingBarGrowAnim = !animato;
+                                updateUI();
+                                pendingBarGrowAnim = false;
+                                saveState();
+                            });
                             triggerVibrate(30);
-                            flashDataChangedCards();
+                            if (!conMorph) flashDataChangedCards();
                         }
                     });
 
@@ -400,6 +420,66 @@
                 });
             }
 
+            /** I modi di ordinare i progetti, uguali in Home e nella barra laterale del PC. Niente
+             * ordine per `updatedAt`: cambia a ogni salvataggio, anche solo aprendo un progetto, e
+             * l'elenco saltava. «Ultima modifica» usa modificatoIl (pezzo 004e), che cambia solo
+             * quando cambia davvero il contenuto. */
+            function vociOrdineProgetti() {
+                return [
+                    { id: 'data_desc', etichetta: 'Data, recenti prima' },
+                    { id: 'data_asc', etichetta: 'Data, vecchi prima' },
+                    { id: 'modifica', etichetta: 'Ultima modifica' },
+                    { id: 'nome', etichetta: 'Nome A–Z' }
+                ];
+            }
+
+            /** L'ordine scelto. Vive nel browser (come i pannelli della mappa): è una preferenza di
+             * chi guarda, non un dato dei progetti, e non deve finire nei backup né in Annulla. */
+            function ordineProgettiScelto() {
+                let v = null;
+                try { v = localStorage.getItem('dpsh.ordineProgetti'); } catch (_) { /* predefinito */ }
+                return vociOrdineProgetti().some(o => o.id === v) ? v : 'data_desc';
+            }
+
+            function scegliOrdineProgetti(v) {
+                try { localStorage.setItem('dpsh.ordineProgetti', v); } catch (_) { /* resta per questa volta */ }
+                renderHomeProjects();
+            }
+
+            /** Gli id dei progetti nell'ordine scelto. «Data» è quella della prima prova del progetto:
+             * proj.date no, perché ogni salvataggio la riscrive con la data della prova aperta, e
+             * aprire un'altra prova spostava il progetto. Senza date vale quando il progetto è stato
+             * creato, letto dall'id (PROJ_…_ora). A parità decide il nome, così due progetti non si
+             * scambiano mai di posto da soli. */
+            function ordinaProgetti(ids, progetti, ordine) {
+                const nome = id => String((progetti[id] && (progetti[id].name || progetti[id].comune)) || '');
+                const perNome = (a, b) => nome(a).localeCompare(nome(b), 'it', { numeric: true, sensitivity: 'base' }) || (a < b ? -1 : a > b ? 1 : 0);
+                const giorno = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? Date.parse(String(v).slice(0, 10)) : NaN;
+                const creato = id => { const m = String(id).match(/(\d{12,})/); return m ? Number(m[1]) : 0; };
+                const data = id => {
+                    const p = progetti[id] || {};
+                    const date = Object.values(p.surveys || {}).map(s => giorno(s && s.header && s.header.date)).filter(isFinite);
+                    if (date.length) return Math.min(...date);
+                    const t = giorno(p.date);
+                    return isFinite(t) ? t : creato(id);
+                };
+                const modifica = id => { const t = Date.parse((progetti[id] || {}).modificatoIl || ''); return isFinite(t) ? t : 0; };
+                const confronti = {
+                    data_desc: (a, b) => data(b) - data(a),
+                    data_asc: (a, b) => data(a) - data(b),
+                    modifica: (a, b) => modifica(b) - modifica(a),
+                    nome: () => 0
+                };
+                const prima = confronti[ordine] || confronti.data_desc;
+                return ids.slice().sort((a, b) => prima(a, b) || perNome(a, b));
+            }
+
+            /** Il menu «Ordina» (Home e barra laterale): un select piccolo, la scelta vale per tutti e due. */
+            function menuOrdineProgetti(id) {
+                const scelto = ordineProgettiScelto();
+                return `<label class="ordina-progetti" title="Ordina i progetti"><svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg><select id="${id}" data-ordine-progetti aria-label="Ordina i progetti">${vociOrdineProgetti().map(o => `<option value="${o.id}"${o.id === scelto ? ' selected' : ''}>${o.etichetta}</option>`).join('')}</select></label>`;
+            }
+
             /** Le pillole del filtro per stato sopra l'elenco (Fase 3: 44 di altezza, senza conteggi;
              * «Consegnati» al plurale come le altre voci di un filtro). */
             function renderFiltroStatoProgetti(projKeys) {
@@ -453,20 +533,24 @@
                 const boxRicercaProgetti = document.getElementById('homeRicercaProgetti');
                 if (boxRicercaProgetti) boxRicercaProgetti.style.display = projKeys.length === 0 ? 'none' : 'flex';
                 if (projKeys.length === 0) {
-                    // Stato vuoto: «Nuovo progetto» e «Ricevi» ci sono già una volta sola, in alto.
+                    // Stato vuoto: «Nuovo progetto» e «Ricevi un progetto» ci sono già una volta sola, in alto.
                     homeProjectsContainer.innerHTML = `
                         <div class="home-vuota">
                             <div class="titolo">Nessun progetto</div>
                             Un progetto raccoglie le prove di uno stesso cantiere, con strati e dati comuni.
                             Creane uno con <strong>Nuovo progetto</strong>, oppure prendine uno da un altro
-                            dispositivo con <strong>Ricevi</strong>.
+                            dispositivo con <strong>Ricevi un progetto</strong>. Dal telefono al PC si passa da
+                            Consegna → <strong>Porta sul PC</strong>.
                         </div>
                     `;
                     return;
                 }
 
-                // Ordina per data di aggiornamento decrescente
-                projKeys.sort((a, b) => (state.projects[b].updatedAt || 0) - (state.projects[a].updatedAt || 0));
+                // L'ordine lo sceglie chi guarda (menu «Ordina»): aprire un progetto non lo sposta.
+                const ordinati = ordinaProgetti(projKeys, state.projects, ordineProgettiScelto());
+                projKeys.splice(0, projKeys.length, ...ordinati);
+                const boxOrdine = document.getElementById('homeOrdineProgetti');
+                if (boxOrdine) boxOrdine.innerHTML = menuOrdineProgetti('selOrdineProgettiHome');
 
                 renderFiltroStatoProgetti(projKeys);
                 const visibili = progettiVisibiliHome(projKeys, state.projects, ricercaProgettiTesto, filtroStatoProgetti);
@@ -492,6 +576,8 @@
                 }
 
                 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+                // Le intestazioni delle colonne: solo sul PC, dove i progetti sono una tabella.
+                homeProjectsContainer.insertAdjacentHTML('beforeend', '<div class="progetti-colonne" aria-hidden="true"><span>Progetto</span><span>Luogo</span><span>Prove</span><span>Ultima modifica</span></div>');
                 visibili.forEach(projId => {
                     const proj = state.projects[projId];
                     const survList = Object.values(proj.surveys || {});
@@ -504,35 +590,42 @@
                     const nrUltima = ultima && proj.surveys[ultima] && proj.surveys[ultima].header ? proj.surveys[ultima].header.provaNr : null;
                     const statoProgetto = STATI_PROGETTO.find(st => st.id === proj.stato);
                     const luogo = [proj.comune || '', proj.committente ? `Committente: ${proj.committente}` : ''].filter(Boolean).join(' · ');
-                    const modificato = dataBreve(proj.updatedAt);
+                    // La modifica vera (004e), come l'ordine «Ultima modifica»; i dati vecchi non ce l'hanno.
+                    const modificato = dataBreve(proj.modificatoIl || proj.updatedAt);
                     const nome = proj.name || ('Progetto ' + (proj.comune || ''));
 
                     const card = document.createElement('div');
                     card.className = 'card-progetto';
-                    // Tutta la card apre il progetto sull'ULTIMA PROVA USATA (decisione H); il ⋯ a
-                    // destra, separato da una linea, ha le azioni di progetto (note comprese).
+                    // Tutta la card apre la schermata del progetto; il ⋯ a destra, separato da una
+                    // linea, ha le azioni di progetto (note comprese).
                     card.innerHTML = `
-                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${projId}" aria-label="Apri ${esc(nome)}${nrUltima ? ', riprende dalla Prova ' + esc(nrUltima) : ''}">
+                        <button type="button" class="card-progetto-apri btn-open-project" data-id="${testoHtml(projId)}" aria-label="Apri ${esc(nome)}">
                             <span class="card-progetto-riga1">
                                 <span class="card-progetto-nome">${esc(nome)}</span>
                                 ${statoProgetto ? `<span class="card-progetto-stato" style="color: ${statoProgetto.colore}; background: ${statoProgetto.sfondo};">${statoProgetto.etichetta}</span>` : ''}
                             </span>
                             ${luogo ? `<span class="card-progetto-luogo">${esc(luogo)}</span>` : ''}
                             <span class="card-progetto-numeri">${nProve} ${nProve === 1 ? 'prova' : 'prove'} · ${conGps}/${nProve} GPS · ${nFoto} foto</span>
-                            <span class="card-progetto-data">${modificato ? 'Modificato il ' + modificato : 'Mai modificato'}${nrUltima ? ' · riprende dalla Prova ' + esc(nrUltima) : ''}</span>
+                            <span class="card-progetto-data">${modificato ? 'Modificato il ' + modificato : 'Mai modificato'}${nrUltima ? ' · ultima aperta: Prova ' + esc(nrUltima) : ''}</span>
                         </button>
-                        <button type="button" class="card-progetto-altro btn-project-actions" data-id="${projId}" aria-label="Azioni sul progetto" title="Azioni sul progetto (stato, note, duplica, backup, esporta, elimina)"><svg class="ico"><use href="#i-more"/></svg></button>
+                        <button type="button" class="card-progetto-altro btn-project-actions" data-id="${testoHtml(projId)}" aria-label="Azioni sul progetto" title="Azioni sul progetto (stato, note, duplica, backup, esporta, elimina)"><svg class="ico"><use href="#i-more"/></svg></button>
                     `;
                     homeProjectsContainer.appendChild(card);
                 });
 
                 homeProjectsContainer.querySelectorAll('.btn-open-project').forEach(btn => {
-                    btn.addEventListener('click', () => openProject(btn.getAttribute('data-id')));
+                    btn.addEventListener('click', () => openProject(btn.getAttribute('data-id'), 'project'));
                 });
                 homeProjectsContainer.querySelectorAll('.btn-project-actions').forEach(btn => {
                     btn.addEventListener('click', () => openProjectActionsModal(btn.getAttribute('data-id')));
                 });
             }
+
+            // Un solo ascoltatore per i menu «Ordina» di Home e barra laterale (si ridisegnano spesso).
+            document.addEventListener('change', (e) => {
+                const sel = e.target.closest && e.target.closest('[data-ordine-progetti]');
+                if (sel) scegliOrdineProgetti(sel.value);
+            });
 
             const txtCercaProgetti = document.getElementById('txtCercaProgetti');
             if (txtCercaProgetti) txtCercaProgetti.addEventListener('input', () => {
@@ -540,7 +633,9 @@
                 renderHomeProjects();
             });
 
-            function openProject(projId) {
+            /** Rende attivo il progetto sull'ultima prova usata e apre la vista chiesta: 'field' (la
+             * prova) o 'project' (la schermata del progetto, quella che apre la Home). */
+            function openProject(projId, vista = 'field') {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
                 // Decisione H: si riprende dall'ultima prova usata, non dalla prima.
@@ -563,7 +658,7 @@
                     syncProjectToActiveState(projId, firstSurvId);
                 }
 
-                switchView('field');
+                switchView(vista);
                 triggerVibrate([40, 40]);
             }
 
@@ -631,17 +726,36 @@
             const lblDeleteProjName = document.getElementById('lblDeleteProjName');
             const btnCancelDeleteProjModal = document.getElementById('btnCancelDeleteProjModal');
             const btnConfirmDeleteProjModal = document.getElementById('btnConfirmDeleteProjModal');
+            const txtDeleteProjConfirm = document.getElementById('txtDeleteProjConfirm');
+
+            // (Fase C) Come per la prova: il tasto resta spento finché non si scrive CANCELLA.
+            function impostaTastoEliminaProgetto(acceso) {
+                if (!btnConfirmDeleteProjModal) return;
+                btnConfirmDeleteProjModal.disabled = !acceso;
+                btnConfirmDeleteProjModal.setAttribute('aria-disabled', acceso ? 'false' : 'true');
+                btnConfirmDeleteProjModal.style.opacity = acceso ? '1' : '0.45';
+                btnConfirmDeleteProjModal.style.pointerEvents = acceso ? 'auto' : 'none';
+            }
+            if (txtDeleteProjConfirm) {
+                txtDeleteProjConfirm.addEventListener('input', (e) => {
+                    impostaTastoEliminaProgetto(e.target.value.trim().toUpperCase() === 'CANCELLA');
+                });
+            }
 
             function openConfirmDeleteModal(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
+                const projName = proj.name || proj.comune || 'Progetto';
 
                 projectToDeleteContext = { projId, cardElem };
                 if (lblDeleteProjName) lblDeleteProjName.textContent = `"${projName}"`;
 
+                if (txtDeleteProjConfirm) txtDeleteProjConfirm.value = '';
+                impostaTastoEliminaProgetto(false);
+
                 if (modalConfirmDeleteOverlay) modalConfirmDeleteOverlay.classList.add('open');
                 if (modalConfirmDelete) modalConfirmDelete.classList.add('open');
+                if (txtDeleteProjConfirm) setTimeout(() => txtDeleteProjConfirm.focus(), 120);
             }
 
             function closeConfirmDeleteModal() {
@@ -655,6 +769,7 @@
 
             if (btnConfirmDeleteProjModal) {
                 btnConfirmDeleteProjModal.addEventListener('click', () => {
+                    if (txtDeleteProjConfirm && txtDeleteProjConfirm.value.trim().toUpperCase() !== 'CANCELLA') return;
                     if (projectToDeleteContext) {
                         const { projId, cardElem } = projectToDeleteContext;
                         closeConfirmDeleteModal();
@@ -669,11 +784,12 @@
                 openConfirmDeleteModal(projId, cardElem);
             }
 
-            function performDeleteProject(projId, cardElem) {
+            async function performDeleteProject(projId, cardElem) {
                 if (!projId || !state.projects[projId]) return;
                 const proj = state.projects[projId];
-                const projName = proj.name || proj.comune || 'Cantiere';
-                copiaPrimaDi(`eliminare il progetto «${projName}»`);
+                const projName = proj.name || proj.comune || 'Progetto';
+                if (!await copiaOChiedi(`eliminare il progetto «${projName}»`)) return;
+                if (state.projects[projId] !== proj) return; // già eliminato o cambiato nel frattempo
 
                 // Animazione di riduzione e dissolvenza della card prima dell'eliminazione
                 if (cardElem) {
@@ -799,7 +915,6 @@
             const lblProjectActionsSubtitle = document.getElementById('lblProjectActionsSubtitle');
             const btnCloseProjectActionsX = document.getElementById('btnCloseProjectActionsX');
             const btnProjActDuplicate = document.getElementById('btnProjActDuplicate');
-            const btnProjActBackup = document.getElementById('btnProjActBackup');
             const btnProjActExport = document.getElementById('btnProjActExport');
             const btnProjActDelete = document.getElementById('btnProjActDelete');
 
@@ -875,15 +990,6 @@
                         renderHomeProjects();
                         triggerVibrate([40, 60]);
                     }
-                });
-            }
-
-            if (btnProjActBackup) {
-                btnProjActBackup.addEventListener('click', () => {
-                    if (!projectActionsContext) return;
-                    const { projId } = projectActionsContext;
-                    closeProjectActionsModal();
-                    openBackupChoiceModal({ type: 'project', projId });
                 });
             }
 

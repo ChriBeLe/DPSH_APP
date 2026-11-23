@@ -56,12 +56,17 @@
                 const f = Object.assign({ carta: 'A4', verso: 'o' }, (dt && dt.mem.foglio) || (proj.tavole3d && proj.tavole3d.foglio) || {});
                 return `${f.carta} ${f.verso === 'v' ? 'verticale' : 'orizzontale'}`;
             }
-            function popolaListaProveEsportazionePdf(proj) {
+            function popolaListaProveEsportazionePdf(proj, soloProve) {
                 if (!esportaPdfListaProve) return;
                 const tutte = proveInOrdine(proj); // l'ordine in cui escono nel documento
                 // Le interpretazioni alternative partono spente, altrimenti la stessa verticale uscirebbe
                 // due volte nel documento: si accende la versione che si vuole consegnare.
                 esportaPdfSelectedIds = new Set(tutte.filter(s => !(s.header && s.header.interpretazioneDi)).map(s => s.id));
+                // Le prove accese nella scaletta del report (tappa ④, Fase C) sono la selezione di partenza.
+                if (typeof proveAcceseScaletta === 'function') { const ac = new Set(proveAcceseScaletta(proj)); esportaPdfSelectedIds = new Set(tutte.filter(s => ac.has(s.id)).map(s => s.id)); }
+                // Perimetro della Consegna (Fase C): «Questa prova» o le prove scelte nella Consegna
+                // arrivano già spuntate, invece di ripartire sempre da tutto il progetto.
+                if (soloProve && soloProve.size) esportaPdfSelectedIds = new Set(tutte.filter(s => soloProve.has(s.id)).map(s => s.id));
                 const opzioniTemplate = elencoTemplateReportOrdinato();
                 // IL CAPITOLO INTRODUTTIVO, prima riga dell'elenco. Ha la stessa forma delle
                 // prove — spunta a sinistra, template a destra — perche' e' esattamente quello
@@ -79,7 +84,7 @@
                             </span>
                         </label>
                         <select id="selEsportaPdfTemplateIntroduzione" title="Template del capitolo introduttivo" style="width:108px; flex-shrink:0; padding:3px 4px; font-size:10.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main);">
-                            ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === (intro.templateId || 'classico') ? 'selected' : ''}>${t.name}</option>`).join('')}
+                            ${opzioniTemplate.map(t => `<option value="${testoHtml(t.id)}" ${t.id === (intro.templateId || 'classico') ? 'selected' : ''}>${testoHtml(t.name)}</option>`).join('')}
                         </select>
                     </div>`;
                 // LE TAVOLE 2D E 3D, ultima riga: un capitolo dopo le prove con le tavole scelte nella
@@ -117,7 +122,7 @@
                                 </span>
                             </label>
                             <select data-survey-id="${s.id}" class="sel-esporta-pdf-template-riga" title="Template report per questa prova" style="width:108px; flex-shrink:0; padding:3px 4px; font-size:10.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-main);">
-                                ${opzioniTemplate.map(t => `<option value="${t.id}" ${t.id === attuale ? 'selected' : ''}>${t.name}</option>`).join('')}
+                                ${opzioniTemplate.map(t => `<option value="${testoHtml(t.id)}" ${t.id === attuale ? 'selected' : ''}>${testoHtml(t.name)}</option>`).join('')}
                             </select>
                         </div>`;
                 }).join('') + rigaTavole;
@@ -197,7 +202,7 @@
             function popolaSelettoreTemplateBulkEsportazionePdf() {
                 if (!selEsportaPdfTemplateBulk) return;
                 selEsportaPdfTemplateBulk.innerHTML = elencoTemplateReportOrdinato()
-                    .map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    .map(t => `<option value="${testoHtml(t.id)}">${testoHtml(t.name)}</option>`).join('');
             }
 
             if (btnEsportaPdfApplicaTemplateTutte) {
@@ -240,16 +245,10 @@
                 const template = state.reportTemplates[templateId];
                 const usaTemplatePersonalizzato = template && Array.isArray(template.pages) && template.pages.length > 0;
                 const paginaDatiCount = usaTemplatePersonalizzato ? template.pages.length : 1;
-                const numeroFotoGiaPiazzate = usaTemplatePersonalizzato ? Object.keys(calcolaIndiciImmaginePerBlocco(template.pages)).length : 0;
-                const numFoto = (surv.photos || []).length;
-                const fotoRestanti = Math.max(0, numFoto - numeroFotoGiaPiazzate);
-                let totale = paginaDatiCount + fotoRestanti;
-                if (completo) {
-                    const strati = (proj && proj.strati) || state.strati || [];
-                    const dati = datiCalcolatiProva(surv, strati);
-                    if (dati.length > 0) totale += 2;
-                }
-                return totale;
+                // Solo le pagine del template: le foto in più e le tabelle dei parametri avanzati non
+                // escono più da sole (067, 071: «solo quello che c'è nel template»). Prima le
+                // contava ancora, e la stima diceva 13 pagine per un PDF di 7.
+                return paginaDatiCount;
             }
 
             /** Stima grezza del peso di UNA foto originale, in byte: dalla dataURL già in memoria se
@@ -257,8 +256,10 @@
              * plausibile (foto non ancora caricata dalla cache/IndexedDB al momento della stima —
              * capita, è solo una stima, non blocchiamo l'utente per leggerla dal disco qui). */
             function stimaByteFotoOriginale(photo) {
-                if (photo && photo.dataUrl && typeof photo.dataUrl === 'string') {
-                    return Math.round(photo.dataUrl.length * 0.75);
+                // Le copie nei progetti non portano più l'immagine: si guarda anche la cache in RAM.
+                const url = photo && (photo.dataUrl || photoMemoryCache[photo.id]);
+                if (url && typeof url === 'string') {
+                    return Math.round(url.length * 0.75);
                 }
                 return 1200000;
             }
@@ -299,13 +300,22 @@
                 const fattore = fattoreDimensioneJpeg(qualita);
 
                 let pagineTotali = includiIndice ? 1 : 0;
+                // Il capitolo introduttivo: le pagine del suo template.
+                const intro = proj && proj.introduzione && proj.introduzione.attiva ? state.reportTemplates[proj.introduzione.templateId || 'classico'] : null;
+                if (intro) pagineTotali += Array.isArray(intro.pages) && intro.pages.length ? intro.pages.length : 1;
                 let byteTotali = selezionate.length * 60000; // testo/layout per prova, stima grezza
                 selezionate.forEach(surv => {
                     pagineTotali += stimaPagineProva(surv, proj, completo);
-                    (surv.photos || []).forEach(p => { byteTotali += stimaByteFotoOriginale(p) * fattore; });
+                    // Solo le foto che il template mette nel foglio (i blocchi «Foto prova»).
+                    const tpl = state.reportTemplates[getReportTemplateIdPerProva(surv)];
+                    const posti = tpl && Array.isArray(tpl.pages) && tpl.pages.length ? Object.keys(calcolaIndiciImmaginePerBlocco(tpl.pages)).length : 0;
+                    (surv.photos || []).slice(0, posti).forEach(p => { byteTotali += stimaByteFotoOriginale(p) * fattore; });
                 });
 
-                lblEsportaPdfPagineStima.textContent = selezionate.length > 0 ? String(pagineTotali) : '–';
+                // «≥»: un blocco che non sta nel foglio passa al foglio dopo, e lo si sa solo
+                // impaginando davvero; il conto qui è quello delle pagine del template.
+                lblEsportaPdfPagineStima.textContent = selezionate.length > 0 ? '≥ ' + pagineTotali : '–';
+                lblEsportaPdfPagineStima.title = 'Almeno ' + pagineTotali + ' pagine: un blocco che non sta in un foglio passa al foglio dopo';
                 lblEsportaPdfPesoStima.textContent = selezionate.length > 0 ? formattaBytesEsportazione(byteTotali) : '–';
             }
 
@@ -334,7 +344,7 @@
                 const mostraSelezione = isMultiProva && numProveProgetto > 1;
 
                 if (esportaPdfListaProveWrap) esportaPdfListaProveWrap.style.display = mostraSelezione ? 'block' : 'none';
-                if (isMultiProva && proj) popolaListaProveEsportazionePdf(proj);
+                if (isMultiProva && proj) popolaListaProveEsportazionePdf(proj, context.soloProve || null);
                 else esportaPdfSelectedIds = new Set();
 
                 if (esportaPdfIndiceRow) esportaPdfIndiceRow.style.display = mostraSelezione ? 'flex' : 'none';
@@ -352,7 +362,7 @@
                     // e quella scrive in state.indiceTemplates — l'elenco va letto DOPO, altrimenti
                     // l'opzione appena creata non esiste ancora e .value resta vuoto.
                     const idAttuale = getIndiceTemplateIdPerProgetto(proj);
-                    selEsportaPdfIndiceStile.innerHTML = elencoIndiceTemplateOrdinato().map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    selEsportaPdfIndiceStile.innerHTML = elencoIndiceTemplateOrdinato().map(t => `<option value="${testoHtml(t.id)}">${testoHtml(t.name)}</option>`).join('');
                     selEsportaPdfIndiceStile.value = idAttuale;
                 }
 

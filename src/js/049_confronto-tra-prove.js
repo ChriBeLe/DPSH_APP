@@ -348,7 +348,7 @@
                     boxProve.innerHTML = prove.map(s => {
                         const attiva = confrontoStato.attive.has(s.id);
                         const c = d.colore.get(s.id);
-                        return `<button type="button" data-prova="${s.id}" aria-pressed="${attiva}" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: ${attiva ? 'var(--bg-card)' : 'transparent'}; color: ${attiva ? 'var(--text-main)' : 'var(--text-muted)'}; border: 1.5px solid ${attiva ? c : 'var(--border)'};"><span style="width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: ${attiva ? c : 'transparent'}; border: 2px solid ${c};"></span>DPSH ${testoSicuro((s.header && s.header.provaNr) || '?')}</button>`;
+                        return `<button type="button" data-prova="${testoHtml(s.id)}" aria-pressed="${attiva}" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: ${attiva ? 'var(--bg-card)' : 'transparent'}; color: ${attiva ? 'var(--text-main)' : 'var(--text-muted)'}; border: 1.5px solid ${attiva ? c : 'var(--border)'};"><span style="width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: ${attiva ? c : 'transparent'}; border: 2px solid ${c};"></span>DPSH ${testoSicuro((s.header && s.header.provaNr) || '?')}</button>`;
                     }).join('');
                     boxProve.querySelectorAll('[data-prova]').forEach(b => b.addEventListener('click', () => {
                         const id = b.getAttribute('data-prova');
@@ -486,6 +486,18 @@
                             : `<span style="color:var(--success);">✓ Nessuna immagine da recuperare</span>`
                     ].filter(Boolean).join('<br>');
                 }
+                // «Errori recenti»: gli errori ignorati (registroErrori, 002), utili in un APK senza console.
+                const elErrori = document.getElementById('spazioErrori');
+                if (elErrori) {
+                    const reg = registroErrori;
+                    if (!reg || reg.conteggio === 0) {
+                        elErrori.innerHTML = '';
+                    } else {
+                        const ultimi = reg.voci.slice(-5).reverse().map(v =>
+                            `${new Date(v.quando).toLocaleTimeString('it-IT')} · ${testoSicuro(v.dove)}: ${testoSicuro(v.messaggio).slice(0, 80)}`);
+                        elErrori.innerHTML = `<strong>Errori recenti: ${reg.conteggio}</strong> (non bloccanti)<br>${ultimi.join('<br>')}`;
+                    }
+                }
                 if (btnOrfane) {
                     btnOrfane.disabled = s.orfaneCount === 0;
                     btnOrfane.style.opacity = s.orfaneCount === 0 ? '0.5' : '1';
@@ -609,17 +621,21 @@
 
             // Stesse funzioni ma sullo store 'noteImages', per le immagini incorporate nelle
             // Note di progetto (stesso DB, stesso motivo: restare sotto il limite di localStorage).
+            /** Ritorna true se l'immagine è stata scritta, false altrimenti (non rifiuta mai): chi la chiama
+             * deve ATTENDERE la promessa e guardare l'esito, un try/catch sincrono non vede nulla. */
             async function saveNoteImageToIDB(id, dataUrl) {
                 try {
                     const db = await openPhotoDB();
-                    return new Promise((resolve, reject) => {
+                    return await new Promise((resolve) => {
                         const tx = db.transaction(STORE_NOTE_IMAGES, 'readwrite');
                         tx.objectStore(STORE_NOTE_IMAGES).put({ id, dataUrl });
                         tx.oncomplete = () => resolve(true);
-                        tx.onerror = (e) => reject(e.target.error);
+                        tx.onerror = () => { console.warn('IDB Save error (noteImages, transazione):', tx.error); resolve(false); };
+                        tx.onabort = () => { console.warn('IDB Save abort (noteImages):', tx.error); resolve(false); };
                     });
                 } catch(e) {
                     console.warn('IDB Save error (noteImages):', e);
+                    return false;
                 }
             }
             async function getNoteImageFromIDB(id) {

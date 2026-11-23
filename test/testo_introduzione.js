@@ -15,7 +15,7 @@ function corpo(nome){
 const NOMI=['radiceProva','proveFisiche','generatoreCasualeDaSeme','espandiAlternativeTesto','elencoItaliano','formattaCoordinateProve',
   'valoriCantiere','valoriDellaProva','valoriCantiereConCorrezioni','applicaSegnapostiTesto','generaTestoDaModello',
   'quotaDellaProva','quotaDtm', // la quota del piano campagna, dal DTM del progetto
-  'contaDatiMancanti','betaTStrumento','betaTCalcolato','fmtIT','formattaDataIT','escapeHtmlDidascalia',
+  'contaDatiMancanti','parametriStrumento','betaTStrumento','betaTCalcolato','fmtIT','formattaDataIT','escapeHtmlDidascalia',
   'tagPerTipo','etichettaTag','risolviTagInStampa','eRiferimentoFigura','bersaglioFigura',
   'etichettaBersaglioFigura','etichettaVuotaFigura','figuraBersagliataNelTemplate'];
 // Le costanti vivono fuori dalle funzioni: si estraggono dal file come sono scritte, invece
@@ -88,7 +88,7 @@ console.log('--- 2. I dati dello strumento, contro la relazione vera ---');
   t('massa battente 63,0 kg', v.massaBattente.testo === '63,0');
   t('elenco delle prove in italiano', api.valoriCantiere(cantiere([prova(1,5),prova(2,5),prova(3,5)])).elencoProve.testo === 'DPSH 1, DPSH 2 e DPSH 3');
   t('con due prove usa la «e» senza virgola', api.valoriCantiere(cantiere([prova(1,5),prova(2,5)])).elencoProve.testo === 'DPSH 1 e DPSH 2');
-  t('ogni valore dice da dove viene', v.coeffCorrelazione.origine === 'Calcolato dallo strumento' && v.comune.origine === 'Intestazione cantiere');
+  t('ogni valore dice da dove viene', v.coeffCorrelazione.origine === 'Calcolato dallo strumento' && v.comune.origine === 'Scheda della prova');
 }
 
 console.log('--- 3. Le alternative: varie ma stabili ---');

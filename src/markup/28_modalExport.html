@@ -12,7 +12,7 @@
             <button type="button" class="chiudi-x" id="btnCloseExportX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div id="lblExportModalSubtitle" style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
-            Seleziona il formato per esportare i dati del cantiere.
+            Seleziona il formato per esportare i dati del progetto.
         </div>
 
         <!-- CONSEGNA (Fase 5): dalla prova si sceglie se consegnare questa prova o tutto il progetto.
@@ -43,16 +43,16 @@
              alla prova e alla finestra dove si corregge. Lo riempie renderRiepilogoPrimaExport. -->
         <div id="riepilogoPrimaExport" style="display: none; margin-bottom: 14px;"></div>
 
-        <!-- REPORT PDF: riguarda sempre l'INTERO PROGETTO (tutte le prove), anche quando la modale
-             è aperta dalla singola prova — per questo ha una gerarchia visiva superiore e
-             un'etichetta "Intero progetto" ben distinta dalle esportazioni qui sotto. Unico ingresso
+        <!-- REPORT PDF: segue il perimetro scelto sopra (Fase C): «Questa prova» porta la sola prova
+             aperta nella schermata del PDF, «Tutto il progetto» le prove lasciate accese. L'etichetta
+             lblExportPdfPerimetro lo dice. Unico ingresso
              per il PDF (redesign richiesto esplicitamente: prima esisteva anche una tile separata
              "Report PDF" più in basso, ma portava alla stessa identica schermata — vedi
              apriEsportazionePdfModal — quindi è stata rimossa; le tabelle Parametri Avanzati che la
              distinguevano da questo bottone sono ora una spunta dentro quella schermata). -->
         <div style="background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 13px 14px; margin-bottom: 14px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--on-accent); background: var(--accent); padding: 3px 8px; border-radius: 10px;">Intero progetto</span>
+                <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--on-accent); background: var(--accent); padding: 3px 8px; border-radius: 10px;" id="lblExportPdfPerimetro">Progetto</span>
                 <span style="font-weight: 800; font-size: 13.5px; color: var(--accent-ink);"><svg class="ico"><use href="#i-print"/></svg> Report PDF</span>
             </div>
             <div id="lblExportCompleteDesc" style="font-size: 12px; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px;">
@@ -99,10 +99,10 @@
 
             <div class="export-opt-card" id="btnOptExportPhotos" style="grid-column: span 2; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
                 <div style="font-weight: 800; font-size: 13px; color: var(--warning); display: flex; align-items: center; gap: 6px;">
-                    <svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere
+                    <svg class="ico"><use href="#i-camera"/></svg> Foto del progetto
                 </div>
                 <div style="font-size: 12px; color: var(--text-muted); line-height: 1.3;">
-                    Archivio fotografico di cantiere georeferenziato.
+                    Archivio fotografico di progetto georeferenziato.
                 </div>
             </div>
 
@@ -122,21 +122,38 @@
                 <div style="font-weight: 800; font-size: 13px; color: var(--accent-ink); display: flex; align-items: center; gap: 6px;"><svg class="ico"><use href="#i-chart"/></svg> Confronto prove</div>
                 <div style="font-size: 12px; color: var(--text-muted);">Grafici affiancati, stessa scala.</div>
             </div>
-            <!-- "Condividi" tolto: mandava alle app del telefono solo un riepilogo di testo (nome,
-                 committente, data), che non serviva a niente. Per passare un progetto a qualcuno
-                 c'è il Backup Strutturato qui sotto. "Foto Cantiere" prende la riga intera. -->
+            <!-- "Condividi" tolto: mandava alle app del telefono solo un riepilogo di testo.
+                 PORTA SUL PC (Fase C, scelta di Romeo del 17/11/2026): l'unica porta telefono→PC.
+                 Prima c'erano «Backup» e «Porta su un altro dispositivo» nel ⋯ del progetto e
+                 «Backup Strutturato (JSON)» qui: tre voci per lo stesso scopo. Ora una sola, che apre
+                 il pacchetto (copia esatta); JSON e ZIP semplice restano come «Altri formati» dentro
+                 quella finestra. Riguarda sempre tutto il progetto. -->
 
-            <div class="export-opt-card" id="btnOptExportJSON" style="grid-column: span 2; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
-                <div>
-                    <div style="font-weight: 800; font-size: 13px; color: var(--purple);">
-                        <svg class="ico"><use href="#i-file"/></svg> Backup Strutturato (JSON)
-                    </div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
-                        File di backup nativo per importazione e ripristino rapido.
-                    </div>
-                </div>
-                <svg class="ico ico-lg" style="transform:rotate(180deg)"><use href="#i-back"/></svg>
-            </div>
+            <button type="button" class="export-opt-card" id="btnOptPortaSulPc" style="grid-column: span 2; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; text-align: left; color: var(--text-main); font: inherit; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <span>
+                    <span style="display: block; font-weight: 800; font-size: 13px; color: var(--purple);">
+                        <svg class="ico"><use href="#i-upload"/></svg> Porta sul PC
+                    </span>
+                    <span style="display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        Copia esatta di tutto il progetto, per il PC o un altro telefono. Sull'altro dispositivo: «Ricevi un progetto».
+                    </span>
+                </span>
+                <svg class="ico ico-lg" style="transform:rotate(180deg)" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+
+            <!-- ESPORTA CANTIERE: tutto il progetto in un solo ZIP (044d): report PDF/A, Word, Excel,
+                 KMZ, foto (una cartella per prova) e dati del progetto. -->
+            <button type="button" class="export-opt-card" id="btnOptEsportaCantiere" style="grid-column: span 2; background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: var(--radius-sm); padding: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; text-align: left; color: var(--text-main); font: inherit; transition: background var(--mov-medio) var(--ease-entra), border-color var(--mov-medio) var(--ease-entra), transform var(--mov-istante) var(--ease-inloco);">
+                <span>
+                    <span style="display: block; font-weight: 800; font-size: 13px; color: var(--accent-ink);">
+                        <svg class="ico"><use href="#i-download"/></svg> Esporta cantiere
+                    </span>
+                    <span style="display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        Un solo ZIP con il report PDF/A, il Word, l'Excel, il KMZ, le foto prova per prova e i dati del progetto.
+                    </span>
+                </span>
+                <svg class="ico ico-lg" style="transform:rotate(180deg)" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
         </div>
 
         <!-- (Fase 3) Niente «Chiudi» in fondo: c'è già la X in alto. -->

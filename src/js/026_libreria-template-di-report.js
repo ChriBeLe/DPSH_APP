@@ -5,6 +5,162 @@
             const btnCloseReportTemplates = document.getElementById('btnCloseReportTemplates');
             const reportTemplatesList = document.getElementById('reportTemplatesList');
 
+            // ===== TEMPLATE CHE ARRIVANO DA FUORI: NIENTE CODICE (Revisione 2026-11, A2/A3/C2) =====
+            // Un template importato (file di template, template che viaggiano col progetto) porta con
+            // sé HTML scritto da altri: il testo dei blocchi (richHtml), l'intestazione e il piè di
+            // pagina. L'editor dei blocchi di testo (TipTap) sanifica ciò che l'utente scrive, ma un
+            // file non passa mai dall'editor: il suo HTML finiva nella pagina così com'era. Qui c'è
+            // il sanificatore a lista di ciò che è ammesso: tiene i tag e gli attributi che l'editor
+            // produce davvero (grassetto, elenchi, tabelle, link, colori, i tag @ del cantiere,
+            // immagini incorporate) e toglie il resto. Se non c'è niente da togliere restituisce la
+            // STESSA stringa che ha ricevuto: nessuna formattazione cambia, nemmeno di una virgola.
+            // Lavora su un documento DOMParser, inerte: niente viene eseguito né caricato.
+            const SANIFICA_TAG_AMMESSI = new Set(['p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'ins',
+                'code', 'pre', 'blockquote', 'ul', 'ol', 'li', 'hr', 'a', 'span', 'div', 'sub', 'sup', 'mark', 'small', 'font',
+                'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col', 'caption', 'img', 'label', 'input']);
+            // Questi spariscono INSIEME al loro contenuto (il testo dentro un elemento script o style
+            // non è testo da mostrare); un tag sconosciuto qualsiasi, invece, perde solo il tag.
+            const SANIFICA_TAG_CON_CONTENUTO_VIA = new Set(['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'noscript',
+                'template', 'textarea', 'select', 'option', 'title', 'head', 'meta', 'link', 'base', 'svg', 'math', 'form', 'button', 'audio', 'video',
+                'source', 'track', 'canvas', 'dialog', 'noembed', 'noframes', 'xmp', 'plaintext']);
+            const SANIFICA_ATTRIBUTI_PER_TAG = {
+                a: ['href', 'target', 'rel'], img: ['src', 'alt', 'width', 'height'],
+                td: ['colspan', 'rowspan', 'colwidth', 'width'], th: ['colspan', 'rowspan', 'colwidth', 'width'],
+                col: ['span', 'width'], colgroup: ['span'], ol: ['start', 'type'], li: ['value'],
+                input: ['type', 'checked', 'disabled'], font: ['color', 'size', 'face'], table: ['border', 'cellpadding', 'cellspacing', 'width']
+            };
+            const SANIFICA_ATTRIBUTI_OVUNQUE = new Set(['style', 'class', 'title', 'lang', 'dir', 'align', 'valign']);
+
+            /** Un indirizzo di link ammesso: http, https, mailto, tel, un'ancora (#…) o un percorso
+             * senza protocollo. Mai javascript:, data:, vbscript: (anche con spazi o a capo dentro). */
+            function hrefSicuro(valore) {
+                const v = String(valore).replace(/[\u0000- \u007f-\u009f]/g, '');
+                const protocollo = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(v);
+                return !protocollo || ['http', 'https', 'mailto', 'tel'].indexOf(protocollo[1].toLowerCase()) >= 0;
+            }
+
+            /** Le dichiarazioni di uno style="…" che si possono tenere. Ritorna null se sono tutte
+             * ammesse (l'attributo resta com'è), altrimenti il testo ripulito. Fuori: url(), expression,
+             * javascript:, @import, escape con barra rovesciata (servono a nascondere le parole
+             * precedenti), position:fixed/sticky (un riquadro che copre tutta la schermata). */
+            function stileSanificato(testo) {
+                const pezzi = String(testo).split(';');
+                const buoni = [];
+                let tolto = false;
+                pezzi.forEach(pezzo => {
+                    if (!pezzo.trim()) return;
+                    const i = pezzo.indexOf(':');
+                    const prop = i > 0 ? pezzo.slice(0, i).trim() : '';
+                    const val = i > 0 ? pezzo.slice(i + 1) : '';
+                    const male = !/^-?[a-zA-Z][a-zA-Z0-9-]*$/.test(prop)
+                        || /url\s*\(|image-set|image\s*\(|expression|javascript|vbscript|@import|behavio|binding|[\\<>]/i.test(val)
+                        || (/^position$/i.test(prop) && /fixed|sticky/i.test(val))
+                        || /^(z-index|content)$/i.test(prop);
+                    if (male) tolto = true; else buoni.push(pezzo.trim());
+                });
+                return tolto ? buoni.join('; ') : null;
+            }
+
+            const _cacheHtmlSanificato = new Map();
+            /** L'HTML di un template (testo di un blocco, intestazione, piè di pagina) ripulito. */
+            function sanificaHtmlTemplate(html) {
+                if (typeof html !== 'string') return '';
+                // Senza '<' non c'è nessun tag da togliere (le entità restano testo).
+                if (html.indexOf('<') < 0) return html;
+                if (_cacheHtmlSanificato.has(html)) return _cacheHtmlSanificato.get(html);
+                let modificato = false;
+                const doc = new DOMParser().parseFromString('<!doctype html><html><body>' + html + '</body></html>', 'text/html');
+                const ripulisci = (nodo) => {
+                    Array.from(nodo.childNodes).forEach(f => {
+                        if (f.nodeType === 3) return;
+                        if (f.nodeType !== 1) { f.remove(); modificato = true; return; }
+                        const tag = f.tagName.toLowerCase();
+                        if (SANIFICA_TAG_CON_CONTENUTO_VIA.has(tag)) { f.remove(); modificato = true; return; }
+                        if (!SANIFICA_TAG_AMMESSI.has(tag) || (f.namespaceURI && f.namespaceURI !== 'http://www.w3.org/1999/xhtml')) {
+                            ripulisci(f);
+                            while (f.firstChild) nodo.insertBefore(f.firstChild, f);
+                            f.remove(); modificato = true; return;
+                        }
+                        if (tag === 'input' && String(f.getAttribute('type') || '').toLowerCase() !== 'checkbox') { f.remove(); modificato = true; return; }
+                        const ammessi = SANIFICA_ATTRIBUTI_PER_TAG[tag] || [];
+                        Array.from(f.attributes).forEach(a => {
+                            const nome = a.name.toLowerCase();
+                            let tieni = SANIFICA_ATTRIBUTI_OVUNQUE.has(nome) || ammessi.indexOf(nome) >= 0 || /^data-[a-z0-9_-]+$/.test(nome);
+                            if (tieni && nome === 'style') {
+                                const pulito = stileSanificato(a.value);
+                                if (pulito !== null) { modificato = true; if (pulito) f.setAttribute('style', pulito); else tieni = false; }
+                            } else if (tieni && nome === 'class' && !/^[\w\s-]*$/.test(a.value)) tieni = false;
+                            else if (tieni && nome === 'href' && !hrefSicuro(a.value)) tieni = false;
+                            else if (tieni && nome === 'src' && tag === 'img' && a.value !== '' && !dataUrlImmagineSicuro(a.value)) tieni = false;
+                            if (!tieni) { f.removeAttribute(a.name); modificato = true; }
+                        });
+                        // Un'immagine senza una sorgente ammessa e senza l'id con cui l'app ritrova la
+                        // sua foto non è più niente: via anch'essa (C2: niente immagini da URL esterni).
+                        if (tag === 'img' && !f.hasAttribute('src') && !f.hasAttribute('data-note-img-id')) { f.remove(); modificato = true; return; }
+                        ripulisci(f);
+                    });
+                };
+                ripulisci(doc.body);
+                const esito = modificato ? doc.body.innerHTML : html;
+                if (_cacheHtmlSanificato.size > 400) _cacheHtmlSanificato.clear();
+                _cacheHtmlSanificato.set(html, esito);
+                return esito;
+            }
+
+            /** Copia profonda di un valore da file: solo proprietà proprie, senza le chiavi che
+             * cambierebbero il prototipo degli oggetti (`__proto__`, `constructor`, `prototype`).
+             * JSON.parse crea `__proto__` come proprietà vera: con Object.assign o un'assegnazione
+             * diventerebbe il prototipo di un oggetto dello stato. */
+            function copiaSenzaChiaviRiservate(v) {
+                if (Array.isArray(v)) return v.map(copiaSenzaChiaviRiservate);
+                if (!v || typeof v !== 'object') return v;
+                const o = {};
+                Object.keys(v).forEach(k => {
+                    if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
+                    o[k] = copiaSenzaChiaviRiservate(v[k]);
+                });
+                return o;
+            }
+
+            // Misure che finiscono dentro style="…": se non sono numeri, il campo si toglie e vale il
+            // valore di partenza del blocco (come se non fosse mai stato impostato).
+            const CAMPI_NUMERICI_BLOCCO_TEMPLATE = ['fontSizePt', 'captionFontSizePt', 'scale', 'fontScale', 'rigaScale', 'heightMm', 'spacerHeightMm',
+                'colSpan', 'rowSpan', 'satelliteZoom', 'altezzaScalaGrafico', 'larghezzaColonneGrafico', 'spazioEtichetteGrafico'];
+            function bloccoTemplateSanificato(b) {
+                if (!b || typeof b !== 'object') return b;
+                if ('richHtml' in b) b.richHtml = sanificaHtmlTemplate(b.richHtml);
+                CAMPI_NUMERICI_BLOCCO_TEMPLATE.forEach(k => {
+                    if (k in b && !((typeof b[k] === 'number' || typeof b[k] === 'string') && b[k] !== '' && Number.isFinite(Number(b[k])))) delete b[k];
+                });
+                if ('imageDataUrl' in b && b.imageDataUrl && !dataUrlImmagineSicuro(b.imageDataUrl)) b.imageDataUrl = '';
+                return b;
+            }
+            function fasciaTemplateSanificata(f) {
+                if (!f || typeof f !== 'object') return f;
+                if ('html' in f) f.html = sanificaHtmlTemplate(f.html);
+                if ('text' in f && typeof f.text !== 'string') f.text = String(f.text);
+                if ('heightMm' in f && !(f.heightMm !== '' && f.heightMm !== null && Number.isFinite(Number(f.heightMm)))) delete f.heightMm;
+                if ('imageDataUrl' in f && f.imageDataUrl && !dataUrlImmagineSicuro(f.imageDataUrl)) f.imageDataUrl = '';
+                return f;
+            }
+            /** Un template (di report, ma la copia pulita vale per ogni voce di libreria) in ingresso
+             * da un file: copia senza chiavi riservate, nome testuale, e in ogni pagina il testo dei
+             * blocchi, l'intestazione e il piè di pagina ripuliti. Non cambia la forma dei dati. */
+            function sanificaTemplateInIngresso(t) {
+                const c = copiaSenzaChiaviRiservate(t);
+                if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+                if ('name' in c && typeof c.name !== 'string') c.name = String(c.name);
+                (Array.isArray(c.pages) ? c.pages : []).forEach(pagina => {
+                    if (!pagina || typeof pagina !== 'object') return;
+                    fasciaTemplateSanificata(pagina.header);
+                    fasciaTemplateSanificata(pagina.footer);
+                    (Array.isArray(pagina.rows) ? pagina.rows : []).forEach(riga => {
+                        if (riga && Array.isArray(riga.blocks)) riga.blocks.forEach(bloccoTemplateSanificato);
+                    });
+                });
+                return c;
+            }
+
             /** Quanto pesa in altezza ogni tipo di blocco nella miniatura di riga. Serve a far
              * somigliare la miniatura al foglio vero: un grafico stratigrafico occupa davvero
              * mezza pagina, un divisore quasi niente. Senza pesi, ogni template avrebbe la stessa
@@ -162,6 +318,7 @@
                     }
                     const backupData = {
                         version: '1.0',
+                        versioneSchema: VERSIONE_SCHEMA_DATI,
                         exportedAt: new Date().toISOString(),
                         app: 'DPSH Field Collector - Template di Report',
                         versioneApp: APP_VERSIONE,
@@ -190,15 +347,25 @@
                 reader.onload = async (e) => {
                     try {
                         const imported = JSON.parse(e.target.result);
+                        // Versione dei dati PRIMA di tutto, come ogni altro import (regola 5 del piano):
+                        // un file di un'app più nuova si rifiuta senza toccare niente.
+                        try { controllaVersioneFileImportato(versioneFileImportato(imported)); } catch (errV) { alert(errV.message); return; }
                         const daImportare = imported && imported.reportTemplates;
-                        if (!daImportare || typeof daImportare !== 'object' || Object.keys(daImportare).length === 0) {
+                        // Forma: un oggetto { id: template } con dentro oggetti. Ogni template passa dal
+                        // sanificatore (copia senza chiavi riservate, testo dei blocchi ripulito): un file
+                        // di template porta HTML scritto da altri.
+                        const validi = (daImportare && typeof daImportare === 'object' && !Array.isArray(daImportare))
+                            ? Object.keys(daImportare).map(k => (daImportare[k] && typeof daImportare[k] === 'object' && !Array.isArray(daImportare[k])) ? sanificaTemplateInIngresso(daImportare[k]) : null).filter(Boolean)
+                            : [];
+                        if (validi.length === 0) {
                             alert('Il file selezionato non è un backup valido di template di report.');
                             return;
                         }
-                        const nomi = Object.values(daImportare).map(t => t.name || 'Senza nome');
+                        const nomi = validi.map(t => (typeof t.name === 'string' && t.name) || 'Senza nome');
                         if (!await appConfirm(`Importare ${nomi.length} template (${nomi.join(', ')})? Verranno aggiunti come nuovi, senza toccare quelli già presenti.`)) return;
-                        Object.values(daImportare).forEach(t => {
-                            const newId = 'tpl_' + Date.now() + '_' + Math.round(Math.random() * 1000);
+                        validi.forEach(t => {
+                            let newId;
+                            do { newId = idSicuroOppureNuovo(null, 'tpl'); } while (state.reportTemplates[newId]);
                             // updatedAt segna QUESTO import, non quello del file di origine (che
                             // può venire da un'altra installazione con un orologio tutto suo):
                             // "modificato il" nella lista deve riflettere quando è arrivato qui.
@@ -388,11 +555,11 @@
                     const isAttuale = t.id === attuale;
                     return `
                         <div style="display:flex; align-items:center; gap:10px; background:${t.builtIn ? 'var(--bg-sunken)' : (isAttuale ? 'var(--accent-soft)' : 'var(--bg-main)')}; border:1px solid ${isAttuale ? 'var(--accent)' : (t.builtIn ? 'var(--border-strong)' : 'var(--border)')}; border-style:${t.builtIn ? 'dashed' : 'solid'}; border-radius:var(--radius-sm); padding:9px 10px;">
-                            <button type="button" class="tpl-riga-thumb-wrap tpl-report-modifica" data-tpl-id="${t.id}" title="Apri il layout di &quot;${t.name}&quot;">${miniaturaTemplatePaginaHtml(t)}</button>
+                            <button type="button" class="tpl-riga-thumb-wrap tpl-report-modifica" data-tpl-id="${testoHtml(t.id)}" title="Apri il layout di &quot;${testoHtml(t.name)}&quot;">${miniaturaTemplatePaginaHtml(t)}</button>
                             <div style="flex:1; min-width:0;">
                                 <div style="display:flex; align-items:center; gap:5px; font-weight:700; font-size:13px; color:var(--text-main); overflow:hidden;">
                                     ${t.builtIn ? `<svg class="ico" style="width:12px; height:12px; color:var(--text-muted); flex-shrink:0;" title="Non rinominabile né eliminabile"><use href="#i-lock"/></svg>` : ''}
-                                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</span>
+                                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${testoHtml(t.name)}</span>
                                 </div>
                                 <!-- "Predefinito"/"Personalizzato" tolti (segnalato esplicitamente: con un
                                      solo template davvero predefinito, quella parola su ogni riga non
@@ -401,8 +568,8 @@
                                      davvero qualcosa (il template non ha ancora un proprio layout). -->
                                 <div style="font-size:12px; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(!t.builtIn && !t.pages) ? 'Copia del layout Classico' : ''}${Array.isArray(t.pages) && t.pages.length ? `${(!t.builtIn && !t.pages) ? ' · ' : ''}${t.pages.length} pagin${t.pages.length === 1 ? 'a' : 'e'}` : ''}${isAttuale ? ' · in uso su questa prova' : ''}${t.updatedAt ? ` · modificato il ${dataBreve(t.updatedAt)}` : ''}${t.exportCount ? ` · usato ${t.exportCount} volt${t.exportCount === 1 ? 'a' : 'e'} in esportazione` : ''}</div>
                             </div>
-                            <button type="button" class="tpl-riga-primaria tpl-report-modifica" data-tpl-id="${t.id}"><svg class="ico"><use href="#i-layout-pagina"/></svg>Layout</button>
-                            <button type="button" class="tpl-riga-kebab tpl-report-azioni" data-tpl-id="${t.id}" title="Altre azioni"><svg class="ico"><use href="#i-more"/></svg></button>
+                            <button type="button" class="tpl-riga-primaria tpl-report-modifica" data-tpl-id="${testoHtml(t.id)}"><svg class="ico"><use href="#i-layout-pagina"/></svg>Layout</button>
+                            <button type="button" class="tpl-riga-kebab tpl-report-azioni" data-tpl-id="${testoHtml(t.id)}" title="Altre azioni"><svg class="ico"><use href="#i-more"/></svg></button>
                         </div>
                     `;
                 }).join('');

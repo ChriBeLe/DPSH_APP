@@ -413,6 +413,47 @@
                 } catch (e) { /* mai bloccare l'export per un errore qui: nel dubbio resta l'ultimo salvataggio valido */ }
             }
 
+            /** Il documento HTML del report, quello che va in stampa e che Word e PDF/A leggono (071i):
+             * lo stesso per tutti e tre, scritto in un posto solo. perFile: true quando non si stampa
+             * (Word, PDF/A, pacchetto ZIP): niente controllo di impaginazione dentro. */
+            function htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, perFile) {
+                // Lo stile del testo del template che sta producendo questo report: e' il
+                // dato che decide carattere, corpo e interlinea del PDF. Si legge dal template
+                // in uso sulla prova, non da una copia — cosi' cambiare stile e ristampare da'
+                // davvero il documento nuovo.
+                const tplStampa = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
+                const stileTestoStampa = stileTestoDelTemplate(tplStampa);
+
+                return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${titolo}</title>
+    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}${regolePagineTavole(pagesHtml)}</style>
+</head>
+<body>
+    ${getIconSpriteHtml()}
+    <!-- La barra dei comandi vive FUORI dalla pila dei fogli (prima era dentro .a4-page insieme
+         alle pagine): la pila deve contenere SOLO fogli veri, altrimenti la regola strutturale
+         .dpsh-sheet:last-child — quella che impedisce il foglio bianco finale — ragionerebbe su un
+         elemento che non è una pagina. È comunque .no-print, quindi non compare mai nel PDF. -->
+    <!-- Il bottone giallo "Stampa / Salva in PDF" è stato RIMOSSO insieme alla seconda scheda:
+         era il ripiego per quando la stampa automatica non partiva, ma viveva DENTRO il documento
+         e ora quel documento sta in un iframe fuori schermo, dove nessuno potrebbe mai vederlo né
+         toccarlo. Un comando irraggiungibile è peggio di un comando assente, perché lascia credere
+         che una via d'uscita esista. Se la stampa non parte, la via d'uscita vera è il bottone
+         "PDF da immagine" dentro l'anteprima 🖨️, che è nella pagina principale e si può cliccare. -->
+    <!-- Contenitore neutro: nessun padding/larghezza propri. I margini del template ora vivono
+         dentro ogni singolo foglio (.dpsh-sheet), non più in un wrapper condiviso + @page — è
+         proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
+         da cui nascevano le pagine bianche. -->
+    <div class="dpsh-sheet-stack">${marcaCartePrimaEAltre(pagesHtml)}</div>
+    ${perFile ? '' : getControlloImpaginazioneScriptTag(true)}
+</body>
+</html>`;
+            }
+
             /** Orchestratore della generazione vera e propria.
              *
              * La SECONDA SCHEDA È STATA RIMOSSA del tutto. Storia in breve: nasceva dal vincolo dei
@@ -523,41 +564,7 @@
                     });
                     saveState();
 
-                    // Lo stile del testo del template che sta producendo questo report: e' il
-                    // dato che decide carattere, corpo e interlinea del PDF. Si legge dal template
-                    // in uso sulla prova, non da una copia — cosi' cambiare stile e ristampare da'
-                    // davvero il documento nuovo.
-                    const tplStampa = state.reportTemplates && state.reportTemplates[state.reportTemplateId || 'classico'];
-                    const stileTestoStampa = stileTestoDelTemplate(tplStampa);
-
-                    const fullDoc = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>${titolo}</title>
-    <style>${getReportPrintStyleBlock(marginiStampa, stileTestoStampa)}${regoleCarteIntestate(pagesHtml)}${regolePagineTavole(pagesHtml)}</style>
-</head>
-<body>
-    ${getIconSpriteHtml()}
-    <!-- La barra dei comandi vive FUORI dalla pila dei fogli (prima era dentro .a4-page insieme
-         alle pagine): la pila deve contenere SOLO fogli veri, altrimenti la regola strutturale
-         .dpsh-sheet:last-child — quella che impedisce il foglio bianco finale — ragionerebbe su un
-         elemento che non è una pagina. È comunque .no-print, quindi non compare mai nel PDF. -->
-    <!-- Il bottone giallo "Stampa / Salva in PDF" è stato RIMOSSO insieme alla seconda scheda:
-         era il ripiego per quando la stampa automatica non partiva, ma viveva DENTRO il documento
-         e ora quel documento sta in un iframe fuori schermo, dove nessuno potrebbe mai vederlo né
-         toccarlo. Un comando irraggiungibile è peggio di un comando assente, perché lascia credere
-         che una via d'uscita esista. Se la stampa non parte, la via d'uscita vera è il bottone
-         "PDF da immagine" dentro l'anteprima 🖨️, che è nella pagina principale e si può cliccare. -->
-    <!-- Contenitore neutro: nessun padding/larghezza propri. I margini del template ora vivono
-         dentro ogni singolo foglio (.dpsh-sheet), non più in un wrapper condiviso + @page — è
-         proprio quella doppia sorgente di margini a rendere possibile lo sfasamento di pochi mm
-         da cui nascevano le pagine bianche. -->
-    <div class="dpsh-sheet-stack">${marcaCartePrimaEAltre(pagesHtml)}</div>
-    ${esportaPdfContext.formato === 'word' ? '' : getControlloImpaginazioneScriptTag(true)}
-</body>
-</html>`;
+                    const fullDoc = htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, esportaPdfContext.formato === 'word');
 
                     // STAMPA DA IFRAME NASCOSTO, NON PIÙ DALLA SECONDA SCHEDA (segnalato: nella
                     // versione APK "carica ma poi non si apre nessuna pagina secondaria").
@@ -635,6 +642,20 @@
                         if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = '100%';
                         if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = 'Completato';
                         if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `Si apre il pannello di stampa: scegli "Salva come PDF" · dimensione stimata ${pesoReale}`;
+                        // NEL PROGRAMMA DA PC (desktop/, Electron): niente pannello di stampa da attraversare,
+                        // il PDF si salva direttamente, impaginato dallo stesso Chromium. Il documento è
+                        // quello della cornice così com'è ora (impaginazione già fatta).
+                        if (window.dpshDesktop && typeof window.dpshDesktop.salvaPdf === 'function') {
+                            if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `Scegli dove salvare il PDF · dimensione stimata ${pesoReale}`;
+                            const docStampa = iframeStampa.contentDocument;
+                            const htmlStampa = '<!DOCTYPE html>' + docStampa.documentElement.outerHTML.replace(/window\.print\(\)/g, 'void 0');
+                            const nomePdf = titolo.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_') + '.pdf';
+                            window.dpshDesktop.salvaPdf(htmlStampa, nomePdf)
+                                .then(r => { if (r && r.salvato) mostraToast('PDF salvato: ' + r.nome); })
+                                .catch(e => appAlert('Il PDF non si è salvato: ' + (e && e.message ? e.message : e)));
+                            setTimeout(chiudiEsportazionePdfModal, 900);
+                            return;
+                        }
                         // print() sulla finestra della cornice, chiamato da qui: è la stessa cosa
                         // che faceva lo script dentro il documento, ma se lì dentro qualcosa va
                         // storto (come è successo) qui ce ne accorgiamo e c'è il ripiego.
@@ -750,8 +771,11 @@
             // Le altre righe sono sequenze di colpi («5 8 12», «5, 8, 12», «5,8,12»). La prima riga senza
             // numeri è un'intestazione e si salta; ogni altro valore che non è un intero ≥ 0 si segnala
             // invece di sparire in silenzio.
+            // «Rifiuto» segna il rifiuto: dopo un numero sulla stessa riga («50 Rifiuto») vale per
+            // quell'intervallo, da solo crea un intervallo a 0 colpi. Escluso da tabelle e calcoli.
             function parseBulkImportNumbers(text) {
-                const numeri = [], scartati = [];
+                const numeri = [], scartati = [], rifiuti = new Set();
+                const eRifiuto = c => /^rifiuto$/i.test(c.trim());
                 let primaRiga = true;
                 String(text || '').split(/\r?\n/).forEach((riga, i) => {
                     if (!riga.trim()) return;
@@ -759,28 +783,40 @@
                     if (/[\t;]/.test(riga) || /\d\.\d/.test(riga) || (/\d,\d/.test(riga) && /\s/.test(riga.trim()))) {
                         campi = riga.split(/[\t;]|\s+/).filter(c => c.trim());
                         if (campi.length === 1) campi = campi[0].split(',');
-                        campi = [campi.pop().trim()];
+                        const ultimo = campi.pop().trim();
+                        campi = eRifiuto(ultimo) && campi.length ? [campi.pop().trim(), ultimo] : [ultimo];
                     } else {
                         campi = riga.split(/[\s,]+/).filter(Boolean);
                     }
-                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c));
+                    const intestazione = primaRiga && campi.every(c => !/\d/.test(c) && !eRifiuto(c));
                     primaRiga = false;
                     if (intestazione) return;
-                    campi.forEach(c => /^\d+$/.test(c) ? numeri.push(parseInt(c, 10)) : scartati.push({ riga: i + 1, testo: c }));
+                    let numeriRiga = 0;
+                    campi.forEach(c => {
+                        if (eRifiuto(c)) {
+                            if (!numeriRiga) numeri.push(0);
+                            rifiuti.add(numeri.length - 1);
+                        } else if (/^\d+$/.test(c)) {
+                            numeri.push(parseInt(c, 10));
+                            numeriRiga++;
+                        } else {
+                            scartati.push({ riga: i + 1, testo: c });
+                        }
+                    });
                 });
-                return { numeri, scartati };
+                return { numeri, scartati, rifiuti };
             }
 
             function updateBulkImportCount() {
                 if (!txtBulkImportData || !lblBulkImportCount) return;
-                const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData.value);
+                const { numeri: numbers, scartati, rifiuti } = parseBulkImportNumbers(txtBulkImportData.value);
                 lblBulkImportCount.textContent = `${numbers.length} ${numbers.length === 1 ? 'intervallo' : 'intervalli'}`;
                 const stepM = (state.settings.stepCm || 20) / 100;
                 const startDepth = getBulkImportStartDepth();
                 if (lblBulkImportDepth) lblBulkImportDepth.textContent = `${numeroConVirgola(startDepth)} → ${numeroConVirgola(startDepth + numbers.length * stepM)} m`;
                 const anteprima = document.getElementById('anteprimaBulkImport');
                 anteprima.innerHTML = scartati.map(s => `<div class="anteprima-scartato">Riga ${s.riga}: «${escapeHtmlDidascalia(s.testo)}» non è un numero di colpi</div>`).join('')
-                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${n}</strong></div>`).join('');
+                    + numbers.map((n, i) => `<div><span>${numeroConVirgola(startDepth + i * stepM)}–${numeroConVirgola(startDepth + (i + 1) * stepM)} m</span><strong>${rifiuti.has(i) ? (n ? n + ' · ' : '') + 'Rifiuto' : n}</strong></div>`).join('');
                 btnConfirmBulkImport.disabled = !numbers.length || scartati.length > 0;
                 btnConfirmBulkImport.innerHTML = `<svg class="ico"><use href="#i-list"/></svg> ${scartati.length ? 'Correggi le righe segnate' : (numbers.length ? 'Aggiungi ' + lblBulkImportCount.textContent : 'Aggiungi')}`;
             }
@@ -805,22 +841,22 @@
             if (btnCloseBulkImportX) btnCloseBulkImportX.addEventListener('click', closeBulkImportModal);
 
             if (btnConfirmBulkImport) {
-                btnConfirmBulkImport.addEventListener('click', () => {
-                    const { numeri: numbers, scartati } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
+                btnConfirmBulkImport.addEventListener('click', async () => {
+                    const { numeri: numbers, scartati, rifiuti } = parseBulkImportNumbers(txtBulkImportData ? txtBulkImportData.value : '');
                     if (numbers.length === 0 || scartati.length) return; // il bottone è già spento
 
                     const selectedOpt = document.querySelector('input[name="optImportMode"]:checked');
                     const mode = selectedOpt ? selectedOpt.value : 'append';
 
                     if (mode === 'replace') {
-                        copiaPrimaDi('sostituire tutti gli intervalli');
+                        if (!await copiaOChiedi('sostituire tutti gli intervalli')) return;
                         state.logs = [];
                         state.currentDepthStart = 0;
                     }
 
                     const stepM = (state.settings.stepCm || 20) / 100;
 
-                    numbers.forEach(colpi => {
+                    numbers.forEach((colpi, i) => {
                         const start = state.currentDepthStart;
                         const end = start + stepM;
                         const asta = getRodForDepth(end);
@@ -831,7 +867,8 @@
                             colpi: colpi,
                             asta: asta,
                             note: '',
-                            lithology: ''
+                            lithology: '',
+                            ...(rifiuti.has(i) ? { note: 'Rifiuto', rifiutoSoloGrafico: true } : {})
                         }, 'inserimento-multiplo'));
 
                         state.currentDepthStart = end;
@@ -880,7 +917,7 @@
                 btnConfirmNewProject.addEventListener('click', () => {
                     const comune = txtProjComune ? txtProjComune.value.trim() : '';
                     if (!comune) {
-                        alert('Il campo "Comune" è obbligatorio per creare il progetto!');
+                        alert('Il campo "Comune" è obbligatorio per creare il progetto.');
                         txtProjComune.focus();
                         return;
                     }
@@ -888,7 +925,7 @@
                     saveState();
                     const projId = `PROJ_${comune.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
                     const survId = `SURV_1_${Date.now()}`;
-                    const projName = txtProjName && txtProjName.value.trim() ? txtProjName.value.trim() : `${comune} - Cantiere`;
+                    const projName = txtProjName && txtProjName.value.trim() ? txtProjName.value.trim() : `${comune} - Progetto`;
 
                     const newProj = {
                         id: projId,
@@ -951,20 +988,28 @@
             function openNewSurveyModal() {
                 let nextNr = '1';
                 if (state.currentProjectId && state.projects[state.currentProjectId]) {
-                    const count = proveFisiche(Object.values(state.projects[state.currentProjectId].surveys || {})).length; // le interpretazioni («3B») non sono prove in più
-                    nextNr = (count + 1).toString();
+                    // Massimo + 1, non conteggio + 1: dopo aver eliminato la 2 di 1, 2, 3 il conteggio
+                    // darebbe di nuovo 3, già in uso. Le interpretazioni («3B») portano il numero
+                    // dell'originale, quindi il massimo non ne è toccato.
+                    const numeri = Object.values(state.projects[state.currentProjectId].surveys || {})
+                        .map(s => parseInt(String((s && s.header && s.header.provaNr) || ''), 10))
+                        .filter(n => Number.isFinite(n));
+                    nextNr = (numeri.length ? Math.max(...numeri) + 1 : 1).toString();
                 }
 
                 txtNewCommittente.value = state.header.committente || '';
                 txtNewComune.value = state.header.comune || '';
-                txtNewLocalita.value = state.header.localita || '';
+                {
+                    const pr = state.projects && state.projects[state.currentProjectId];
+                    txtNewLocalita.value = (pr && pr.localita) || state.header.localita || '';
+                }
                 txtNewData.value = state.header.date || new Date().toISOString().split('T')[0];
                 txtNewProvaNr.value = nextNr;
                 numNewLunghAsta.value = state.instrument.lunghAsta || '1.00';
                 // Nuova prova con un tocco (Fase 4): N° successivo e dati ereditati, senza domande; si
                 // correggono dopo dalla scheda della prova.
                 confirmNewSurvey();
-                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openCantiereInfoModal() } });
+                mostraToast(`Prova ${nextNr} creata con i dati del progetto`, { azione: { etichetta: 'Scheda', fn: () => openSurveySettingsModal(state.currentSurveyId, 'dati') } });
             }
 
             function closeNewSurveyModal() {
@@ -977,7 +1022,7 @@
             }
 
             function confirmNewSurvey() {
-                const comune = txtNewComune.value.trim() || state.header.comune || 'Cantiere';
+                const comune = txtNewComune.value.trim() || state.header.comune || 'Progetto';
                 const provaNr = txtNewProvaNr.value.trim() || '1';
 
                 saveState();
@@ -1021,7 +1066,7 @@
                     const projId = `PROJ_${comune.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
                     state.projects[projId] = {
                         id: projId,
-                        name: `${comune} - Cantiere`,
+                        name: `${comune} - Progetto`,
                         comune: comune,
                         committente: newSurv.header.committente,
                         localita: newSurv.header.localita,
@@ -1060,7 +1105,7 @@
                         const logs = surv.logs || [];
                         const photos = surv.photos || [];
                         const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                        const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                        const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                         
                         if (h.lat !== null && h.lng !== null && !isNaN(h.lat) && !isNaN(h.lng)) {
                             const alt = h.alt !== null && !isNaN(h.alt) ? h.alt : 0;
@@ -1070,25 +1115,25 @@
                                 const p = photos[0];
                                 const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                                 if (pUrl) {
-                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                                    photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${testoHtml(pUrl)}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto del progetto: ${testoHtml(p.name || 'Foto 1')}</span></div>`;
                                 }
                             }
 
                             placemarksXml += `
     <Placemark>
-      <name>Prova N° ${h.provaNr || '1'} - ${proj.name || proj.comune}</name>
+      <name>Prova N° ${testoXml(h.provaNr || '1')} - ${testoXml(proj.name || proj.comune)}</name>
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
-          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
-          <p style="margin:4px 0;"><strong>Cantiere:</strong> ${proj.name || proj.comune}</p>
-          <p style="margin:4px 0;"><strong>Comune:</strong> ${proj.comune || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Committente:</strong> ${proj.committente || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Località:</strong> ${proj.localita || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Data:</strong> ${h.date || proj.date}</p>
+          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${testoHtml(h.provaNr || '1')}</h3>
+          <p style="margin:4px 0;"><strong>Progetto:</strong> ${testoHtml(proj.name || proj.comune)}</p>
+          <p style="margin:4px 0;"><strong>Comune:</strong> ${testoHtml(proj.comune || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Committente:</strong> ${testoHtml(proj.committente || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Località:</strong> ${testoHtml(proj.localita || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Data:</strong> ${testoHtml(h.date || proj.date)}</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;"/>
           <p style="margin:4px 0;"><strong>Profondità Raggiunta:</strong> ${maxD.toFixed(2)} m</p>
           <p style="margin:4px 0;"><strong>Totale Colpi N:</strong> ${totalColpi}</p>
-          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? h.faldaDa + ' m' : 'Non rilevata'}</p>
+          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? testoHtml(h.faldaDa) + ' m' : 'Non rilevata'}</p>
           <p style="margin:4px 0;"><strong>Coordinate GPS:</strong> ${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}</p>
           ${photoHtml}
         </div>
@@ -1108,8 +1153,8 @@
                     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${proj.name || proj.comune} - Prove DPSH</name>
-    <description>Rilevamento Georeferenziato Multi-Prova DPSH - ${proj.comune}</description>
+    <name>${testoXml(proj.name || proj.comune)} - Prove DPSH</name>
+    <description>Rilevamento Georeferenziato Multi-Prova DPSH - ${testoXml(proj.comune)}</description>
     ${placemarksXml}
   </Document>
 </kml>`;
@@ -1118,7 +1163,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DPSH_Progetto_${(proj.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}_MultiProva.kml`;
+                    a.download = `DPSH_Progetto_${(proj.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}_MultiProva.kml`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -1142,7 +1187,7 @@
                     }
 
                     const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                    const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                    const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                     const alt = h.alt !== null && !isNaN(h.alt) ? h.alt : 0;
 
                     let photoHtml = '';
@@ -1150,24 +1195,24 @@
                         const p = photos[0];
                         const pUrl = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : '');
                         if (pUrl) {
-                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${pUrl}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto Cantiere: ${p.name || 'Foto 1'}</span></div>`;
+                            photoHtml = `<div style="margin-top:10px; text-align:center;"><img src="${testoHtml(pUrl)}" style="max-width:280px; max-height:200px; border-radius:8px; border:1px solid #cbd5e1;" /><br/><span style="font-size:11px; color:#64748b;"><svg class="ico"><use href="#i-camera"/></svg> Foto del progetto: ${testoHtml(p.name || 'Foto 1')}</span></div>`;
                         }
                     }
 
                     const placemarkXml = `
     <Placemark>
-      <name>Prova N° ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
+      <name>Prova N° ${testoXml(h.provaNr || '1')} - ${testoXml(h.comune || 'Progetto')}</name>
       <description><![CDATA[
         <div style="font-family: sans-serif; padding: 10px; color: #1e293b;">
-          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${h.provaNr || '1'}</h3>
-          <p style="margin:4px 0;"><strong>Comune:</strong> ${h.comune || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Committente:</strong> ${h.committente || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Località:</strong> ${h.localita || 'N.D.'}</p>
-          <p style="margin:4px 0;"><strong>Data:</strong> ${h.date || ''}</p>
+          <h3 style="color: #d97706; margin-top:0;"><svg class="ico"><use href="#i-chart"/></svg> Prova Penetrometrica DPSH N° ${testoHtml(h.provaNr || '1')}</h3>
+          <p style="margin:4px 0;"><strong>Comune:</strong> ${testoHtml(h.comune || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Committente:</strong> ${testoHtml(h.committente || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Località:</strong> ${testoHtml(h.localita || 'N.D.')}</p>
+          <p style="margin:4px 0;"><strong>Data:</strong> ${testoHtml(h.date || '')}</p>
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 8px 0;"/>
           <p style="margin:4px 0;"><strong>Profondità Raggiunta:</strong> ${maxD.toFixed(2)} m</p>
           <p style="margin:4px 0;"><strong>Totale Colpi N:</strong> ${totalColpi}</p>
-          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? h.faldaDa + ' m' : 'Non rilevata'}</p>
+          <p style="margin:4px 0;"><strong>Quota Falda:</strong> ${h.faldaDa ? testoHtml(h.faldaDa) + ' m' : 'Non rilevata'}</p>
           <p style="margin:4px 0;"><strong>Coordinate GPS:</strong> ${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}</p>
           ${photoHtml}
         </div>
@@ -1180,8 +1225,8 @@
                     const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>DPSH Prova ${h.provaNr || '1'} - ${h.comune || 'Cantiere'}</name>
-    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${h.comune || 'Cantiere'}</description>
+    <name>DPSH Prova ${testoXml(h.provaNr || '1')} - ${testoXml(h.comune || 'Progetto')}</name>
+    <description>Rilevamento Georeferenziato Prova Singola DPSH - ${testoXml(h.comune || 'Progetto')}</description>
     ${placemarkXml}
   </Document>
 </kml>`;
@@ -1190,7 +1235,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `DPSH_Prova_${h.provaNr || '1'}_${(h.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
+                    a.download = `DPSH_Prova_${String(h.provaNr || '1').replace(/[^a-zA-Z0-9]/g, '_')}_${(h.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}.kml`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -1201,25 +1246,54 @@
                 }
             }
 
+            /** Nome di foglio Excel valido e unico. Excel rifiuta \ / ? * [ ] :, i nomi vuoti, quelli
+             * con apostrofo all'inizio o alla fine, oltre 31 caratteri, e due fogli con lo stesso
+             * nome senza distinguere maiuscole: un solo nome così e l'export intero falliva. Un nome
+             * già valido e libero resta identico; altrimenti i caratteri vietati diventano «-» e un
+             * doppione prende « (2)», « (3)»… tagliando prima il nome per restare entro 31.
+             * `usati` è l'elenco (array) dei nomi già presi in questa cartella: il nome scelto vi
+             * viene aggiunto. */
+            function nomeFoglioExcelValido(nome, usati) {
+                let base = String(nome === null || nome === undefined ? '' : nome)
+                    .replace(/[\\/?*\[\]:]/g, '-')
+                    .replace(/[\u0000-\u001F]/g, '')
+                    .replace(/^'+|'+$/g, '')
+                    .trim();
+                if (!base) base = 'Foglio';
+                const presi = new Set((usati || []).map(u => String(u).toLowerCase()));
+                let candidato = base.slice(0, 31).replace(/^'+|'+$/g, '').trim() || 'Foglio';
+                for (let n = 2; presi.has(candidato.toLowerCase()); n++) {
+                    const suffisso = ' (' + n + ')';
+                    candidato = (base.slice(0, 31 - suffisso.length).replace(/'+$/g, '').trimEnd() || 'Foglio') + suffisso;
+                }
+                if (usati) usati.push(candidato);
+                return candidato;
+            }
+
             // MOTORE ESPORTAZIONE EXCEL MULTI-FOGLIO (.xlsx) VIA SHEETJS CON FOTO AD ALTA RISOLUZIONE INTEGRALI (0% COMPRESSIONE)
-            async function exportProjectExcel(projId, soloProve) {
+            // opz.perPacchetto(nomeFile, byte): invece di scaricare, consegna il file al pacchetto ZIP
+            // di «Esporta cantiere» (044d), e gli errori risalgono invece di finire in un avviso.
+            async function exportProjectExcel(projId, soloProve, opz) {
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {
-                        alert('Progetto non trovato!');
+                        if (opz && opz.perPacchetto) throw new Error('Progetto non trovato.');
+                        alert('Progetto non trovato.');
                         return;
                     }
                     if (typeof XLSX === 'undefined') {
+                        if (opz && opz.perPacchetto) throw new Error('La libreria Excel non è caricata.');
                         alert('La libreria XLSX non è caricata. Assicurati che il dispositivo sia connesso o la pagina sia completamente caricata.');
                         return;
                     }
 
                     const wb = XLSX.utils.book_new();
+                    const nomiFogli = [];
 
                     // 1. FOGLIO "Sintesi Progetto"
                     const summaryData = [
-                        ["PROGETTO DPSH - SINTESI CANTIERE"],
-                        ["Cantiere / Nome:", proj.name || ''],
+                        ["PROGETTO DPSH - SINTESI PROGETTO"],
+                        ["Nome del progetto:", proj.name || ''],
                         ["Comune:", proj.comune || ''],
                         ["Committente:", proj.committente || ''],
                         ["Località:", proj.localita || ''],
@@ -1234,7 +1308,7 @@
                         const h = surv.header || {};
                         const logs = surv.logs || [];
                         const maxD = logs.length > 0 ? Math.max(...logs.map(l => l.end)) : 0;
-                        const totalColpi = logs.reduce((sum, l) => sum + (l.colpi || 0), 0);
+                        const totalColpi = logs.reduce((sum, l) => sum + (intervalloSoloGrafico(l) ? 0 : (l.colpi || 0)), 0);
                         const photoCount = (surv.photos || []).length;
                         summaryData.push([
                             `Prova ${h.provaNr || '1'}`,
@@ -1250,7 +1324,7 @@
                     });
 
                     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-                    XLSX.utils.book_append_sheet(wb, wsSummary, "Sintesi Progetto");
+                    XLSX.utils.book_append_sheet(wb, wsSummary, nomeFoglioExcelValido("Sintesi Progetto", nomiFogli));
 
                     // 2. FOGLI INDIVIDUALI "Prova 1", "Prova 2", ... CON TABELLA ED ALLEGATI FOTO HD (100% UNCOMPRESSED)
                     for (let surv of surveys) {
@@ -1259,30 +1333,24 @@
                         const logs = surv.logs || [];
                         const photos = surv.photos || [];
                         
+                        const parStrum = parametriStrumento(inst, surv.settings?.stepCm);
                         const sheetData = [
                             [`PROVA PENETROMETRICA DPSH N° ${h.provaNr || '1'}`],
                             ["Comune:", proj.comune || '', "Committente:", proj.committente || ''],
                             ["Località:", proj.localita || '', "Data:", h.date || proj.date],
-                            ["Massa Battente (kg):", inst.pesoMassa || 63.5, "Altezza Caduta (m):", inst.volata || 0.75],
-                            ["Passo Misura (cm):", (surv.settings?.stepCm || 20), "Area Punta (cm²):", inst.areaPunta || 20],
+                            ["Massa Battente (kg):", parStrum.M, "Altezza Caduta (m):", parStrum.volataM],
+                            ["Passo Misura (cm):", (surv.settings?.stepCm || 20), "Area Punta (cm²):", parStrum.A],
                             ["Coordinate GPS:", (h.lat && h.lng) ? `${h.lat.toFixed(6)}, ${h.lng.toFixed(6)}` : 'Non rilevate', "Quota Falda (m):", h.faldaDa || 'Assente'],
                             [],
                             ["Intervallo Da (m)", "Intervallo A (m)", "Asta N°", "Colpi N", "Rpd (kg/cm²)", "Litologia", "Note"]
                         ];
 
-                        logs.forEach((log) => {
+                        logs.filter(l => !intervalloSoloGrafico(l)).forEach((log) => {
                             const N = log.colpi || 0;
-                            const M = inst.pesoMassa || 63.5;
-                            const H = (inst.volata || 0.75) * 100;
-                            const A = inst.areaPunta || 20;
                             const passoCm = (surv.settings?.stepCm || 20);
                             const rodNr = log.asta || Math.floor(log.start / (inst.lunghAsta || 1.0)) + 1;
-                            const Mprime = (inst.pesoSistema || 8.0) + (rodNr * (inst.pesoAsta || 6.3));
-                            
-                            let rpd = 0;
-                            if (N > 0) {
-                                rpd = ((M * M) * H * N) / (A * passoCm * (M + Mprime));
-                            }
+                            // Formula unica in 015 (rpdDiLog): niente copie locali.
+                            const rpd = rpdDiLog(log, inst, passoCm, rodNr);
 
                             const projStrati = proj.strati || surv.strati;
                             const litObj = (projStrati && log.lithology) ? (projStrati.find(s => s.id === log.lithology) || { name: '' }) : { name: '' };
@@ -1316,7 +1384,7 @@
 
                                 sheetData.push([
                                     `Foto ${pIdx + 1}`,
-                                    p.name || `Foto Cantiere ${pIdx + 1}`,
+                                    p.name || `Foto del progetto ${pIdx + 1}`,
                                     p.timestamp || 'N.D.',
                                     gpsText,
                                     fullDataUrl ? 'Foto HD Integrale Presente' : 'Assente',
@@ -1326,14 +1394,16 @@
                         }
 
                         const wsSurv = XLSX.utils.aoa_to_sheet(sheetData);
-                        const sheetName = `Prova ${h.provaNr || '1'}`.substring(0, 31);
+                        const sheetName = nomeFoglioExcelValido(`Prova ${h.provaNr || '1'}`, nomiFogli);
                         XLSX.utils.book_append_sheet(wb, wsSurv, sheetName);
                     }
 
-                    const fileName = `DPSH_Progetto_${(proj.comune || 'Cantiere').replace(/[^a-zA-Z0-9]/g, '_')}_MultiFoglio.xlsx`;
+                    const fileName = `DPSH_Progetto_${(proj.comune || 'Progetto').replace(/[^a-zA-Z0-9]/g, '_')}_MultiFoglio.xlsx`;
+                    if (opz && opz.perPacchetto) { opz.perPacchetto(fileName, new Uint8Array(XLSX.write(wb, { bookType: 'xlsx', type: 'array' }))); return; }
                     XLSX.writeFile(wb, fileName);
                 } catch(e) {
                     console.error('exportProjectExcel error:', e);
+                    if (opz && opz.perPacchetto) throw e;
                     alert('Errore durante l\'esportazione Excel del progetto: ' + e.message);
                 }
             }

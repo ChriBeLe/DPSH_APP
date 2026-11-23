@@ -24,8 +24,8 @@
                 if (versione === null) {
                     return { ok: false, motivo: 'illeggibile', dettaglio: 'versione dei dati non valida: ' + JSON.stringify(dati.versioneSchema) };
                 }
-                if (versione > VERSIONE_SCHEMA_DATI) {
-                    return { ok: false, motivo: 'piu-nuovo', versione, dettaglio: `formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_DATI}` };
+                if (versione > VERSIONE_SCHEMA_LETTA) {
+                    return { ok: false, motivo: 'piu-nuovo', versione, dettaglio: `formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_LETTA}` };
                 }
                 return { ok: true, dati, versione };
             }
@@ -101,7 +101,7 @@
                     + 'Non li ho toccati: finché non scegli tu, l\'app NON salva niente sopra, quindi quello che fai adesso non viene conservato.\n\n'
                     + alSicuro + '\n\n'
                     + '· «Scarica i dati» salva il testo così com\'è in un file, da conservare o da far recuperare.\n'
-                    + '· «Riparti da vuoto» riapre l\'archivio vuoto: poi reimporti i tuoi backup, o riporti i progetti dalle copie automatiche (menu → Cronologia e ripristino).\n\n'
+                    + '· «Riparti da vuoto» riapre l\'archivio vuoto: poi reimporti i tuoi backup, o riporti i progetti dalle copie automatiche (menu → Copie automatiche e ripristino).\n\n'
                     + 'Dettaglio tecnico: ' + c.dettaglio;
             }
 
@@ -142,7 +142,7 @@
                 }
                 const ok = await appConfirmDelete('Riparto con l\'archivio vuoto e da ora salvo di nuovo.\n\n'
                     + 'Il testo che non si leggeva resta ' + (c.quarantena ? 'nella memoria delle copie automatiche' : 'nel file che hai scaricato')
-                    + '. I progetti si riportano reimportando i backup o dalla Cronologia delle copie automatiche.');
+                    + '. I progetti si riportano reimportando i backup o dalle copie automatiche.');
                 if (!ok) return mostraAvvisoDatiNonCaricati();
                 c.bloccato = false;
                 c.esito = 'vuoto';

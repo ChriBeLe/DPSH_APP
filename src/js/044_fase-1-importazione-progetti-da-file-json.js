@@ -24,7 +24,7 @@
 
                 // Formato legacy: singola prova "nuda", senza alcun wrapper progetto/surveys.
                 if (parsed.header && parsed.logs) {
-                    const comune = parsed.header.comune || 'Cantiere Importato';
+                    const comune = parsed.header.comune || 'Progetto importato';
                     const projId = `PROJ_IMPORT_${Date.now()}`;
                     const survId = `SURV_IMPORT_${Date.now()}`;
                     return {
@@ -55,7 +55,91 @@
                     };
                 }
 
-                throw new Error('Formato non riconosciuto. Seleziona un file JSON esportato da questa app (Progetto o Backup Completo).');
+                throw new Error('Formato non riconosciuto. Seleziona un file JSON esportato da questa app (un progetto o la copia di tutti i progetti).');
+            }
+
+            /** Controllo di forma sui dati che arrivano da un file, PRIMA di qualunque uso: gli id di
+             * progetto, prova e foto, e i colori degli strati finiscono in chiavi di state.projects e in
+             * attributi HTML/style (`data-id="…"`, `style="…${color}"`), quindi un valore come
+             * `x"><img src=x onerror=…>` o `__proto__` non deve entrare. Modifica `progetti` sul posto.
+             * - id di progetto o di prova non valido: ne nasce uno nuovo (idSicuroOppureNuovo) e si
+             *   aggiornano i riferimenti dentro lo stesso file (id del progetto, id della prova,
+             *   header.interpretazioneDi, usi[] delle librerie);
+             * - foto con id non valido: scartata (i suoi riferimenti non sono tracciabili in modo sicuro);
+             * - dataUrl di una foto che non è un'immagine base64: tolto (la foto resta senza immagine);
+             * - colore non valido: colore di ripiego neutro (coloreSicuro).
+             * Ritorna { fotoScartate, immaginiScartate, idRinnovati }, per dirlo a chi importa. */
+            function rendiSicuriDatiImportati(progetti, librerieFile) {
+                const esito = { fotoScartate: 0, immaginiScartate: 0, idRinnovati: 0 };
+                const usi = librerieFile && librerieFile.usi && typeof librerieFile.usi === 'object' ? librerieFile.usi : null;
+                const coloraStrati = (lista) => {
+                    if (!Array.isArray(lista)) return;
+                    lista.forEach(st => { if (st && typeof st === 'object' && st.color !== undefined) st.color = coloreSicuro(st.color); });
+                };
+                Object.keys(progetti).forEach(chiaveFile => {
+                    const proj = progetti[chiaveFile];
+                    if (!proj || typeof proj !== 'object') { delete progetti[chiaveFile]; return; }
+                    let chiave = chiaveFile;
+                    if (!idSicuro(chiaveFile)) {
+                        // Non c'è un id da cui partire: uno nuovo, unico anche fra più progetti dello stesso file.
+                        chiave = idSicuroOppureNuovo(null, 'PROJ_IMPORT');
+                        delete progetti[chiaveFile];
+                        progetti[chiave] = proj;
+                        if (usi && Object.prototype.hasOwnProperty.call(usi, chiaveFile)) { usi[chiave] = usi[chiaveFile]; delete usi[chiaveFile]; }
+                        esito.idRinnovati++;
+                    }
+                    if (proj.id !== undefined && !idSicuro(proj.id)) { proj.id = chiave; esito.idRinnovati++; }
+                    const prove = proj.surveys && typeof proj.surveys === 'object' ? proj.surveys : {};
+                    const mappaProve = {};
+                    Object.keys(prove).forEach(sid => {
+                        const surv = prove[sid];
+                        if (!surv || typeof surv !== 'object') return;
+                        const nuovo = idSicuro(sid) ? sid : idSicuroOppureNuovo(null, 'SURV_IMPORT');
+                        if (nuovo !== sid) { mappaProve[sid] = nuovo; delete prove[sid]; prove[nuovo] = surv; esito.idRinnovati++; }
+                        // L'id scritto nella prova segue la chiave se non è valido (o se la chiave è cambiata).
+                        if (surv.id !== undefined && (!idSicuro(surv.id) || surv.id === sid)) surv.id = nuovo;
+                    });
+                    Object.values(prove).forEach(surv => {
+                        if (!surv || typeof surv !== 'object') return;
+                        if (surv.header && typeof surv.header === 'object' && typeof surv.header.interpretazioneDi === 'string' && mappaProve[surv.header.interpretazioneDi]) surv.header.interpretazioneDi = mappaProve[surv.header.interpretazioneDi];
+                        coloraStrati(surv.strati);
+                        if (Array.isArray(surv.photos)) {
+                            surv.photos = surv.photos.filter(ph => {
+                                if (ph && typeof ph === 'object' && ph.id !== undefined && !idSicuro(ph.id)) { esito.fotoScartate++; return false; }
+                                return true;
+                            });
+                            surv.photos.forEach(ph => {
+                                if (ph && typeof ph.dataUrl === 'string' && ph.dataUrl.indexOf('data:') === 0 && !dataUrlImmagineSicuro(ph.dataUrl)) { delete ph.dataUrl; esito.immaginiScartate++; }
+                            });
+                        }
+                    });
+                    if (usi && usi[chiave] && usi[chiave].prove && typeof usi[chiave].prove === 'object') {
+                        Object.keys(mappaProve).forEach(v => { if (v in usi[chiave].prove) { usi[chiave].prove[mappaProve[v]] = usi[chiave].prove[v]; delete usi[chiave].prove[v]; } });
+                    }
+                    coloraStrati(proj.strati);
+                });
+                // L'archivio litologico che viaggia nel file: colori ammessi, e un id d'archivio non valido
+                // diventa un id nuovo anche negli strati che puntano alla voce (sourceArchiveId).
+                const arch = librerieFile && librerieFile.lithologyArchive;
+                if (arch && typeof arch === 'object') {
+                    const mappaArch = {};
+                    Object.keys(arch).forEach(aid => {
+                        if (!arch[aid] || typeof arch[aid] !== 'object') { delete arch[aid]; return; }
+                        rendiSicuraVoceArchivio(arch[aid]);
+                        if (!idSicuro(aid)) {
+                            const nuovo = idSicuroOppureNuovo(null, 'arch');
+                            mappaArch[aid] = nuovo;
+                            arch[nuovo] = arch[aid]; delete arch[aid];
+                            arch[nuovo].id = nuovo;
+                            esito.idRinnovati++;
+                        } else if (arch[aid].id !== undefined && !idSicuro(arch[aid].id)) arch[aid].id = aid;
+                    });
+                    if (Object.keys(mappaArch).length) Object.values(progetti).forEach(proj => {
+                        const liste = [proj && proj.strati].concat(Object.values((proj && proj.surveys) || {}).map(sv => sv && sv.strati));
+                        liste.forEach(l => (Array.isArray(l) ? l : []).forEach(st => { if (st && typeof st.sourceArchiveId === 'string' && mappaArch[st.sourceArchiveId]) st.sourceArchiveId = mappaArch[st.sourceArchiveId]; }));
+                    });
+                }
+                return esito;
             }
 
             // Unisce i progetti importati nell'archivio corrente. In caso di ID già esistente (stesso
@@ -70,7 +154,9 @@
                 // Le librerie del file (template, archivio litologico: Fase 2) si tolgono dal contenuto
                 // prima di riconoscere il formato: un progetto esportato da solo le porta in `librerie`.
                 const librerieFile = estraiLibrerieDalFile(parsed);
-                const projectsToImport = migraProgettiImportati(normalizeImportedJsonToProjects(parsed), versioneFile);
+                const progettiDelFile = normalizeImportedJsonToProjects(parsed);
+                const scartati = rendiSicuriDatiImportati(progettiDelFile, librerieFile);
+                const projectsToImport = migraProgettiImportati(progettiDelFile, versioneFile);
                 // Controllo di integrità su ciò che arriva (004c): correzioni banali registrate,
                 // anomalie restituite a chi importa perché le dica all'utente. Non blocca l'import.
                 const integrita = verificaIntegrita({ projects: projectsToImport }, { correggi: true });
@@ -120,7 +206,7 @@
 
                 saveState();
                 controllaFotoImportate(promesseFoto);
-                return { importedCount, renamedCount, restoredPhotos, fotoAssenti, anomalie: integrita.anomalie, librerie };
+                return { importedCount, renamedCount, restoredPhotos, fotoAssenti, anomalie: integrita.anomalie, librerie, scartati };
             }
 
             /** Rimanda in IndexedDB (e nella cache RAM) le foto e le immagini delle note che un
@@ -130,20 +216,37 @@
              * segnapostoFoto). Scriverlo in IndexedDB avrebbe sostituito con un testo senza senso la
              * foto vera con lo stesso id, se c'era sul telefono. Quel segnaposto si toglie e si conta:
              * chi importa deve sapere che nel file quelle foto non ci sono.
-             * Ritorna { ripristinate, assenti }. */
+             *
+             * Niente di ciò che c'è già su questo dispositivo viene sovrascritto (stessa regola del
+             * pacchetto di progetto, 044b): con lo stesso id e gli stessi byte non si scrive nulla; con lo
+             * stesso id e byte diversi (per esempio una foto ritagliata dopo il backup) quella di qui resta
+             * e quella in arrivo prende un id nuovo, aggiornato nel progetto importato. Il controllo legge
+             * IndexedDB, quindi è asincrono: il progetto entra subito con gli id del file e gli id che
+             * cambiano si correggono a scrittura finita (controllaFotoImportate salva di nuovo).
+             * Ritorna { ripristinate, assenti, conclusione }: `ripristinate` sono le immagini da
+             * scrivere, `conclusione` è una promessa con { ripristinate, fallite } a cose fatte, dove
+             * contano solo quelle riuscite davvero. */
             function salvaImmaginiImportate(incoming, promesseFoto) {
-                let ripristinate = 0, assenti = 0;
+                let daScrivere = 0, assenti = 0;
+                const proprie = [];
+                const lancia = (archivio, id, dataUrl, nome, cambiaId) => {
+                    // Una alla volta, in coda: due immagini con lo stesso id nello stesso file non devono
+                    // controllare «c'è già?» nello stesso istante e scriversi addosso.
+                    const coda = promesseFoto._coda || Promise.resolve();
+                    const p = coda.then(() => scriviImmagineImportataSenzaSovrascrivere(archivio, id, dataUrl, nome, (nuovoId) => {
+                        cambiaId(nuovoId);
+                        promesseFoto.rinominate = (promesseFoto.rinominate || 0) + 1;
+                    }));
+                    promesseFoto._coda = p.catch(() => {});
+                    promesseFoto.push(p);
+                    proprie.push(p);
+                    daScrivere++;
+                };
                 Object.values((incoming && incoming.surveys) || {}).forEach(surv => {
                     (surv && surv.photos || []).forEach(p => {
                         if (!p || !p.id) return;
                         if (typeof p.dataUrl === 'string' && p.dataUrl.indexOf('data:') === 0) {
-                            photoMemoryCache[p.id] = p.dataUrl;
-                            promesseFoto.push(
-                                salvaFotoConGaranzia(p.id, p.dataUrl)
-                                    .then(ok => ok ? null : { id: p.id, dataUrl: p.dataUrl, nome: p.name || `Foto_${p.id}` })
-                                    .catch(() => ({ id: p.id, dataUrl: p.dataUrl, nome: p.name || `Foto_${p.id}` }))
-                            );
-                            ripristinate++;
+                            lancia('photos', p.id, p.dataUrl, p.name || `Foto_${p.id}`, (nuovoId) => { p.id = nuovoId; });
                         } else if (p.dataUrl !== undefined) {
                             delete p.dataUrl;
                             assenti++;
@@ -155,24 +258,76 @@
                 // le contiene già come dataUrl (rehydrateProjectPhotosForExport le reincorpora
                 // in esportazione), quindi basta rimandarle su IndexedDB con lo stesso id.
                 // Anche la nota com'era prima del nuovo motore (htmlPrimaDelMotore): fino alla Fase 1
-                // le sue immagini non viaggiavano.
+                // le sue immagini non viaggiavano. La stessa immagine citata da entrambe le copie si
+                // scrive una volta sola.
+                const notaImmagini = new Map();
                 ['html', 'htmlPrimaDelMotore'].forEach(campo => {
                     const html = incoming && incoming.notes && incoming.notes[campo];
-                    if (!html || html.indexOf('data-note-img-id') === -1) return;
+                    if (typeof html !== 'string' || html.indexOf('data-note-img-id') === -1) return;
                     try {
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         doc.querySelectorAll('img[data-note-img-id]').forEach(img => {
                             const id = img.getAttribute('data-note-img-id');
                             const src = img.getAttribute('src');
-                            if (id && src && src.indexOf('data:') === 0) {
-                                try { saveNoteImageToIDB(id, src); } catch (idbErr) { ignoraErrore('salvaImmaginiImportate', idbErr); }
-                                noteImageMemoryCache[id] = src;
-                                ripristinate++;
-                            }
+                            if (id && src && src.indexOf('data:') === 0 && !notaImmagini.has(id)) notaImmagini.set(id, src);
                         });
                     } catch (e) { ignoraErrore('salvaImmaginiImportate', e); }
                 });
-                return { ripristinate, assenti };
+                notaImmagini.forEach((src, id) => {
+                    lancia('noteImages', id, src, `Immagine_nota_${id}`, (nuovoId) => {
+                        ['html', 'htmlPrimaDelMotore'].forEach(campo => {
+                            const h = incoming.notes[campo];
+                            if (typeof h === 'string') incoming.notes[campo] = h.split(`data-note-img-id="${id}"`).join(`data-note-img-id="${nuovoId}"`);
+                        });
+                    });
+                });
+                const conclusione = Promise.all(proprie).then(esiti => {
+                    const fallite = esiti.filter(Boolean);
+                    return { ripristinate: esiti.length - fallite.length, fallite };
+                });
+                return { ripristinate: daScrivere, assenti, conclusione };
+            }
+
+            /** Scrive UNA immagine importata (archivio 'photos' o 'noteImages') senza toccare quella che
+             * ha già lo stesso id su questo dispositivo con byte diversi: in quel caso scrive la nuova
+             * sotto un id nuovo e chiama cambiaId(nuovoId) perché il progetto importato punti lì.
+             * Ritorna null se l'immagine è al sicuro, altrimenti { id, dataUrl, nome } (il formato che
+             * avvisaFotoNonSalvate sa mostrare). Non lancia mai. */
+            async function scriviImmagineImportataSenzaSovrascrivere(archivio, id, dataUrl, nome, cambiaId) {
+                const fallita = (idQui) => ({ id: idQui, dataUrl, nome });
+                const eFoto = archivio === 'photos';
+                try {
+                    const valida = (v) => typeof v === 'string' && v.indexOf('data:') === 0 && v.indexOf(',') > 0;
+                    const inMemoria = (eFoto ? photoMemoryCache : noteImageMemoryCache)[id];
+                    const suDisco = eFoto ? await getPhotoFromIDB(id) : await getNoteImageFromIDB(id);
+                    const uguale = async (altra) => {
+                        if (altra === dataUrl) return true;
+                        try { return await sha256Async(byteDaDataUrl(altra)) === await sha256Async(byteDaDataUrl(dataUrl)); } catch (e) { return false; }
+                    };
+                    let diversa = false;
+                    for (const altra of [suDisco, inMemoria]) {
+                        if (valida(altra) && !(await uguale(altra))) { diversa = true; break; }
+                    }
+                    if (!diversa && valida(suDisco)) return null; // già qui, stessi byte: niente da scrivere
+                    let idQui = id;
+                    if (diversa) {
+                        // Stesso schema del pacchetto (044b): la foto di qui resta, quella in arrivo diventa «_r…».
+                        idQui = `${id}_r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+                    }
+                    let ok;
+                    if (eFoto) {
+                        ok = await salvaFotoConGaranzia(idQui, dataUrl);
+                    } else {
+                        ok = (await saveNoteImageToIDB(idQui, dataUrl)) === true && (await getNoteImageFromIDB(idQui)) === dataUrl;
+                        if (ok) noteImageMemoryCache[idQui] = dataUrl;
+                    }
+                    if (!ok) return fallita(idQui);
+                    if (idQui !== id) cambiaId(idQui);
+                    return null;
+                } catch (e) {
+                    ignoraErrore('scriviImmagineImportataSenzaSovrascrivere', e);
+                    return fallita(id);
+                }
             }
 
             /** Controllo dell'esito di TUTTE le scritture delle foto importate, senza bloccare il
@@ -182,6 +337,9 @@
             function controllaFotoImportate(promesseFoto) {
                 if (promesseFoto.length === 0) return;
                 Promise.all(promesseFoto).then(esiti => {
+                    // Foto con lo stesso id ma byte diversi da quelle di qui: nel progetto importato l'id è
+                    // cambiato a scrittura finita, quindi si salva di nuovo.
+                    if (promesseFoto.rinominate) { saveState(); if (typeof renderHomeProjects === 'function') renderHomeProjects(); }
                     const fallite = esiti.filter(Boolean);
                     if (fallite.length > 0) avvisaFotoNonSalvate(fallite);
                 }).catch(e => console.warn('Controllo foto importate fallito:', e));
@@ -212,7 +370,7 @@
                         const voci = await readZipStoreOnly(file);
                         if (vociSonoUnPacchetto(voci)) { await apriRiceviProgetto(file, voci); return; }
                     }
-                    const { importedCount, renamedCount, fotoAssenti, anomalie, librerie } = isZip
+                    const { importedCount, renamedCount, fotoAssenti, anomalie, librerie, scartati } = isZip
                         ? await importProjectsFromZip(file)
                         : importProjectsFromJSON(JSON.parse(await file.text()));
 
@@ -221,6 +379,9 @@
                     let extra = '';
                     if (renamedCount > 0) {
                         extra += `${renamedCount} progett${renamedCount === 1 ? 'o aveva' : 'i avevano'} lo stesso ID di uno già in archivio: ${renamedCount === 1 ? 'è stato salvato' : 'sono stati salvati'} come copia separata, con "(Importato)" nel nome.`;
+                    }
+                    if (scartati && (scartati.fotoScartate || scartati.immaginiScartate)) {
+                        extra += `\n\nPer sicurezza ${scartati.fotoScartate ? scartati.fotoScartate + ' foto con un id non valido non ' + (scartati.fotoScartate === 1 ? 'è stata importata' : 'sono state importate') : ''}${scartati.fotoScartate && scartati.immaginiScartate ? '; ' : ''}${scartati.immaginiScartate ? scartati.immaginiScartate + ' immagini che non erano nel formato atteso sono state tolte' : ''}.`;
                     }
                     extra += testoFotoAssentiNelFile(fotoAssenti) + testoLibrerieAccolte(librerie) + testoAnomalieImportate(anomalie);
                     toastODialogo(`Importazione completata: ${importedCount} progett${importedCount === 1 ? 'o' : 'i'} importat${importedCount === 1 ? 'o' : 'i'}`, extra);
@@ -260,21 +421,30 @@
             // due bottoni distinti). Riguarda sempre un intero progetto: se la modale è aperta
             // dalla singola prova, risolviamo il progetto a cui appartiene (state.currentProjectId)
             // invece di bloccare l'utente con un errore — è comunque quello che si aspetta.
+            // Il perimetro scelto nella Consegna vale anche per PDF e Word (Fase C): «Questa prova»
+            // porta la sola prova aperta, «Tutto il progetto» le prove lasciate accese (null = tutte).
+            function proveDelPerimetroConsegna() {
+                if (exportModalContext.type !== 'project') return exportModalContext.id ? new Set([exportModalContext.id]) : null;
+                return exportModalContext.soloProve || null;
+            }
+
             if (btnOptExportCompletePdf) {
                 btnOptExportCompletePdf.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
-                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId });
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, soloProve: proveDelPerimetroConsegna() });
                 });
             }
 
             if (btnOptExportCompleteWord) {
                 btnOptExportCompleteWord.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
                     closeExportModal();
                     const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
                     // Il Word passa dalla stessa finestra del PDF: stesse prove, stesso indice, stessa
                     // numerazione — è lo stesso documento, salvato in un altro formato.
-                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'word' });
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'word', soloProve: proveDelPerimetroConsegna() });
                 });
             }
 
@@ -307,14 +477,6 @@
                 });
             }
 
-            if (btnOptExportJSON) {
-                btnOptExportJSON.addEventListener('click', async () => {
-                    closeExportModal();
-                    if (exportModalContext.type === 'project') {
-                        await exportProjectJSON(exportModalContext.id);
-                    } else {
-                        await exportSingleJSON();
-                    }
-                });
-            }
+            // (Fase C) Il tasto «Backup Strutturato (JSON)» non c'è più nella Consegna: il JSON si
+            // sceglie da «Altri formati» dentro la finestra «Porta sul PC».
 

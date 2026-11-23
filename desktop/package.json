@@ -1,0 +1,11 @@
+{
+  "name": "dpsh-desktop",
+  "productName": "DPSH",
+  "version": "2026.10.23",
+  "private": true,
+  "description": "DPSH come programma da PC: la stessa app di DPSH.html in una finestra sua (Electron)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  }
+}

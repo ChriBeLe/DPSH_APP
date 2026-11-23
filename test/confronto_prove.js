@@ -10,7 +10,7 @@ function corpo(nome){
   if(i<0) throw new Error('non trovata: '+nome);
   for(let k=i+1;k<righe.length;k++) if(righe[k]==='            }') return righe.slice(i,k+1).join('\n');
 }
-const NOMI=['testoSicuro','rpdDiLog','colonnaStratigrafica','serieConfrontoProva','massimoTondo','datiConfronto','disegnoConfronto','svgDaDisegno','testoWinAnsi','larghezzaTestoPdf','coloreRgbPdf','pdfDaDisegno'];
+const NOMI=['testoSicuro','parametriStrumento','rpdDiLog','colonnaStratigrafica','serieConfrontoProva','massimoTondo','datiConfronto','disegnoConfronto','svgDaDisegno','testoWinAnsi','larghezzaTestoPdf','coloreRgbPdf','pdfDaDisegno'];
 const COSTANTI=righe.filter(r=>/^            const (COLORI_CONFRONTO|LARGHEZZE_HELVETICA|LARGHEZZE_HELVETICA_BOLD|WINANSI_EXTRA|TEMA_CONFRONTO_FILE) =/.test(r));
 const api=new Function(COSTANTI.join('\n')+'\n'+NOMI.map(corpo).join('\n\n')+'\nreturn {'+NOMI.join(',')+',TEMA_CONFRONTO_FILE};')();
 let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;console.log('  KO  '+n);} };

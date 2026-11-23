@@ -16,12 +16,12 @@
         </div>
         <!-- LA SCHEDA DELLA PROVA (Fase 4): unisce «Intestazione Cantiere» e «Impostazioni Prova». I campi
              sono gli stessi di prima (stessi id, stessi gestori): cambia solo dove stanno. -->
-        <div class="schede-prova" role="tablist" style="margin-bottom: 12px;">
+        <div class="schede-prova solo-prova" role="tablist" style="margin-bottom: 12px;">
             <button type="button" role="tab" data-scheda-prova="dati">Dati</button>
             <button type="button" role="tab" data-scheda-prova="strumento">Strumento</button>
         </div>
         <div data-pannello-prova="dati">
-            <div class="scheda-prova-rapidi">
+            <div class="scheda-prova-rapidi solo-prova">
                 <button type="button" class="bt bt-tenue" data-apri="gps"><svg class="ico"><use href="#i-pin"/></svg>GPS</button>
                 <button type="button" class="bt bt-tenue" data-apri="foto"><svg class="ico"><use href="#i-camera"/></svg>Foto</button>
                 <button type="button" class="bt bt-tenue" data-apri="falda"><svg class="ico"><use href="#i-droplet"/></svg>Falda</button>
@@ -50,6 +50,11 @@
              sono uguali per tutte le prove dello stesso cantiere: si scrivono una volta e
              valgono per il progetto intero, come gia' fanno comune, committente e localita'. -->
         <div class="form-group">
+            <label for="txtLocalitaProgetto">Località / Indirizzo (di tutte le prove)</label>
+            <input type="text" id="txtLocalitaProgetto" class="form-control" placeholder="es. Via Roma 10">
+            <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Vale per tutte le prove. Una prova può averne una sua: si cambia dalla scheda della singola prova e il progetto non la riscrive.</div>
+        </div>
+        <div class="form-group">
             <label for="txtProvincia">Provincia</label>
             <input type="text" id="txtProvincia" class="form-control" placeholder="es. TA" maxlength="30">
             <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Compare nell&rsquo;ubicazione del sito: &laquo;in agro del Comune di Sava (TA)&raquo;.</div>
@@ -63,10 +68,10 @@
             <input type="text" id="txtDenominazioneIntervento" class="form-control" placeholder="es. Interventi previsti nell'Area industriale di Taranto…">
         </div>
 
-        <div class="t-didascalia scheda-prova-gruppo">Di questa prova</div>
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <div class="t-didascalia scheda-prova-gruppo solo-prova">Di questa prova</div>
+        <div class="solo-prova" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
             <div class="form-group">
-                <label for="txtLocalita">Località / Indirizzo</label>
+                <label for="txtLocalita">Località / Indirizzo (solo questa prova)</label>
                 <input type="text" id="txtLocalita" class="form-control" placeholder="es. Via Roma 10">
             </div>
             <div class="form-group">
@@ -74,7 +79,7 @@
                 <input type="date" id="txtDataIndagine" class="form-control">
             </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+        <div class="solo-prova" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
             <div class="form-group">
                 <label for="txtProvaNr">Prova N°</label>
                 <input type="text" id="txtProvaNr" class="form-control" placeholder="es. 1" value="1">
@@ -208,10 +213,10 @@
              la stratigrafia in un altro modo. È la stessa verticale, non una prova in più: si chiama
              «3B», ricorda di quale prova è variante (header.interpretazioneDi), non conta nel numero
              di prove del testo introduttivo e non aggiunge una pin all'inquadramento. -->
-        <button class="btn-action" id="btnSurveySettingsDuplica" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--bg-card-hover); border: 1px solid var(--border); color: var(--text-main); font-weight: 700; padding: 10px 12px;">
+        <button class="btn-action solo-prova" id="btnSurveySettingsDuplica" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--bg-card-hover); border: 1px solid var(--border); color: var(--text-main); font-weight: 700; padding: 10px 12px;">
             <svg class="ico"><use href="#i-duplica"/></svg> Duplica come interpretazione alternativa
         </button>
-        <button class="btn-action" id="btnSurveySettingsDelete" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); font-weight: 700; padding: 10px 12px;">
+        <button class="btn-action solo-prova" id="btnSurveySettingsDelete" style="width:100%; margin-top: 12px; justify-content: center; gap: 8px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); font-weight: 700; padding: 10px 12px;">
             <svg class="ico"><use href="#i-trash"/></svg> Elimina questa prova
         </button>
     </div>

@@ -82,6 +82,13 @@ async function apriPrimaProva(app) {
   t('toccato, mostra tutte le righe senza riquadro', !scorre(involucro) && espandi.textContent === 'Mostra meno righe');
   t('la scelta resta salvata, e non è una modifica del progetto', JSON.parse(app.salvato()).settings.registroEspanso === true && modificatoIl() === modPrima);
   t('«Riconosci strati» si vede, non più nel ⋯', visibile(app, 'btnAutoStratiIntegrated') && !$(app, 'menuAltroRegistroIntegrated'));
+  app.E('openAutoStratiParamsModal()');
+  const cursore = $(app, 'rngAutoStratiMinThickness'), campo = $(app, 'numAutoStratiMinThickness');
+  cursore.value = '1.2'; cursore.dispatchEvent(new app.w.Event('input'));
+  t('nel riconoscimento il cursore scrive nel campo, e l\'anteprima si aggiorna', campo.value === '1.20' && /strat/.test($(app, 'lblAutoStratiPreview').textContent));
+  app.d.getElementById('numAutoStratiDeltaColpi').value = '8'; app.d.getElementById('numAutoStratiDeltaColpi').dispatchEvent(new app.w.Event('input'));
+  t('e il campo sposta il cursore', $(app, 'rngAutoStratiDeltaColpi').value === '8');
+  app.E('closeAutoStratiParamsModal()');
   clic(app, $(app, 'btnToggleViewIntegrated'));
   await attesa(250); // il cambio di vista è animato (160 ms)
   t('anche la vista col grafico sta nella scheda Registro', visibile(app, 'cardLogsTable') && visibile(app, 'cardChart') && !visibile(app, 'cardCounterDashboard'));
@@ -152,7 +159,7 @@ async function apriPrimaProva(app) {
   const daEliminare = JSON.stringify(app.E('state.logs[3]'));
   scorri(contenuto(3), -150);
   clic(app, riga(3).querySelector('.riga-azione-elimina'));
-  await attesa(30);
+  await attesa(250); // la riga prima scivola via (--mov-breve)
   t('«Elimina» non chiede niente: toglie proprio quell\'intervallo e offre Annulla',
     !app.dialogo() && app.E('state.logs.length') === nPrima - 1 && !app.E('state.logs').some(l => JSON.stringify(l) === daEliminare) && $(app, 'undoNotificationBanner').style.display === 'flex');
   clic(app, $(app, 'btnUndoDeleteProject'));

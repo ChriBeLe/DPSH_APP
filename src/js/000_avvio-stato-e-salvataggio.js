@@ -10,7 +10,7 @@
             // vecchio l'APK installato ed è la stessa data dei file in backup/. Si aggiorna alla fine
             // di ogni sessione in cui questo file cambia. Compare in fondo al menu Impostazioni e
             // dentro i backup dell'archivio (campo versioneApp).
-            const APP_VERSIONE = '2026.10.10';
+            const APP_VERSIONE = '2026.11.17';
             const lblVersioneApp = document.getElementById('lblVersioneApp');
             if (lblVersioneApp) lblVersioneApp.textContent = APP_VERSIONE;
 
@@ -39,7 +39,13 @@
             // in MIGRAZIONI_DATI (pezzo 004b); dati più nuovi non si caricano e non si importano.
             //   esito: 'in-corso' | 'ok' | 'vuoto' | 'illeggibile' | 'piu-nuovo' | 'inaccessibile'
             //   bloccato: perché saveState non scrive ('avvio', 'dati-non-letti', 'migrazione') o false
-            const VERSIONE_SCHEMA_DATI = 3;
+            // Formato 4 (revisione dei calcoli, Fase B): le profondità sono arrotondate al millimetro.
+            // L'app scrive SEMPRE il formato 4. Legge il 3 (e i più vecchi) passando dalle migrazioni,
+            // che prima salvano una copia automatica del testo di prima; legge il 4 così com'è.
+            // VERSIONE_SCHEMA_LETTA è il massimo formato accettato: una forma futura identica a
+            // quella corrente si leggerebbe com'è (vedi migraDati), oltre si rifiuta senza toccare nulla.
+            const VERSIONE_SCHEMA_DATI = 4;
+            const VERSIONE_SCHEMA_LETTA = 4;
             const caricamentoDati = {
                 esito: 'in-corso', bloccato: 'avvio', salvataggiEvitati: 0,
                 dettaglio: '', testoGrezzo: null, quarantena: null, scaricato: false, migrazione: null

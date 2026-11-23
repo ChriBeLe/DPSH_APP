@@ -95,6 +95,11 @@
                     } catch (err) { ignoraErrore('requestWakeLock', err); }
                 }
             }
+            // Il browser rilascia il blocco quando la pagina va in secondo piano (altra app, telefono
+            // bloccato): al ritorno lo si richiede, se la preferenza è ancora attiva.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && state.settings && state.settings.wakeLock) requestWakeLock();
+            });
 
             /** Porta nello stato dell'app i dati salvati, GIÀ migrati alla versione attuale (vedi
              * migraDati, pezzo 004b). Era migrateLegacyState: la conversione dal formato senza
@@ -218,7 +223,7 @@
                     const comuneGroups = {};
                     keys.forEach(k => {
                         const item = legacyArchive[k];
-                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Cantiere';
+                        const comuneKey = (item.header && item.header.comune) ? item.header.comune : 'Progetto';
                         if (!comuneGroups[comuneKey]) comuneGroups[comuneKey] = [];
                         comuneGroups[comuneKey].push(item);
                     });
@@ -230,7 +235,7 @@
 
                         progetti[projId] = {
                             id: projId,
-                            name: `Cantiere ${cKey}`,
+                            name: `Progetto ${cKey}`,
                             comune: cKey,
                             committente: firstItem.header?.committente || '',
                             localita: firstItem.header?.localita || '',
@@ -259,7 +264,7 @@
                         });
                     });
                 } else if (dati.header) {
-                    const comune = dati.header.comune || 'Nuovo Cantiere';
+                    const comune = dati.header.comune || 'Nuovo progetto';
                     const projId = `PROJ_${Date.now()}`;
                     const survId = `SURV_1`;
                     progetti[projId] = {
@@ -354,7 +359,7 @@
                 updateUI();
                 // Asincrono (legge gli id delle foto in IndexedDB) e dopo l'avvio: non rallenta
                 // l'apertura, e l'eventuale avviso arriva quando l'app è già in piedi.
-                setTimeout(() => { controllaIntegritaDopoAvvio().catch(e => ignoraErrore('controllaIntegritaDopoAvvio', e)); }, 0);
+                setTimeout(() => { controllaIntegritaDopoAvvio().catch(e => segnalaErrore('integrita', 'controllaIntegritaDopoAvvio', e, 'Il controllo dei dati salvati non è riuscito: i dati non sono stati verificati')); }, 0);
             }
 
             // CACHE IN-MEMORY PER FOTO ORIGINALI (RAM)
@@ -366,19 +371,39 @@
              * prima di scrivere su localStorage, salvandoli in noteImageMemoryCache (il pieno resta
              * anche su IndexedDB via saveNoteImageToIDB, chiamato al momento dell'inserimento
              * dell'immagine) — stesso schema già usato per le foto, per non sforare i 5MB. */
+            /** Ricorda l'ultimo risultato di stripNoteImagesHtml per ogni testo già visto: la nota
+             * si rianalizza (DOMParser, costoso sulle note lunghe) solo quando il suo html cambia, non
+             * a ogni salvataggio. Chiave = html in ingresso, valore = {uscita, immagini}: le
+             * immagini servono a rimettere in noteImageMemoryCache ciò che qualcuno avesse tolto
+             * nel frattempo (eliminazione di un'immagine o di un'orfana, poi Annulla), così
+             * un risultato ricordato ha lo stesso effetto collaterale di uno appena calcolato.
+             * Limitata: oltre 50 testi diversi si svuota e si riparte. */
+            const stripNoteImagesRicordati = new Map();
             function stripNoteImagesHtml(html) {
                 if (!html || html.indexOf('data-note-img-id') === -1) return html;
+                const noto = stripNoteImagesRicordati.get(html);
+                if (noto) {
+                    noto.immagini.forEach(([id, src]) => {
+                        if (noteImageMemoryCache[id] !== src) noteImageMemoryCache[id] = src;
+                    });
+                    return noto.uscita;
+                }
                 try {
                     const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const immagini = [];
                     doc.querySelectorAll('img[data-note-img-id]').forEach(img => {
                         const id = img.getAttribute('data-note-img-id');
                         const src = img.getAttribute('src');
                         if (id && src && src.indexOf('data:') === 0) {
                             noteImageMemoryCache[id] = src;
+                            immagini.push([id, src]);
                             img.setAttribute('src', '');
                         }
                     });
-                    return doc.body.innerHTML;
+                    const uscita = doc.body.innerHTML;
+                    if (stripNoteImagesRicordati.size >= 50) stripNoteImagesRicordati.clear();
+                    stripNoteImagesRicordati.set(html, { uscita, immagini });
+                    return uscita;
                 } catch(e) {
                     return html;
                 }
@@ -401,39 +426,53 @@
                     // Annulla e Ripeti (pezzo 004f): se il contenuto è cambiato, quello di prima
                     // diventa un passo da annullare. Come sopra, non ferma mai il salvataggio.
                     try { registraPassoCronologia(); } catch (e) { ignoraErrore('registraPassoCronologia', e); }
-                    const cleanState = JSON.parse(JSON.stringify(state));
-                    if (cleanState.photos && cleanState.photos.length > 0) {
-                        cleanState.photos.forEach(p => {
-                            if (p.dataUrl) {
-                                photoMemoryCache[p.id] = p.dataUrl;
-                                delete p.dataUrl;
-                            }
-                        });
+                    // UNA sola serializzazione. Prima si clonava l'intero stato (foto e carte intestate
+                    // comprese, megabyte a ogni tocco), si toglievano le foto dal clone e poi si
+                    // serializzava di nuovo. Ora si fanno copie SUPERFICIALI dei soli rami da ripulire
+                    // (foto, note) e tutto il resto lo legge direttamente JSON.stringify. Lo spread
+                    // conserva l'ordine delle chiavi, quindi il testo salvato è identico a quello di prima.
+                    const senzaImmagini = (foto) => Array.isArray(foto)
+                        ? foto.map(p => {
+                            if (!p || typeof p !== 'object' || !p.dataUrl) return p;
+                            photoMemoryCache[p.id] = p.dataUrl;
+                            const { dataUrl, ...resto } = p;
+                            return resto;
+                        })
+                        : foto;
+                    const cleanState = { ...state };
+                    if (Array.isArray(state.photos) && state.photos.length > 0) {
+                        cleanState.photos = senzaImmagini(state.photos);
                     }
-                    if (cleanState.projects) {
-                        Object.keys(cleanState.projects).forEach(pid => {
-                            const proj = cleanState.projects[pid];
-                            if (proj.surveys) {
-                                Object.keys(proj.surveys).forEach(sid => {
-                                    if (proj.surveys[sid].photos) {
-                                        proj.surveys[sid].photos.forEach(p => {
-                                            if (p.dataUrl) {
-                                                photoMemoryCache[p.id] = p.dataUrl;
-                                                delete p.dataUrl;
-                                            }
-                                        });
-                                    }
+                    if (state.projects && typeof state.projects === 'object') {
+                        cleanState.projects = {};
+                        Object.keys(state.projects).forEach(pid => {
+                            const origine = state.projects[pid];
+                            if (!origine || typeof origine !== 'object') { cleanState.projects[pid] = origine; return; }
+                            const proj = { ...origine };
+                            if (origine.surveys && typeof origine.surveys === 'object') {
+                                proj.surveys = {};
+                                Object.keys(origine.surveys).forEach(sid => {
+                                    const prova = origine.surveys[sid];
+                                    // Le foto dei progetti non portano più l'immagine (vedi
+                                    // scriviStatoAttivoNelProgetto): la copia serve solo se qualcuna ce l'ha ancora.
+                                    proj.surveys[sid] = (prova && typeof prova === 'object' && prova.photos)
+                                        ? { ...prova, photos: senzaImmagini(prova.photos) }
+                                        : prova;
                                 });
                             }
-                            if (proj.notes && proj.notes.html) {
-                                proj.notes.html = stripNoteImagesHtml(proj.notes.html);
+                            if (origine.notes && typeof origine.notes === 'object' && (origine.notes.html || origine.notes.htmlPrimaDelMotore)) {
+                                proj.notes = { ...origine.notes };
+                                if (origine.notes.html) {
+                                    proj.notes.html = stripNoteImagesHtml(origine.notes.html);
+                                }
+                                // Stessa cura per la copia conservata prima della conversione al nuovo
+                                // motore: e' testo destinato a sparire appena l'utente conferma, non
+                                // deve intanto occupare spazio con le immagini incorporate.
+                                if (origine.notes.htmlPrimaDelMotore) {
+                                    proj.notes.htmlPrimaDelMotore = stripNoteImagesHtml(origine.notes.htmlPrimaDelMotore);
+                                }
                             }
-                            // Stessa cura per la copia conservata prima della conversione al nuovo
-                            // motore: e' testo destinato a sparire appena l'utente conferma, non
-                            // deve intanto occupare spazio con le immagini incorporate.
-                            if (proj.notes && proj.notes.htmlPrimaDelMotore) {
-                                proj.notes.htmlPrimaDelMotore = stripNoteImagesHtml(proj.notes.htmlPrimaDelMotore);
-                            }
+                            cleanState.projects[pid] = proj;
                         });
                     }
                     const testoStato = JSON.stringify(cleanState);
@@ -453,8 +492,7 @@
                     // dall'ultima copia (lo controlla scriviCopiaAutomatica). La scrittura va avanti da
                     // sola e non blocca il salvataggio.
                     if (copieAutomatiche.pronto && Date.now() - copieAutomatiche.ultimaPeriodica >= COPIE_REGOLE.intervalloMs) {
-                        copieAutomatiche.ultimaPeriodica = Date.now();
-                        scriviCopiaAutomatica('periodica', 'automatica', testoStato);
+                        avviaCopiaPeriodica(testoStato);
                     }
                     // Un salvataggio riuscito riarma l'avviso: se lo spazio è stato liberato e più
                     // avanti si riempie di nuovo, l'utente va avvisato un'altra volta.
@@ -463,6 +501,18 @@
                     console.warn('saveState error:', e);
                     avvisaSalvataggioFallito(e);
                 }
+            }
+
+            /** Lancia la copia periodica senza attenderla. `ultimaPeriodica` si sposta subito, per non
+             * lanciarne due insieme mentre la prima scrive, ma se la scrittura FALLISCE non si aspetta
+             * un intervallo intero (5 minuti senza copie e nessuno che lo sa): si riprova tra un minuto. */
+            function avviaCopiaPeriodica(testoStato) {
+                copieAutomatiche.ultimaPeriodica = Date.now();
+                return Promise.resolve(scriviCopiaAutomatica('periodica', 'automatica', testoStato)).then(() => {
+                    if (copieAutomatiche.ultimaScritturaFallita) {
+                        copieAutomatiche.ultimaPeriodica = Date.now() - COPIE_REGOLE.intervalloMs + 60000;
+                    }
+                });
             }
 
             /** Vero da quando l'utente è stato avvisato che i salvataggi non passano più, fino al
@@ -493,10 +543,10 @@
                     ? 'SPAZIO ESAURITO: da questo momento i dati NON vengono più salvati.\n\n'
                       + 'Non continuare a lavorare: tutto quello che aggiungerai andrebbe perso alla chiusura dell\'app.\n\n'
                       + 'Cosa fare, in questo ordine:\n'
-                      + '1) Impostazioni → Backup Completo → Esporta (mette al sicuro quello che hai già)\n'
+                      + '1) Impostazioni → Copia di tutti i progetti → Esporta (mette al sicuro quello che hai già)\n'
                       + '2) Impostazioni → Spazio occupato → "Foto orfane" (libera spazio senza perdere niente)'
                     : 'Non è stato possibile salvare i dati su questo dispositivo.\n\n'
-                      + 'Non continuare a lavorare prima di aver fatto un backup: Impostazioni → Backup Completo → Esporta.\n\n'
+                      + 'Non continuare a lavorare prima di aver fatto un backup: Impostazioni → Copia di tutti i progetti → Esporta.\n\n'
                       + 'Dettaglio tecnico: ' + ((e && e.message) || e);
                 appAlert(messaggio);
             }

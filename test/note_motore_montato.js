@@ -170,7 +170,7 @@ t('nessun execCommand rimasto nel codice delle note (solo commenti)',
 t('la barra della tabella esiste nell HTML', src.includes('id="noteTableBar"') && src.includes('data-tab-cmd="riga-dopo"'));
 t('la riga di conferma della conversione esiste', src.includes('id="noteConversioneRow"') && src.includes('id="btnNoteRipristinaPrima"') && src.includes('id="btnNoteScaricaPrima"'));
 t('gli export leggono dal motore, non dal contenitore', !src.includes('noteEditorBody.innerHTML)') && (src.match(/htmlNotaCorrente\(\)/g)||[]).length >= 6);
-t('la copia pre-conversione viene alleggerita prima di localStorage', src.includes('stripNoteImagesHtml(proj.notes.htmlPrimaDelMotore)'));
+t('la copia pre-conversione viene alleggerita prima di localStorage', /stripNoteImagesHtml\((proj|origine)\.notes\.htmlPrimaDelMotore\)/.test(src));
 t('il CSS della lista di controllo nuova c e nell app, in stampa e in Word',
   (src.match(/ul\[data-type="taskList"\]/g)||[]).length >= 12);
 

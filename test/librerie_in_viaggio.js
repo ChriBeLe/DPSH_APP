@@ -114,7 +114,7 @@ function controllaArrivo(nome, pc, tel, r, pidArrivo) {
     controllaArrivo('JSON dello stato', pc4, tel, r, r.pid);
     pc4.chiudi();
 
-    console.log('--- Backup completo JSON: librerie, nessun doppione, progetto aperto sostituito ---');
+    console.log('--- Backup completo JSON: librerie, nessun doppione, progetto aperto non sostituito ---');
     await tel.E('exportGlobalJSONBackup()');
     await attesa(100);
     const backup = await (await ultimo(tel)).blob.text();
@@ -131,11 +131,13 @@ function controllaArrivo(nome, pc, tel, r, pidArrivo) {
     t('e i template identici pure', J(tel, 'Object.keys(state.reportTemplates)').length === templatePrima);
     const messaggio = tel.dialogo() ? tel.dialogo().testo : '';
     clic(tel, tel.dialogo() && tel.dialogo().ok);
-    t('il progetto aperto è stato sostituito da quello del file', tel.E('state.projects[' + JSON.stringify(r.pid) + '].name') === 'Nardò - Scuola Via Roma');
+    // Dal 2026-11 (B3) l'import dell'archivio non sostituisce più: il progetto con lo stesso id entra come copia.
+    t('il progetto aperto è rimasto quello di qui', tel.E('state.projects[' + JSON.stringify(r.pid) + '].name') === 'Nome cambiato dopo il backup');
     tel.E('saveState()');
-    t('e il salvataggio successivo non lo riporta indietro (stato attivo riallineato)', JSON.parse(tel.salvato()).projects[r.pid].name === 'Nardò - Scuola Via Roma'
+    t('e il salvataggio successivo non lo cambia', JSON.parse(tel.salvato()).projects[r.pid].name === 'Nome cambiato dopo il backup'
       && JSON.parse(tel.salvato()).projects[r.pid].surveys[tel.E('state.currentSurveyId')].logs.length === tel.E('state.logs.length'));
-    t('(il messaggio dice della sostituzione)', /sostituito/.test(messaggio));
+    t('(il messaggio dice della copia separata)', /copia separata/.test(messaggio));
+    t('e il progetto del file è entrato come copia', tel.E('Object.values(state.projects).some(p => p.name === "Nardò - Scuola Via Roma (Importato)")'));
     tel.chiudi();
   }
 

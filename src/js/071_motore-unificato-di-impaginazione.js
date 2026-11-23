@@ -161,7 +161,7 @@
                 // L'intestazione sta nel margine superiore; se è più alta del margine, il contenuto
                 // parte più in basso e qui lo spazio si riduce di conseguenza (margineConIntestazione).
                 const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled, pageDef.footer, footerEnabled);
-                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg) : '');
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg, { ctx }) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg, { ctx }) : '');
                 // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
                 // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
                 // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un
@@ -597,7 +597,7 @@
             async function downloadAllSurveyPhotosJpg() {
                 const photos = state.photos || [];
                 if (photos.length === 0) {
-                    alert('Nessuna foto allegata a questa prova!');
+                    alert('Nessuna foto allegata a questa prova.');
                     return;
                 }
 
@@ -607,7 +607,7 @@
                     if (pUrl) {
                         const a = document.createElement('a');
                         a.href = pUrl;
-                        a.download = `${p.name || 'Foto_Cantiere_' + (i+1)}.jpg`;
+                        a.download = `${p.name || 'Foto_progetto_' + (i+1)}.jpg`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -627,7 +627,7 @@
                         if (pUrl) {
                             const a = document.createElement('a');
                             a.href = pUrl;
-                            a.download = `${p.name || 'Foto_Cantiere_' + (currentPreviewPhotoIdx+1)}.jpg`;
+                            a.download = `${p.name || 'Foto_progetto_' + (currentPreviewPhotoIdx+1)}.jpg`;
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);
@@ -688,17 +688,21 @@
                     let exifData = { lat: null, lng: null, dateTimeOriginal: null };
                     try { exifData = parseExifData(arrBuf); } catch (e) { ignoraErrore('handleGalleryBatchFiles', e); }
 
-                    const dataUrl = await new Promise((resolve) => {
+                    const dataUrlOriginale = await new Promise((resolve) => {
                         const r = new FileReader();
                         r.onload = (e) => resolve(e.target.result);
                         r.onerror = () => resolve(null);
                         r.readAsDataURL(file);
                     });
-                    if (!dataUrl) continue;
+                    if (!dataUrlOriginale) continue;
+                    // Coordinate e data sono già state lette dal file com'era (sopra); ora la foto si
+                    // raddrizza e si ricomprime (072a), una alla volta per non tenere troppe tele in memoria.
+                    const dataUrl = await preparaFotoImportata(file, arrBuf, dataUrlOriginale);
 
                     const exifTs = parseExifDateStr(exifData.dateTimeOriginal);
                     entries.push({
                         dataUrl,
+                        nomeFile: String(file.name || '').slice(0, 120),
                         lat: exifData.lat,
                         lng: exifData.lng,
                         ts: exifTs !== null ? exifTs : (file.lastModified || Date.now()),
@@ -760,6 +764,7 @@
                     state.photos.push({
                         id: photoId,
                         dataUrl: entry.dataUrl,
+                        nomeFile: entry.nomeFile,
                         lat: entry.lat,
                         lng: entry.lng,
                         alt: state.header.alt,

@@ -23,6 +23,19 @@
                     points.push({ name: (nameEl && nameEl.textContent.trim()) || `Punto ${points.length + 1}`, lat, lng });
                 });
 
+                // KML senza punti: primo vertice di linee e poligoni (percorsi, aree)
+                if (points.length === 0) {
+                    xml.querySelectorAll('Placemark').forEach(pm => {
+                        const coordEl = pm.querySelector('LineString coordinates, LinearRing coordinates');
+                        if (!coordEl || !coordEl.textContent) return;
+                        const parts = coordEl.textContent.trim().split(/\s+/)[0].split(',');
+                        const lng = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+                        if (isNaN(lat) || isNaN(lng)) return;
+                        const nameEl = pm.querySelector('name');
+                        points.push({ name: ((nameEl && nameEl.textContent.trim()) || `Elemento ${points.length + 1}`) + ' (inizio)', lat, lng });
+                    });
+                }
+
                 // GPX: waypoint singoli, il caso tipico per "un punto salvato"
                 if (points.length === 0) {
                     xml.querySelectorAll('wpt').forEach(pt => {
@@ -49,18 +62,65 @@
                 return points;
             }
 
+            // KMZ = archivio ZIP con dentro un KML (di solito doc.kml). Lettura offline con il
+            // decompressore del browser (DecompressionStream): niente librerie, niente rete.
+            async function leggiTestoKmz(file) {
+                const buf = new Uint8Array(await file.arrayBuffer());
+                const dv = new DataView(buf.buffer);
+                let eocd = -1;
+                for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+                    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+                }
+                if (eocd < 0) throw new Error('Il file KMZ non è un archivio valido.');
+                const n = dv.getUint16(eocd + 10, true);
+                let p = dv.getUint32(eocd + 16, true);
+                const voci = [];
+                for (let k = 0; k < n && dv.getUint32(p, true) === 0x02014b50; k++) {
+                    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+                    voci.push({
+                        metodo: dv.getUint16(p + 10, true), csize: dv.getUint32(p + 20, true),
+                        off: dv.getUint32(p + 42, true),
+                        nome: new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nl))
+                    });
+                    p += 46 + nl + el + cl;
+                }
+                const kmls = voci.filter(v => /\.kml$/i.test(v.nome));
+                const v = kmls.find(x => /(^|\/)doc\.kml$/i.test(x.nome)) || kmls[0];
+                if (!v) throw new Error('Nel KMZ non c\'è nessun file KML.');
+                const lh = v.off, start = lh + 30 + dv.getUint16(lh + 26, true) + dv.getUint16(lh + 28, true);
+                const dati = buf.subarray(start, start + v.csize);
+                if (v.metodo === 0) return new TextDecoder().decode(dati);
+                if (v.metodo !== 8 || typeof DecompressionStream === 'undefined') throw new Error('Questo dispositivo non riesce ad aprire il KMZ: apri il KMZ sul PC, salvalo come KML e importa quello.');
+                const flusso = new Blob([dati]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                return new TextDecoder().decode(await new Response(flusso).arrayBuffer());
+            }
+
+            /** La mappa col pin del punto appena preso (GPS, file, coordinate incollate) o già salvato:
+             * si apre da sola, senza dover passare dall'inserimento manuale. Se la mappa non si può
+             * caricare (niente rete) resta com'è, senza avvisi: il punto si legge dalle coordinate. */
+            async function mostraMappaDelPunto() {
+                try {
+                    const body = document.getElementById('gpsAccBodyManual');
+                    if (!body || body.classList.contains('open')) { if (body && gpsModalMapInstance) ensureGpsModalMapReady(); return; }
+                    await ensureLeafletLoaded();
+                    await openGpsAccordion('Manual');
+                } catch (e) { ignoraErrore('mostraMappaDelPunto', e); }
+            }
+
             function applyGpsCoordsToModal(lat, lng, sourceLabel) {
                 if (numModalGpsLat) numModalGpsLat.value = lat;
                 if (numModalGpsLng) numModalGpsLng.value = lng;
+                aggiornaCampiSr();
                 triggerVibrate([40, 40]);
                 if (lblModalGpsStatus) {
-                    lblModalGpsStatus.innerHTML = `${ico('check')} ${sourceLabel}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
+                    lblModalGpsStatus.innerHTML = `${ico('check')} ${testoHtml(sourceLabel)}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
                     lblModalGpsStatus.style.color = 'var(--success)';
                 }
                 if (gpsModalMapInstance && gpsModalMapMarker) {
                     gpsModalMapInstance.setView([lat, lng], 16);
                     gpsModalMapMarker.setLatLng([lat, lng]);
                 }
+                mostraMappaDelPunto();
             }
 
             const btnImportGpsKml = document.getElementById('btnImportGpsKml');
@@ -77,10 +137,10 @@
                     if (!file) return;
                     if (gpsKmlImportResults) { gpsKmlImportResults.style.display = 'none'; gpsKmlImportResults.innerHTML = ''; }
                     try {
-                        const text = await file.text();
+                        const text = /\.kmz$/i.test(file.name) ? await leggiTestoKmz(file) : await file.text();
                         const points = parseGeoFileText(text);
                         if (points.length === 0) {
-                            appAlert('Nessuna coordinata trovata in questo file. Sono supportati KML (Placemark/Point) e GPX (waypoint o traccia). I file KMZ (compressi) vanno prima estratti in KML.');
+                            appAlert('Nessuna coordinata trovata in questo file. Sono supportati KML, KMZ e GPX (punti, percorsi, aree).');
                             return;
                         }
                         if (points.length === 1) {
@@ -92,7 +152,7 @@
                             gpsKmlImportResults.style.display = 'block';
                             gpsKmlImportResults.innerHTML = points.slice(0, 50).map((p, i) => `
                                 <div class="gps-kml-point-row" data-idx="${i}" style="padding:8px 10px; font-size:11.5px; color:var(--text-main); border-bottom:1px solid var(--border); cursor:pointer;">
-                                    <strong>${p.name}</strong><br>
+                                    <strong>${testoHtml(p.name)}</strong><br>
                                     <span style="color:var(--text-muted); font-size:10.5px;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</span>
                                 </div>
                             `).join('');
@@ -270,6 +330,8 @@
                 if (!state.uiState) state.uiState = { currentView: 'home' };
                 const vistaPrecedente = state.uiState.currentView;
                 const cambioVistaReale = vistaPrecedente !== viewName;
+                // Dove stanno ora i nomi che passano alla schermata nuova (071v: il morph).
+                const sorgentiMorph = cambioVistaReale && viewTransitionsEnabled ? misuraMorph(vistaPrecedente) : null;
                 state.uiState.currentView = viewName;
                 const btnExpHeader = document.getElementById('btnExportHeader');
 
@@ -281,7 +343,13 @@
                 viewProject.style.display = viewName === 'project' ? 'flex' : 'none';
                 // Tasto indietro di Android (Fase 5): una voce nella cronologia finché non si è in Home.
                 if (viewName !== 'home' && !(history.state && history.state.dpsh)) history.pushState({ dpsh: true }, '');
-                if (viewName === 'home' && history.state && history.state.dpsh) history.back();
+                if (viewName === 'home' && history.state && history.state.dpsh) {
+                    // Questo «indietro» lo facciamo noi: il gestore di popstate non deve scambiarlo per
+                    // un Indietro dell'utente e chiudere una finestra (Fase C).
+                    window._indietroProgrammatico = true;
+                    setTimeout(() => { window._indietroProgrammatico = false; }, 600);
+                    history.back();
+                }
                 if (viewName === 'project') {
                     if (viewHome) viewHome.style.display = 'none';
                     if (viewField) viewField.style.display = 'none';
@@ -303,7 +371,7 @@
                     // Entrando in una prova (dalla Home o dal Progetto) si parte dal contatore (Fase 6).
                     if (vistaPrecedente !== 'field') vistaProva = 'conta';
                     if (surveySwitcherBar) surveySwitcherBar.style.display = 'flex';
-                    startLiveGpsWatch();
+                    // (Il GPS non parte più da solo entrando: vedi startLiveGpsWatch.)
                     updateUI();
                 }
 
@@ -312,7 +380,8 @@
                 // al primo giro (avvio app: non c'è una schermata precedente da cui "arrivare").
                 if (cambioVistaReale && viewTransitionsEnabled) {
                     const vistaEntrante = viewName === 'home' ? viewHome : (viewName === 'project' ? viewProject : viewField);
-                    if (vistaEntrante) {
+                    // Se un nome vola dentro la schermata nuova, entra il resto attorno a lui; altrimenti tutta.
+                    if (vistaEntrante && !eseguiMorph(sorgentiMorph, state.uiState.currentView, vistaEntrante)) {
                         vistaEntrante.classList.remove('screen-nav-enter');
                         void vistaEntrante.offsetWidth; // forza il reflow per poter ri-innescare l'animazione
                         vistaEntrante.classList.add('screen-nav-enter');
@@ -346,7 +415,16 @@
             }
 
             // Indietro (Android, o del browser): prova → progetto → Home.
+            // Con una finestra aperta (Fase C) Indietro chiude quella più in alto, con la stessa regola
+            // dei dati non salvati di ESC, e NON cambia schermata. Il popstate ha già consumato la voce
+            // di cronologia, quindi la si rimette: serve perché il prossimo Indietro funzioni ancora.
             window.addEventListener('popstate', () => {
+                if (window._indietroProgrammatico) { window._indietroProgrammatico = false; return; }
+                if (typeof finestraInCima === 'function' && finestraInCima()) {
+                    history.pushState({ dpsh: true }, '');
+                    chiudiFinestraInCima();
+                    return;
+                }
                 const vista = state.uiState && state.uiState.currentView;
                 if (vista === 'field') switchView('project');
                 else if (vista === 'project') switchView('home');
@@ -369,6 +447,18 @@
                 const avvisi = new Map(avvisiPrimaExport(proj).map(r => [r.id, r.avvisi.length]));
                 const aMano = Array.isArray(proj.ordineProve) && proj.ordineProve.length > 0;
                 $('lblProgettoConteggio').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '') + (aMano ? ' · ordine scelto a mano' : '');
+                // IL PERCORSO (Fase C): lo stato di ogni tappa solo se si calcola in modo affidabile
+                // dai dati che ci sono; altrimenti resta il nome. Parametri conta gli strati con tutte le scelte fatte
+                // (riepilogoParametriProgetto); la Consegna non ha uno stato certo, quindi niente numeri finti.
+                $('lblTappaProve').textContent = `${prove.length} ${prove.length === 1 ? 'prova' : 'prove'}` + (avvisi.size ? ` · ${avvisi.size} da controllare` : '');
+                const riepStrati = typeof riepilogoStratiProgetto === 'function' ? riepilogoStratiProgetto() : null;
+                $('lblTappaStrati').textContent = riepStrati && riepStrati.totale ? `${riepStrati.totale} · ${riepStrati.senzaNome ? riepStrati.senzaNome + ' senza nome' : 'tutti con il nome'}` : '';
+                // ④ Report: lo stato è quello della scaletta («7 sezioni · Classico»), calcolato dalle stesse proprietà dell'esportazione.
+                $('lblTappaReport').textContent = typeof riepilogoScalettaReport === 'function' ? riepilogoScalettaReport(proj) : '';
+                const riepPar = typeof riepilogoParametriProgetto === 'function' ? riepilogoParametriProgetto() : null;
+                $('lblTappaParametri').textContent = !riepPar || !riepPar.totale ? (riepPar ? 'nessuno strato' : '')
+                    : riepPar.completi === riepPar.totale ? `${riepPar.totale} · tutti completi` : `${riepPar.completi}/${riepPar.totale} strati completi`;
+                $('lblTappaConsegna').textContent = '';
                 $('btnProgettoOrdina').textContent = ordinandoProve ? 'Fatto' : 'Ordina';
                 $('btnProgettoOrdina').setAttribute('aria-pressed', String(ordinandoProve));
                 $('btnProgettoOrdina').hidden = prove.length < 2;
@@ -385,7 +475,7 @@
                     // Mentre si ordina le righe non aprono la prova: hanno le frecce.
                     $('listaProveProgetto').innerHTML = prove.map((s, i) => {
                         const nr = escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'));
-                        return `<div class="prova-riga ordina" data-surv="${s.id}">
+                        return `<div class="prova-riga ordina" data-surv="${testoHtml(s.id)}">
                             <span class="prova-maniglia" role="button" tabindex="-1" aria-label="Trascina la prova ${nr}" title="Trascina"><svg class="ico"><use href="#i-grip"/></svg></span>
                             <span class="prova-riga-n">${nr}</span>
                             <span class="prova-riga-testo"><strong>Prova ${nr}</strong></span>
@@ -434,13 +524,27 @@
                     const haGps = isFinite(parseFloat(h.lat)) && isFinite(parseFloat(h.lng));
                     const falda = parseFloat(h.faldaDa);
                     const n = avvisi.get(s.id) || 0;
-                    return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${s.id}">
+                    const nFoto = (s.photos || []).length, nStrati = contaStrati(logs);
+                    // Sul PC le stesse cose in colonne (una tabella che si confronta riga per riga); sul
+                    // telefono la riga riassunta sotto il nome. Il CSS mostra l'una o l'altra.
+                    const cella = (valore, vuota) => `<span class="prova-cella${vuota ? ' vuota' : ''}">${valore}</span>`;
+                    // Mostrare, non dire: la prima foto in piccolo (si carica dopo, dall'archivio) e la
+                    // forma della prova accanto al numero di strati.
+                    const foto = nFoto ? `<img class="prova-foto" alt="" hidden data-foto="${escapeHtmlDidascalia(String(s.photos[0].id || ''))}">${nFoto > 1 ? '+' + (nFoto - 1) : ''}` : '0';
+                    const strati = `${miniProfilo(logs, fondo)}${nStrati}`;
+                    return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${testoHtml(s.id)}">
                         <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
                         <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
-                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${(s.photos || []).length} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                            <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${nFoto} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>
+                        ${cella(numeroConVirgola(fondo) + ' m')}${cella(logs.length, !logs.length)}${cella(haGps ? `${miniPianta(s.id, prove)}<svg class="ico"><use href="#i-check"/></svg>` : '—', !haGps)}${cella(foto, !nFoto)}${cella(strati, !nStrati)}${cella(isFinite(falda) ? numeroConVirgola(falda) + ' m' : '—', !isFinite(falda))}
                         <span class="prova-riga-stato${n ? ' avviso' : ''}">${n ? n + (n === 1 ? ' avviso' : ' avvisi') : 'Pronta'}</span>
                     </button>`;
                 }).join('');
+                // Le miniature delle foto solo dove la tabella si vede (dal PC): sul telefono non servono.
+                if (window.matchMedia('(min-width: 1024px)').matches) $('listaProveProgetto').querySelectorAll('img[data-foto]').forEach(img => {
+                    const id = img.dataset.foto;
+                    Promise.resolve(photoMemoryCache[id] || getPhotoFromIDB(id)).then(u => { if (u && img.isConnected) { img.src = u; img.hidden = false; } }).catch(() => {});
+                });
                 $('listaProveProgetto').querySelectorAll('.prova-riga').forEach(b => b.addEventListener('click', () => {
                     if (b.dataset.surv !== state.currentSurveyId) syncProjectToActiveState(state.currentProjectId, b.dataset.surv);
                     switchView('field');
@@ -459,8 +563,30 @@
             document.getElementById('btnProgettoAltro').addEventListener('click', () => openProjectActionsModal(state.currentProjectId));
             document.getElementById('btnProgettoRiprendi').addEventListener('click', () => switchView('field'));
             document.getElementById('btnProgettoNuovaProva').addEventListener('click', () => openNewSurveyModal());
-            document.getElementById('btnProgettoDati').addEventListener('click', () => openCantiereInfoModal());
-            document.getElementById('btnProgettoStrati').addEventListener('click', () => openStratiModal());
+            document.getElementById('btnProgettoDati').addEventListener('click', () => apriDatiProgetto());
+            // ② Strati: con strati senza nome la tappa porta al foglio che li nomina (dal foglio resta
+            // «Apri Strati» per la Gestione completa); senza, apre direttamente Strati.
+            document.getElementById('btnProgettoStrati').addEventListener('click', () => {
+                if (typeof riepilogoStratiProgetto === 'function' && riepilogoStratiProgetto().senzaNome > 0) apriDaiNomeStrati();
+                else openStratiModal();
+            });
+            // ① Prove: porta alla lista, sulla prima prova con avvisi se ce ne sono.
+            document.getElementById('btnTappaProve').addEventListener('click', () => {
+                const lista = document.getElementById('listaProveProgetto');
+                const bersaglio = lista.querySelector('.prova-riga-stato.avviso') || lista.querySelector('.prova-riga') || lista;
+                const riga = bersaglio.closest ? (bersaglio.closest('.prova-riga') || bersaglio) : bersaglio;
+                if (riga.scrollIntoView) riga.scrollIntoView({ block: 'center' });
+                if (riga.focus) riga.focus();
+            });
+            // ③ Parametri: la procedura guidata, sul primo strato a cui manca una scelta.
+            document.getElementById('btnTappaParametri').addEventListener('click', () => {
+                // Il primo strato incompleto secondo lo stesso conto della tappa (Fase C); con tutti
+                // completi apre dal primo.
+                const riep = typeof riepilogoParametriProgetto === 'function' ? riepilogoParametriProgetto() : null;
+                apriWizardParametri(riep && riep.primoIncompleto ? riep.primoIncompleto : undefined);
+            });
+            // ④ Report: la scaletta del documento (Fase C); da lì «Modifica template» apre la libreria, la Consegna è la tappa ⑤.
+            document.getElementById('btnTappaReport').addEventListener('click', () => apriScalettaReport());
             document.getElementById('btnProgettoNote').addEventListener('click', () => apriNoteProgetto(state.currentProjectId));
             document.getElementById('btnProgettoConsegna').addEventListener('click', () => openExportModal('project', state.currentProjectId));
 

@@ -1,21 +1,46 @@
             // ===================== FASE 3: MODAL FALLBACK GPS FOTO (IDEA 3) =====================
 
+            /** Leaflet è nel file come testo (vendorLeaflet, vedi shell/03d): si esegue la prima volta
+             * che serve una mappa. Prima arrivava da unpkg, quindi senza campo nessuna mappa si apriva.
+             * Il suo foglio di stile è già fra gli stili dell'app (css/05_leaflet.css). Si esegue
+             * con un elemento script creato qui invece che con eval: è la stessa strada che la CSP
+             * concede agli script inline. */
             function ensureLeafletLoaded() {
                 if (leafletLoaded && window.L) return Promise.resolve();
                 if (leafletLoadingPromise) return leafletLoadingPromise;
                 leafletLoadingPromise = new Promise((resolve, reject) => {
-                    const cssLink = document.createElement('link');
-                    cssLink.rel = 'stylesheet';
-                    cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-                    document.head.appendChild(cssLink);
-
-                    const script = document.createElement('script');
-                    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-                    script.onload = () => { leafletLoaded = true; resolve(); };
-                    script.onerror = () => reject(new Error('Impossibile caricare la mappa (verifica la connessione internet).'));
-                    document.head.appendChild(script);
+                    try {
+                        if (!window.L) {
+                            const testo = document.getElementById('vendorLeaflet');
+                            if (!testo || !testo.textContent.trim()) throw new Error('La mappa non è in questa versione dell\'app.');
+                            const script = document.createElement('script');
+                            script.textContent = testo.textContent;
+                            document.head.appendChild(script);
+                        }
+                        if (!window.L || !window.L.map) throw new Error('La mappa non si è avviata.');
+                        usaIconeLeafletIncorporate();
+                        leafletLoaded = true;
+                        resolve();
+                    } catch (e) {
+                        leafletLoadingPromise = null;
+                        reject(e);
+                    }
                 });
                 return leafletLoadingPromise;
+            }
+
+            /** Il segnaposto predefinito di Leaflet: le sue immagini stanno accanto a leaflet.css sulla
+             * CDN e Leaflet ne ricava la cartella leggendo il CSS. Incorporate come data URI quel
+             * calcolo non funziona più, quindi le indirizziamo qui. imagePath = '' (una stringa)
+             * dice a Leaflet di non cercare la cartella. */
+            function usaIconeLeafletIncorporate() {
+                if (!window.L || !L.Icon || !L.Icon.Default) return;
+                L.Icon.Default.imagePath = '';
+                L.Icon.Default.mergeOptions({
+                    iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAApCAYAAADAk4LOAAAFgUlEQVR4Aa1XA5BjWRTN2oW17d3YaZtr2962HUzbDNpjszW24mRt28p47v7zq/bXZtrp/lWnXr337j3nPCe85NcypgSFdugCpW5YoDAMRaIMqRi6aKq5E3YqDQO3qAwjVWrD8Ncq/RBpykd8oZUb/kaJutow8r1aP9II0WmLKLIsJyv1w/kqw9Ch2MYdB++12Onxee/QMwvf4/Dk/Lfp/i4nxTXtOoQ4pW5Aj7wpici1A9erdAN2OH64x8OSP9j3Ft3b7aWkTg/Fm91siTra0f9on5sQr9INejH6CUUUpavjFNq1B+Oadhxmnfa8RfEmN8VNAsQhPqF55xHkMzz3jSmChWU6f7/XZKNH+9+hBLOHYozuKQPxyMPUKkrX/K0uWnfFaJGS1QPRtZsOPtr3NsW0uyh6NNCOkU3Yz+bXbT3I8G3xE5EXLXtCXbbqwCO9zPQYPRTZ5vIDXD7U+w7rFDEoUUf7ibHIR4y6bLVPXrz8JVZEql13trxwue/uDivd3fkWRbS6/IA2bID4uk0UpF1N8qLlbBlXs4Ee7HLTfV1j54APvODnSfOWBqtKVvjgLKzF5YdEk5ewRkGlK0i33Eofffc7HT56jD7/6U+qH3Cx7SBLNntH5YIPvODnyfIXZYRVDPqgHtLs5ABHD3YzLuespb7t79FY34DjMwrVrcTuwlT55YMPvOBnRrJ4VXTdNnYug5ucHLBjEpt30701A3Ts+HEa73u6dT3FNWwflY86eMHPk+Yu+i6pzUpRrW7SNDg5JHR4KapmM5Wv2E8Tfcb1HoqqHMHU+uWDD7zg54mz5/2BSnizi9T1Dg4QQXLToGNCkb6tb1NU+QAlGr1++eADrzhn/u8Q2YZhQVlZ5+CAOtqfbhmaUCS1ezNFVm2imDbPmPng5wmz+gwh+oHDce0eUtQ6OGDIyR0uUhUsoO3vfDmmgOezH0mZN59x7MBi++WDL1g/eEiU3avlidO671bkLfwbw5XV2P8Pzo0ydy4t2/0eu33xYSOMOD8hTf4CrBtGMSoXfPLchX+J0ruSePw3LZeK0juPJbYzrhkH0io7B3k164hiGvawhOKMLkrQLyVpZg8rHFW7E2uHOL888IBPlNZ1FPzstSJM694fWr6RwpvcJK60+0HCILTBzZLFNdtAzJaohze60T8qBzyh5ZuOg5e7uwQppofEmf2++DYvmySqGBuKaicF1blQjhuHdvCIMvp8whTTfZzI7RldpwtSzL+F1+wkdZ2TBOW2gIF88PBTzD/gpeREAMEbxnJcaJHNHrpzji0gQCS6hdkEeYt9DF/2qPcEC8RM28Hwmr3sdNyht00byAut2k3gufWNtgtOEOFGUwcXWNDbdNbpgBGxEvKkOQsxivJx33iow0Vw5S6SVTrpVq11ysA2Rp7gTfPfktc6zhtXBBC+adRLshf6sG2RfHPZ5EAc4sVZ83yCN00Fk/4kggu40ZTvIEm5g24qtU4KjBrx/BTTH8ifVASAG7gKrnWxJDcU7x8X6Ecczhm3o6YicvsLXWfh3Ch1W0k8x0nXF+0fFxgt4phz8QvypiwCCFKMqXCnqXExjq10beH+UUA7+nG6mdG/Pu0f3LgFcGrl2s0kNNjpmoJ9o4B29CMO8dMT4Q5ox8uitF6fqsrJOr8qnwNbRzv6hSnG5wP+64C7h9lp30hKNtKdWjtdkbuPA19nJ7Tz3zR/ibgARbhb4AlhavcBebmTHcFl2fvYEnW0ox9xMxKBS8btJ+KiEbq9zA4RthQXDhPa0T9TEe69gWupwc6uBUphquXgf+/FrIjweHQS4/pduMe5ERUMHUd9xv8ZR98CxkS4F2n3EUrUZ10EYNw7BWm9x1GiPssi3GgiGRDKWRYZfXlON+dfNbM+GgIwYdwAAAAASUVORK5CYII=',
+                    iconRetinaUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABSCAMAAAAhFXfZAAAC91BMVEVMaXEzeak2f7I4g7g3g7cua5gzeKg8hJo3grY4g7c3grU0gLI2frE0daAubJc2gbQwd6QzeKk2gLMtd5sxdKIua5g1frA2f7IydaM0e6w2fq41fK01eqo3grgubJgta5cxdKI1f7AydaQydaMxc6EubJgvbJkwcZ4ubZkwcJwubZgubJcydqUydKIxapgubJctbJcubZcubJcvbJYubJcvbZkubJctbJctbZcubJg2f7AubJcrbZcubJcubJcua5g3grY0fq8ubJcubJdEkdEwhsw6i88vhswuhcsuhMtBjMgthMsrg8srgss6is8qgcs8i9A9iMYtg8spgcoogMo7hcMngMonf8olfso4gr8kfck5iM8jfMk4iM8he8k1fro7itAgesk2hs8eecgzfLcofssdeMg0hc4cd8g2hcsxeLQbdsgZdcgxeLImfcszhM0vda4xgckzhM4xg84wf8Yxgs4udKsvfcQucqhUndROmdM1fK0wcZ8vb5w0eqpQm9MzeKhXoNVcpdYydKNWn9VZotVKltJFjsIwcJ1Rms9OlslLmtH///8+kc9epdYzd6dbo9VHkMM2f7FHmNBClM8ydqVcpNY9hro3gLM9hLczealQmcw3fa46f7A8gLMxc6I3eagyc6FIldJMl9JSnNRSntNNl9JPnNJFi75UnM9ZodVKksg8kM45jc09e6ZHltFBk883gbRBh7pDk9EwcaBzn784g7dKkcY2i81Om9M7j85Llc81is09g7Q4grY/j9A0eqxKmdFFltBEjcXf6fFImdBCiLxJl9FGlNFBi78yiMxVndEvbpo6js74+vx+psPP3+o/ks5HkcpGmNCjwdZCkNDM3ehYoNJEls+lxNkxh8xHks0+jdC1zd5Lg6r+/v/H2ufz9/o3jM3t8/edvdM/k89Th61OiLBSjbZklbaTt9BfptdjmL1AicBHj8hGk9FAgK1dkLNTjLRekrdClc/k7fM0icy0y9tgp9c4jc2NtM9Dlc8zicxeXZn3AAAAQ3RSTlMAHDdTb4yPA+LtnEQmC4L2EmHqB7XA0d0sr478x4/Yd5i1zOfyPkf1sLVq4Nh3FvjxopQ2/STNuFzUwFIwxKaejILpIBEV9wAABhVJREFUeF6s1NdyFEcY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',
+                    shadowUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACkAAAApCAQAAAACach9AAACMUlEQVR4Ae3ShY7jQBAE0Aoz/f9/HTMzhg1zrdKUrJbdx+Kd2nD8VNudfsL/Th///dyQN2TH6f3y/BGpC379rV+S+qqetBOxImNQXL8JCAr2V4iMQXHGNJxeCfZXhSRBcQMfvkOWUdtfzlLgAENmZDcmo2TVmt8OSM2eXxBp3DjHSMFutqS7SbmemzBiR+xpKCNUIRkdkkYxhAkyGoBvyQFEJEefwSmmvBfJuJ6aKqKWnAkvGZOaZXTUgFqYULWNSHUckZuR1HIIimUExutRxwzOLROIG4vKmCKQt364mIlhSyzAf1m9lHZHJZrlAOMMztRRiKimp/rpdJDc9Awry5xTZCte7FHtuS8wJgeYGrex28xNTd086Dik7vUMscQOa8y4DoGtCCSkAKlNwpgNtphjrC6MIHUkR6YWxxs6Sc5xqn222mmCRFzIt8lEdKx+ikCtg91qS2WpwVfBelJCiQJwvzixfI9cxZQWgiSJelKnwBElKYtDOb2MFbhmUigbReQBV0Cg4+qMXSxXSyGUn4UbF8l+7qdSGnTC0XLCmahIgUHLhLOhpVCtw4CzYXvLQWQbJNmxoCsOKAxSgBJno75avolkRw8iIAFcsdc02e9iyCd8tHwmeSSoKTowIgvscSGZUOA7PuCN5b2BX9mQM7S0wYhMNU74zgsPBj3HU7wguAfnxxjFQGBE6pwN+GjME9zHY7zGp8wVxMShYX9NXvEWD3HbwJf4giO4CFIQxXScH1/TM+04kkBiAAAAAElFTkSuQmCC'
+                });
             }
 
             const modalPhotoGpsFallbackOverlay = document.getElementById('modalPhotoGpsFallbackOverlay');
@@ -130,11 +155,9 @@
 
                 setTimeout(() => {
                     if (!photoGpsMapInstance) {
-                        photoGpsMapInstance = L.map('photoGpsMapEl').setView([centerLat, centerLng], 16);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '&copy; OpenStreetMap'
-                        }).addTo(photoGpsMapInstance);
+                        photoGpsMapInstance = L.map('photoGpsMapEl', { rotate: false, rotateControl: false }).setView([centerLat, centerLng], 16); // opzioni sempre: vedi la mappa del GPS (leaflet-rotate)
+                        // Esri e non OpenStreetMap: OSM blocca le richieste dell'app aperta come file (vedi GPS_MAP_TILE_SOURCES).
+                        L.tileLayer(GPS_MAP_TILE_SOURCES.street.url, GPS_MAP_TILE_SOURCES.street.options).addTo(photoGpsMapInstance);
                         photoGpsMapMarker = L.marker([centerLat, centerLng], { draggable: true }).addTo(photoGpsMapInstance);
                         photoGpsMapInstance.on('click', (e) => { photoGpsMapMarker.setLatLng(e.latlng); });
                     } else {
@@ -158,7 +181,7 @@
             // INPUT SYNC CANTIERE
             // Committente e comune: della prova (li leggono i report) e anche del progetto, perché la
             // card della Home li mostra da lì (Fase 4). Le altre prove tengono i loro valori.
-            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); updateUI(); });
+            if (txtCommittente) txtCommittente.addEventListener('input', (e) => { state.header.committente = e.target.value; scriviDatoProgettoCorrente('committente', e.target.value); propagaDatoProgettoAlleProve('committente', e.target.value); updateUI(); });
             const txtProvincia = document.getElementById('txtProvincia');
             const txtSedeCommittente = document.getElementById('txtSedeCommittente');
             const txtDenominazioneIntervento = document.getElementById('txtDenominazioneIntervento');
@@ -171,6 +194,29 @@
                 proj.updatedAt = Date.now();
                 saveState();
             }
+            /** Un dato del PROGETTO che le prove ripetono nella loro intestazione (committente, comune): cambiandolo
+             * dal gruppo «Del progetto» si aggiorna in tutte le prove. I dati «Di questa prova» (località,
+             * data, numero) restano della prova (richiesta di Romeo, 17/11/2026). */
+            function propagaDatoProgettoAlleProve(chiave, valore) {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[chiave] = valore; });
+                state.header[chiave] = valore;
+                saveState();
+            }
+            /** La località del PROGETTO vale per tutte le prove che la seguono: quelle il cui valore è ancora
+             * quello precedente del progetto (o vuoto) passano al nuovo; quelle cambiate a mano nella singola
+             * prova restano com'erano. */
+            const txtLocalitaProgetto = document.getElementById('txtLocalitaProgetto');
+            if (txtLocalitaProgetto) txtLocalitaProgetto.addEventListener('input', (e) => {
+                const proj = state.projects && state.projects[state.currentProjectId];
+                if (!proj) return;
+                const vecchia = proj.localita || '', nuova = e.target.value;
+                Object.values(proj.surveys || {}).forEach(sv => { if (sv && sv.header && (sv.header.localita || '') === vecchia) sv.header.localita = nuova; });
+                if ((state.header.localita || '') === vecchia) state.header.localita = nuova;
+                proj.localita = nuova; proj.updatedAt = Date.now();
+                saveState(); updateUI();
+            });
             const txtNomeProgetto = document.getElementById('txtNomeProgetto');
             // Un nome vuoto non si salva: il progetto resterebbe senza nome in Home e nei file.
             if (txtNomeProgetto) txtNomeProgetto.addEventListener('input', (e) => {
@@ -182,7 +228,7 @@
             if (txtProvincia) txtProvincia.addEventListener('input', (e) => scriviDatoProgettoCorrente('provincia', e.target.value));
             if (txtSedeCommittente) txtSedeCommittente.addEventListener('input', (e) => scriviDatoProgettoCorrente('sedeCommittente', e.target.value));
             if (txtDenominazioneIntervento) txtDenominazioneIntervento.addEventListener('input', (e) => scriviDatoProgettoCorrente('denominazioneIntervento', e.target.value));
-            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); updateUI(); });
+            if (txtComune) txtComune.addEventListener('input', (e) => { state.header.comune = e.target.value; scriviDatoProgettoCorrente('comune', e.target.value); propagaDatoProgettoAlleProve('comune', e.target.value); updateUI(); });
             if (txtLocalita) txtLocalita.addEventListener('input', (e) => { state.header.localita = e.target.value; updateUI(); saveState(); });
             if (txtDataIndagine) txtDataIndagine.addEventListener('change', (e) => { state.header.date = e.target.value; updateUI(); saveState(); });
             if (txtProvaNr) txtProvaNr.addEventListener('input', (e) => {
@@ -254,11 +300,11 @@
                     if (!delCantiere) {
                         lblLivello.textContent = 'Questo valore vale solo per la prova aperta.';
                     } else if (forzato && Math.abs(forzato - delCantiere) < 1e-9) {
-                        lblLivello.textContent = 'Valore dichiarato per tutto il cantiere (' + fmtIT(delCantiere, 3) + '): lo adottano anche le prove create d\'ora in poi.';
+                        lblLivello.textContent = 'Valore dichiarato per tutto il progetto (' + fmtIT(delCantiere, 3) + '): lo adottano anche le prove create d\'ora in poi.';
                     } else {
                         // Il caso che merita di essere detto: questa prova si e' staccata dal
                         // resto del cantiere. Senza scriverlo, resterebbe una divergenza muta.
-                        lblLivello.textContent = 'Attenzione: il cantiere dichiara ' + fmtIT(delCantiere, 3) + ', questa prova usa un valore diverso.';
+                        lblLivello.textContent = 'Attenzione: il progetto dichiara ' + fmtIT(delCantiere, 3) + ', questa prova usa un valore diverso.';
                     }
                 }
             }
@@ -293,7 +339,7 @@
                     const v = parseFloat(numBetaTForzato && numBetaTForzato.value);
                     if (!proj || !isFinite(v) || v <= 0) return;
                     const quante = Object.keys(proj.surveys || {}).length;
-                    const ok = await appConfirm(`Imporre \u03b2t = ${fmtIT(v, 3)} a tutte le ${quante} prove di questo cantiere?\n\nOgni prova che ne aveva uno suo verra\u0300 allineata, e le prove create d'ora in poi partiranno da questo valore.`);
+                    const ok = await appConfirm(`Imporre \u03b2t = ${fmtIT(v, 3)} a tutte le ${quante} prove di questo progetto?\n\nOgni prova che ne aveva uno suo verra\u0300 allineata, e le prove create d'ora in poi partiranno da questo valore.`);
                     if (!ok) return;
                     proj.betaTForzato = v;
                     Object.values(proj.surveys || {}).forEach(surv => {
@@ -324,6 +370,17 @@
             // MENTRE si digita, altrimenti resta la situazione di prima (cambiare alla cieca).
             [numPesoMassa, numPesoAsta, numVolata, numAreaPunta, numPesoSistema].forEach(campo => {
                 if (campo) campo.addEventListener('input', aggiornaPannelloBetaT);
+            });
+            // Zero o negativo non sono valori fisici: nei calcoli (βt, Rpd) si usa il valore standard
+            // (regola in parametriStrumento, 015). Lo si dice all'uscita dal campo, non a ogni tasto.
+            [numPesoMassa, numPesoAsta, numVolata, numAreaPunta, numPesoSistema].forEach(campo => {
+                if (!campo) return;
+                campo.addEventListener('change', () => {
+                    const v = parseFloat(campo.value);
+                    if (campo.value !== '' && !(v > 0) && typeof mostraToast === 'function') {
+                        mostraToast('Valore non valido: nei calcoli si usa il valore standard dello strumento');
+                    }
+                });
             });
 
             // DRAWER HANDLERS
@@ -356,7 +413,7 @@
             // Impostazioni generale, e non esiste alcuna scorciatoia per aprirla da Home (dove non
             // c'è una prova specifica a cui riferirli).
             // L'intestazione è la linguetta «Dati» della scheda della prova (Fase 4).
-            function openCantiereInfoModal() { openSurveySettingsModal(state.currentSurveyId, 'dati'); }
+            function openCantiereInfoModal() { apriDatiProgetto(); }
             function closeCantiereInfoModal() { closeSurveySettingsModal(); }
 
             if (btnHamburger) btnHamburger.addEventListener('click', openDrawer);
@@ -561,7 +618,7 @@
                     try {
                         const imported = JSON.parse(e.target.result);
                         if (!imported || (!imported.state && !imported.projects)) {
-                            alert('Il file selezionato non è un backup valido di DPSH Field Collector!');
+                            alert('Il file selezionato non è un backup valido di DPSH Field Collector.');
                             return;
                         }
 
@@ -574,8 +631,9 @@
                         // Controllo di integrità su ciò che arriva (004c): si dice alla fine, non blocca.
                         const integrita = verificaIntegrita({ projects: targetState.projects || {} }, { correggi: true });
                         if (await appConfirm('IMPORTAZIONE ARCHIVIO\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
-                            // L'unione sovrascrive i progetti con lo stesso id: prima una copia.
-                            copiaPrimaDi('importare un archivio');
+                            // Niente si sostituisce (i progetti con lo stesso id entrano come copia), ma la
+                            // copia prima di toccare l'archivio si fa lo stesso, e si aspetta.
+                            if (!await copiaOChiedi('importare un archivio')) return;
                             registraCorrezioni(state, integrita.correzioni, 'import');
                             let sostituiti = 0, fotoAssenti = 0;
                             const promesseFoto = [];
@@ -594,29 +652,44 @@
                             }, targetState.projects || {}, { tutte: true, etichetta: 'da backup' });
                             if (targetState.projects) {
                                 if (!state.projects) state.projects = {};
-                                const idsSostituiti = Object.keys(targetState.projects).filter(id => state.projects[id]);
-                                sostituiti = idsSostituiti.length;
-                                // Le foto e le immagini delle note del file vanno in IndexedDB, come negli
-                                // altri import: prima restavano solo in memoria e sparivano al riavvio.
-                                Object.values(targetState.projects).forEach(p => { fotoAssenti += salvaImmaginiImportate(p, promesseFoto).assenti; });
-                                Object.assign(state.projects, targetState.projects);
-                                // Un progetto arrivato dal file porta la sua data di modifica: metterlo al
-                                // posto di quello di qui non è una modifica fatta qui (vedi 004e).
-                                Object.keys(targetState.projects).forEach(accettaContenutoProgetto);
-                                // Se il progetto aperto è stato sostituito, lo stato attivo va ricaricato:
-                                // il primo salvataggio rimetterebbe dentro la prova di prima.
-                                riallineaProgettoAperto(idsSostituiti);
+                                // Stessa regola dello ZIP e di importProjectsFromJSON: un progetto con lo
+                                // stesso id di uno già qui NON lo sostituisce, entra come copia con id nuovo e
+                                // «(Importato)» nel nome. Anche l'id «__proto__» (valido in JSON.parse) prende
+                                // un id nuovo: assegnarlo a state.projects ne cambierebbe il prototipo.
+                                // Le librerie sono già state accolte sopra, che sanno i progetti per id del file.
+                                const giaQui = (id) => id === '__proto__' || Object.prototype.hasOwnProperty.call(state.projects, id);
+                                const entrati = [];
+                                Object.keys(targetState.projects).forEach((origId, n) => {
+                                    const incoming = targetState.projects[origId];
+                                    if (!incoming || typeof incoming !== 'object') return;
+                                    let targetId = origId;
+                                    if (giaQui(targetId)) {
+                                        targetId = `PROJ_IMPORT_${Date.now()}_${n}`;
+                                        incoming.id = targetId;
+                                        incoming.name = (incoming.name || incoming.comune || 'Progetto') + ' (Importato)';
+                                        rinnovaIdProve(incoming); // come nel Duplica: le foto restano condivise, le prove no
+                                        sostituiti++;
+                                    }
+                                    // Le foto e le immagini delle note del file vanno in IndexedDB, come negli
+                                    // altri import, senza sovrascrivere quelle di qui con lo stesso id.
+                                    fotoAssenti += salvaImmaginiImportate(incoming, promesseFoto).assenti;
+                                    state.projects[targetId] = incoming;
+                                    entrati.push(targetId);
+                                });
+                                // Un progetto arrivato dal file porta la sua data di modifica: metterlo
+                                // nell'archivio non è una modifica fatta qui (vedi 004e).
+                                entrati.forEach(accettaContenutoProgetto);
                             }
                             const archImportMsg = testoLibrerieAccolte(librerie);
                             saveState();
                             controllaFotoImportate(promesseFoto);
                             updateUI();
                             if (state.uiState && state.uiState.currentView === 'home') switchView('home');
-                            // L'unione SOSTITUISCE i progetti con lo stesso id: va detto, non solo fatto.
+                            // Le copie rinominate vanno dette: chi importa deve sapere che ci sono due progetti.
                             const sostituitiMsg = sostituiti > 0
-                                ? `\n\n${sostituiti === 1 ? '1 progetto aveva' : sostituiti + ' progetti avevano'} lo stesso id di uno già presente ed è stato sostituito da quello del file. La versione di prima è nella Cronologia (copie automatiche).`
+                                ? `\n\n${sostituiti === 1 ? '1 progetto aveva' : sostituiti + ' progetti avevano'} lo stesso id di uno già presente: ${sostituiti === 1 ? 'è entrato' : 'sono entrati'} come copia separata, con «(Importato)» nel nome. Quello di prima non è stato toccato.`
                                 : '';
-                            // Senza niente da aggiungere è una conferma: toast. Con sostituzioni, foto
+                            // Senza niente da aggiungere è una conferma: toast. Con copie rinominate, foto
                             // assenti, anomalie o librerie accolte resta un dialogo da leggere.
                             toastODialogo('Archivio importato con successo', archImportMsg + sostituitiMsg + testoFotoAssentiNelFile(fotoAssenti) + testoAnomalieImportate(integrita.anomalie));
                             triggerVibrate([50, 50, 50]);
@@ -637,7 +710,7 @@
                     if (!await appConfirm('IMPORTAZIONE ARCHIVIO (ZIP)\n\nDesideri unire i progetti importati a quelli esistenti?\n\n- Premendo OK: I nuovi progetti verranno aggiunti all\'archivio senza cancellare i dati attuali.')) {
                         return;
                     }
-                    copiaPrimaDi('importare un archivio');
+                    if (!await copiaOChiedi('importare un archivio')) return;
                     const { importedCount, renamedCount, fotoAssenti, anomalie } = await importProjectsFromZip(file);
                     updateUI();
                     if (state.uiState && state.uiState.currentView === 'home' && typeof switchView === 'function') switchView('home');
@@ -722,7 +795,14 @@
                 if (state.settings.wakeLock) requestWakeLock();
                 saveState(); 
             });
-            if (chkDarkMode) chkDarkMode.addEventListener('change', (e) => { state.settings.darkMode = e.target.checked; updateUI(); saveState(); });
+            if (chkDarkMode) chkDarkMode.addEventListener('change', (e) => {
+                // La scelta si scrive subito; dove il browser lo sa fare il disegno passa al nuovo
+                // tema con una dissolvenza (il passaggio parte un istante dopo).
+                state.settings.darkMode = e.target.checked;
+                saveState();
+                const cambia = () => { updateUI(); syncThemeToggleLabel(); };
+                if (document.startViewTransition) document.startViewTransition(cambia); else cambia();
+            });
 
             // (La «Modalità Espansa» non c'è più: il tasto Registra è visibile di default e si
             // nasconde dal contatore; «Annulla ultimo» sta nel ⋯ della prova e nel toast. Fase 3.)
@@ -767,16 +847,17 @@
             // EXPORT EXCEL GENERATOR PROFESSIONALE CON GRAFICO E FORMATTAZIONE (.xlsx)
             if (btnExportExcel) btnExportExcel.addEventListener('click', () => {
                 if (state.logs.length === 0) {
-                    alert('Nessun dato da esportare!');
+                    alert('Nessun dato da esportare.');
                     return;
                 }
 
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
+                // Parametri e formula Rpd: unica fonte in 015 (parametriStrumento / rpdDiLog).
+                const parStrum = parametriStrumento(state.instrument, state.settings.stepCm);
+                const M = parStrum.M;
+                const A = parStrum.A;
+                const deltaS = parStrum.s;
+                const pesoAsta = parStrum.pesoAsta;
+                const pesoSistema = parStrum.pesoSistema;
                 const maxColpiInLogs = Math.max(...state.logs.map(l => l.colpi), 1);
 
                 // --- FOGLIO 1: REGISTRO E PROFILO COLPI ---
@@ -787,7 +868,7 @@
                     ["1. DATI CANTIERE & INDAGINE", "", "", "2. STRUMENTO & GEOMETRIA", "", "", ""],
                     ["Committente / Cliente:", state.header.committente || 'Non specificato', "", "Penetrometro:", state.settings.penetrometer || 'DPSH (63.5kg)', "", ""],
                     ["Comune:", state.header.comune || 'Non specificato', "", "Massa Battente (M):", `${M} kg`, "", ""],
-                    ["Località / Indirizzo:", state.header.localita || 'Non specificata', "", "Altezza Caduta (H):", `${state.instrument.volata || 0.75} m`, "", ""],
+                    ["Località / Indirizzo:", state.header.localita || 'Non specificata', "", "Altezza Caduta (H):", `${parStrum.volataM} m`, "", ""],
                     ["Data Esecuzione:", state.header.date || new Date().toISOString().split('T')[0], "", "Passo Avanzamento (Δs):", `${deltaS} cm`, "", ""],
                     ["Prova N°:", state.header.provaNr || '1', "", "Area Punta (A):", `${A} cm²`, "", ""],
                     ["Coordinate GPS:", state.header.lat ? `${state.header.lat.toFixed(5)}°, ${state.header.lng.toFixed(5)}°` : 'Non acquisite', "", "Angolo Punta (α):", `${state.instrument.angoloPunta || 90}°`, "", ""],
@@ -799,12 +880,11 @@
 
                 let totalBlows = 0;
 
-                state.logs.forEach(log => {
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     totalBlows += log.colpi;
-                    const M_prime = (log.asta * pesoAsta) + pesoSistema;
                     let rpdVal = "-";
                     if (log.colpi > 0) {
-                        const rpd = (M * M * H * log.colpi) / (A * deltaS * (M + M_prime));
+                        const rpd = rpdDiLog(log, state.instrument, deltaS);
                         rpdVal = parseFloat(rpd.toFixed(2));
                     }
 
@@ -832,17 +912,17 @@
                 // --- FOGLIO 2: DIAGRAMMA GRAFICO PROFILO PENETROMETRICO ---
                 const chartSheetData = [
                     ["DIAGRAMMA PROFILO PENETROMETRICO DINAMICO"],
-                    [`Prova N° ${state.header.provaNr || '1'} - ${state.header.comune || 'Cantiere'}`],
+                    [`Prova N° ${state.header.provaNr || '1'} - ${state.header.comune || 'Progetto'}`],
                     [""],
                     ["Profondità (m)", `Resistenza Colpi N${deltaS}`, "Grafico Profilo"]
                 ];
 
                 state.logs.forEach(log => {
                     const barLen = Math.min(40, Math.max(1, Math.round((log.colpi / maxColpiInLogs) * 35)));
-                    const chartBar = '▓'.repeat(barLen) + ` N=${log.colpi}`;
+                    const chartBar = '▓'.repeat(barLen) + (intervalloSoloGrafico(log) ? ' Rifiuto' : ` N=${log.colpi}`);
                     chartSheetData.push([
                         `${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m`,
-                        log.colpi,
+                        intervalloSoloGrafico(log) ? 'Rifiuto' : log.colpi,
                         chartBar
                     ]);
                 });
@@ -872,7 +952,7 @@
                     ];
                     XLSX.utils.book_append_sheet(wb, ws2, "Diagramma_Profilo");
                     
-                    const fileName = `DPSH_Prova_${state.header.provaNr || '1'}_${state.header.comune || 'Cantiere'}.xlsx`;
+                    const fileName = `DPSH_Prova_${state.header.provaNr || '1'}_${state.header.comune || 'Progetto'}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                 } else {
                     exportCsvFallback();
@@ -891,18 +971,18 @@
                 csvContent += `Falda_m:,${state.header.faldaDa || ''} - ${state.header.faldaA || ''}\n\n`;
                 csvContent += `Profondita_Da_m,Profondita_A_m,Colpi_N${state.settings.stepCm},Asta,Rpd_kg_cm2,Note\n`;
 
-                const M = parseFloat(state.instrument.pesoMassa || 63.50);
-                const H = parseFloat(state.instrument.volata || 0.75) * 100;
-                const A = parseFloat(state.instrument.areaPunta || 20);
-                const deltaS = parseFloat(state.settings.stepCm || 20);
-                const pesoAsta = parseFloat(state.instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(state.instrument.pesoSistema || 8.00);
+                // Parametri e formula Rpd: unica fonte in 015 (parametriStrumento / rpdDiLog).
+                const parStrum = parametriStrumento(state.instrument, state.settings.stepCm);
+                const M = parStrum.M;
+                const A = parStrum.A;
+                const deltaS = parStrum.s;
+                const pesoAsta = parStrum.pesoAsta;
+                const pesoSistema = parStrum.pesoSistema;
 
-                state.logs.forEach(log => {
-                    const M_prime = (log.asta * pesoAsta) + pesoSistema;
+                state.logs.filter(l => !intervalloSoloGrafico(l)).forEach(log => {
                     let rpdVal = "-";
                     if (log.colpi > 0) {
-                        rpdVal = ((M * M * H * log.colpi) / (A * deltaS * (M + M_prime))).toFixed(2);
+                        rpdVal = rpdDiLog(log, state.instrument, deltaS).toFixed(2);
                     }
                     csvContent += `${log.start.toFixed(2)},${log.end.toFixed(2)},${log.colpi},${log.asta},${rpdVal},"${log.note}"\n`;
                 });
@@ -919,6 +999,10 @@
 
             // Inizializzazione
             loadState();
+            // Le preferenze salvate vanno riapplicate ora: le funzioni in 003 e 004 girano prima di
+            // loadState() e da sole leggerebbero uno stato ancora vuoto.
+            if (typeof applyGloveMode === 'function') applyGloveMode();
+            if (typeof applyDebugMode === 'function') applyDebugMode();
             requestWakeLock();
 
             // Schermata iniziale SEMPRE la Home View.
@@ -929,4 +1013,4 @@
             // con la call-to-action corretta: creare o importare un Progetto Cantiere.
             switchView('home');
 
-        })();
+

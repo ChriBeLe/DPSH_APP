@@ -12,17 +12,43 @@
                 return { faldaDa: Number.isNaN(da) ? Infinity : da, faldaA: Number.isNaN(a) ? Infinity : a };
             }
 
-            /** Fattore di conversione colpi DPSH -> Nspt equivalente, specifico dello strumento/passo di questa prova. */
+            /** UNICA fonte dei parametri dello strumento per βt e Rpd (prima la formula era scritta
+             * in 4 posti con varianti). Regola scelta, uguale ovunque: un parametro vuoto, non
+             * numerico, zero o negativo NON e' un valore fisico valido (una massa di 0 kg non esiste)
+             * e viene sostituito dal valore standard DPSH. La sostituzione non e' silenziosa:
+             * `sostituiti` elenca i campi toccati, cosi' l'interfaccia puo' avvisare.
+             * Per valori validi il risultato e' identico a prima, cifra per cifra. */
+            function parametriStrumento(instrument, stepCm){
+                const STANDARD = { pesoMassa: 63.50, volata: 0.75, areaPunta: 20, pesoAsta: 6.30, pesoSistema: 8.00 };
+                const inst = instrument || {};
+                const sostituiti = [];
+                const leggi = (campo) => {
+                    const v = parseFloat(inst[campo]);
+                    if (isFinite(v) && v > 0) return v;
+                    // Un campo mai compilato (undefined/'') non e' una sostituzione da segnalare.
+                    if (inst[campo] !== undefined && inst[campo] !== null && inst[campo] !== '') sostituiti.push(campo);
+                    return STANDARD[campo];
+                };
+                const passo = parseFloat(stepCm);
+                const volataM = leggi('volata');
+                return {
+                    M: leggi('pesoMassa'),
+                    volataM,
+                    H: volataM * 100,
+                    A: leggi('areaPunta'),
+                    s: (isFinite(passo) && passo > 0) ? passo : 20,
+                    pesoAsta: leggi('pesoAsta'),
+                    pesoSistema: leggi('pesoSistema'),
+                    sostituiti
+                };
+            }
+
             /** Il coefficiente CALCOLATO dai parametri fisici dello strumento. Sempre disponibile,
              * anche quando ne e' imposto un altro: il confronto tra i due e' l'unica cosa che
              * rende visibile una divergenza invece di lasciarla implicita. */
             function betaTCalcolato(instrument, stepCm){
-                const M = parseFloat(instrument.pesoMassa || 63.50);
-                const H = parseFloat(instrument.volata || 0.75) * 100;
-                const A = parseFloat(instrument.areaPunta || 20);
-                const s = parseFloat(stepCm || 20);
-                const pesoAsta = parseFloat(instrument.pesoAsta || 6.30);
-                return (M * M * H) / (A * s * (M + pesoAsta)) / 7.2;
+                const p = parametriStrumento(instrument, stepCm);
+                return (p.M * p.M * p.H) / (p.A * p.s * (p.M + p.pesoAsta)) / 7.2;
             }
 
             function betaTStrumento(instrument, stepCm){
@@ -32,31 +58,26 @@
                     const forzato = parseFloat(instrument.betaTForzato);
                     if (isFinite(forzato) && forzato > 0) return forzato;
                 }
-                const M = parseFloat(instrument.pesoMassa || 63.50);
-                const H = parseFloat(instrument.volata || 0.75) * 100;
-                const A = parseFloat(instrument.areaPunta || 20);
-                const s = parseFloat(stepCm || 20);
-                const pesoAsta = parseFloat(instrument.pesoAsta || 6.30);
-                return (M * M * H) / (A * s * (M + pesoAsta)) / 7.2;
+                return betaTCalcolato(instrument, stepCm);
             }
 
-            /** Rpd di un singolo intervallo (formula olandese, identica a quella già usata altrove in Modulo 1). */
-            function rpdDiLog(log, instrument, stepCm){
-                const M = parseFloat(instrument.pesoMassa || 63.50);
-                const H = parseFloat(instrument.volata || 0.75) * 100;
-                const A = parseFloat(instrument.areaPunta || 20);
-                const s = parseFloat(stepCm || 20);
-                const pesoAsta = parseFloat(instrument.pesoAsta || 6.30);
-                const pesoSistema = parseFloat(instrument.pesoSistema || 8.00);
-                const Mprime = (log.asta * pesoAsta) + pesoSistema;
+            /** Rpd di un singolo intervallo (formula olandese, identica a quella già usata altrove in Modulo 1).
+             * `astaNr` (facoltativo) sostituisce log.asta quando il log non lo porta (export di progetto). */
+            function rpdDiLog(log, instrument, stepCm, astaNr){
+                const p = parametriStrumento(instrument, stepCm);
+                const asta = (astaNr !== undefined) ? astaNr : log.asta;
+                const Mprime = (asta * p.pesoAsta) + p.pesoSistema;
                 if(!log.colpi || log.colpi <= 0) return 0;
-                return (M * M * H * log.colpi) / (A * s * (M + Mprime));
+                return (p.M * p.M * p.H * log.colpi) / (p.A * p.s * (p.M + Mprime));
             }
 
             /** Nspt grezzo e Nspt' (falda-corretto) di un singolo intervallo. */
             function nsptDiLog(log, betaT, falda){
                 const nsptGrezzo = betaT * (log.colpi || 0);
-                const finiscePoiFalda = log.end >= falda.faldaDa && log.end <= falda.faldaA;
+                // Confronto al millimetro (004d): un intervallo che finisce a «2,00» salvato come
+                // 1,9999999999999998 deve ricevere la correzione come quello salvato 2.
+                const fine = profonditaAlMillimetro(log.end);
+                const finiscePoiFalda = fine >= profonditaAlMillimetro(falda.faldaDa) && fine <= profonditaAlMillimetro(falda.faldaA);
                 const nsptFalda = (finiscePoiFalda && nsptGrezzo > 15) ? 15 + 0.5 * (nsptGrezzo - 15) : nsptGrezzo;
                 return { nsptGrezzo, nsptFalda };
             }
@@ -70,6 +91,11 @@
                     if (logsArr[i].lithology) currentLitId = logsArr[i].lithology;
                 }
                 return stratiArr.find(s => s.id === currentLitId) || stratiArr[0];
+            }
+            /** Intervallo con nota «Rifiuto» che l'utente ha scelto di non considerare: resta nel
+             * grafico (con la scritta «Rifiuto»), ma esce da tabelle, totali e calcoli. */
+            function intervalloSoloGrafico(log){
+                return !!(log && log.rifiutoSoloGrafico && /rifiuto/i.test(log.note || ''));
             }
             function getLogsPerStratoIn(stratoId, logsArr, stratiArr){
                 if(!logsArr || logsArr.length === 0) return [];
@@ -89,7 +115,7 @@
                 const betaT = betaTStrumento(instrument, stepCm);
                 const risultati = [];
                 for(const strato of stratiArr){
-                    const logsStrato = getLogsPerStratoIn(strato.id, logsArr, stratiArr);
+                    const logsStrato = getLogsPerStratoIn(strato.id, logsArr, stratiArr).filter(l => !intervalloSoloGrafico(l));
                     if(logsStrato.length === 0) continue;
                     let sommaGrezzo=0, sommaFalda=0, sommaRpd=0;
                     let profonditaDa=Infinity, profonditaA=-Infinity;
