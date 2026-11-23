@@ -63,6 +63,30 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
     t('trascinare la bolla non apre/chiude il pannello', $('aiPannello').classList.contains('aperto') === apertoPrima);
     t('la posizione della bolla è salvata', !!JSON.parse(app.E('localStorage.getItem("DPSH_AI_POS_V1")')).bolla && b.style.left !== '');
   }
+  // bolla magnetica: calcolo del bordo e posizione salvata
+  { const S = o => app.E(`aiSnap(${JSON.stringify(o)})`);
+    const base = { w: 52, h: 52, vw: 400, vh: 800, inset: { t: 50, b: 30, l: 0, r: 0 } };
+    const a = S({ ...base, x: 100, y: 300 }), b = S({ ...base, x: 250, y: 300 });
+    t('snap: sinistra se nella metà sinistra', a.lato === 's' && a.x === 6 && a.y === 300);
+    t('snap: destra se nella metà destra', b.lato === 'd' && b.x === 400 - 52 - 6);
+    t('snap: resta sotto la barra in alto', S({ ...base, x: 0, y: -50 }).y === 56);
+    t('snap: resta sopra la barra in basso', S({ ...base, x: 0, y: 5000 }).y === 800 - 52 - 30 - 6);
+    t('snap: rispetta il notch laterale', S({ ...base, inset: { t: 0, b: 0, l: 40, r: 0 }, x: 0, y: 100 }).x === 46);
+    const pos = JSON.parse(app.E('localStorage.getItem("DPSH_AI_POS_V1")')).bolla;
+    t('la bolla salvata è attaccata a un bordo', (pos.lato === 's' && pos.x === 6) || (pos.lato === 'd' && pos.x > 300));
+  }
+  // suggerimenti calcolati in locale
+  { const G = c => app.E(`aiSuggerimenti(${JSON.stringify(c)})`).map(s => s.id);
+    const v = { vista: 'field', progettoId: 'p', provaId: 's1', nProgetti: 1, haProgetto: true, haProva: true, gps: true, strati: 2, intervalli: 5, senzaGps: [], backup: null };
+    t('prova completa: solo esporta', JSON.stringify(G(v)) === '["esporta"]');
+    t('prova senza GPS e strati: li propone per primi', JSON.stringify(G({ ...v, gps: false, strati: 0 })) === '["gps","strati","esporta"]');
+    t('GPS mancante su altre prove: conteggio nel testo', app.E(`aiSuggerimenti(${JSON.stringify({ ...v, senzaGps: ['s1', 'a', 'b', 'c'] })})`).find(s => s.id === 'gps-prove').testo === 'Aggiungi GPS a 3 prove');
+    t('mai più di 3 suggerimenti', G({ ...v, gps: false, strati: 0, intervalli: 0, senzaGps: ['x'], backup: { mai: true } }).length === 3);
+    t('home vuota: crea il progetto', JSON.stringify(G({ vista: 'home', nProgetti: 0, senzaGps: [] })) === '["nuovo"]');
+    t('home con backup vecchio: propone il backup', G({ vista: 'home', nProgetti: 2, senzaGps: [], backup: { mai: false } })[0] === 'backup');
+    const cx = app.E('aiContesto()');
+    t('contesto letto dall\'app', cx.vista === 'home' || typeof cx.vista === 'string');
+  }
   const arch = JSON.parse(app.E('localStorage.getItem("DPSH_AI_CRONO_V1")'));
   const pidBari = app.E('state.currentProjectId');
   t('cronologia salvata per progetto, senza chiavi', arch[pidBari] && arch[pidBari][0].titolo.includes('Bari') && !JSON.stringify(arch).includes('k1'));
@@ -113,6 +137,8 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const rosso = pan.querySelectorAll('.ai-conferma .si'); rosso[rosso.length - 1].click();
   await pr;
   t('dopo la seconda conferma elimina un intervallo', app2.E('state.logs.length') === nPrima - 1);
+  { const cx = app2.E('aiContesto()'); t('contesto: prove senza GPS contate sul progetto', Array.isArray(cx.senzaGps) && cx.haProgetto);
+    const r = app2.E('aiCfg.attivo = true, aiRinfresca(true), document.querySelectorAll("#aiPannello .ai-sug").length'); t('chip dei suggerimenti nel pannello', r >= 1 && r <= 3); }
   // guidare la schermata: aprire Impostazioni, leggere i controlli, premere/compilare
   app2.E('openDrawer()'); await attesa(100);
   const sch = T('leggi_schermata');

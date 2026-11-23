@@ -575,8 +575,9 @@
             aiBtnNuova.onclick = () => { if (!aiOccupato) { aiSaluto(); aiAggiornaTesta(); } };
             const aiApri = su => {
                 aiPannello.classList.toggle('aperto', su);
+                aiBollaAssesta();
                 if (!su) return;
-                aiPosizionaPannello();
+                aiPosizionaPannello(); aiRinfresca(true);
                 const pid = aiPidAtt();
                 if (!aiChatAtt || aiChatAtt.pid !== pid) { const ultima = (aiArchivio[pid] || [])[0]; if (ultima) aiMostraChat(ultima); else aiSaluto(); }
                 aiAggiornaTesta();
@@ -584,7 +585,8 @@
                 setTimeout(() => aiCampo.focus(), 50);
             };
             aiBolla.onclick = () => { if (aiDopoTrascina) return; aiApri(!aiPannello.classList.contains('aperto')); };
-            // POSIZIONE LIBERA: bolla e pannello si trascinano (puntatore o dito) e la posizione si ricorda.
+            // POSIZIONE LIBERA: il pannello si trascina dalla testa; la bolla si trascina e si «attacca» al bordo
+            // sinistro o destro (molla con un po' di rimbalzo). Posizione ricordata sul dispositivo.
             const AI_POS_CHIAVE = 'DPSH_AI_POS_V1';
             let aiPos = {};
             try { const g = JSON.parse(localStorage.getItem(AI_POS_CHIAVE) || 'null'); if (g && typeof g === 'object') aiPos = g; } catch (e) { /* senza posizione salvata */ }
@@ -609,19 +611,196 @@
                     addEventListener('pointermove', muovi); addEventListener('pointerup', fine); addEventListener('pointercancel', fine);
                 });
             }
-            aiRendiTrascinabile(aiBolla, aiBolla, 'bolla');
             aiRendiTrascinabile(aiPannello, aiTesta, 'pannello');
             aiTesta.classList.add('ai-presa');
+
+            // --- bolla magnetica e «gommosa» ---
+            // Calcolo puro: dato il rettangolo della bolla, lo schermo e i margini sicuri, dice da che lato
+            // si attacca (s = sinistra, d = destra) e dove si ferma (x, y a bolla intera, mai sotto barre o notch).
+            const AI_MARGINE = 6, AI_NASCOSTA = 0.42;
+            function aiSnap(p) {
+                const w = p.w || 52, h = p.h || 52, ins = p.inset || {}, m = p.margine == null ? AI_MARGINE : p.margine;
+                const l = ins.l || 0, r = ins.r || 0, t = ins.t || 0, b = ins.b || 0;
+                const lato = p.x + w / 2 < p.vw / 2 ? 's' : 'd';
+                const x = lato === 's' ? l + m : p.vw - w - r - m;
+                const yMin = t + m, yMax = Math.max(yMin, p.vh - h - b - m);
+                return { lato, x, y: Math.max(yMin, Math.min(yMax, p.y)) };
+            }
+            const aiRidotto = () => { try { return !!(matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } };
+            const aiGoo = aiEl('span', 'ai-goo'); aiGoo.setAttribute('aria-hidden', 'true');
+            const aiNumBolla = aiEl('span', 'ai-bolla-n'); aiNumBolla.setAttribute('aria-hidden', 'true');
+            aiBolla.append(aiGoo, aiNumBolla);
+            const aiB = { lato: 'd', lx: 0, ly: 0, ox: 0, oy: 0, vx: 0, vy: 0, trasc: false, raf: 0, ult: 0, px: 0, py: 0, ins: null };
+            // Margini sicuri: notch/barra di sistema (env) e barre fisse dell'app in alto e in basso. Misurati solo a fine trascinamento.
+            function aiMargini() {
+                const ins = { t: 0, b: 0, l: 0, r: 0 };
+                try {
+                    const s = document.createElement('div'); s.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+                    document.body.appendChild(s); const cs = getComputedStyle(s);
+                    ins.t = parseFloat(cs.paddingTop) || 0; ins.r = parseFloat(cs.paddingRight) || 0; ins.b = parseFloat(cs.paddingBottom) || 0; ins.l = parseFloat(cs.paddingLeft) || 0; s.remove();
+                    document.querySelectorAll('.pc-barra, .pc-stato').forEach(e => {
+                        const r = e.getBoundingClientRect(); if (!r.width || !r.height || r.height > innerHeight / 3) return;
+                        if (r.top <= 1) ins.t = Math.max(ins.t, r.bottom); else if (r.bottom >= innerHeight - 1) ins.b = Math.max(ins.b, innerHeight - r.top);
+                    });
+                } catch (e) { /* senza misure si usano i margini minimi */ }
+                return ins;
+            }
+            const aiBVisibile = () => !aiPannello.classList.contains('aperto') && !aiB.trasc;
+            const aiBTargetX = () => aiBVisibile() ? (aiB.lato === 's' ? -1 : 1) * AI_NASCOSTA * (aiBolla.offsetWidth || 52) : 0;
+            // Disegno: SOLO transform e opacity. Si allunga lungo la velocità, si schiaccia di lato, si «scioglie» sul bordo.
+            function aiBDisegna() {
+                const tx = aiBTargetX(), w = aiBolla.offsetWidth || 52, ridotto = aiRidotto();
+                let tr = 'translate3d(' + aiB.ox.toFixed(1) + 'px,' + aiB.oy.toFixed(1) + 'px,0)', g = 0;
+                if (!ridotto) {
+                    const v = Math.hypot(aiB.vx, aiB.vy), st = Math.min(0.32, v / 3200), a = Math.atan2(aiB.vy, aiB.vx);
+                    const lungo = (aiB.lato === 's' ? -aiB.ox : aiB.ox) / w; // >0 verso il bordo (nascosta o in rimbalzo contro il muro)
+                    const bordo = Math.max(0, Math.min(1, lungo / AI_NASCOSTA));
+                    g = bordo;
+                    tr += ' scale(' + (1 - 0.1 * bordo).toFixed(3) + ',' + (1 + 0.06 * bordo).toFixed(3) + ')';
+                    if (st > 0.01) tr += ' rotate(' + a.toFixed(3) + 'rad) scale(' + (1 + st).toFixed(3) + ',' + (1 / (1 + st)).toFixed(3) + ') rotate(' + (-a).toFixed(3) + 'rad)';
+                }
+                aiBolla.style.transform = tr;
+                aiGoo.style.opacity = g.toFixed(2);
+                aiGoo.style.transform = 'scale(' + (0.4 + 0.6 * g).toFixed(2) + ',' + (0.7 + 0.5 * g).toFixed(2) + ')';
+                return tx;
+            }
+            function aiBTick(t) {
+                aiB.raf = 0;
+                const dt = Math.min(0.032, Math.max(0.001, (t - (aiB.ult || t - 16)) / 1000)); aiB.ult = t;
+                let vivo = false;
+                if (aiB.trasc) {
+                    const nx = aiB.px - aiB.lx, ny = aiB.py - aiB.ly, k = Math.min(1, dt * 14);
+                    aiB.vx += ((nx - aiB.ox) / dt - aiB.vx) * k; aiB.vy += ((ny - aiB.oy) / dt - aiB.vy) * k; aiB.ox = nx; aiB.oy = ny; vivo = true;
+                } else {
+                    const tx = aiBTargetX(), K = 260, C = 17;
+                    aiB.vx += (-K * (aiB.ox - tx) - C * aiB.vx) * dt; aiB.vy += (-K * aiB.oy - C * aiB.vy) * dt;
+                    aiB.ox += aiB.vx * dt; aiB.oy += aiB.vy * dt;
+                    vivo = Math.abs(aiB.ox - tx) > 0.3 || Math.abs(aiB.oy) > 0.3 || Math.abs(aiB.vx) > 6 || Math.abs(aiB.vy) > 6;
+                    if (!vivo) { aiB.ox = tx; aiB.oy = 0; aiB.vx = aiB.vy = 0; }
+                }
+                aiBDisegna();
+                if (vivo) aiB.raf = requestAnimationFrame(aiBTick); else aiB.ult = 0;
+            }
+            function aiBAvvia() {
+                if (aiRidotto() || typeof requestAnimationFrame !== 'function') { aiB.ox = aiBTargetX(); aiB.oy = 0; aiB.vx = aiB.vy = 0; aiBDisegna(); return; }
+                if (!aiB.raf) aiB.raf = requestAnimationFrame(aiBTick);
+            }
+            // a pannello aperto/chiuso la bolla esce o rientra nel bordo
+            function aiBollaAssesta() { if (!aiB.trasc) aiBAvvia(); }
+            function aiBollaMetti() { aiBolla.dataset.lato = aiB.lato; aiBolla.style.left = aiB.lx + 'px'; aiBolla.style.top = aiB.ly + 'px'; aiBolla.style.right = 'auto'; aiBolla.style.bottom = 'auto'; }
+            function aiBollaRiadatta(salva) {
+                const w = aiBolla.offsetWidth || 52, h = aiBolla.offsetHeight || 52, p = aiPos.bolla;
+                aiB.ins = aiMargini();
+                const x = p ? p.x : (aiB.lato === 's' ? 0 : innerWidth), y = p && p.y != null ? p.y : innerHeight - h - 16 - aiB.ins.b;
+                const s = aiSnap({ x: p && p.lato ? (p.lato === 's' ? 0 : innerWidth) : x, y, w, h, vw: innerWidth, vh: innerHeight, inset: aiB.ins });
+                aiB.lato = s.lato; aiB.lx = s.x; aiB.ly = s.y; aiB.ox = 0; aiB.oy = 0; aiB.vx = aiB.vy = 0;
+                aiBollaMetti(); if (salva) { aiPos.bolla = { x: s.x, y: s.y, lato: s.lato }; aiSalvaPos(); }
+                aiB.ox = aiBTargetX(); aiBDisegna();
+            }
+            aiBolla.addEventListener('pointerdown', e => {
+                if (e.button > 0) return;
+                const x0 = e.clientX, y0 = e.clientY, dx = x0 - aiB.lx, dy = y0 - aiB.ly; let mosso = false;
+                try { if (e.pointerId != null && aiBolla.setPointerCapture) aiBolla.setPointerCapture(e.pointerId); } catch (er) { /* niente cattura: si va avanti lo stesso */ }
+                const muovi = ev => {
+                    if (!mosso && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+                    if (!mosso) { mosso = true; aiB.trasc = true; aiB.ult = 0; }
+                    aiB.px = ev.clientX - dx; aiB.py = ev.clientY - dy;
+                    aiB.px = Math.max(-20, Math.min(innerWidth - 32, aiB.px)); aiB.py = Math.max(0, Math.min(innerHeight - 32, aiB.py));
+                    if (aiRidotto() || typeof requestAnimationFrame !== 'function') { aiB.ox = aiB.px - aiB.lx; aiB.oy = aiB.py - aiB.ly; aiBDisegna(); } else if (!aiB.raf) aiB.raf = requestAnimationFrame(aiBTick);
+                };
+                const fine = () => {
+                    removeEventListener('pointermove', muovi); removeEventListener('pointerup', fine); removeEventListener('pointercancel', fine);
+                    if (!mosso) return;
+                    aiDopoTrascina = true; setTimeout(() => { aiDopoTrascina = false; }, 0);
+                    const w = aiBolla.offsetWidth || 52, h = aiBolla.offsetHeight || 52, ridotto = aiRidotto();
+                    const cx = aiB.lx + aiB.ox, cy = aiB.ly + aiB.oy;
+                    aiB.ins = aiMargini();
+                    const s = aiSnap({ x: cx + (ridotto ? 0 : aiB.vx * 0.12), y: cy, w, h, vw: innerWidth, vh: innerHeight, inset: aiB.ins });
+                    aiB.trasc = false; aiB.ox = cx - s.x; aiB.oy = cy - s.y; aiB.lato = s.lato; aiB.lx = s.x; aiB.ly = s.y;
+                    aiBollaMetti(); aiPos.bolla = { x: s.x, y: s.y, lato: s.lato }; aiSalvaPos();
+                    aiBAvvia();
+                };
+                addEventListener('pointermove', muovi); addEventListener('pointerup', fine); addEventListener('pointercancel', fine);
+            });
             // il pannello nuovo si apre accanto alla bolla, a meno che l'utente non l'abbia già spostato
             const aiPosizionaPannello = () => {
                 if (aiPos.pannello) { aiPonia(aiPannello, 'pannello'); return; }
-                if (!aiPos.bolla) return;
-                const rb = aiBolla.getBoundingClientRect(), w = aiPannello.offsetWidth || 400, h = aiPannello.offsetHeight || 560;
-                const c = aiLimita(aiPannello, rb.left + rb.width - w, rb.top - h - 10 < 4 ? rb.bottom + 10 : rb.top - h - 10);
+                const w = aiPannello.offsetWidth || 400, h = aiPannello.offsetHeight || 560, bw = aiBolla.offsetWidth || 52, bh = aiBolla.offsetHeight || 52;
+                const c = aiLimita(aiPannello, aiB.lato === 's' ? aiB.lx : aiB.lx + bw - w, aiB.ly - h - 10 < 4 ? aiB.ly + bh + 10 : aiB.ly - h - 10);
                 aiPannello.style.left = c.x + 'px'; aiPannello.style.top = c.y + 'px'; aiPannello.style.right = 'auto'; aiPannello.style.bottom = 'auto';
             };
-            const aiRiadatta = () => { aiPonia(aiBolla, 'bolla'); if (aiPannello.classList.contains('aperto')) aiPosizionaPannello(); };
-            addEventListener('resize', aiRiadatta); aiPonia(aiBolla, 'bolla');
+            let aiRiadTimer = 0;
+            const aiRiadatta = () => {
+                clearTimeout(aiRiadTimer);
+                aiRiadTimer = setTimeout(() => { aiBollaRiadatta(false); aiPonia(aiPannello, 'pannello'); if (aiPannello.classList.contains('aperto')) aiPosizionaPannello(); }, 60);
+            };
+            addEventListener('resize', aiRiadatta); addEventListener('orientationchange', aiRiadatta);
+            aiBollaRiadatta(false);
+
+            // --- bolla «intelligente»: sa dove sei e cosa manca, e propone 1-3 scorciatoie (calcolate qui, senza IA) ---
+            // Contesto letto con le stesse funzioni degli strumenti (aiSchedaProva); suggerimenti = funzione pura sul contesto.
+            function aiContesto() {
+                const vista = (state.uiState || {}).currentView || 'home', pid = state.currentProjectId, proj = (state.projects || {})[pid];
+                const c = { vista, progettoId: pid || null, nProgetti: Object.keys(state.projects || {}).length, haProgetto: vista !== 'home' && !!proj, haProva: false, gps: true, strati: 0, intervalli: 0, senzaGps: [], backup: null };
+                if (c.haProgetto) Object.keys(proj.surveys || {}).forEach(sid => { const s = aiSchedaProva(pid, sid, false); if (s && !s.gps) c.senzaGps.push(sid); });
+                if (vista === 'field' && state.currentSurveyId) {
+                    c.haProva = true; c.provaId = state.currentSurveyId; c.gps = (state.header || {}).lat != null;
+                    c.strati = (state.strati || []).length; c.intervalli = (state.logs || []).length;
+                }
+                try { if (typeof promemoriaBackup === 'function') c.backup = promemoriaBackup(state.projects, state.ultimoBackupCompleto, Date.now(), 7); } catch (e) { /* senza promemoria */ }
+                return c;
+            }
+            function aiSuggerimenti(c) {
+                const out = [], add = s => { if (out.length < 3 && !out.some(o => o.id === s.id)) out.push(s); };
+                if (c.vista === 'home') {
+                    if (!c.nProgetti) add({ id: 'nuovo', testo: 'Crea il primo progetto', cmd: 'Nuovo progetto' });
+                    else if (c.backup) add({ id: 'backup', testo: 'Fai il backup', cmd: 'Backup completo dell\'archivio' });
+                    if (c.nProgetti) add({ id: 'riepilogo', testo: 'Riepilogo dei progetti', chiedi: 'Fammi un riepilogo breve dei miei progetti.' });
+                    return out;
+                }
+                if (c.haProva) {
+                    if (!c.gps) add({ id: 'gps', testo: 'Aggiungi il GPS', cmd: 'Posizione GPS' });
+                    if (!c.strati) add({ id: 'strati', testo: 'Aggiungi gli strati', cmd: 'Strati e parametri' });
+                    if (!c.intervalli) add({ id: 'colpi', testo: 'Aggiungi i colpi', cmd: 'Aggiungi intervalli' });
+                }
+                const altre = (c.senzaGps || []).filter(sid => sid !== c.provaId);
+                if (altre.length) add({ id: 'gps-prove', testo: 'Aggiungi GPS a ' + altre.length + (altre.length === 1 ? ' prova' : ' prove'), tool: 'vai_a', args: { vista: 'field', progetto_id: c.progettoId, prova_id: altre[0] } });
+                if (c.haProgetto) add({ id: 'esporta', testo: 'Esporta il cantiere', cmd: 'Consegna' });
+                if (c.backup) add({ id: 'backup', testo: 'Fai il backup', cmd: 'Backup completo dell\'archivio' });
+                if (!out.length) add({ id: 'controllo', testo: 'Controlla i dati', chiedi: 'Controlla se nella prova aperta mancano dati o ci sono valori strani.' });
+                return out;
+            }
+            const aiSugg = aiEl('div', 'ai-sugg'); aiSugg.hidden = true;
+            aiPannello.insertBefore(aiSugg, aiSub.nextSibling);
+            async function aiSuggEsegui(s) {
+                if (aiOccupato) return;
+                if (s.chiedi) { aiCampo.value = s.chiedi; aiInviaDomanda(); return; }
+                const k = s.tool ? { n: s.tool, a: s.args } : { n: 'esegui_comando', a: { etichetta: s.cmd } };
+                const r = await aiEseguiStrumento(k), o = (() => { try { return JSON.parse(r.c); } catch (e) { return {}; } })();
+                if (o && o.errore) { if (!/annullato/i.test(o.errore)) aiMsg('errore', 'Non riesco: ' + o.errore, false); }
+                else aiApri(false);
+                aiRinfresca(true);
+            }
+            let aiSuggChiave = '';
+            function aiRinfresca(forza) {
+                if (!aiCfg.attivo) return;
+                let chiave = '';
+                try {
+                    const h = state.header || {};
+                    chiave = [(state.uiState || {}).currentView, state.currentProjectId, state.currentSurveyId, (state.logs || []).length, (state.strati || []).length, h.lat, state.ultimoBackupCompleto, Object.keys(state.projects || {}).length, Object.keys((state.projects || {})[state.currentProjectId] ? state.projects[state.currentProjectId].surveys || {} : {}).length].join('|');
+                } catch (e) { return; }
+                if (!forza && chiave === aiSuggChiave) return;
+                aiSuggChiave = chiave;
+                let sug = [];
+                try { sug = aiSuggerimenti(aiContesto()); } catch (e) { sug = []; }
+                aiSugg.textContent = '';
+                sug.forEach(s => { const b = aiEl('button', 'ai-chip ai-sug', s.testo); b.type = 'button'; b.onclick = () => aiSuggEsegui(s); aiSugg.appendChild(b); });
+                aiSugg.hidden = !sug.length;
+                const n = sug.filter(s => !s.chiedi).length;
+                aiNumBolla.textContent = n ? String(n) : ''; aiNumBolla.style.opacity = n ? '1' : '0';
+                aiBolla.setAttribute('aria-label', 'Assistente IA' + (n ? ', ' + n + (n === 1 ? ' suggerimento' : ' suggerimenti') : ''));
+            }
+            setInterval(() => { if (aiCfg.attivo && !document.hidden) aiRinfresca(false); }, 1500);
 
             aiBtnChiudi.onclick = () => aiApri(false);
 
@@ -704,7 +883,7 @@
             function aiAggiornaEtichetta() {
                 const e = document.getElementById('lblAssistenteProviderN'); if (e) e.textContent = '(' + aiProntiInOrdine().length + ' pronti)';
                 aiBolla.classList.toggle('attiva', !!aiCfg.attivo);
-                if (!aiCfg.attivo) aiApri(false);
+                if (!aiCfg.attivo) aiApri(false); else { aiBollaRiadatta(false); aiRinfresca(true); }
             }
             const aiChk = document.getElementById('chkAssistenteIa');
             if (aiChk) {
