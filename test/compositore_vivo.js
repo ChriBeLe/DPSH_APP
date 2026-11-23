@@ -257,7 +257,7 @@ const scrivi = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('input', 
     await attesa(350);
     const srcInset = (tela.querySelector('[data-inset-regionale] img') || {}).src || '';
     t('IL RIQUADRO REGIONALE CAMBIA BASEMAP INSIEME ALLA MAPPA GRANDE',
-      srcInset.indexOf('openstreetmap') >= 0);
+      srcInset.indexOf('World_Street_Map') >= 0);
 
     console.log('\n--- I servizi WMS pronti ---');
     selProv.value = 'wms'; selProv.dispatchEvent(new w.Event('change', { bubbles: true }));

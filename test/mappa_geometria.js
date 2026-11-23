@@ -195,8 +195,8 @@ console.log('--- Il disegno della mappa ---');
 
   console.log('  · i provider');
   const osm = api2.buildMappaInquadramentoHtml({ centro: SAVA, zoom: 16, pin: [], provider: 'osm' });
-  t('OSM usa il proprio servizio e la propria attribuzione',
-     /tile\.openstreetmap\.org/.test(osm) && /OpenStreetMap contributors/.test(osm));
+  t('la stradale (voce OSM) usa la stradale Esri, che si apre anche da file, e cita OpenStreetMap',
+     /World_Street_Map\/MapServer/.test(osm) && /OpenStreetMap contributors/.test(osm));
   const wmsVuoto = api2.buildMappaInquadramentoHtml({ centro: SAVA, zoom: 16, pin: [], provider: 'wms' });
   t('un WMS senza indirizzo lo DICE, invece di lasciare un rettangolo grigio', /non impostato/.test(wmsVuoto));
   const wms = api2.buildMappaInquadramentoHtml({ centro: SAVA, zoom: 16, pin: [], provider: 'wms',
@@ -270,7 +270,7 @@ console.log('--- Il disegno della mappa ---');
 
 console.log('--- I provider e l attribuzione ---');
 t('ci sono almeno tre provider', (src.match(/const PROVIDER_MAPPA = \{/) || []).length === 1 && /'esri-satellite'/.test(src) && /'osm'/.test(src) && /'wms'/.test(src));
-t('ognuno dichiara la propria attribuzione', /attribuzione: 'Esri, Maxar, Earthstar Geographics'/.test(src) && /attribuzione: '© OpenStreetMap contributors'/.test(src));
+t('ognuno dichiara la propria attribuzione', /attribuzione: 'Esri, Maxar, Earthstar Geographics'/.test(src) && /attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'/.test(src));
 t('e il codice dice perche l attribuzione non e opzionale', /e' una condizione d'uso/.test(src));
 t('il vincolo http dei WMS regionali e annotato, non scoperto dopo', /contenuto misto/.test(src));
 
