@@ -8,13 +8,14 @@
             let _ultimoPuntatoreTocco = false;
             const _SEL_FUOCO = 'a[href],button,input,select,textarea,summary,[tabindex],[contenteditable=""],[contenteditable="true"]';
 
+            // Niente getComputedStyle: con il foglio di stile dell'app è lento. Si guardano l'attributo
+            // hidden, il display scritto sull'elemento e, dove il motore sa disegnare, se ha un riquadro.
+            const _fuocoSenzaLayout = typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
             function _fuocoVisibile(el, radice) {
                 for (let n = el; n && n !== radice.parentNode; n = n.parentElement) {
-                    if (n.hidden) return false;
-                    const cs = getComputedStyle(n);
-                    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+                    if (n.hidden || (n.style && (n.style.display === 'none' || n.style.visibility === 'hidden'))) return false;
                 }
-                return true;
+                return _fuocoSenzaLayout || el.getClientRects().length > 0;
             }
             function _fuocoElementi(radice) {
                 return Array.from(radice.querySelectorAll(_SEL_FUOCO)).filter(el =>
@@ -24,13 +25,10 @@
                 if (el.tagName === 'TEXTAREA' || el.isContentEditable) return true;
                 return el.tagName === 'INPUT' && !/^(button|submit|reset|checkbox|radio|file|color|range|image)$/i.test(el.type);
             }
-            /** La finestra aperta più in alto (z-index, poi ordine di apertura). */
+            /** La finestra aperta più in alto: l'ultima aperta. */
             function _fuocoCima() {
-                let cima = null, mz = -Infinity, ms = -Infinity;
-                _fuocoFinestre.forEach((st, m) => {
-                    const z = parseInt(getComputedStyle(m).zIndex, 10) || 0;
-                    if (z > mz || (z === mz && st.seq >= ms)) { cima = m; mz = z; ms = st.seq; }
-                });
+                let cima = null, ms = -Infinity;
+                _fuocoFinestre.forEach((st, m) => { if (st.seq >= ms) { cima = m; ms = st.seq; } });
                 return cima;
             }
             let _fuocoSeq = 0;
@@ -52,21 +50,19 @@
                 _fuocoFinestre.delete(m);
                 const att = document.activeElement;
                 const fuoriPosto = !att || att === document.body || m.contains(att);
-                if (st && st.apritore && fuoriPosto && document.contains(st.apritore) && _fuocoVisibile(st.apritore, document.documentElement)) {
+                if (st && st.apritore && fuoriPosto && document.contains(st.apritore) && !st.apritore.closest('[hidden]')) {
                     try { st.apritore.focus({ preventScroll: true }); } catch (_) { }
                 }
             }
-            function _fuocoAggiorna() {
-                document.querySelectorAll('.modal').forEach(m => {
-                    const aperta = m.classList.contains('open');
-                    if (aperta && !_fuocoFinestre.has(m)) _fuocoApri(m);
-                    else if (!aperta && _fuocoFinestre.has(m)) _fuocoChiudi(m);
-                });
+            function _fuocoTransizione(m, eraAperta) {
+                if (m.getAttribute('aria-modal') !== 'true') return;
+                const aperta = m.classList.contains('open');
+                if (aperta && !eraAperta && !_fuocoFinestre.has(m)) _fuocoApri(m);
+                else if (!aperta && _fuocoFinestre.has(m)) _fuocoChiudi(m);
             }
             document.addEventListener('pointerdown', (e) => { _ultimoPuntatoreTocco = e.pointerType === 'touch'; }, true);
             document.addEventListener('keydown', (e) => {
                 if (e.key !== 'Tab' || e.defaultPrevented) return;
-                _fuocoAggiorna();
                 const m = _fuocoCima();
                 if (!m) return;
                 const el = _fuocoElementi(m);
@@ -77,6 +73,15 @@
                 else if (!e.shiftKey && att === ultimo) { e.preventDefault(); primo.focus(); }
             });
             if (typeof MutationObserver !== 'undefined') {
-                new MutationObserver(_fuocoAggiorna).observe(document.body || document.documentElement,
-                    { subtree: true, attributes: true, attributeFilter: ['class'] });
+                // Costa poco: ignora in fretta ogni mutazione che non sia la classe di una .modal
+                // e agisce solo se "open" è davvero cambiata.
+                new MutationObserver((lista) => {
+                    for (const r of lista) {
+                        const m = r.target;
+                        if (!m.classList || !m.classList.contains('modal')) continue;
+                        const prima = /(^|\s)open(\s|$)/.test(r.oldValue || '');
+                        _fuocoTransizione(m, prima);
+                    }
+                }).observe(document.body || document.documentElement,
+                    { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
             }
