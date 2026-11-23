@@ -826,7 +826,7 @@
                         voci.push({ righe, lit, h, yIdeale: (y1 + y2) / 2 - h / 2 });
                     });
                     bandeRifiuto.forEach(b => {
-                        const righe = spezzaEtichettaInRighe(b.lit.name ? `${b.lit.name} - Rifiuto` : 'Rifiuto', charsPerRiga, 4);
+                        const righe = spezzaEtichettaInRighe('RIFIUTO', charsPerRiga, 4);
                         const h = righe.length * rigaLegenda;
                         voci.push({ righe, lit: b.lit, h, yIdeale: (b.y1 + b.y2) / 2 - h / 2 });
                     });

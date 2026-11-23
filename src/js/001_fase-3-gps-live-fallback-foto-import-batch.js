@@ -69,9 +69,12 @@
                 proj.strati = JSON.parse(JSON.stringify(state.strati));
 
                 proj.updatedAt = Date.now();
-                if (state.header.comune) proj.comune = state.header.comune;
-                if (state.header.committente) proj.committente = state.header.committente;
-                if (state.header.localita) proj.localita = state.header.localita;
+                // Comune e committente sono del PROGETTO: si cambiano dal gruppo «Del progetto» e da lì
+                // arrivano a tutte le prove. Una prova con un valore suo non li trascina più sul progetto;
+                // si copiano su dal header della prova solo se il progetto è ancora senza.
+                if (state.header.comune && !proj.comune) proj.comune = state.header.comune;
+                if (state.header.committente && !proj.committente) proj.committente = state.header.committente;
+                if (state.header.localita && !proj.localita) proj.localita = state.header.localita; // la località del progetto non segue l'ultima prova salvata
                 if (state.header.date) proj.date = state.header.date;
                 if (state.settings.operator) proj.operator = state.settings.operator;
             }

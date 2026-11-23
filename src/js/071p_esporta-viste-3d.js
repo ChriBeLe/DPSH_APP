@@ -522,7 +522,7 @@
                     sfondo: tavole3d.sfondo, basemap, legenda: T3('tavole3dLegenda').checked,
                     nordTerreno: T3('tavole3dNordTerreno').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: basemap && T3('tavole3dFotoSopra').checked, pianta: tavole3d.pianta, piante: tavole3d.piante, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, opacitaFoto: Number(T3('tavole3dOpacitaFoto').value) / 100, scritte: tavole3d.scritte,
                     elementi: { bussola: T3('tavole3dBussola').checked, scala: T3('tavole3dScala').checked }, posizioni: tavole3d.posizioni, nordPianta: T3('tavole3dNordPianta').checked,
-                    ex: Math.max(1, Math.min(50, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
+                    ex: Math.max(1, Math.min(100, Number(T3('tavole3dEsag').value) || vista3d.ex)), W, H
                 }, extra || {});
             }
             /** Per l'anteprima: la mappa larga attorno, senza permesso di rilettura (basta vederla). */
@@ -578,7 +578,7 @@
                 [['tavole3dCarta', 'carta'], ['tavole3dVerso', 'verso'], ['tavole3dScritte', 'scritte']].forEach(([id, k]) => T3(id).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(String(b.dataset[k]) === String(tavole3d[k])))));
                 tavole3d.escluse = new Set((mem.escluse || []).filter(id => tavole3d.voci.some(v => v.id === id)));
                 tavole3d.scelta = soloSezioni ? Math.max(0, tavole3d.voci.findIndex(v => v.tipo !== 'iso')) : 0;
-                T3('tavole3dEsag').value = vista3d.ex;
+                T3('tavole3dEsag').value = vista3d.ex; T3('tavole3dEsagCursore').value = vista3d.ex;
                 // La mappa di base: quella scelta nel 3D; se non ce n'è una, il satellite di Esri.
                 const sc = sceltaSfondo3d(), sel = T3('tavole3dFornitore'), esc = escapeHtmlDidascalia;
                 sel.innerHTML = Object.entries(SFONDI_3D).map(([id, f]) => `<option value="${id}">${esc(f.nome)}${SOSTITUTI_ESPORTA_3D[id] ? ' (nel file: Esri)' : ''}</option>`).join('')
@@ -604,7 +604,7 @@
                 const op = mem.opzioni || {};
                 if (op.sfondo) { tavole3d.sfondo = op.sfondo; T3('tavole3dSfondo').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sfondo === op.sfondo))); }
                 if (typeof op.basemap === 'boolean') { T3('tavole3dBasemap').checked = op.basemap; sel.disabled = !op.basemap; }
-                if (op.ex) T3('tavole3dEsag').value = op.ex;
+                if (op.ex) { T3('tavole3dEsag').value = op.ex; T3('tavole3dEsagCursore').value = op.ex; }
                 renderTemplateTavole3d();
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
@@ -999,7 +999,15 @@
                 Object.values(tavole3d.regola).forEach(r => { delete r.nordTerreno; });
                 salvaMemoriaTavole3d(); mostraTavola3d(); renderElencoTavole3d();
             });
-            T3('tavole3dEsag').addEventListener('change', () => { mostraTavola3d(); renderElencoTavole3d(); });
+            // L'esagerazione verticale si vede subito: cursore e numero vanno insieme, l'anteprima grande si
+            // ridisegna a ogni movimento (al massimo una volta per fotogramma); le miniature a fine movimento.
+            { let aspetta = false;
+              const viva = v => { const n = Math.max(1, Math.min(100, Number(v) || 1)); T3('tavole3dEsag').value = n; T3('tavole3dEsagCursore').value = n;
+                  if (!aspetta) { aspetta = true; requestAnimationFrame(() => { aspetta = false; mostraTavola3d(); }); } };
+              T3('tavole3dEsagCursore').addEventListener('input', e => viva(e.target.value));
+              T3('tavole3dEsagCursore').addEventListener('change', () => renderElencoTavole3d());
+              T3('tavole3dEsag').addEventListener('input', e => viva(e.target.value)); }
+            T3('tavole3dEsag').addEventListener('change', () => { T3('tavole3dEsagCursore').value = T3('tavole3dEsag').value; mostraTavola3d(); renderElencoTavole3d(); });
             T3('tavole3dEsporta').addEventListener('click', esportaTavole3d);
             // LA PIANTA DELLA SEZIONE 2D SI REGOLA COL MOUSE, sull'anteprima, per ogni sezione: trascinando si
             // sposta la foto, con la rotella si avvicina (dove sta il mouse), trascinando il bordo esterno si
