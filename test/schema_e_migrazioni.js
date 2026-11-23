@@ -54,7 +54,7 @@ function bloccoConst(inizio, fine) {
   if (i < 0) throw new Error('non trovato: ' + inizio);
   for (let k = i; k < righe.length; k++) if (righe[k] === fine) return righe.slice(i, k + 1).join('\n');
 }
-const NOMI = ['versioneDeiDati', 'migraDati', 'migrazione0a1', 'migrazione1a2', 'migrazione2a3', 'migrazione3a4', 'stratiInizialiProgettoNuovo', 'versioneFileImportato', 'controllaVersioneFileImportato', 'leggiStatoSalvato'];
+const NOMI = ['versioneDeiDati', 'migraDati', 'migrazione0a1', 'migrazione1a2', 'migrazione2a3', 'migrazione3a4', 'migrazione4a5', 'stratiInizialiProgettoNuovo', 'versioneFileImportato', 'controllaVersioneFileImportato', 'leggiStatoSalvato'];
 const versioneRiga = righe.find(r => r.includes('const VERSIONE_SCHEMA_DATI = '));
 const letturaRiga = righe.find(r => r.includes('const VERSIONE_SCHEMA_LETTA = '));
 const api = new Function(versioneRiga + '\n' + letturaRiga + '\n' + NOMI.map(corpo).join('\n\n') + '\n'
@@ -304,7 +304,7 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
       } } }
     });
     const d = api.migraDati(v3(), 3, PRE).dati;
-    t('versione portata a ' + V, d.versioneSchema === V && V === 4);
+    t('versione portata a ' + V, d.versioneSchema === V && V === 5);
     t('logs in cima: 1,9999999999999998 → 2', d.logs[1].end === 2 && d.logs[1].start === 1.8 && d.logs[0].end === 0.2);
     t('currentDepthStart in cima e nella prova', d.currentDepthStart === 2.2 && d.projects.P.surveys.S.currentDepthStart === 10);
     const sl = d.projects.P.surveys.S.logs;
@@ -313,7 +313,10 @@ const PRE = { header: { committente: '', comune: '', provaNr: '1' }, instrument:
     t('voci nulle, senza profondità o con null/undefined: intatte, senza chiavi nuove', sl[2] === null && JSON.stringify(sl[3]) === '{"colpi":2}' && sl[4].start === null && !('currentDepthStart' in d.projects.P.surveys.T) && d.projects.P.surveys.T.logs === 'non un elenco' && d.projects.P.surveys.U === null);
     t('date e origine degli intervalli non si toccano', d.logs[1].registratoIl === '2026-01-01T00:00:00.000Z' && d.logs[1].origine === 'contatore' && sl[0].modificatoIl === '2026-02-02T00:00:00.000Z' && !('modificatoIl' in d.logs[1]));
     t('i colpi non si toccano', d.logs[1].colpi === 20 && sl[0].colpi === 30);
-    const una = JSON.stringify(d), due = JSON.stringify(api.migrazione3a4(JSON.parse(una)));
+    const una = JSON.stringify(d);
+    const rifatta = api.migrazione3a4(JSON.parse(una));
+    rifatta.versioneSchema = d.versioneSchema; // la 3 → 4 scrive 4: qui d è già alla versione attuale
+    const due = JSON.stringify(rifatta);
     t('idempotente: rifarla non cambia niente (a parte la versione)', una === due);
 
     const parziale = api.migraDati({ versioneSchema: 3, projects: { P: { surveys: { S: { logs: [{ start: 0, end: 1.9999999999999998 }] } } } } }, 3, PRE).dati;
