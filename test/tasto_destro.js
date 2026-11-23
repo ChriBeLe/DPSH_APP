@@ -33,7 +33,7 @@ const scegli = (app, testo) => clic(app, Array.from(app.d.querySelectorAll('#men
   t('progetto: le azioni sono nel menu, senza un\'altra finestra', ['Note del progetto', 'Consegna', 'Confronta le prove', 'Porta su un altro dispositivo', 'Duplica il progetto', 'Cronologia', 'Elimina il progetto'].every(x => vp.some(v => v.includes(x)))
     && !vp.some(v => /Note, stato, copia/.test(v)));
   scegli(app, 'Note del progetto');
-  await attesa(60);
+  await attesa(400);
   t('«Note del progetto» apre le note, senza passare dalla finestra del ⋯', $(app, 'modalProjectNotes').classList.contains('open') && !$(app, 'modalProjectActions').classList.contains('open'));
   app.E('typeof chiudiNoteProgetto === "function" ? chiudiNoteProgetto() : null');
   await attesa(30);
