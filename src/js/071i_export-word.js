@@ -203,7 +203,7 @@
              * si ricostruisce da solo (con gli stili del documento e i caratteri incorporati) dentro
              * un SVG con foreignObject, che il browser disegna su una tela: il disegno non dipende
              * dal testo intorno, che in Word è testo. */
-            async function rasterizzaWord(ctx, foglie) {
+            async function disegnaSuTelaWord(ctx, foglie, scala) {
                 const x0 = Math.min(...foglie.map(f => f.r.x)), y0 = Math.min(...foglie.map(f => f.r.y));
                 const x1 = Math.max(...foglie.map(f => f.r.x + f.r.w)), y1 = Math.max(...foglie.map(f => f.r.y + f.r.h));
                 const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
@@ -235,11 +235,17 @@
                 img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                 await img.decode();
                 const tela = document.createElement('canvas');
-                tela.width = Math.round(w * WORD_SCALA_RASTER); tela.height = Math.round(h * WORD_SCALA_RASTER);
+                tela.width = Math.round(w * scala); tela.height = Math.round(h * scala);
                 const g = tela.getContext('2d');
                 g.fillStyle = '#ffffff'; g.fillRect(0, 0, tela.width, tela.height);
                 g.drawImage(img, 0, 0, tela.width, tela.height);
                 const conFoto = foglie.some(f => f.el.tagName === 'IMG' || f.el.querySelector && f.el.querySelector('img'));
+                return { tela, conFoto, w, h };
+            }
+
+            /** Come disegnaSuTelaWord, ma ritorna i byte codificati (JPEG se ci sono foto, PNG se no). */
+            async function rasterizzaWord(ctx, foglie) {
+                const { tela, conFoto, w, h } = await disegnaSuTelaWord(ctx, foglie, WORD_SCALA_RASTER);
                 const tipo = conFoto ? 'image/jpeg' : 'image/png';
                 const blob = await new Promise(ok => tela.toBlob(ok, tipo, ctx.qualita));
                 return { bytes: new Uint8Array(await blob.arrayBuffer()), estensione: conFoto ? 'jpeg' : 'png', w, h };
@@ -1140,10 +1146,12 @@
                 return { xml: corpo, sezione };
             }
 
-            /** Dal documento di stampa (lo stesso del PDF) al file .docx. Ritorna il Blob, quante
-             * pagine fisse ha e quanti riquadri di mappa non si sono potuti scaricare. */
-            async function documentoStampaInDocx(htmlDocumento, opzioni) {
-                const o = opzioni || {};
+            /** IL DOCUMENTO DI STAMPA, MISURATO: lo apre in una cornice nascosta larga quanto lo spazio
+             * utile del foglio, aspetta caratteri e immagini, e consegna a `lavora` ciò che serve per
+             * leggerne le misure: { doc, ctx, radice, segmenti, mancanti, mrg }. È la base comune del
+             * Word (documentoStampaInDocx) e del PDF/A (documentoStampaInPdfA, 071i2): stesse misure,
+             * stesse foglie (raccogliFoglieWord), due modi di scriverle. La cornice si toglie alla fine. */
+            async function conDocumentoStampaMisurato(htmlDocumento, o, lavora) {
                 const mrg = o.margini || marginiPaginaDiDefault();
                 const cornice = document.createElement('iframe');
                 // Larga quanto lo spazio utile del foglio stampato: i fogli hanno comunque la loro
@@ -1161,24 +1169,37 @@
                     if (o.onAvanzamento) o.onAvanzamento('Scarico le mappe…', 0);
                     const mancanti = await incorporaImmaginiWord(doc);
                     const ctx = nuovoContestoWord(doc, o);
-                    const numeroPagina = doc.querySelector('.dpsh-sheet [data-numero-pagina]');
-                    if (numeroPagina) ctx.piede = piedeWord(ctx, numeroPagina);
                     const radice = doc.querySelector('.dpsh-sheet-stack') || doc.querySelector('.a4-page') || doc.body;
                     const segmenti = segmentiWord(ctx, radice, []);
-                    let corpo = '', sezione = '';
-                    for (let i = 0; i < segmenti.length; i++) {
-                        if (o.onAvanzamento) o.onAvanzamento(`Pagina ${i + 1} di ${segmenti.length}…`, (i + 1) / segmenti.length);
-                        // Il seguito dell'indice è già nel Sommario del primo foglio (sommarioWord).
-                        if (segmenti[i].foglio && segmenti[i].foglio.hasAttribute('data-sommario-seguito')) continue;
-                        if (sezione) corpo += chiusuraSezioneWord(sezione);
-                        const f = segmenti[i].foglio ? await foglioWord(ctx, segmenti[i].foglio) : await flussoWord(ctx, segmenti[i], mrg);
-                        corpo += f.xml;
-                        sezione = f.sezione;
-                        await new Promise(r => setTimeout(r, 0));
-                    }
-                    const pagine = segmenti.filter(x => x.foglio).length;
-                    return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media, ctx)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
+                    return await lavora({ doc, ctx, radice, segmenti, mancanti, mrg });
                 } finally {
                     cornice.remove();
                 }
+            }
+
+            /** Dal documento già misurato al file .docx (le misure le ha date conDocumentoStampaMisurato). */
+            async function docxDaDocumentoMisurato({ doc, ctx, segmenti, mancanti, mrg }, o) {
+                const numeroPagina = doc.querySelector('.dpsh-sheet [data-numero-pagina]');
+                if (numeroPagina) ctx.piede = piedeWord(ctx, numeroPagina);
+                let corpo = '', sezione = '';
+                for (let i = 0; i < segmenti.length; i++) {
+                    if (o.segnale && o.segnale.aborted) { const e = new Error('Operazione annullata'); e.name = 'AbortError'; throw e; }
+                    if (o.onAvanzamento) o.onAvanzamento(`Pagina ${i + 1} di ${segmenti.length}…`, (i + 1) / segmenti.length);
+                    // Il seguito dell'indice è già nel Sommario del primo foglio (sommarioWord).
+                    if (segmenti[i].foglio && segmenti[i].foglio.hasAttribute('data-sommario-seguito')) continue;
+                    if (sezione) corpo += chiusuraSezioneWord(sezione);
+                    const f = segmenti[i].foglio ? await foglioWord(ctx, segmenti[i].foglio) : await flussoWord(ctx, segmenti[i], mrg);
+                    corpo += f.xml;
+                    sezione = f.sezione;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+                const pagine = segmenti.filter(x => x.foglio).length;
+                return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media, ctx)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
+            }
+
+            /** Dal documento di stampa (lo stesso del PDF) al file .docx. Ritorna il Blob, quante
+             * pagine fisse ha e quanti riquadri di mappa non si sono potuti scaricare. */
+            async function documentoStampaInDocx(htmlDocumento, opzioni) {
+                const o = opzioni || {};
+                return conDocumentoStampaMisurato(htmlDocumento, o, (m) => docxDaDocumentoMisurato(m, o));
             }

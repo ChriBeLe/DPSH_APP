@@ -220,7 +220,10 @@
             // dispositivo (fino alla Fase 1 le saltava in silenzio): chi esporta lo dice all'utente.
             // `giaScritte` (id foto → nome nel file) evita di scrivere due volte la stessa foto,
             // per esempio quella condivisa fra la prova 3 e la sua interpretazione 3B.
-            async function estraiFotoProgettoPerZip(proj, entries, prefix, giaScritte) {
+            // `opz` (facoltativo, usato dal pacchetto «Esporta cantiere», 044d): percorso(sid, surv, p, indice, ext)
+            // sceglie il nome del file nello ZIP; segnale (AbortSignal) interrompe; dopoFoto() dice a chi
+            // chiama che una foto è passata (la barra di avanzamento).
+            async function estraiFotoProgettoPerZip(proj, entries, prefix, giaScritte, opz) {
                 let contatore = 0;
                 let mancanti = 0;
                 const scritte = giaScritte || new Map();
@@ -233,18 +236,20 @@
                         const usaSuffisso = photos.length > 1;
                         let indiceValido = 0;
                         for (const p of photos) {
+                            if (opz && opz.segnale && opz.segnale.aborted) { const e = new Error('Operazione annullata'); e.name = 'AbortError'; throw e; }
                             // Già vista: scritta (si riusa il file) o già contata fra le mancanti.
-                            if (p && scritte.has(p.id)) { if (scritte.get(p.id)) p.zipFile = scritte.get(p.id); continue; }
+                            if (p && scritte.has(p.id)) { if (scritte.get(p.id)) p.zipFile = scritte.get(p.id); if (opz && opz.dopoFoto) opz.dopoFoto(); continue; }
                             const dataUrl = await leggiDataUrlFoto(p.id);
-                            if (!dataUrl || String(dataUrl).indexOf('data:') !== 0) { mancanti++; scritte.set(p.id, null); continue; }
+                            if (!dataUrl || String(dataUrl).indexOf('data:') !== 0) { mancanti++; scritte.set(p.id, null); if (opz && opz.dopoFoto) opz.dopoFoto(); continue; }
                             indiceValido++;
                             const { bytes, mime } = dataUrlToUint8Array(dataUrl);
                             const ext = extFromMime(mime);
                             const baseName = usaSuffisso ? `DPSH_${provaNrSafe}-${indiceValido}` : `DPSH_${provaNrSafe}`;
-                            const fileName = `${prefix}foto/${sid}/${baseName}.${ext}`;
+                            const fileName = opz && opz.percorso ? prefix + opz.percorso(sid, surv, p, indiceValido, ext) : `${prefix}foto/${sid}/${baseName}.${ext}`;
                             entries.push({ name: fileName, bytes });
                             p.zipFile = fileName;
                             scritte.set(p.id, fileName);
+                            if (opz && opz.dopoFoto) opz.dopoFoto();
                             contatore++;
                             if (contatore % 3 === 0) await respiraUnAttimo();
                         }
