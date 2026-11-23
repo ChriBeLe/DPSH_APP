@@ -399,11 +399,11 @@
                 if (!el.length) throw new Error('nessun modello disponibile' + (id === 'ollama' ? ': scaricane uno con «ollama pull llama3.1»' : ''));
                 return el;
             }
-            async function aiChiama(id, crono) {
-                const d = aiDef(id), c = aiConf(id);
-                const r = AI_ADATTATORI[d.tipo](d, c, crono);
+            // Invio di una richiesta già costruita (url, headers, corpo) con tempo massimo e messaggi d'errore
+            // in italiano. Lo usano la chat (aiChiama) e la lettura dei fogli di campo (072b).
+            async function aiPostaRichiesta(d, r, ms) {
                 const ctl = new AbortController();
-                const timer = setTimeout(() => ctl.abort(), 60000);
+                const timer = setTimeout(() => ctl.abort(), ms || 60000);
                 try {
                     const risp = await fetch(r.url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, r.headers), body: JSON.stringify(r.corpo), signal: ctl.signal });
                     if (!risp.ok) {
@@ -416,10 +416,14 @@
                     }
                     return r.leggi(await risp.json());
                 } catch (e) {
-                    if (e.name === 'AbortError') throw new Error('nessuna risposta entro 60 secondi');
+                    if (e.name === 'AbortError') throw new Error('nessuna risposta entro ' + Math.round((ms || 60000) / 1000) + ' secondi');
                     if (e instanceof TypeError) throw new Error(d.id === 'ollama' ? 'Ollama non raggiungibile: è avviato e ha OLLAMA_ORIGINS="*"?' : 'rete assente o richiesta bloccata');
                     throw e;
                 } finally { clearTimeout(timer); }
+            }
+            async function aiChiama(id, crono) {
+                const d = aiDef(id), c = aiConf(id);
+                return aiPostaRichiesta(d, AI_ADATTATORI[d.tipo](d, c, crono), 60000);
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
             async function aiChiamaConFallback(crono, avvisa) {
