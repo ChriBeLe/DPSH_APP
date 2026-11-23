@@ -483,6 +483,7 @@
 
             const CAPITOLO_PROVE = 'Prove DPSH', CAPITOLO_TAVOLE = 'Allegati grafici';
             async function buildCompleteReportHtml(projId, opzioni) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (!projId || !state.projects[projId]) return null;
                 const proj = state.projects[projId];
                 // survIds/includiIndice (richiesti esplicitamente dalla nuova schermata di

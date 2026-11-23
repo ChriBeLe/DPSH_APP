@@ -336,6 +336,7 @@
             // mai per base64 dentro un'unica stringa enorme, quindi è più leggero e non rischia di
             // far crashare l'app per l'uso eccessivo di memoria su progetti con molte foto.
             async function exportProjectZip(projId) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (!projId || !state.projects[projId]) return;
                 const proj = cloneProjectMetaSenzaFoto(state.projects[projId]);
                 // La forma dei dati viaggia col progetto: chi lo importa sa se va aggiornato (004b).
@@ -357,6 +358,7 @@
             // funzionato. Riusa lo stesso meccanismo "una foto alla volta" già collaudato in
             // exportProjectZip, per non tenere mai tutte le foto del progetto in memoria assieme.
             async function exportProjectPhotos(projId, soloProve) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (!projId || !state.projects[projId]) return;
                 const proj = cloneProjectMetaSenzaFoto(state.projects[projId]);
                 if (soloProve) proj.surveys = Object.fromEntries(Object.entries(proj.surveys || {}).filter(([id]) => soloProve.has(id)));
@@ -378,6 +380,7 @@
             // Esporta l'intero archivio (tutti i progetti) come ZIP: stesso principio dell'export
             // singolo, ma con un progetto.json per ciascun progetto, tutti sotto progetti/<id>/.
             async function exportGlobalZip() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const entries = [];
                 const projectIds = Object.keys(state.projects || {});
                 const manifest = { projectIds, exportedAt: Date.now(), versioneApp: APP_VERSIONE, versioneSchema: VERSIONE_SCHEMA_DATI };

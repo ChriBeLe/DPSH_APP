@@ -1472,6 +1472,7 @@
             // KML/Excel/PDF/galleria (dataUrl diretto -> cache RAM -> IndexedDB) prima di esportare,
             // così il JSON scaricato contiene sempre tutte le foto disponibili.
             async function rehydrateProjectPhotosForExport(proj) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const clone = JSON.parse(JSON.stringify(proj));
                 if (clone.surveys) {
                     for (const sid of Object.keys(clone.surveys)) {
@@ -1585,6 +1586,7 @@
             }
 
             async function exportProjectJSON(projId) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (!projId || !state.projects[projId]) return;
                 const proj = await rehydrateProjectPhotosForExport(state.projects[projId]);
                 const mancanti = contaFotoSenzaImmagine(proj);
@@ -1603,6 +1605,7 @@
             /** Lo stato intero con le foto reidratate (prova aperta e tutti i progetti) e già al posto
              * dei segnaposto: la base comune del JSON della prova e del Backup completo JSON. */
             async function statoConFotoPerExport(parts) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 // Stesso bug/fix di exportProjectJSON: reidrata anche le foto della prova attiva
                 // (state.photos) e di TUTTI i progetti/prove annidati nello stato completo, prima
                 // di esportare il backup — altrimenti le foto di sessioni precedenti risultano
@@ -1637,6 +1640,7 @@
             }
 
             async function exportSingleJSON() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const parts = [];
                 const { clone, mancanti } = await statoConFotoPerExport(parts);
                 const jsonStr = JSON.stringify(clone, null, 2);

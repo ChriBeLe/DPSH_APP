@@ -281,6 +281,7 @@
              * ed exportProjectPDF. onProgress(i, totale), se passato, è chiamato dopo ogni prova
              * costruita — usato per la barra di avanzamento. */
             async function buildSelezioneReportHtml(survList, proj, opzioni, onProgress) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const includiIndice = !!(opzioni && opzioni.includiIndice) && survList.length > 1;
                 // Precalcolo delle pagine di OGNI prova PRIMA di costruire l'HTML RIMOSSO (Fase 3
                 // della riscrittura): serviva solo a passare paginaGlobaleIniziale/

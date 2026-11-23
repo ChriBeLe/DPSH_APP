@@ -589,6 +589,7 @@
             // le immagini delle note. Il «backup completo» risultava completo solo a metà. Ora passa
             // dalla stessa reidratazione, e dagli stessi segnaposto, del JSON della prova.
             async function exportGlobalJSONBackup() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 try {
                     const parts = [];
                     const { clone, mancanti } = await statoConFotoPerExport(parts);
