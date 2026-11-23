@@ -371,19 +371,39 @@
              * prima di scrivere su localStorage, salvandoli in noteImageMemoryCache (il pieno resta
              * anche su IndexedDB via saveNoteImageToIDB, chiamato al momento dell'inserimento
              * dell'immagine) — stesso schema già usato per le foto, per non sforare i 5MB. */
+            /** Ricorda l'ultimo risultato di stripNoteImagesHtml per ogni testo già visto: la nota
+             * si rianalizza (DOMParser, costoso sulle note lunghe) solo quando il suo html cambia, non
+             * a ogni salvataggio. Chiave = html in ingresso, valore = {uscita, immagini}: le
+             * immagini servono a rimettere in noteImageMemoryCache ciò che qualcuno avesse tolto
+             * nel frattempo (eliminazione di un'immagine o di un'orfana, poi Annulla), così
+             * un risultato ricordato ha lo stesso effetto collaterale di uno appena calcolato.
+             * Limitata: oltre 50 testi diversi si svuota e si riparte. */
+            const stripNoteImagesRicordati = new Map();
             function stripNoteImagesHtml(html) {
                 if (!html || html.indexOf('data-note-img-id') === -1) return html;
+                const noto = stripNoteImagesRicordati.get(html);
+                if (noto) {
+                    noto.immagini.forEach(([id, src]) => {
+                        if (noteImageMemoryCache[id] !== src) noteImageMemoryCache[id] = src;
+                    });
+                    return noto.uscita;
+                }
                 try {
                     const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const immagini = [];
                     doc.querySelectorAll('img[data-note-img-id]').forEach(img => {
                         const id = img.getAttribute('data-note-img-id');
                         const src = img.getAttribute('src');
                         if (id && src && src.indexOf('data:') === 0) {
                             noteImageMemoryCache[id] = src;
+                            immagini.push([id, src]);
                             img.setAttribute('src', '');
                         }
                     });
-                    return doc.body.innerHTML;
+                    const uscita = doc.body.innerHTML;
+                    if (stripNoteImagesRicordati.size >= 50) stripNoteImagesRicordati.clear();
+                    stripNoteImagesRicordati.set(html, { uscita, immagini });
+                    return uscita;
                 } catch(e) {
                     return html;
                 }
@@ -406,39 +426,53 @@
                     // Annulla e Ripeti (pezzo 004f): se il contenuto è cambiato, quello di prima
                     // diventa un passo da annullare. Come sopra, non ferma mai il salvataggio.
                     try { registraPassoCronologia(); } catch (e) { ignoraErrore('registraPassoCronologia', e); }
-                    const cleanState = JSON.parse(JSON.stringify(state));
-                    if (cleanState.photos && cleanState.photos.length > 0) {
-                        cleanState.photos.forEach(p => {
-                            if (p.dataUrl) {
-                                photoMemoryCache[p.id] = p.dataUrl;
-                                delete p.dataUrl;
-                            }
-                        });
+                    // UNA sola serializzazione. Prima si clonava l'intero stato (foto e carte intestate
+                    // comprese, megabyte a ogni tocco), si toglievano le foto dal clone e poi si
+                    // serializzava di nuovo. Ora si fanno copie SUPERFICIALI dei soli rami da ripulire
+                    // (foto, note) e tutto il resto lo legge direttamente JSON.stringify. Lo spread
+                    // conserva l'ordine delle chiavi, quindi il testo salvato è identico a quello di prima.
+                    const senzaImmagini = (foto) => Array.isArray(foto)
+                        ? foto.map(p => {
+                            if (!p || typeof p !== 'object' || !p.dataUrl) return p;
+                            photoMemoryCache[p.id] = p.dataUrl;
+                            const { dataUrl, ...resto } = p;
+                            return resto;
+                        })
+                        : foto;
+                    const cleanState = { ...state };
+                    if (Array.isArray(state.photos) && state.photos.length > 0) {
+                        cleanState.photos = senzaImmagini(state.photos);
                     }
-                    if (cleanState.projects) {
-                        Object.keys(cleanState.projects).forEach(pid => {
-                            const proj = cleanState.projects[pid];
-                            if (proj.surveys) {
-                                Object.keys(proj.surveys).forEach(sid => {
-                                    if (proj.surveys[sid].photos) {
-                                        proj.surveys[sid].photos.forEach(p => {
-                                            if (p.dataUrl) {
-                                                photoMemoryCache[p.id] = p.dataUrl;
-                                                delete p.dataUrl;
-                                            }
-                                        });
-                                    }
+                    if (state.projects && typeof state.projects === 'object') {
+                        cleanState.projects = {};
+                        Object.keys(state.projects).forEach(pid => {
+                            const origine = state.projects[pid];
+                            if (!origine || typeof origine !== 'object') { cleanState.projects[pid] = origine; return; }
+                            const proj = { ...origine };
+                            if (origine.surveys && typeof origine.surveys === 'object') {
+                                proj.surveys = {};
+                                Object.keys(origine.surveys).forEach(sid => {
+                                    const prova = origine.surveys[sid];
+                                    // Le foto dei progetti non portano più l'immagine (vedi
+                                    // scriviStatoAttivoNelProgetto): la copia serve solo se qualcuna ce l'ha ancora.
+                                    proj.surveys[sid] = (prova && typeof prova === 'object' && prova.photos)
+                                        ? { ...prova, photos: senzaImmagini(prova.photos) }
+                                        : prova;
                                 });
                             }
-                            if (proj.notes && proj.notes.html) {
-                                proj.notes.html = stripNoteImagesHtml(proj.notes.html);
+                            if (origine.notes && typeof origine.notes === 'object' && (origine.notes.html || origine.notes.htmlPrimaDelMotore)) {
+                                proj.notes = { ...origine.notes };
+                                if (origine.notes.html) {
+                                    proj.notes.html = stripNoteImagesHtml(origine.notes.html);
+                                }
+                                // Stessa cura per la copia conservata prima della conversione al nuovo
+                                // motore: e' testo destinato a sparire appena l'utente conferma, non
+                                // deve intanto occupare spazio con le immagini incorporate.
+                                if (origine.notes.htmlPrimaDelMotore) {
+                                    proj.notes.htmlPrimaDelMotore = stripNoteImagesHtml(origine.notes.htmlPrimaDelMotore);
+                                }
                             }
-                            // Stessa cura per la copia conservata prima della conversione al nuovo
-                            // motore: e' testo destinato a sparire appena l'utente conferma, non
-                            // deve intanto occupare spazio con le immagini incorporate.
-                            if (proj.notes && proj.notes.htmlPrimaDelMotore) {
-                                proj.notes.htmlPrimaDelMotore = stripNoteImagesHtml(proj.notes.htmlPrimaDelMotore);
-                            }
+                            cleanState.projects[pid] = proj;
                         });
                     }
                     const testoStato = JSON.stringify(cleanState);

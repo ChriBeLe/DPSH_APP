@@ -50,7 +50,7 @@
                 box.innerHTML = s ? schedaProvaMappaHtml(proj, s) : '';
                 // La prima foto, in piccolo: sta nella prova o nell'archivio delle foto.
                 const foto = s && (s.photos || [])[0], img = box.querySelector('.mappa-progetto-foto');
-                if (foto && img) Promise.resolve(foto.dataUrl || (foto.id && getPhotoFromIDB(foto.id))).then(u => { if (u && img.isConnected) { img.src = u; img.hidden = false; } });
+                if (foto && img) Promise.resolve(foto.dataUrl || photoMemoryCache[foto.id] || (foto.id && getPhotoFromIDB(foto.id))).then(u => { if (u && img.isConnected) { img.src = u; img.hidden = false; } });
                 // La prova scelta resta in vista, sopra la scheda.
                 if (s && mappaProgetto.mappa && areaMappa.modo === 'mappa') mappaProgetto.mappa.panInside([parseFloat(s.header.lat), parseFloat(s.header.lng)], { paddingTopLeft: [20, 40], paddingBottomRight: [20, box.offsetHeight + 30] });
             }

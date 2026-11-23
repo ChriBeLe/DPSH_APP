@@ -42,6 +42,18 @@
                 scriviStatoAttivoNelProgetto(proj);
             }
 
+            /** Copia di una foto senza `dataUrl` (l'immagine piena va in photoMemoryCache). Copia
+             * profonda dei soli metadati, come prima. Una voce non-oggetto si copia com'è. */
+            function fotoSenzaImmagine(p) {
+                if (!p || typeof p !== 'object') return p;
+                // Un dataUrl vuoto resta com'è: il salvataggio lo scriveva così, e il testo salvato
+                // non deve cambiare nemmeno di un carattere.
+                if (!p.dataUrl) return JSON.parse(JSON.stringify(p));
+                photoMemoryCache[p.id] = p.dataUrl;
+                const { dataUrl, ...resto } = p;
+                return JSON.parse(JSON.stringify(resto));
+            }
+
             /** La prova aperta (stato attivo) scritta dentro `proj`: la parte di syncStateToProject che
              * tocca il progetto, separata perché serve anche a sapere cosa scriverà il prossimo
              * salvataggio senza scriverlo davvero (accettaNormalizzazioneApertura, pezzo 004e). */
@@ -56,7 +68,11 @@
                     currentDepthStart: state.currentDepthStart,
                     currentRod: state.currentRod,
                     logs: JSON.parse(JSON.stringify(state.logs)),
-                    photos: state.photos ? JSON.parse(JSON.stringify(state.photos)) : [],
+                    // Le foto della prova si copiano SENZA l'immagine: il dataUrl pesa megabyte e il
+                    // salvataggio lo toglieva comunque dalla copia (saveState lo scartava dopo averlo
+                    // clonato, a ogni tocco). Qui il pieno passa in photoMemoryCache, che è dove lo
+                    // cercano tutti i lettori (insieme a IndexedDB), e la copia resta solo metadati.
+                    photos: state.photos ? state.photos.map(p => fotoSenzaImmagine(p)) : [],
                     reportTemplateId: state.reportTemplateId || null,
                     // Immagini dei blocchi "immagine-libera" del template di report: per PROVA (non
                     // per template, che è condiviso tra più prove — vedi buildBlockContentHtml).
