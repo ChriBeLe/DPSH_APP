@@ -13,10 +13,10 @@
          usata come anteprima). -->
     <div class="modal-overlay tier-editor" id="modalTemplateEditorOverlay"></div>
     <div class="modal tier-editor" id="modalTemplateEditor" role="dialog" aria-modal="true" aria-labelledby="modalTemplateEditorTitolo" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
-        <div class="modal-title" id="modalTemplateEditorTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
+        <div class="modal-title c-riga-tra-mb3" id="modalTemplateEditorTitolo">
             <span class="tpl-barra-titolo">
                 <span class="tpl-barra-badge"><svg class="ico"><use href="#i-edit"/></svg></span>
-                <span id="lblTemplateEditorTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Modifica Template</span>
+                <span id="lblTemplateEditorTitle" class="c-ellissi">Modifica Template</span>
             </span>
             <!-- BARRA DEL TITOLO: tre zone, tre pesi (vedi il CSS .tpl-barra-*). Da sinistra a destra:
                  attrezzi (fantasma) → cose che si aprono ogni tanto (contorno) → Salva (pieno) →
@@ -62,14 +62,14 @@
                      Chiudi) più questo menu "altro" per le azioni meno urgenti — vedi CSS @media. I
                      bottoni "veri" sopra restano nel DOM (nascosti via CSS): il menu si limita a
                      inoltrargli un click, zero logica duplicata. -->
-                <div style="position: relative;">
+                <div class="c-pos">
                     <button type="button" class="tpl-barra-gh" id="btnTemplateEditorMobileMore" title="Altre azioni" aria-label="Altre azioni" aria-haspopup="true" aria-expanded="false"><svg class="ico"><use href="#i-more"/></svg></button>
                     <div id="templateEditorMobileMoreMenu" class="tpl-editor-mobile-more-menu">
-                        <button type="button" data-more-target="btnTemplatePreviewMode"><svg class="ico" style="width:14px; height:14px;"><use href="#i-eye"/></svg> Nascondi/visualizza riquadri</button>
-                        <button type="button" data-more-target="btnTemplateFullscreenPreview"><svg class="ico" style="width:14px; height:14px;"><use href="#i-maximize"/></svg> Schermo intero</button>
-                        <button type="button" data-more-target="btnAnteprimaStampaReale"><svg class="ico" style="width:14px; height:14px;"><use href="#i-print"/></svg> Anteprima di stampa reale</button>
-                        <button type="button" data-more-target="btnStileTesto"><svg class="ico" style="width:14px; height:14px;"><use href="#i-type"/></svg> Stile del testo...</button>
-                        <button type="button" data-more-target="btnSaveTemplateEditorAsCopy"><svg class="ico" style="width:14px; height:14px;"><use href="#i-copy"/></svg> Salva come copia...</button>
+                        <button type="button" data-more-target="btnTemplatePreviewMode"><svg class="ico c-q14"><use href="#i-eye"/></svg> Nascondi/visualizza riquadri</button>
+                        <button type="button" data-more-target="btnTemplateFullscreenPreview"><svg class="ico c-q14"><use href="#i-maximize"/></svg> Schermo intero</button>
+                        <button type="button" data-more-target="btnAnteprimaStampaReale"><svg class="ico c-q14"><use href="#i-print"/></svg> Anteprima di stampa reale</button>
+                        <button type="button" data-more-target="btnStileTesto"><svg class="ico c-q14"><use href="#i-type"/></svg> Stile del testo...</button>
+                        <button type="button" data-more-target="btnSaveTemplateEditorAsCopy"><svg class="ico c-q14"><use href="#i-copy"/></svg> Salva come copia...</button>
                     </div>
                 </div>
                 <span class="tpl-barra-uscita">
@@ -86,14 +86,14 @@
              presente, più o meno colpi, più o meno foto...) prima di fidarsi che "sta bene sulla
              stessa pagina" valga per TUTTE le prove che useranno questo template. -->
         <div id="templateEditorPreviewSurveyBar" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 6px 10px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); flex-shrink: 0;">
-            <svg class="ico" style="width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0;"><use href="#i-eye"/></svg>
-            <span class="tpl-anteprima-etichetta" style="font-size: 11px; font-weight: 700; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;">Anteprima con i dati di</span>
-            <select id="selTemplateEditorPreviewProject" class="form-control" style="padding: 4px 6px; font-size: 11.5px; flex: 1; min-width: 0; max-width: 200px;"></select>
-            <select id="selTemplateEditorPreviewSurvey" class="form-control" style="padding: 4px 6px; font-size: 11.5px; flex: 1; min-width: 0; max-width: 280px;"></select>
+            <svg class="ico tpled-q14-muto"><use href="#i-eye"/></svg>
+            <span class="tpl-anteprima-etichetta tpled-did-muto">Anteprima con i dati di</span>
+            <select id="selTemplateEditorPreviewProject" class="form-control tpled-did-pad"></select>
+            <select id="selTemplateEditorPreviewSurvey" class="form-control tpled-did-pad2"></select>
             <span id="lblTemplateEditorPreviewWarning" style="font-size: 10.5px; font-weight: 700; color: #b45309; display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
         </div>
 
-        <div style="display: flex; gap: 12px; flex: 1; min-height: 0;">
+        <div class="c-riga6">
             <!-- Su mobile (vedi @media max-width:760px) questa diventa un cassetto a comparsa
                  (position:fixed, .mobile-open) invece della colonna laterale fissa: aperta dal FAB
                  #btnTemplateEditorMobileAddBlock e chiusa da btnCloseMobilePalette o toccando fuori.
@@ -109,7 +109,7 @@
                      (i margini, «Attiva»/«Spenta»), così non serve aprirlo per saperlo. Gli id sono
                      quelli di prima: la logica (029, 035, 071s…) non cambia. -->
                 <div class="tpl-sez-titolo">Blocchi</div>
-                <div id="templateEditorPalette" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;"></div>
+                <div id="templateEditorPalette" class="c-griglia"></div>
 
                 <details class="tpl-sez" data-tpl-sez="pagina" open>
                     <summary><span>Questa pagina</span><svg class="ico tpl-sez-freccia"><use href="#i-chevron-down"/></svg></summary>
@@ -260,7 +260,7 @@
                  schermo indipendentemente da quanto si è trascinata/zoomata la pagina, invece di
                  scorrere via insieme al contenuto come succedeva quando era figlia diretta
                  dell'elemento scrollabile. -->
-            <div id="templateEditorViewportWrap" style="position: relative; flex: 1; min-width: 0; display: flex;">
+            <div id="templateEditorViewportWrap" class="c-riga-pos2">
                 <div id="templateEditorViewport" style="position: relative; flex: 1; min-width: 0; overflow: auto; background: var(--bg-sunken); border-radius: var(--radius-sm); padding: 12px; display: flex; touch-action: pan-x pan-y; cursor: grab;">
                     <div id="templateEditorScaleOuter" style="overflow: hidden; flex-shrink: 0;">
                         <div id="templateEditorScaleWrap" style="transform-origin: top left;">
@@ -278,10 +278,10 @@
                          illeggibile non serve a nessuno (voce di bacheca "zoom minimo più alto").
                          "Adatta" resta perché è un'azione, non una misura: riporta allo zoom
                          calcolato sulla finestra, che non è un numero fisso. -->
-                    <svg class="ico" style="width:13px; height:13px; color:var(--text-muted); flex-shrink:0;"><use href="#i-search"/></svg>
-                    <input type="range" id="rangeTemplateEditorZoom" min="45" max="300" step="1" value="100" title="Zoom del foglio — doppio tocco sul foglio per adattarlo alla larghezza" style="width: 110px; accent-color: var(--accent);">
-                    <span id="lblTemplateEditorZoom" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); min-width: 38px; text-align: center; user-select: none;">100%</span>
-                    <button type="button" id="btnTemplateZoomFit" title="Adatta alla finestra" style="height: 26px; padding: 0 8px; border: none; background: none; cursor: pointer; font-size: 10px; font-weight: 800; color: var(--text-main); border-radius: 6px;">Adatta</button>
+                    <svg class="ico tpled-q13-muto"><use href="#i-search"/></svg>
+                    <input type="range" id="rangeTemplateEditorZoom" min="45" max="300" step="1" value="100" title="Zoom del foglio — doppio tocco sul foglio per adattarlo alla larghezza" class="tpled-w110">
+                    <span id="lblTemplateEditorZoom" class="tpled-did-muto2">100%</span>
+                    <button type="button" id="btnTemplateZoomFit" title="Adatta alla finestra" class="c-did-sfondo-bordo">Adatta</button>
                 </div>
                 <!-- FAB visibile solo su mobile (@media max-width:760px): apre la tendina blocchi
                      (#templateEditorPaletteSidebar in modalità .mobile-open) invece del drag&drop,
@@ -307,20 +307,20 @@
             <!-- Barra di selezione multipla pagine (tocco prolungato su una miniatura, vedi
                  attivaModalitaSelezionePagine): nascosta di default, compare sopra la filmstrip solo
                  mentre si stanno scegliendo pagine da eliminare in blocco. -->
-            <div id="templateEditorPageSelectionBar" style="display: none; align-items: center; gap: 8px; margin-top: 12px; padding: 6px 10px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; flex-shrink: 0;">
-                <span id="lblPageSelectionCount" style="font-size: 11.5px; font-weight: 800; color: var(--accent-ink); flex: 1;">0 pagine selezionate</span>
-                <button type="button" id="btnSelectAllPages" class="btn-action" style="background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); font-weight: 700; font-size: 11.5px; padding: 6px 12px;">Seleziona tutti</button>
-                <button type="button" id="btnDeleteSelectedPages" class="btn-action" style="background: var(--danger); color: var(--on-solid); border: none; font-weight: 700; font-size: 11.5px; display: flex; align-items: center; gap: 5px; padding: 6px 12px;"><svg class="ico" style="width: 13px; height: 13px;"><use href="#i-trash"/></svg> Elimina</button>
-                <button type="button" id="btnCancelPageSelection" class="btn-icon" title="Annulla selezione" style="width: 30px; height: 30px;" aria-label="Annulla selezione"><svg class="ico"><use href="#i-x"/></svg></button>
+            <div id="templateEditorPageSelectionBar" class="tpled-sfondo-bordo-mt" style="display:none">
+                <span id="lblPageSelectionCount" class="tpled-did-accento">0 pagine selezionate</span>
+                <button type="button" id="btnSelectAllPages" class="btn-action tpled-did-sfondo-bordo">Seleziona tutti</button>
+                <button type="button" id="btnDeleteSelectedPages" class="btn-action tpled-riga-did-sfondo"><svg class="ico tpled-q13"><use href="#i-trash"/></svg> Elimina</button>
+                <button type="button" id="btnCancelPageSelection" class="btn-icon tpled-q30" title="Annulla selezione" aria-label="Annulla selezione"><svg class="ico"><use href="#i-x"/></svg></button>
             </div>
 
             <!-- Chiudi/Salva ora vivono nella barra del titolo (vedi sopra): questa riga in fondo è
                  SOLO la filmstrip delle anteprime pagina, libera di usare tutta la larghezza della
                  modale invece di doverla condividere con due bottoni che restavano isolati accanto a
                  lei quando le miniature erano espanse a piena altezza. -->
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-shrink: 0;">
-                <button type="button" id="btnToggleTemplatePagesPreview" title="Mostra/nascondi anteprime pagine" style="flex-shrink: 0; background: none; border: 1px solid var(--border); border-radius: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main);" aria-label="Mostra/nascondi anteprime pagine"><svg class="ico" id="iconToggleTemplatePagesPreview" style="width: 14px; height: 14px; transition: transform var(--mov-breve) var(--ease-entra);"><use href="#i-chevron-down"/></svg></button>
-                <div id="templateEditorPagesStrip" style="position: relative; display: flex; gap: 8px; align-items: center; overflow-x: auto; flex: 1; min-width: 0;"></div>
+            <div class="tpled-riga-mt">
+                <button type="button" id="btnToggleTemplatePagesPreview" title="Mostra/nascondi anteprime pagine" class="tpled-riga-q26-sfondo" aria-label="Mostra/nascondi anteprime pagine"><svg class="ico tpled-q14" id="iconToggleTemplatePagesPreview"><use href="#i-chevron-down"/></svg></button>
+                <div id="templateEditorPagesStrip" class="tpled-riga-pos"></div>
             </div>
         </div>
     </div>

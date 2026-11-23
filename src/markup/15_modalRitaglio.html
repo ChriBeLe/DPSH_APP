@@ -4,10 +4,10 @@
          leggono dallo stesso archivio) e le immagini delle note, disegni compresi.
          Sta su un livello dichiarato piu' alto delle finestre da cui viene aperto. -->
     <div class="modal-overlay tier-strati-top" id="modalRitaglioOverlay"></div>
-    <div class="modal tier-strati-top" id="modalRitaglio" role="dialog" aria-modal="true" aria-labelledby="modalRitaglioTitolo" style="max-width: 700px; max-height: 94vh; overflow-y: auto; display:flex; flex-direction:column;">
-        <div class="modal-title" id="modalRitaglioTitolo" style="justify-content: space-between;">
+    <div class="modal tier-strati-top rit-colonna" id="modalRitaglio" role="dialog" aria-modal="true" aria-labelledby="modalRitaglioTitolo">
+        <div class="modal-title c-tra" id="modalRitaglioTitolo">
             <span><svg class="ico"><use href="#i-crop"/></svg> <span id="lblRitaglioTitolo">Ritaglia</span></span>
-            <button class="btn-icon" id="btnRitaglioChiudiX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon c-muto-sfondo-bordo" id="btnRitaglioChiudiX" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
 
         <div class="note-toolbar" id="ritaglioToolbar">
@@ -27,13 +27,13 @@
         <div class="ritaglio-tela-wrap">
             <canvas id="ritaglioCanvas" width="640" height="420"></canvas>
         </div>
-        <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.45;">
+        <div class="c-did-muto-mt2">
             Trascina dentro il riquadro per spostarlo, dai quadratini agli angoli per cambiarne la forma. Quello che resta fuori viene tagliato via.
         </div>
-        <div id="ritaglioNotaOriginale" style="display:none; font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.45; padding:7px 9px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-sunken);"></div>
+        <div id="ritaglioNotaOriginale" class="rit-did-muto-sfondo" style="display:none"></div>
 
         <div class="modal-actions">
-            <button class="btn-action" id="btnRitaglioAnnulla" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">Chiudi</button>
-            <button class="btn-action" id="btnRitaglioConferma" style="background: var(--accent); color: var(--on-accent); font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Ritaglia</button>
+            <button class="btn-action c-sfondo-bordo" id="btnRitaglioAnnulla">Chiudi</button>
+            <button class="btn-action c-accento-sfondo" id="btnRitaglioConferma"><svg class="ico"><use href="#i-check"/></svg> Ritaglia</button>
         </div>
     </div>

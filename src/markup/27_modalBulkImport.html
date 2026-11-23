@@ -4,49 +4,49 @@
          l'anteprima, in basso le due modalità affiancate e i tasti. -->
     <div class="modal-overlay" id="modalBulkImportOverlay"></div>
     <div class="modal" id="modalBulkImport" role="dialog" aria-modal="true" aria-labelledby="modalBulkImportTitolo">
-        <div class="modal-title" id="modalBulkImportTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div class="modal-title c-riga-tra-mb2" id="modalBulkImportTitolo">
             <span><svg class="ico"><use href="#i-list"/></svg> Aggiungi intervalli</span>
-            <button class="btn-icon" id="btnCloseBulkImportX" title="Chiudi" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 6px;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon bulk-sez-muto-sfondo" id="btnCloseBulkImportX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <p class="bulk-spiega" style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;">
+        <p class="bulk-spiega c-did-muto-mb">
             Scrivi i colpi (<code>5 8 12 15</code>, anche con virgole o a capo; <code>Rifiuto</code> segna il rifiuto) o incolla le righe da Excel o da un CSV:
             i colpi sono l'ultima colonna. Si parte dalla quota a cui è arrivata la prova, un passo per numero.
         </p>
 
-        <div class="bulk-testo" style="margin-bottom: 10px;">
+        <div class="bulk-testo c-mb">
             <textarea id="txtBulkImportData" class="form-control" rows="5" placeholder="Es. incolla qui:&#10;5 8 12 15&#10;18, 22, 25..." style="font-family: var(--font-mono); font-size: 14px; line-height: 1.4; padding: 10px; resize: vertical; min-height: 100px; width: 100%; box-sizing: border-box;"></textarea>
         </div>
 
-        <div class="bulk-anteprima" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Da aggiungere</span>
-                <span id="lblBulkImportCount" style="font-size: 12px; font-weight: 800; color: var(--accent);">0 intervalli</span>
+        <div class="bulk-anteprima bulk-colonna-sfondo-bordo">
+            <div class="c-riga-tra">
+                <span class="bulk-did-muto">Da aggiungere</span>
+                <span id="lblBulkImportCount" class="bulk-did-accento">0 intervalli</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Quote</span>
-                <span id="lblBulkImportDepth" style="font-size: 12px; font-weight: 800; color: var(--accent);">0,00 m</span>
+            <div class="c-riga-tra">
+                <span class="bulk-did-muto">Quote</span>
+                <span id="lblBulkImportDepth" class="bulk-did-accento">0,00 m</span>
             </div>
             <!-- Cosa verrà scritto, riga per riga, e cosa non si è capito (prototipo PC, passo 3). -->
             <div id="anteprimaBulkImport" class="anteprima-intervalli"></div>
         </div>
 
-        <div class="form-group bulk-modo" style="margin-bottom: 16px;">
-            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; display: block;">Modalità Inserimento:</label>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <label class="bulk-scelta" style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
-                    <input type="radio" name="optImportMode" value="append" checked style="width: 16px; height: 16px; accent-color: var(--accent);">
+        <div class="form-group bulk-modo c-mb2">
+            <label class="bulk-did-muto-mb">Modalità Inserimento:</label>
+            <div class="c-colonna3">
+                <label class="bulk-scelta bulk-riga-did">
+                    <input type="radio" name="optImportMode" value="append" checked class="bulk-q16">
                     <svg class="ico"><use href="#i-check"/></svg> Aggiungi in coda agli intervalli esistenti
                 </label>
-                <label class="bulk-scelta" style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
-                    <input type="radio" name="optImportMode" value="replace" style="width: 16px; height: 16px; accent-color: var(--danger);">
+                <label class="bulk-scelta bulk-riga-did">
+                    <input type="radio" name="optImportMode" value="replace" class="bulk-q162">
                     <svg class="ico"><use href="#i-alert"/></svg> Sostituisci tutti gli intervalli della prova
                 </label>
             </div>
         </div>
 
-        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <div class="modal-actions c-riga5">
             <button class="btn-action" id="btnCancelBulkImport">Chiudi</button>
-            <button class="btn-action" id="btnConfirmBulkImport" style="background: var(--success); color: #ffffff; border: none; font-weight: 800; padding: 8px 16px;">
+            <button class="btn-action bulk-sfondo-bordo-pad" id="btnConfirmBulkImport">
                 <svg class="ico"><use href="#i-list"/></svg> Conferma l'importazione
             </button>
         </div>

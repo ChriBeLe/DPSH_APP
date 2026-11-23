@@ -5,7 +5,7 @@
          Uso nel markup statico:   <svg class="ico"><use href="#i-nome"/></svg>
          Uso nelle stringhe JS:    ${ico('nome')}
          ============================================================ -->
-    <svg id="iconSpriteDefs" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <svg id="iconSpriteDefs" width="0" height="0" class="app-pos" aria-hidden="true" focusable="false">
         <defs>
             <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></symbol>
             <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
@@ -286,7 +286,7 @@
                 </span>
                 <span class="modifica-dati"><svg class="ico"><use href="#i-edit"/></svg>Modifica</span>
             </button>
-            <div style="margin:8px 0;"><button type="button" class="bt" id="btnProgettoGps" title="Coordinate GPS di tutte le prove, anche da un file KML/KMZ/GPX"><svg class="ico"><use href="#i-pin"/></svg>Coordinate GPS delle prove</button></div>
+            <div class="app-x"><button type="button" class="bt" id="btnProgettoGps" title="Coordinate GPS di tutte le prove, anche da un file KML/KMZ/GPX"><svg class="ico"><use href="#i-pin"/></svg>Coordinate GPS delle prove</button></div>
             <button type="button" class="bt bt-principale bt-campo" id="btnProgettoRiprendi"></button>
             <!-- IL PERCORSO (Fase C, passo H): le cinque tappe del progetto, ognuna con il suo stato in
                  breve e il tasto che porta al punto in cui c'è da lavorare. «Strati» e «Consegna» sono le
@@ -338,7 +338,7 @@
             </div>
 
             <!-- CARD CONTEGGIO COLPI (MAIN FIELD CONTROLLER) -->
-            <div class="card" id="cardCounterDashboard" style="position: relative;">
+            <div class="card c-pos" id="cardCounterDashboard">
                 <div class="counter-body expand-region open" id="counterBody">
                 <!-- IL CONTATORE (Fase 3): l'intervallo che si sta contando in mono e l'asta; il numero
                      grande; sotto, cosa sta contando. -->
@@ -437,7 +437,7 @@
                 <div class="logs-table-wrapper">
                     <div class="registro-intestazione">
                         <div>Prof. (m)</div>
-                        <div style="text-align: center;">Colpi</div>
+                        <div class="app-x2">Colpi</div>
                         <div>Profilo e litologia</div>
                     </div>
                     <div id="tblIntegratedLogsBody">
@@ -469,11 +469,11 @@
                     <table class="logs-table">
                         <thead>
                             <tr>
-                                <th style="width: 26%;">Intervallo (m)</th>
-                                <th style="width: 15%;">Colpi (N)</th>
-                                <th style="width: 17%;" title="Nspt equivalente">Nspt</th>
-                                <th style="width: 17%;" title="Nspt corretto per falda">Nspt'</th>
-                                <th style="width: 25%;" title="Resistenza dinamica di punta, kg/cm²">Rpd</th>
+                                <th class="app-x3">Intervallo (m)</th>
+                                <th class="app-x4">Colpi (N)</th>
+                                <th class="app-x5" title="Nspt equivalente">Nspt</th>
+                                <th class="app-x5" title="Nspt corretto per falda">Nspt'</th>
+                                <th class="app-x6" title="Resistenza dinamica di punta, kg/cm²">Rpd</th>
                             </tr>
                         </thead>
                         <tbody id="tblLogsBody">
@@ -486,19 +486,19 @@
 
             <!-- GRAFICO PROFILO PENETROMETRICO REAL-TIME CON LEGENDA VISIVA (VISTA SEPARATA CLASSICA) -->
             <div class="card" id="cardChart" style="display: none;">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                <div class="app-riga-tra-mb">
                     <h2 class="registro-titolo">Profilo penetrometrico dinamico (N vs m)</h2>
                     <button type="button" class="btn-icon btn-icon-sm" id="btnToggleModificaStratiGrafico" aria-pressed="false" title="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico" aria-label="Modifica contatti tra strati: attiva per poter trascinare le maniglie sul grafico"><svg class="ico"><use href="#i-edit"/></svg></button>
                 </div>
-                <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; display:none; align-items:center; gap:5px;" id="lblDragHandlesHint">
+                <div class="app-did-muto-mb" style="display:none" id="lblDragHandlesHint">
                     <svg class="ico"><use href="#i-move-y"/></svg> Trascina le maniglie sul lato destro del grafico per spostare manualmente il contatto tra due strati.
                 </div>
                 <!-- LEGENDA VISIVA DINAMICA DEL GRAFICO -->
-                <div id="chartLegendContainer" style="display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding: 5px 8px; margin-bottom: 8px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 12px; font-weight: 600;">
+                <div id="chartLegendContainer" class="app-riga-did-sfondo">
                     <!-- Popolato dinamicamente da renderChart() -->
                 </div>
                 <div class="chart-box">
-                    <svg id="svgChart" width="100%" height="100%" style="overflow: visible;"></svg>
+                    <svg id="svgChart" width="100%" height="100%" class="app-x7"></svg>
                 </div>
                 <button type="button" class="bt-link accento btn-espandi-registro"></button>
             </div>

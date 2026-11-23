@@ -6,7 +6,7 @@
          solo: lo si cerca solo col tasto «Rileva». -->
     <div class="modal-overlay" id="modalGpsOverlay"></div>
     <div class="modal" id="modalGpsSettings" role="dialog" aria-modal="true" aria-labelledby="modalGpsSettingsTitolo" style="max-width: 92vw; width: 380px; padding: 16px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-        <div class="modal-title" id="modalGpsSettingsTitolo" style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="modal-title c-riga-tra" id="modalGpsSettingsTitolo">
             <span><svg class="ico"><use href="#i-pin"/></svg> Posizione GPS del progetto</span>
             <button class="btn-action" id="btnCloseGpsModalX" style="background:none; border:none; color:var(--text-muted); font-size:16px; padding:${padV} 6px;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
@@ -16,8 +16,8 @@
         <div id="lblModalGpsStatus" style="font-size: 11px; color: var(--accent); font-weight:600; background: var(--bg-card-hover); padding: 8px; border-radius: var(--radius-sm); margin-bottom: 12px; text-align: center; border: 1px solid var(--border);">
             GPS: Non acquisito
         </div>
-        <div class="form-group gps-sr" style="margin-bottom: 12px;">
-            <label for="selSrProgetto" style="font-size: 11px;">Sistema di riferimento del progetto</label>
+        <div class="form-group gps-sr c-mb">
+            <label for="selSrProgetto" class="c-did">Sistema di riferimento del progetto</label>
             <select id="selSrProgetto" class="form-control" title="Le coordinate si scrivono, si incollano e si leggono in questo sistema, per tutte le prove del progetto"></select>
         </div>
 
@@ -26,10 +26,10 @@
              scritta qui sotto, segnata sulla mappa e ripristinabile; la spia GPS della prova dice «spostata».
              La riempie il 022. -->
         <div id="boxSpostaProva" style="display: none; margin: -4px 0 12px;">
-            <div id="lblProvaSpostata" style="display: none; font-size: 11px; line-height: 1.45; color: var(--warning); background: var(--bg-card-hover); padding: 8px; border-radius: var(--radius-sm); border: 1px dashed var(--warning); margin-bottom: 6px;"></div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <button type="button" class="btn-action" id="btnSpostaProva" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-pin"/></svg> Sposta la prova</button>
-                <button type="button" class="btn-action" id="btnRipristinaPosizione" style="display: none; justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-undo"/></svg> Torna a prima</button>
+            <div id="lblProvaSpostata" class="gps-did-sfondo-bordo" style="display:none"></div>
+            <div class="c-griglia">
+                <button type="button" class="btn-action gps-did-sfondo-bordo2" id="btnSpostaProva"><svg class="ico"><use href="#i-pin"/></svg> Sposta la prova</button>
+                <button type="button" class="btn-action gps-did-sfondo-bordo2" id="btnRipristinaPosizione" style="display:none"><svg class="ico"><use href="#i-undo"/></svg> Torna a prima</button>
             </div>
         </div>
 
@@ -39,18 +39,18 @@
              tiene quello che funziona e si tolgono gli altri. "Copia coordinate" resta comunque,
              perché funziona ovunque. Visibile solo con coordinate salvate e valide. -->
         <div id="boxApriInMappe" style="display: none; margin: -4px 0 12px; padding: 8px; border: 1px dashed var(--border); border-radius: var(--radius-sm);">
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.45;">
-                <strong style="color: var(--text-main);">Apri in Mappe · prova</strong> — quale dei tre apre le mappe su questo telefono? Se il 2 si apre dentro l'app, torna indietro col tasto Indietro.
+            <div class="gps-did-muto-mb">
+                <strong class="c-x">Apri in Mappe · prova</strong> — quale dei tre apre le mappe su questo telefono? Se il 2 si apre dentro l'app, torna indietro col tasto Indietro.
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <a id="lnkMappeGeo" href="#" class="btn-action" style="justify-content: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">1 · App mappe</a>
-                <a id="lnkMappeWeb" href="#" target="_blank" rel="noopener" class="btn-action" style="justify-content: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">2 · Google Maps</a>
-                <button type="button" id="btnMappeCondividi" class="btn-action" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);">3 · Scegli app</button>
-                <button type="button" id="btnCopiaCoordinate" class="btn-action" style="justify-content: center; font-size: 12px; font-weight: 700; padding: 8px 6px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border);"><svg class="ico"><use href="#i-copy"/></svg> Copia coordinate</button>
+            <div class="c-griglia">
+                <a id="lnkMappeGeo" href="#" class="btn-action gps-did-sfondo-bordo3">1 · App mappe</a>
+                <a id="lnkMappeWeb" href="#" target="_blank" rel="noopener" class="btn-action gps-did-sfondo-bordo3">2 · Google Maps</a>
+                <button type="button" id="btnMappeCondividi" class="btn-action gps-did-sfondo-bordo2">3 · Scegli app</button>
+                <button type="button" id="btnCopiaCoordinate" class="btn-action gps-did-sfondo-bordo2"><svg class="ico"><use href="#i-copy"/></svg> Copia coordinate</button>
             </div>
         </div>
 
-        <div class="form-group gps-rileva" style="text-align: center; margin-bottom: 14px;">
+        <div class="form-group gps-rileva gps-mb">
             <button class="btn-action" id="btnGetGpsModal" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; width: 100%; padding: 10px; font-size: 13px;">
                 <svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS
             </button>
@@ -60,7 +60,7 @@
              singola — selezionarne una chiude le altre. "Coordinate manuali" e "Mappa" restano
              unite in una sola scheda perché la mappa è solo un aiuto visivo per compilare gli
              stessi due campi Lat/Lng. -->
-        <div class="gps-oppure" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">
+        <div class="gps-oppure gps-did-muto-mb2">
             Oppure imposta manualmente
         </div>
         <div class="gps-method-tabs">
@@ -81,19 +81,19 @@
             <div class="gps-accordion-body expand-region" id="gpsAccBodyKml">
                 <div class="gps-accordion-body-inner">
                     <div class="gps-etichetta-pc">Da un file KML o GPX</div>
-                    <button class="btn-action" id="btnImportGpsKml" style="width:100%; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-weight: 700; font-size: 12px;">
+                    <button class="btn-action gps-did-sfondo-bordo4" id="btnImportGpsKml">
                         <svg class="ico"><use href="#i-upload"/></svg> Scegli File KML / KMZ / GPX
                     </button>
                     <input type="file" id="fileImportGpsKml" accept=".kml,.kmz,.gpx,.xml,text/xml,application/xml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" style="display:none;">
-                    <div id="gpsKmlImportResults" style="display:none; max-height:150px; overflow-y:auto; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); margin-top:8px;"></div>
+                    <div id="gpsKmlImportResults" class="gps-sfondo-bordo-mt" style="display:none"></div>
                 </div>
             </div>
             <div class="gps-accordion-body expand-region" id="gpsAccBodyPaste">
                 <div class="gps-accordion-body-inner">
                     <div class="gps-etichetta-pc">Incolla le coordinate</div>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="txtPasteCoords" class="form-control" placeholder="es. 41.845912, 12.562424" style="flex: 1;">
-                        <button class="btn-action" id="btnApplyPastedCoords" style="background: var(--info); color: #fff; border: none; font-weight: 700; font-size: 12px; white-space: nowrap; flex: 0 0 auto; padding: 10px 12px;">
+                    <div class="c-riga">
+                        <input type="text" id="txtPasteCoords" class="form-control c-x2" placeholder="es. 41.845912, 12.562424">
+                        <button class="btn-action gps-did-sfondo-bordo5" id="btnApplyPastedCoords">
                             <svg class="ico"><use href="#i-check"/></svg> Applica
                         </button>
                     </div>
@@ -101,23 +101,23 @@
             </div>
             <div class="gps-accordion-body expand-region" id="gpsAccBodyManual">
                 <div class="gps-accordion-body-inner">
-                    <div id="boxGpsUtm" class="gps-coord" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                    <div id="boxGpsUtm" class="gps-coord gps-mb2" style="display:none">
                         <div class="form-group">
-                            <label style="font-size: 11px;">Est (m)</label>
+                            <label class="c-did">Est (m)</label>
                             <input type="number" step="0.001" id="numModalGpsE" class="form-control" placeholder="es. 471719.850">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 11px;">Nord (m)</label>
+                            <label class="c-did">Nord (m)</label>
                             <input type="number" step="0.001" id="numModalGpsN" class="form-control" placeholder="es. 4115631.129">
                         </div>
                     </div>
                     <div id="boxGpsGradi" class="gps-coord" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
                         <div class="form-group">
-                            <label for="numModalGpsLat" style="font-size: 11px;">Latitudine (°)</label>
+                            <label for="numModalGpsLat" class="c-did">Latitudine (°)</label>
                             <input type="number" step="0.000001" id="numModalGpsLat" class="form-control" placeholder="es. 41.845912">
                         </div>
                         <div class="form-group">
-                            <label for="numModalGpsLng" style="font-size: 11px;">Longitudine (°)</label>
+                            <label for="numModalGpsLng" class="c-did">Longitudine (°)</label>
                             <input type="number" step="0.000001" id="numModalGpsLng" class="form-control" placeholder="es. 12.562424">
                         </div>
                     </div>
@@ -132,9 +132,9 @@
                         <button type="button" class="gps-map-layer-btn" data-layer="hybrid">Ibrida</button>
                     </div>
 
-                    <div style="display:flex; gap:6px; margin-bottom:6px;">
-                        <input type="text" id="txtGpsMapSearch" class="form-control" placeholder="Cerca località, via, comune..." style="flex:1; font-size:12px;">
-                        <button class="btn-action" id="btnGpsMapSearch" style="background: var(--info); color:#fff; border:none; font-weight:700; font-size:12px; white-space:nowrap; padding:10px 12px; flex:0 0 auto;">Cerca</button>
+                    <div class="c-riga-mb">
+                        <input type="text" id="txtGpsMapSearch" class="form-control gps-did" placeholder="Cerca località, via, comune...">
+                        <button class="btn-action gps-did-sfondo-bordo6" id="btnGpsMapSearch">Cerca</button>
                     </div>
                     <div id="gpsMapSearchResults" style="display:none; max-height:130px; overflow-y:auto; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); margin-bottom:6px;"></div>
                     <div id="notaSpostaProva" style="display: none; font-size: 11px; line-height: 1.45; font-weight: 600; color: var(--warning); margin-bottom: 6px;">
@@ -142,13 +142,13 @@
                     </div>
                     </div>
                     <div id="gpsMapModalEl" style="width:100%; height:220px; border-radius: var(--radius-md); border:1px solid var(--border); background:var(--bg-sunken);"></div>
-                    <button class="btn-action" id="btnGpsMapGoToMe" style="width:100%; margin-top:6px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-weight: 700; font-size: 12px;">
+                    <button class="btn-action gps-did-sfondo-bordo7" id="btnGpsMapGoToMe">
                         <svg class="ico"><use href="#i-satellite"/></svg> Vai alla Mia Posizione
                     </button>
-                    <div class="gps-suggerimento" style="font-size:10.5px; color:var(--text-muted); margin:6px 0;">
+                    <div class="gps-suggerimento c-did-muto">
                         <svg class="ico"><use href="#i-note"/></svg> Come ultima spiaggia se il GPS del dispositivo non risponde: cerca la località qui sopra (o centra la mappa a mano) e tocca il punto esatto per posizionare il marker.
                     </div>
-                    <button class="btn-action" id="btnUseGpsMapPin" style="width:100%; background: var(--accent); color:var(--on-accent); border:none; font-weight:700;">
+                    <button class="btn-action gps-accento-sfondo-bordo" id="btnUseGpsMapPin">
                         <svg class="ico"><use href="#i-check"/></svg> Usa la Posizione del Pin
                     </button>
                 </div>
@@ -156,17 +156,17 @@
         </div>
 
         <div id="gpsDebugToolsWrapper" style="display:none;">
-            <button class="btn-action" id="btnRunGpsDiagnostics" style="width:100%; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 700; font-size: 12px; margin-bottom: 10px;">
+            <button class="btn-action gps-did-sfondo-bordo8" id="btnRunGpsDiagnostics">
                 <svg class="ico"><use href="#i-bug"/></svg> Diagnostica GPS (perché non funziona?)
             </button>
-            <div id="gpsDiagnosticsBox" style="display:none; font-size:11px; line-height:1.5; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; margin-bottom:12px; font-family: var(--font-mono); word-break: break-word;"></div>
+            <div id="gpsDiagnosticsBox" class="gps-did-sfondo-bordo9" style="display:none"></div>
         </div>
 
-        <div class="modal-actions" style="display: flex; justify-content: space-between; gap: 8px;">
-            <button class="btn-action" id="btnClearGpsModal" style="background: var(--bg-card-hover); color: var(--danger); border: 1px solid var(--border); font-size: 12px;">
+        <div class="modal-actions c-riga-tra2">
+            <button class="btn-action gps-did-pericolo-sfondo" id="btnClearGpsModal">
                 <svg class="ico"><use href="#i-trash"/></svg> Elimina GPS
             </button>
-            <button class="btn-action" id="btnSaveGpsModal" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 700; font-size: 12px;">
+            <button class="btn-action gps-did-accento-sfondo" id="btnSaveGpsModal">
                 <svg class="ico"><use href="#i-check"/></svg> Salva Coordinate
             </button>
         </div>

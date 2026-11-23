@@ -3,26 +3,26 @@
          tasto per annullare; a lavoro finito sul telefono compare «Salva o condividi» (il
          pannello di condivisione vuole un tocco nuovo dell'utente), sul PC il file si scarica da solo. -->
     <div class="modal-overlay" id="modalPacchettoOverlay"></div>
-    <div class="modal" id="modalPacchettoZip" style="max-width: 440px;" role="dialog" aria-modal="true" aria-labelledby="lblPacchettoTitolo">
-        <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
-                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-download"/></svg>
+    <div class="modal c-x9" id="modalPacchettoZip" role="dialog" aria-modal="true" aria-labelledby="lblPacchettoTitolo">
+        <div class="modal-title c-riga-tra-mb2">
+            <span class="c-riga4">
+                <span class="c-riga-q30-sfondo">
+                    <svg class="ico c-accento"><use href="#i-download"/></svg>
                 </span>
-                <span id="lblPacchettoTitolo" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Esporta il progetto</span>
+                <span id="lblPacchettoTitolo" class="c-ellissi">Esporta il progetto</span>
             </span>
             <button type="button" class="chiudi-x" id="btnClosePacchettoX" title="Annulla" aria-label="Annulla"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div id="lblPacchettoProgetto" style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;"></div>
-        <div style="padding: 6px 4px 2px; text-align: center;">
-            <div id="lblPacchettoStato" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 8px;" aria-live="polite">Preparazione…</div>
-            <div id="barraPacchettoBox" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="lblPacchettoStato" style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; height: 8px; overflow: hidden;">
+        <div id="lblPacchettoProgetto" class="c-did-muto-mb3"></div>
+        <div class="zip-pad">
+            <div id="lblPacchettoStato" class="c-testo-mb" aria-live="polite">Preparazione…</div>
+            <div id="barraPacchettoBox" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="lblPacchettoStato" class="c-sfondo-bordo3">
                 <div id="barraPacchetto" style="background: var(--accent); height: 100%; width: 0%; transition: width var(--mov-medio) var(--ease-entra);"></div>
             </div>
-            <div id="lblPacchettoDettaglio" style="font-size: 12px; color: var(--text-muted); margin-top: 8px; min-height: 16px; white-space: pre-line; text-align: left; line-height: 1.4;"></div>
+            <div id="lblPacchettoDettaglio" class="zip-did-muto-mt"></div>
         </div>
-        <div class="modal-actions" style="display: flex; gap: 8px; margin-top: 14px;">
-            <button type="button" class="btn-action" id="btnPacchettoAnnulla" style="flex: 1;">Annulla</button>
-            <button type="button" class="btn-action" id="btnPacchettoSalva" style="flex: 1; display: none;"><svg class="ico"><use href="#i-upload"/></svg> Salva o condividi</button>
+        <div class="modal-actions zip-riga-mt">
+            <button type="button" class="btn-action c-x2" id="btnPacchettoAnnulla">Annulla</button>
+            <button type="button" class="btn-action c-x2" id="btnPacchettoSalva" style="display:none"><svg class="ico"><use href="#i-upload"/></svg> Salva o condividi</button>
         </div>
     </div>

@@ -8,10 +8,10 @@
          dallo strumento di disegno il selettore finiva SOTTO: si vedeva, e non si poteva
          toccare. Un livello dichiarato al posto di un ordine casuale. -->
     <div class="modal-overlay tier-strati" id="modalNotePhotoPickerOverlay"></div>
-    <div class="modal tier-strati" id="modalNotePhotoPicker" role="dialog" aria-modal="true" aria-labelledby="modalNotePhotoPickerTitolo" style="max-height: 88vh; overflow-y: auto; max-width: 560px;">
-        <div class="modal-title" id="modalNotePhotoPickerTitolo" style="justify-content: space-between;">
+    <div class="modal tier-strati notefoto-x" id="modalNotePhotoPicker" role="dialog" aria-modal="true" aria-labelledby="modalNotePhotoPickerTitolo">
+        <div class="modal-title c-tra" id="modalNotePhotoPickerTitolo">
             <span><svg class="ico"><use href="#i-folder-open"/></svg> Scegli una foto del progetto</span>
-            <button class="btn-icon" id="btnCloseNotePhotoPickerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon c-muto-sfondo-bordo" id="btnCloseNotePhotoPickerX" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div id="notePhotoPickerGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap:8px; margin-top:6px;"></div>
+        <div id="notePhotoPickerGrid" class="notefoto-griglia-mt"></div>
     </div>

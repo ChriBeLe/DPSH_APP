@@ -18,22 +18,22 @@
          stile che potrebbe disallinearsi da quella reale. -->
     <div class="modal-overlay tier-editor" id="modalIndicePersonalizzaOverlay"></div>
     <div class="modal tier-editor" id="modalIndicePersonalizza" role="dialog" aria-modal="true" aria-labelledby="modalIndicePersonalizzaTitolo" style="display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
-        <div class="modal-title" id="modalIndicePersonalizzaTitolo" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0;">
-            <span style="display: flex; align-items: center; gap: 9px; min-width: 0;">
-                <span style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-list"/></svg>
+        <div class="modal-title c-riga-tra-mb3" id="modalIndicePersonalizzaTitolo">
+            <span class="c-riga4">
+                <span class="c-riga-q30-sfondo">
+                    <svg class="ico c-accento"><use href="#i-list"/></svg>
                 </span>
-                <span id="lblIndicePersTitle" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Personalizza indice</span>
+                <span id="lblIndicePersTitle" class="c-ellissi">Personalizza indice</span>
             </span>
-            <span style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                <button class="btn-action" id="btnIndicePersSalva" style="height: 32px; padding: 0 12px; font-size: 11.5px; background: var(--accent); color: var(--on-accent); font-weight: 800;">Salva</button>
-                <span style="width: 1px; height: 20px; background: var(--border); margin: 0 2px;"></span>
+            <span class="indice-riga">
+                <button class="btn-action indice-did-accento-sfondo" id="btnIndicePersSalva">Salva</button>
+                <span class="indice-w1-sfondo"></span>
                 <button class="btn-icon" id="btnCloseIndicePersonalizzaX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
             </span>
         </div>
 
-        <div style="display: flex; gap: 12px; flex: 1; min-height: 0;">
-            <div id="idxPersControlli" style="width: 264px; flex-shrink: 0; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"></div>
+        <div class="c-riga6">
+            <div id="idxPersControlli" class="indice-colonna-w264-sfondo"></div>
 
             <!-- Stessa gerarchia/tecnica dello zoom-e-pan reale dell'editor a blocchi
                  (#templateEditorViewportWrap &gt; #templateEditorViewport + #templateEditorZoomBar
@@ -44,19 +44,19 @@
                  dimensionato in JS alla dimensione POST-scala esatta (vedi applicaZoomIndicePers):
                  è quel dimensionamento a far funzionare "margin:auto" — centra quando il foglio
                  ci sta, lascia scorrere liberamente in ogni direzione quando trabocca. -->
-            <div style="position: relative; flex: 1; min-width: 0; display: flex;">
-                <div id="idxPersViewport" style="position: relative; flex: 1; min-width: 0; overflow: auto; background: var(--bg-sunken); border-radius: var(--radius-sm); padding: 24px; display: flex; touch-action: pan-x pan-y;">
-                    <div id="idxPersPreviewScaleOuter" style="margin: auto; flex-shrink: 0;">
+            <div class="c-riga-pos2">
+                <div id="idxPersViewport" class="indice-riga-sfondo-pad">
+                    <div id="idxPersPreviewScaleOuter" class="indice-x">
                         <div id="idxPersPreviewScaleWrap" style="transform-origin: top left;">
-                            <iframe id="idxPersPreview" style="width: 794px; height: 1123px; border: none; display: block; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.45);"></iframe>
+                            <iframe id="idxPersPreview" class="indice-w794-sfondo-bordo"></iframe>
                         </div>
                     </div>
                 </div>
-                <div style="position: absolute; right: 12px; top: 12px; display: flex; align-items: center; gap: 4px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); padding: 4px 5px;">
-                    <svg class="ico" style="width: 13px; height: 13px; color: var(--text-muted);"><use href="#i-search"/></svg>
-                    <input type="range" id="rangeIndicePersZoom" min="30" max="150" step="1" value="70" title="Zoom dell'anteprima" style="width: 100px; accent-color: var(--accent);">
-                    <span id="lblIndicePersZoom" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); min-width: 34px; text-align: center; user-select: none;">70%</span>
-                    <button type="button" id="btnIndicePersZoomFit" title="Adatta alla finestra" style="height: 26px; padding: 0 8px; border: none; background: none; cursor: pointer; font-size: 10px; font-weight: 800; color: var(--text-main); border-radius: 6px;">Adatta</button>
+                <div class="indice-riga-sfondo-bordo">
+                    <svg class="ico indice-q13-muto"><use href="#i-search"/></svg>
+                    <input type="range" id="rangeIndicePersZoom" min="30" max="150" step="1" value="70" title="Zoom dell'anteprima" class="indice-w100">
+                    <span id="lblIndicePersZoom" class="indice-did-muto">70%</span>
+                    <button type="button" id="btnIndicePersZoomFit" title="Adatta alla finestra" class="c-did-sfondo-bordo">Adatta</button>
                 </div>
             </div>
         </div>

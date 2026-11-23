@@ -17,19 +17,19 @@
          normale: si tocca una volta e vale per tutti i blocchi di testo e titolo. I comandi
          della barra dell'editor restano, ma diventano eccezioni su un singolo pezzo. -->
     <div class="modal-overlay tier-editor-top tier-sopra-testo" id="modalStileTestoOverlay"></div>
-    <div class="modal tier-editor-top tier-sopra-testo" id="modalStileTesto" role="dialog" aria-modal="true" aria-labelledby="modalStileTestoTitolo" style="max-width: 92vw; width: 460px; max-height: 92vh; overflow-y: auto;">
-        <div class="modal-title" id="modalStileTestoTitolo" style="justify-content: space-between;">
+    <div class="modal tier-editor-top tier-sopra-testo stile-w460" id="modalStileTesto" role="dialog" aria-modal="true" aria-labelledby="modalStileTestoTitolo">
+        <div class="modal-title c-tra" id="modalStileTestoTitolo">
             <span><svg class="ico"><use href="#i-type"/></svg> Stile del testo</span>
-            <button class="btn-icon" id="btnChiudiStileTestoX" style="background:transparent; border:none; color:var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon c-muto-sfondo-bordo" id="btnChiudiStileTestoX" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-bottom:10px;">
+        <div class="c-did-muto-mb2">
             Vale per <b>tutto</b> il documento. Quello che imposti qui non va ricontrollato blocco per blocco.
         </div>
 
         <div class="form-group">
             <label for="selStileFont" class="form-label">Carattere</label>
             <select id="selStileFont" class="form-control"></select>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px; line-height:1.45;">
+            <div class="stile-did-muto-mt">
                 I caratteri sono <b>incorporati nell&rsquo;app</b>: il documento esce identico sul telefono e sul computer. Dove il carattere originale &egrave; installato (Windows, Mac) viene usato quello vero.
             </div>
         </div>
@@ -39,7 +39,7 @@
             <div id="anteprimaStileFormula" style="margin-top:6px;">R<sub>pd</sub> = M&sup2;&middot;H / [A&middot;e&middot;(M + P)]</div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="stile-griglia">
             <div class="form-group"><label for="selStileCorpo" class="form-label">Corpo del testo</label>
                 <select id="selStileCorpo" class="form-control"></select></div>
             <div class="form-group"><label for="selStileInterlinea" class="form-label">Interlinea</label>
@@ -52,14 +52,14 @@
         </div>
         <div class="form-group">
             <label class="form-label">Allineamento</label>
-            <div class="comp-seg" id="segStileAllineamento" style="display:inline-flex; gap:2px; padding:2px; border-radius:8px; background:var(--bg-sunken); border:1px solid var(--border);">
+            <div class="comp-seg stile-riga-sfondo-bordo" id="segStileAllineamento">
                 <button type="button" class="note-tb-btn" data-stile-allinea="left">a sinistra</button>
                 <button type="button" class="note-tb-btn" data-stile-allinea="center">al centro</button>
                 <button type="button" class="note-tb-btn" data-stile-allinea="right">a destra</button>
                 <button type="button" class="note-tb-btn" data-stile-allinea="justify">giustificato</button>
             </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+        <div class="stile-griglia2">
             <div class="form-group"><label for="selStileH1" class="form-label">Titolo 1</label><select id="selStileH1" class="form-control"></select></div>
             <div class="form-group"><label for="selStileH2" class="form-label">Titolo 2</label><select id="selStileH2" class="form-control"></select></div>
             <div class="form-group"><label for="selStileH3" class="form-label">Titolo 3</label><select id="selStileH3" class="form-control"></select></div>
@@ -71,7 +71,7 @@
                 <option value="600">Semigrassetto</option>
                 <option value="400">Come il testo</option>
             </select></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="stile-griglia">
             <div class="form-group"><label for="inpStileRientro" class="form-label">Rientro prima riga (mm)</label>
                 <input type="number" id="inpStileRientro" class="form-control" min="0" max="20" step="1"></div>
             <div class="form-group"><label for="inpStileSpazioPar" class="form-label">Spazio fra paragrafi (pt)</label>

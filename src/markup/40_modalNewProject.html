@@ -3,17 +3,17 @@
     <div class="modal-overlay" id="modalNewProjectOverlay"></div>
     <div class="modal" id="modalNewProject" role="dialog" aria-modal="true" aria-labelledby="modalNewProjectTitolo">
         <div class="modal-title" id="modalNewProjectTitolo"><svg class="ico"><use href="#i-folder"/></svg> Nuovo progetto</div>
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Crea un nuovo progetto che raccoglierà le tue prove penetrometriche. Il campo <strong style="color:var(--danger);">Comune</strong> è obbligatorio.</p>
+        <p class="c-did-muto-mb5">Crea un nuovo progetto che raccoglierà le tue prove penetrometriche. Il campo <strong class="c-pericolo">Comune</strong> è obbligatorio.</p>
 
-        <div class="form-group" style="margin-bottom: 8px;">
+        <div class="form-group c-mb3">
             <label for="txtProjName">Nome del progetto</label>
             <input type="text" id="txtProjName" class="form-control" placeholder="es. Roma - Parco degli Acquedotti">
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px;">
+        <div class="c-griglia-mb">
             <div class="form-group">
-                <label for="txtProjComune" style="color: var(--danger); font-weight: 700;">Comune *</label>
-                <input type="text" id="txtProjComune" class="form-control" placeholder="es. Roma" style="border-color: var(--danger);">
+                <label for="txtProjComune" class="c-pericolo2">Comune *</label>
+                <input type="text" id="txtProjComune" class="form-control c-x11" placeholder="es. Roma">
             </div>
             <div class="form-group">
                 <label for="txtProjCommittente">Cliente / Committente</label>
@@ -21,13 +21,13 @@
             </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 14px;">
+        <div class="form-group c-mb2">
             <label for="txtProjDate">Data Progetto</label>
             <input type="date" id="txtProjDate" class="form-control">
         </div>
 
-        <div class="modal-actions" style="justify-content: flex-end; gap: 8px;">
+        <div class="modal-actions c-x3">
             <button class="btn-action" id="btnCancelNewProject">Chiudi</button>
-            <button class="btn-action" id="btnConfirmNewProject" style="background: var(--success); color: #fff; border: none; font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Crea il progetto e la prova 1</button>
+            <button class="btn-action c-sfondo-bordo4" id="btnConfirmNewProject"><svg class="ico"><use href="#i-check"/></svg> Crea il progetto e la prova 1</button>
         </div>
     </div>

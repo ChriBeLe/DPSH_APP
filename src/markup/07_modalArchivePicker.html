@@ -1,15 +1,15 @@
 
     <!-- MODAL SELEZIONE STRATO DALL'ARCHIVIO (per aggiungerlo al progetto corrente) -->
     <div class="modal-overlay tier-strati-top" id="modalArchivePickerOverlay"></div>
-    <div class="modal tier-strati-top" id="modalArchivePicker" role="dialog" aria-modal="true" aria-labelledby="modalArchivePickerTitolo" style="max-height: 85vh; overflow-y: auto;">
-        <div class="modal-title" id="modalArchivePickerTitolo" style="justify-content: space-between;">
+    <div class="modal tier-strati-top arcsel-x" id="modalArchivePicker" role="dialog" aria-modal="true" aria-labelledby="modalArchivePickerTitolo">
+        <div class="modal-title c-tra" id="modalArchivePickerTitolo">
             <span><svg class="ico"><use href="#i-database"/></svg> <span id="archivePickerTitle">Scegli dall'Archivio</span></span>
-            <button class="btn-icon" id="btnCloseArchivePickerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon c-muto-sfondo-bordo" id="btnCloseArchivePickerX" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div id="archivePickerHint" style="font-size: 11px; color: var(--text-muted); background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--purple); margin-bottom: 12px; line-height: 1.4;"></div>
-        <div id="archivePickerList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; max-height: 50vh; overflow-y: auto;"></div>
-        <div class="modal-actions" style="justify-content: space-between;">
-            <button class="btn-action" id="btnCancelArchivePicker" style="background: var(--bg-card-hover); border: 1px solid var(--border);">Chiudi</button>
-            <button class="btn-action" id="btnConfirmArchivePicker" style="background: var(--purple); color: #fff; border: none; font-weight: 700; opacity: 0.45; pointer-events: none;"><svg class="ico"><use href="#i-check"/></svg> Conferma Selezione</button>
+        <div id="archivePickerHint" class="arcsel-did-muto-sfondo"></div>
+        <div id="archivePickerList" class="arcsel-colonna-mb"></div>
+        <div class="modal-actions c-tra">
+            <button class="btn-action arcsel-sfondo-bordo" id="btnCancelArchivePicker">Chiudi</button>
+            <button class="btn-action arcsel-sfondo-bordo2" id="btnConfirmArchivePicker"><svg class="ico"><use href="#i-check"/></svg> Conferma Selezione</button>
         </div>
     </div>
