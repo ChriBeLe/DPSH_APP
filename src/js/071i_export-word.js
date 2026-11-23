@@ -544,7 +544,28 @@
                 bordi.forEach(x => { if (!xs.length || x - xs[xs.length - 1] > 1.5) xs.push(x); });
                 const colonna = (x) => { let m = 0; xs.forEach((v, i) => { if (Math.abs(v - x) < Math.abs(xs[m] - x)) m = i; }); return m; };
                 const larghezze = xs.slice(1).map((x, i) => x - xs[i]);
-                const griglia = larghezze.map(l => `<w:gridCol w:w="${tw(l)}"/>`).join('');
+                // TWIP COERENTI: i bordi delle colonne si arrotondano una volta sola (dalla x
+                // della tabella) e ogni larghezza è la differenza di due bordi già arrotondati.
+                // Così gridCol, tcW (anche delle celle unite) e tblW sono la stessa somma esatta di
+                // interi: arrotondando ogni larghezza per conto suo, tcW e griglia divergevano di
+                // 1-2 twip per cella, e Word (che con il layout fisso si fida di tcW) spostava i
+                // bordi di colonna rispetto all'anteprima.
+                const xsTw = xs.map(x => tw(x - xs[0]));
+                const largTw = (da, a) => xsTw[a] - xsTw[da];
+                const griglia = larghezze.map((l, i) => `<w:gridCol w:w="${largTw(i, i + 1)}"/>`).join('');
+                // Righe di testata (thead) in testa alla tabella: come nell'anteprima si ripetono a ogni pagina.
+                const nTesta = (() => { let n = 0; while (n < righe.length && righe[n].parentElement && righe[n].parentElement.tagName === 'THEAD') n++; return n < righe.length ? n : 0; })();
+                // Dove l'anteprima non spezza (tabella corta, o gruppo di righe «break-inside: avoid»)
+                // le righe restano unite anche in Word. Solo nel flusso: sui fogli fissi le pagine le
+                // ha già fatte l'anteprima.
+                const unisci = (ir) => {
+                    if (ctx.limite !== Infinity || ir >= righe.length - 1) return false;
+                    if (ir < nTesta) return true;
+                    const bloccoNoSplit = (el) => { const c = ctx.win.getComputedStyle(el); return c.breakInside === 'avoid' || c.pageBreakInside === 'avoid'; };
+                    if (!tab.classList.contains('tbl-long') && bloccoNoSplit(tab)) return true;
+                    const g = righe[ir].parentElement;
+                    return !!g && g.tagName === 'TBODY' && righe[ir + 1].parentElement === g && bloccoNoSplit(g);
+                };
                 const unite = new Map();   // colonna → { righeRestanti, xmlProprieta }
                 let corpo = '';
                 for (let ir = 0; ir < righe.length; ir++) {
@@ -564,36 +585,37 @@
                         const va = { middle: 'center', bottom: 'bottom' }[cs.verticalAlign] || 'top';
                         const span = a - da > 1 ? `<w:gridSpan w:val="${a - da}"/>` : '';
                         const aspetto = `${bordiWord(ctx, td, 'tcBorders')}${sfondo ? `<w:shd w:val="clear" w:color="auto" w:fill="${sfondo}"/>` : ''}${marginiCellaWord(ctx, td)}`;
-                        const larghezza = xs[a] - xs[da];
+                        const larghezza = largTw(da, a);
                         const contenuto = chiudiCellaWord(await contenutoWord(ctx, td));
                         const unione = (td.rowSpan || 1) > 1;
                         if (unione) unite.set(da, { restanti: td.rowSpan - 1, span, aspetto, larghezza });
-                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${tw(larghezza)}" w:type="dxa"/>${span}${unione ? '<w:vMerge w:val="restart"/>' : ''}${aspetto}<w:vAlign w:val="${va}"/></w:tcPr>${contenuto}</w:tc>` });
+                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${larghezza}" w:type="dxa"/>${span}${unione ? '<w:vMerge w:val="restart"/>' : ''}${aspetto}<w:vAlign w:val="${va}"/></w:tcPr>${contenuto}</w:tc>` });
                     }
                     // Le celle che arrivano dalle righe sopra (rowspan) e i buchi della griglia.
                     unite.forEach((u, da) => {
                         if (occupate.some(o => o.da === da)) return;
                         if (u.restanti <= 0) return;
-                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${tw(u.larghezza)}" w:type="dxa"/>${u.span}<w:vMerge/>${u.aspetto}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>` });
+                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${u.larghezza}" w:type="dxa"/>${u.span}<w:vMerge/>${u.aspetto}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>` });
                         u.restanti--;
                     });
                     occupate.sort((a, b) => a.da - b.da);
                     let xml = '', cursore = 0;
                     occupate.forEach(o => {
-                        if (o.da > cursore) { xml += `<w:tc><w:tcPr><w:tcW w:w="${tw(xs[o.da] - xs[cursore])}" w:type="dxa"/>${o.da - cursore > 1 ? `<w:gridSpan w:val="${o.da - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`; }
+                        if (o.da > cursore) { xml += `<w:tc><w:tcPr><w:tcW w:w="${largTw(cursore, o.da)}" w:type="dxa"/>${o.da - cursore > 1 ? `<w:gridSpan w:val="${o.da - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`; }
                         xml += o.xml;
                         const m = /<w:gridSpan w:val="(\d+)"\/>/.exec(o.xml);
                         cursore = o.da + (m ? parseInt(m[1], 10) : 1);
                     });
-                    if (cursore < larghezze.length) xml += `<w:tc><w:tcPr><w:tcW w:w="${tw(xs[larghezze.length] - xs[cursore])}" w:type="dxa"/>${larghezze.length - cursore > 1 ? `<w:gridSpan w:val="${larghezze.length - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`;
+                    if (cursore < larghezze.length) xml += `<w:tc><w:tcPr><w:tcW w:w="${largTw(cursore, larghezze.length)}" w:type="dxa"/>${larghezze.length - cursore > 1 ? `<w:gridSpan w:val="${larghezze.length - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`;
                     // ALTEZZA ESATTA, quella del PDF: con «almeno» Word aggiungeva di suo frazioni di
                     // punto (bordi, arrotondamenti) a ogni riga, e su decine di righe la tabella
                     // usciva dal foglio. Il contenuto ci sta: è lo stesso del PDF, con le stesse righe
                     // (paragrafoWord fa in modo che non vada a capo in più).
-                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="${esatta ? 'exact' : 'atLeast'}"/></w:trPr>${xml}</w:tr>`;
+                    if (unisci(ir)) xml = xml.replace(/<w:pPr>/g, '<w:pPr><w:keepNext/>');
+                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="${esatta ? 'exact' : 'atLeast'}"/>${ir < nTesta ? '<w:tblHeader/>' : ''}</w:trPr>${xml}</w:tr>`;
                 }
                 const sfondoTabella = coloreWord(ctx.win.getComputedStyle(tab).backgroundColor);
-                return `<w:tbl>${tblPrWord({ w: tw(xs[xs.length - 1] - xs[0]), ind: foglia.rientroTw, bordi: bordiWord(ctx, tab, 'tblBorders'), sfondo: sfondoTabella })}`
+                return `<w:tbl>${tblPrWord({ w: xsTw[xsTw.length - 1], ind: foglia.rientroTw, bordi: bordiWord(ctx, tab, 'tblBorders'), sfondo: sfondoTabella })}`
                     + `<w:tblGrid>${griglia}</w:tblGrid>${corpo}</w:tbl>`;
             }
 
