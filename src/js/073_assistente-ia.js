@@ -253,22 +253,22 @@
                 // --- eliminazioni: SOLO intervalli e strati, sempre con doppia conferma (la seconda in rosso).
                 // Prove e progetti non si eliminano da qui (scelta di Romeo, 17/11/2026): si fa a mano con CANCELLA.
                 { n: 'elimina_intervalli', d: 'ELIMINA gli intervalli della prova aperta dal numero da_numero al numero a_numero (da 1, estremi inclusi, al massimo 50). Azione distruttiva: usala solo se l\'utente lo chiede in modo esplicito.', p: { da_numero: { type: 'integer' }, a_numero: { type: 'integer' } }, req: ['da_numero', 'a_numero'], w: 'doppia',
-                  ds: a => `Eliminare gli intervalli dal n. ${a.da_numero} al n. ${a.a_numero} della prova aperta`, run: a => {
+                  ds: a => `Eliminare gli intervalli dal n. ${a.da_numero} al n. ${a.a_numero} della prova aperta`, run: async a => {
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
                     const i = a.da_numero - 1, j = a.a_numero - 1;
                     if (!Number.isInteger(i) || !Number.isInteger(j) || i < 0 || j < i || j >= state.logs.length) throw new Error('Intervalli fuori elenco.');
                     if (j - i + 1 > 50) throw new Error('Al massimo 50 intervalli per volta.');
-                    copiaPrimaDi('eliminare intervalli (assistente IA)');
+                    if (!(await copiaOChiedi('eliminare intervalli (assistente IA)'))) throw new Error('Copia di sicurezza non riuscita: eliminazione annullata.');
                     state.logs.splice(i, j - i + 1);
                     state.currentDepthStart = state.logs.length ? Math.max(...state.logs.map(l => l.end)) : 0;
                     state.currentRod = getRodForDepth(state.currentDepthStart + state.settings.stepCm / 100);
                     saveState(); updateUI(); return { ok: true, eliminati: j - i + 1, rimasti: state.logs.length };
                 } },
                 { n: 'elimina_strato', d: 'ELIMINA uno strato della prova aperta (gli intervalli che lo usavano restano senza strato). Azione distruttiva: usala solo se l\'utente lo chiede in modo esplicito.', p: { strato_id: { type: 'string' } }, req: ['strato_id'], w: 'doppia',
-                  ds: a => { const st = (state.strati || []).find(x => x.id === a.strato_id); return `Eliminare lo strato «${st ? st.name : a.strato_id}» (gli intervalli assegnati restano senza strato)`; }, run: a => {
+                  ds: a => { const st = (state.strati || []).find(x => x.id === a.strato_id); return `Eliminare lo strato «${st ? st.name : a.strato_id}» (gli intervalli assegnati restano senza strato)`; }, run: async a => {
                     const i = state.strati.findIndex(x => x.id === a.strato_id);
                     if (i < 0) throw new Error('Strato non trovato.');
-                    copiaPrimaDi('eliminare uno strato (assistente IA)');
+                    if (!(await copiaOChiedi('eliminare uno strato (assistente IA)'))) throw new Error('Copia di sicurezza non riuscita: eliminazione annullata.');
                     state.logs.forEach(l => { if (l.lithology === a.strato_id) l.lithology = ''; });
                     state.strati.splice(i, 1);
                     if (!state.strati.length) state.strati.push({ id: 'strato_' + Date.now(), name: 'Strato 1', color: '#fbbf24' });
@@ -540,7 +540,7 @@
                 const serveConferma = typeof s.w === 'function' ? s.w(args) : !!s.w;
                 if (serveConferma && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 if (s.w === 'doppia' && !(await aiConferma(s.ds(args), true))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
-                try { const out = s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
+                try { const out = await s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
                 catch (e) { return { c: JSON.stringify({ errore: e.message }) }; }
             }
             // vero se la risposta spiega all'utente cosa premere invece di farlo (l'assistente deve agire da sé)

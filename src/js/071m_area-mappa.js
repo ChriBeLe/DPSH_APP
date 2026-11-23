@@ -354,6 +354,11 @@
                 if (!rotazioneMappaPromessa) rotazioneMappaPromessa = new Promise((ok) => {
                     const script = document.createElement('script');
                     script.src = 'https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js';
+                    // Resta in rete (è opzionale), ma con l'impronta del file vero: se la CDN servisse
+                    // altro, il browser non lo esegue e la mappa resta col nord in alto. Impronta
+                    // calcolata sul file del pacchetto npm leaflet-rotate@0.2.8.
+                    script.integrity = 'sha384-MtIdllebpZyms2pw9K3YJl8BEqrKNQCdSFAySjeglab6z2PkeFdF4Lb9cDsnxQuG';
+                    script.crossOrigin = 'anonymous';
                     script.onload = ok; script.onerror = ok;
                     document.head.appendChild(script);
                 });

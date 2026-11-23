@@ -47,7 +47,9 @@ t('all esportazione PDF le interpretazioni partono spente',
   /esportaPdfSelectedIds = new Set\(tutte\.filter\(s => !\(s\.header && s\.header\.interpretazioneDi\)\)\.map\(s => s\.id\)\);/.test(src)
   && /data-id="\$\{s\.id\}" \$\{esportaPdfSelectedIds\.has\(s\.id\) \? 'checked' : ''\}/.test(src));
 t('il numero proposto per una nuova prova non conta le interpretazioni',
-  /const count = proveFisiche\(Object\.values\(state\.projects\[state\.currentProjectId\]\.surveys \|\| \{\}\)\)\.length;/.test(src));
+  // Dalla revisione 2026-11 il numero è il massimo + 1 (parseInt di provaNr): «3B» vale 3, come
+  // l'originale, quindi non sposta il massimo. Il comportamento è provato in numero_nuova_prova.js.
+  /parseInt\(String\(\(s && s\.header && s\.header\.provaNr\) \|\| ''\), 10\)/.test(src) && /Math\.max\(\.\.\.numeri\) \+ 1/.test(src));
 t('il segno di interpretazione sta nell intestazione, che il salvataggio copia intera',
   /copia\.header\.interpretazioneDi = radice;/.test(src) && /header: JSON\.parse\(JSON\.stringify\(state\.header\)\)/.test(src));
 t('il bottone esiste nelle impostazioni della prova ed e collegato',

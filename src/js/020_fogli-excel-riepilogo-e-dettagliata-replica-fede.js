@@ -707,7 +707,7 @@ ${contenuto}
                         state.strati.forEach(s => {
                             const badge = document.createElement('span');
                             badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:var(--text-main);';
-                            badge.innerHTML = `<span style="width:8px; height:8px; ${getPatternCss(s.pattern, s.color)} border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,0.2);"></span> ${s.name}`;
+                            badge.innerHTML = `<span style="width:8px; height:8px; ${getPatternCss(s.pattern, s.color)} border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,0.2);"></span> ${testoHtml(s.name)}`;
                             legendContainer.appendChild(badge);
                         });
                     }
@@ -765,7 +765,7 @@ ${contenuto}
                     // Note / Tag con Spillo
                     let noteMarkup = '';
                     if (log.note) {
-                        noteMarkup = `<span style="font-size:12px; font-weight:700; color:#fff; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; background:rgba(15,23,42,0.55); padding:1px 6px; border-radius:8px; margin-left:6px;" title="${log.note}"><svg class="ico"><use href="#i-note"/></svg> ${log.note}</span>`;
+                        noteMarkup = `<span style="font-size:12px; font-weight:700; color:#fff; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; background:rgba(15,23,42,0.55); padding:1px 6px; border-radius:8px; margin-left:6px;" title="${testoHtml(log.note)}"><svg class="ico"><use href="#i-note"/></svg> ${testoHtml(log.note)}</span>`;
                     }
 
                     return `
@@ -927,11 +927,19 @@ ${contenuto}
             }
 
             // ELIMINAZIONE INTERVALLO (PRESERVA PROFONDITA E ASTE DEGLI ALTRI STEP)
+            // Una sola eliminazione alla volta: mentre la copia o la conferma sono in corso, un secondo
+            // tocco sullo stesso indice cancellerebbe l'intervallo successivo.
+            let eliminazioneIntervalloInCorso = false;
             async function deleteLogStep(idx) {
+                if (eliminazioneIntervalloInCorso) return;
+                eliminazioneIntervalloInCorso = true;
+                try { await deleteLogStepInterno(idx); } finally { eliminazioneIntervalloInCorso = false; }
+            }
+            async function deleteLogStepInterno(idx) {
                 if (idx < 0 || idx >= state.logs.length) return;
                 // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
                 // dell'editor). In più resta la copia automatica.
-                copiaPrimaDi('eliminare un intervallo');
+                if (!(await copiaOChiedi('eliminare un intervallo'))) return;
                 // La riga scivola via, poi si toglie (con il movimento ridotto la durata è 1 ms).
                 const righe = document.querySelectorAll(`#listaUltimiIntervalli [data-index="${idx}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${idx}"], #tblLogsBody .swipe-row-wrapper[data-index="${idx}"]`);
                 const uscita = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mov-breve')) || 0;
@@ -1100,7 +1108,7 @@ ${contenuto}
                         legendHtml += `
                             <div style="display: flex; align-items: center; gap: 4px; background: var(--bg-card-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">
                                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; ${getPatternCss(s.pattern, s.color)} border: 1px solid rgba(255,255,255,0.4);"></span>
-                                <span style="color: var(--text-main); font-weight: 600;">${s.name}</span>
+                                <span style="color: var(--text-main); font-weight: 600;">${testoHtml(s.name)}</span>
                             </div>
                         `;
                     });
@@ -1165,7 +1173,7 @@ ${contenuto}
                 litIdsUsedInChart.forEach(litId => {
                     const litForDef = getStratoById(litId);
                     if (litForDef) {
-                        defsHtml += getSvgPatternDef(litForDef.pattern || 'none', `svgpat-${litForDef.id}`, litForDef.color);
+                        defsHtml += getSvgPatternDef(litForDef.pattern || 'none', `svgpat-${testoHtml(litForDef.id)}`, litForDef.color);
                     }
                 });
                 defsHtml += '</defs>';
@@ -1217,7 +1225,7 @@ ${contenuto}
                     if (!lit) return;
                     const y1 = yScale(stripe.start);
                     const y2 = yScale(stripe.end);
-                    chartHtml += `<rect x="${padL - 6}" y="${y1}" width="6" height="${y2 - y1}" fill="${lit.color}" opacity="0.85" rx="2"/>`;
+                    chartHtml += `<rect x="${padL - 6}" y="${y1}" width="6" height="${y2 - y1}" fill="${coloreSicuro(lit.color)}" opacity="0.85" rx="2"/>`;
                 });
 
                 // ASSI
@@ -1234,20 +1242,20 @@ ${contenuto}
                     const barHeight = Math.max(6, yEnd - yStart - 2);
                     const barWidth = Math.max(3, xScale(log.colpi) - padL);
                     const litObj = getEffectiveLithology(idx);
-                    const barFill = `url(#svgpat-${litObj.id})`;
+                    const barFill = `url(#svgpat-${testoHtml(litObj.id)})`;
 
                     chartHtml += `
                         <g class="chart-bar-group" data-index="${idx}" style="cursor: pointer;">
                             <rect x="${padL}" y="${yStart + 1}" width="${growAnim ? 3 : barWidth}" height="${barHeight}" data-target-w="${barWidth}"
-                                  fill="${barFill}" fill-opacity="0.92" stroke="${litObj.color}" stroke-width="1.2" rx="3" ry="3" class="chart-rect-bar">
-                                <title>Intervallo ${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m: ${log.colpi} colpi | Litologia: ${litObj.name} (Tocca per dettaglio)</title>
+                                  fill="${barFill}" fill-opacity="0.92" stroke="${coloreSicuro(litObj.color)}" stroke-width="1.2" rx="3" ry="3" class="chart-rect-bar">
+                                <title>Intervallo ${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m: ${Number(log.colpi) || 0} colpi | Litologia: ${testoHtml(litObj.name)} (Tocca per dettaglio)</title>
                             </rect>
-                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${intervalloSoloGrafico(log) ? 'Rifiuto' : log.colpi}</text>
+                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${intervalloSoloGrafico(log) ? 'Rifiuto' : (Number(log.colpi) || 0)}</text>
                     `;
 
                     if (log.note) {
                         const noteTag = log.note.split(',')[0];
-                        chartHtml += `<text x="${padL + barWidth + 30}" y="${yStart + (barHeight / 2) + 4}" font-size="9" font-weight="700" fill="var(--warning)"><svg class="ico"><use href="#i-note"/></svg> ${noteTag}</text>`;
+                        chartHtml += `<text x="${padL + barWidth + 30}" y="${yStart + (barHeight / 2) + 4}" font-size="9" font-weight="700" fill="var(--warning)"><svg class="ico"><use href="#i-note"/></svg> ${testoHtml(noteTag)}</text>`;
                     }
 
                     chartHtml += `</g>`;

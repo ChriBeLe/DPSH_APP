@@ -162,6 +162,22 @@
                 // un elenco scritto a parte: cosi' l'indice descrive il documento che esiste davvero,
                 // e non quello che qualcuno ha dichiarato.
                 const st = Object.assign(stileIndiceDiDefault(), stileIndice || {});
+                // Lo stile può venire da un file: sotto-oggetti rotti e numeri non numerici
+                // ripiegano sul predefinito (stessi ripieghi di cssVariabiliStileIndice).
+                {
+                    const d = stileIndiceDiDefault();
+                    const ogg = (v, rip) => Object.assign({}, rip, (v && typeof v === 'object') ? v : {});
+                    st.livelli = ogg(st.livelli, d.livelli);
+                    ['h1', 'h2', 'h3'].forEach(k => {
+                        st.livelli[k] = ogg(st.livelli[k], d.livelli[k]);
+                        st.livelli[k].pt = numeroSicuro(st.livelli[k].pt, d.livelli[k].pt, 1, 200);
+                        st.livelli[k].rientroMm = numeroSicuro(st.livelli[k].rientroMm, d.livelli[k].rientroMm, 0, 200);
+                    });
+                    ['numero', 'titolo', 'pagina'].forEach(k => {
+                        st[k] = ogg(st[k], d[k]);
+                        st[k].pt = numeroSicuro(st[k].pt, d[k].pt, 1, 200);
+                    });
+                }
                 const LIVELLI_KEY = ['h1', 'h2', 'h3'];
                 const numeriGerarchici = st.gutter ? numeriGerarchiciDiRighe(righeIndice) : null;
                 const righeHtml = righeIndice.map((r, i) => {
@@ -202,14 +218,14 @@
                     // (--idx-numero-pt/-peso), mai quella del livello della voce accanto.
                     const parti = separaNumeroDaEtichetta(r.etichetta || ('Prova N° ' + r.numero));
                     const gutterHtml = st.gutter
-                        ? `<span style="display:inline-block; min-width:30px; flex-shrink:0; font-variant-numeric:tabular-nums; font-size:var(--idx-numero-pt); font-weight:var(--idx-numero-peso); color:var(--idx-colore-testo);">${numeriGerarchici[i]}</span>`
+                        ? `<span style="display:inline-block; min-width:30px; flex-shrink:0; font-variant-numeric:tabular-nums; font-size:var(--idx-numero-pt); font-weight:var(--idx-numero-peso); color:var(--idx-colore-testo);">${testoHtml(numeriGerarchici[i])}</span>`
                         : '';
                     return `
-                    <a href="#prova-report-${r.id}" data-voce-indice="${i}" data-livello="${liv}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${cfgLiv.rientroMm}mm; text-decoration:none; color:inherit; font-family:var(--idx-font);">
+                    <a href="#prova-report-${testoHtml(r.id)}" data-voce-indice="${i}" data-livello="${liv}" style="display:flex; align-items:baseline; gap:6px; padding:${isH1 ? '8px' : '5px'} 2px; ${rigaBordo} margin-left:${cfgLiv.rientroMm}mm; text-decoration:none; color:inherit; font-family:var(--idx-font);">
                         ${gutterHtml}
-                        <span data-testo-voce style="font-size:var(${varLiv}-pt); font-weight:var(${varLiv}-peso); ${cfgLiv.corsivo ? 'font-style:italic;' : ''} color:var(--idx-colore-testo); white-space:nowrap;">${parti.testo}</span>
+                        <span data-testo-voce style="font-size:var(${varLiv}-pt); font-weight:var(${varLiv}-peso); ${cfgLiv.corsivo ? 'font-style:italic;' : ''} color:var(--idx-colore-testo); white-space:nowrap;">${testoHtml(parti.testo)}</span>
                         ${divisoreHtml}
-                        ${st.mostraPagina && r.pagina ? `<span data-pagina-voce style="font-size:var(--idx-pagina-pt); font-weight:var(--idx-pagina-peso); color:var(--idx-colore-testo); white-space:nowrap; font-variant-numeric:tabular-nums;${stilePagina}">${r.pagina}</span>` : ''}
+                        ${st.mostraPagina && r.pagina ? `<span data-pagina-voce style="font-size:var(--idx-pagina-pt); font-weight:var(--idx-pagina-peso); color:var(--idx-colore-testo); white-space:nowrap; font-variant-numeric:tabular-nums;${stilePagina}">${testoHtml(r.pagina)}</span>` : ''}
                     </a>`;
                 });
                 // data-tpl-report-page: anche l'indice è una pagina fisica vera come le altre, deve
@@ -250,8 +266,8 @@
                     usato += a;
                 });
                 return fogli.map((voci, k) => `
-                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${st.divisore || ''}"${k ? ' data-sommario-seguito="1"' : ''} style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}${mrgIndice ? ` padding:${mrgIndice.top}mm ${mrgIndice.right}mm ${mrgIndice.bottom}mm ${mrgIndice.left}mm;` : ''}">${htmlCartaNelFoglio(carta || null)}<div class="dpsh-sheet-inner">
-                        ${k ? '' : `<h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${(st.titoloTesto || 'Indice')}</h1>`}
+                    <div class="dpsh-sheet" data-tpl-report-page="1" data-tpl-max-height-mm="${maxHeightMmIndice}" data-tpl-page-label="Indice" data-sommario="${testoHtml(st.divisore || '')}"${k ? ' data-sommario-seguito="1"' : ''} style="font-family: var(--idx-font, Arial, sans-serif); ${cssVariabiliStileIndice(st)}${mrgIndice ? ` padding:${mrgIndice.top}mm ${mrgIndice.right}mm ${mrgIndice.bottom}mm ${mrgIndice.left}mm;` : ''}">${htmlCartaNelFoglio(carta || null)}<div class="dpsh-sheet-inner">
+                        ${k ? '' : `<h1 style="font-size:var(--idx-titolo-pt); font-weight:var(--idx-titolo-peso); color:var(--idx-colore-testo); margin:0 0 16px; font-family:var(--idx-font);">${testoHtml(st.titoloTesto || 'Indice')}</h1>`}
                         ${voci.join('')}
                     </div></div>`).join('');
             }

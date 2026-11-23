@@ -2,12 +2,14 @@
 # Le righe che iniziano con # sono commenti.
 shell/01_head.html
 css/00_font-incorporati.css
+css/00b_font-interfaccia.css
 shell/02_tra-font-e-stile.html
 css/01_app.css
 css/02_passaggio-telefono-pc.css
 css/03_regole-di-stile.css
 css/04_prova-e-home.css
 css/05_assistente-ia.css
+css/05_leaflet.css
 shell/03_fine-head.html
 markup/00_icone-e-schermate-principali.html
 markup/01_modalPhoto.html
@@ -60,6 +62,13 @@ markup/47_modalVista3d.html
 markup/47b_tavole3d.html
 markup/47c_esportaGis.html
 markup/47c_trovaDtm.html
+shell/03b_apre-sheetjs.html
+vendor/xlsx.full.min.js
+shell/03c_chiude-sheetjs-apre-exceljs.html
+vendor/exceljs.min.js
+shell/03d_chiude-exceljs-apre-leaflet.html
+vendor/leaflet.min.js
+shell/03e_chiude-leaflet.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/04b_chiude-motore-apre-pdfjs.html
@@ -70,6 +79,7 @@ shell/05_tra-motore-e-app.html
 js/000_avvio-stato-e-salvataggio.js
 js/001_fase-3-gps-live-fallback-foto-import-batch.js
 js/002_dialoghi-in-app.js
+js/002a_testo-sicuro-e-dati-in-ingresso.js
 js/003_toggle-tema-sole-luna.js
 js/004_funzioni-sperimentali.js
 js/004a_dati-salvati-lettura-e-quarantena.js

@@ -70,10 +70,10 @@
                     const arch = state.lithologyArchive && state.lithologyArchive[bozzaArchivioDaiNome[s.id]];
                     const colore = arch ? arch.color : s.color;
                     const pattern = arch ? (arch.pattern || 'none') : (s.pattern || 'none');
-                    return `<div class="dai-nome-riga" data-strato="${s.id}" style="background:var(--bg-card-hover); border-radius:var(--radius-sm); border-left:5px solid ${colore}; padding:8px 10px; display:flex; flex-direction:column; gap:6px;">
+                    return `<div class="dai-nome-riga" data-strato="${testoHtml(s.id)}" style="background:var(--bg-card-hover); border-radius:var(--radius-sm); border-left:5px solid ${coloreSicuro(colore)}; padding:8px 10px; display:flex; flex-direction:column; gap:6px;">
                         <div class="t-didascalia">${testoSicuroStrati(quotaDaiNome(r))}${arch ? ` · dall'Archivio: ${testoSicuroStrati(arch.name)}` : ''}</div>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <div style="width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,0.25); flex:0 0 auto; ${getPatternCss(pattern, colore)}"></div>
+                            <div style="width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,0.25); flex:0 0 auto; ${getPatternCss(pattern, coloreSicuro(colore))}"></div>
                             <input type="text" class="form-control dai-nome-input" style="flex:1; min-width:0; font-weight:700;" value="${testoSicuroStrati(nomeStratoGenerico(s) ? '' : s.name)}" placeholder="${testoSicuroStrati(s.name || 'Nome dello strato')}" aria-label="Nome dello strato ${testoSicuroStrati(quotaDaiNome(r))}">
                             <button type="button" class="bt bt-tenue dai-nome-archivio">Dall'Archivio</button>
                         </div>

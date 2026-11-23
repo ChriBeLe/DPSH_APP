@@ -540,7 +540,7 @@
                 // riquadro perché viveva nello stesso contenitore. blockObj.captionFontSizePt,
                 // selettore "Dimensione" nel menu della didascalia): 8pt di default, equivalente al
                 // precedente valore fisso 10.5px.
-                const ptDidascalia = (blockObj && blockObj.captionFontSizePt) || 8;
+                const ptDidascalia = numeroSicuro(blockObj && blockObj.captionFontSizePt, 0, 1, 400) || 8;
                 return `${contentHtml}<div data-ruolo="didascalia" style="margin-top:6px; text-align:center; font-size:${ptDidascalia}pt; color:#334155; font-style:italic;">${marcaNumeroDidascalia(testo, blockObj, type)}</div>`;
             }
 
@@ -663,7 +663,7 @@
                             strati: raw.strati,
                             profonditaAsseM: profonditaAsseEffettiva(blockObj, ctx),
                             altezza: blockObj && blockObj.altezzaScalaGrafico,
-                            fontPt: blockObj && blockObj.fontSizePt,
+                            fontPt: numeroSicuro(blockObj && blockObj.fontSizePt, 0, 1, 400) || undefined,
                             legenda: blockObj && blockObj.legendaGrafico,
                             retinoLegenda: blockObj && blockObj.retinoLegendaGrafico,
                             mostraGuidaNomi: !!(ctx && ctx.anteprima) && !!(blockObj && blockObj.mostraGuidaNomiGrafico),
@@ -835,14 +835,15 @@
                         // Una misura scelta per il singolo blocco resta possibile e vince, ma e'
                         // un'eccezione dichiarata, non piu' l'unico modo di decidere.
                         const livelloNum = parseInt((blockObj.livelloTitolo || 'H1').replace('H', ''), 10) || 1;
-                        const ptTitolo = blockObj.fontSizePt
-                            ? blockObj.fontSizePt + 'pt'
+                        // numeroSicuro: la misura viene anche da template importati, e finisce dentro style="...".
+                        const ptTitolo = numeroSicuro(blockObj.fontSizePt, 0, 1, 400)
+                            ? numeroSicuro(blockObj.fontSizePt, 0, 1, 400) + 'pt'
                             : `var(--tpl-h${Math.max(1, Math.min(3, livelloNum))}, 16pt)`;
                         // data-titolo-indice: e' cosi' che l'indice riconosce un'intestazione nel
                         // documento finito. Il livello (H1/H2/H3) e' la gerarchia; senza questo
                         // marcatore un titolo sarebbe indistinguibile da un testo in grassetto.
                         const livelloIndice = (blockObj.livelloTitolo || 'H1').replace('H', '');
-                        return `<div class="tpl-block-richtext" data-titolo-indice="${livelloIndice}" style="font-size:${ptTitolo}; font-weight:var(--tpl-peso-titoli, 700); line-height:1.3; color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${blockObj.richHtml}</div>`;
+                        return `<div class="tpl-block-richtext" data-titolo-indice="${livelloIndice}" style="font-size:${ptTitolo}; font-weight:var(--tpl-peso-titoli, 700); line-height:1.3; color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${sanificaHtmlTemplate(blockObj.richHtml)}</div>`;
                     }
                     case 'testo': {
                         if (!blockObj || !blockObj.richHtml) return '';
@@ -862,10 +863,10 @@
                         // dell'altezza a moltiplicarla, ed e' il motivo per cui trascinandola il
                         // testo "si schiacciava riga su riga". L'altezza di un testo e' un
                         // risultato (corpo x interlinea x righe), non un dato da imporre.
-                        const ptTesto = blockObj.fontSizePt ? blockObj.fontSizePt + 'pt' : 'var(--tpl-corpo-pt, 11pt)';
+                        const ptTesto = numeroSicuro(blockObj.fontSizePt, 0, 1, 400) ? numeroSicuro(blockObj.fontSizePt, 0, 1, 400) + 'pt' : 'var(--tpl-corpo-pt, 11pt)';
                         // I titoli scritti QUI DENTRO diventano voci dell'indice: e' la
                         // marcatura che prima stava sul contenitore del blocco 'titolo'.
-                        return `<div class="tpl-block-richtext" style="font-size:${ptTesto}; font-weight:400; line-height:var(--tpl-interlinea, 1.5); text-align:var(--tpl-allineamento, justify); color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${marcaTitoliPerIndice(risolviTagInStampa(blockObj.richHtml, ctx, blockObj), (typeof templateEditorState !== 'undefined' && templateEditorState.stileTesto) || (ctx && ctx.stileTesto))}</div>`;
+                        return `<div class="tpl-block-richtext" style="font-size:${ptTesto}; font-weight:400; line-height:var(--tpl-interlinea, 1.5); text-align:var(--tpl-allineamento, justify); color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${marcaTitoliPerIndice(risolviTagInStampa(sanificaHtmlTemplate(blockObj.richHtml), ctx, blockObj), (typeof templateEditorState !== 'undefined' && templateEditorState.stileTesto) || (ctx && ctx.stileTesto))}</div>`;
                     }
                     // Riga sottile a tutta larghezza (la "compattezza" generica del blocco, già
                     // disponibile per qualunque tipo, permette comunque di restringerla se serve).
@@ -1039,7 +1040,7 @@
                 const stacco = ft.daWord ? 0 : 2;
                 const fascia = Math.max(mrg.bottom, altezzaPiedeMm(ft) + sotto + stacco);
                 return `<div data-blocco="piede"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; bottom:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:${stacco}mm 0 ${sotto}mm; display:flex; flex-direction:column; justify-content:flex-end; overflow-x:visible; overflow-y:clip;">`
-                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx && ft.html ? risolviTagInStampa(ft.html, extra.ctx) : (ft.html || '')}</div></div>`;
+                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx && ft.html ? risolviTagInStampa(sanificaHtmlTemplate(ft.html), extra.ctx) : sanificaHtmlTemplate(ft.html || '')}</div></div>`;
             }
 
             /** L'intestazione disegnata nella fascia del margine superiore: un riquadro assoluto dentro
@@ -1062,8 +1063,8 @@
                         ${hd.html
                             // IL TESTO FORMATTATO (scritto con l'editor dei blocchi Testo): grassetto,
                             // colori, più righe, allineamento. Di base centrato, come la riga semplice.
-                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx ? risolviTagInStampa(hd.html, extra.ctx) : hd.html}</div>`
-                            : hd.text ? `<div style="${testoLati} font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
+                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx ? risolviTagInStampa(sanificaHtmlTemplate(hd.html), extra.ctx) : sanificaHtmlTemplate(hd.html)}</div>`
+                            : hd.text ? `<div style="${testoLati} font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${testoHtml(hd.text)}</div>` : ''}
                     </div>`;
             }
 
@@ -1125,7 +1126,7 @@
                 // Col testo formattato il piè di pagina sta nel margine (htmlPiedeNelMargine), non qui.
                 const footerHtml = footerEnabled && !ft.html ? `
                     <div data-blocco="pie" style="position:absolute; left:0; right:0; bottom:0; padding-top:6px; font-size:9px; color:#94a3b8; background:#fff;">
-                        <span>${ft.text || ''}</span>
+                        <span>${testoHtml(ft.text)}</span>
                     </div>
                 ` : '';
                 return `${headerHtml}${innerHtml}${footerHtml}`;

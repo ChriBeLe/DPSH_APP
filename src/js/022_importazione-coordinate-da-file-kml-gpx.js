@@ -113,7 +113,7 @@
                 aggiornaCampiSr();
                 triggerVibrate([40, 40]);
                 if (lblModalGpsStatus) {
-                    lblModalGpsStatus.innerHTML = `${ico('check')} ${sourceLabel}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
+                    lblModalGpsStatus.innerHTML = `${ico('check')} ${testoHtml(sourceLabel)}: ${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)} — premi "Salva Coordinate" per confermare`;
                     lblModalGpsStatus.style.color = 'var(--success)';
                 }
                 if (gpsModalMapInstance && gpsModalMapMarker) {
@@ -152,7 +152,7 @@
                             gpsKmlImportResults.style.display = 'block';
                             gpsKmlImportResults.innerHTML = points.slice(0, 50).map((p, i) => `
                                 <div class="gps-kml-point-row" data-idx="${i}" style="padding:8px 10px; font-size:11.5px; color:var(--text-main); border-bottom:1px solid var(--border); cursor:pointer;">
-                                    <strong>${p.name}</strong><br>
+                                    <strong>${testoHtml(p.name)}</strong><br>
                                     <span style="color:var(--text-muted); font-size:10.5px;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</span>
                                 </div>
                             `).join('');
@@ -475,7 +475,7 @@
                     // Mentre si ordina le righe non aprono la prova: hanno le frecce.
                     $('listaProveProgetto').innerHTML = prove.map((s, i) => {
                         const nr = escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'));
-                        return `<div class="prova-riga ordina" data-surv="${s.id}">
+                        return `<div class="prova-riga ordina" data-surv="${testoHtml(s.id)}">
                             <span class="prova-maniglia" role="button" tabindex="-1" aria-label="Trascina la prova ${nr}" title="Trascina"><svg class="ico"><use href="#i-grip"/></svg></span>
                             <span class="prova-riga-n">${nr}</span>
                             <span class="prova-riga-testo"><strong>Prova ${nr}</strong></span>
@@ -532,7 +532,7 @@
                     // forma della prova accanto al numero di strati.
                     const foto = nFoto ? `<img class="prova-foto" alt="" hidden data-foto="${escapeHtmlDidascalia(String(s.photos[0].id || ''))}">${nFoto > 1 ? '+' + (nFoto - 1) : ''}` : '0';
                     const strati = `${miniProfilo(logs, fondo)}${nStrati}`;
-                    return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${s.id}">
+                    return `<button type="button" class="prova-riga${s.id === state.currentSurveyId ? ' attiva' : ''}" data-surv="${testoHtml(s.id)}">
                         <span class="prova-riga-n">${escapeHtmlDidascalia(String(h.provaNr || '?'))}</span>
                         <span class="prova-riga-testo"><strong>Prova ${escapeHtmlDidascalia(String(h.provaNr || '?'))}</strong>
                             <span>${numeroConVirgola(fondo)} m · ${logs.length} ${logs.length === 1 ? 'intervallo' : 'intervalli'} · ${haGps ? 'GPS' : 'senza GPS'} · ${nFoto} foto · ${isFinite(falda) ? 'falda ' + numeroConVirgola(falda) + ' m' : 'falda non impostata'}</span></span>

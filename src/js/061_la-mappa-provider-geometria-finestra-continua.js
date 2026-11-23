@@ -770,7 +770,7 @@
             /** Il documento della nota come va in stampa: lo usano il PDF e il Word, che così sono
              * lo stesso documento. */
             function documentoNotaStampa(titolo, html, dataStr) {
-                return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>
+                return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${testoHtml(titolo)}</title>
                         <style>
                             body{font-family:Arial,sans-serif;margin:0;background:#fff;}
                             .a4-page{max-width:210mm;margin:0 auto;padding:16mm;box-sizing:border-box;}
@@ -811,7 +811,7 @@
                             <div class="no-print" style="margin-bottom:14px;display:flex;justify-content:flex-end;">
                                 <button onclick="window.print()" style="background:#f59e0b;color:#fff;border:none;padding:10px 18px;font-weight:800;font-size:14px;border-radius:6px;cursor:pointer;">🖨️ Stampa / Salva in PDF</button>
                             </div>
-                            <div class="note-print-title">${titolo}</div>
+                            <div class="note-print-title">${testoHtml(titolo)}</div>
                             <div class="note-print-meta">Esportato il ${dataStr}</div>
                             <div class="note-print-body">${html || '<p style="color:#94a3b8;">(nota vuota)</p>'}</div>
                         </div></body></html>`;
@@ -1227,7 +1227,10 @@
                 }
 
                 const galleryHtml = state.photos.map((p, idx) => {
-                    const imgSrc = p.dataUrl || photoMemoryCache[p.id] || '';
+                    // Il src finisce dentro un attributo: solo un dataUrl d'immagine ben formato (il dato può
+                    // venire da un file importato), altrimenti la casella resta vuota.
+                    const imgGrezza = p.dataUrl || photoMemoryCache[p.id] || '';
+                    const imgSrc = dataUrlImmagineSicuro(imgGrezza) ? imgGrezza : '';
                     const hasGpsData = !!(p.lat && p.lng);
                     const gpsBadgeIcon = !hasGpsData ? '' : (p.hasExifGps ? ico('satellite') : ico('pin'));
                     const gpsBadgeTitle = !hasGpsData ? '' : (p.hasExifGps ? 'GPS da EXIF foto' : 'GPS da prova al momento dello scatto');
@@ -1236,9 +1239,9 @@
                             <img src="${imgSrc}" data-photo-idx="${idx}" class="photo-thumb-img" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block;">
                             ${hasGpsData ? `<div title="${gpsBadgeTitle}" style="position: absolute; top: 3px; left: 3px; background: rgba(15,23,42,0.7); border-radius: 4px; padding: 1px 4px; font-size: 10px; line-height: 1.4;">${gpsBadgeIcon}</div>` : ''}
                             <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.85); padding: 2px 4px; font-size: 9px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ${ico('calendar')} ${p.timestamp}
+                                ${ico('calendar')} ${testoHtml(p.timestamp)}
                             </div>
-                            <button class="btn-del-photo" data-photo-id="${p.id}" data-photo-idx="${idx}" style="position: absolute; top: 3px; right: 3px; background: rgba(239,68,68,0.85); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <button class="btn-del-photo" data-photo-id="${testoHtml(p.id)}" data-photo-idx="${idx}" style="position: absolute; top: 3px; right: 3px; background: rgba(239,68,68,0.85); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                                 ✕
                             </button>
                         </div>
@@ -1289,7 +1292,7 @@
                 const gpsInfo = hasCoords
                     ? `${ico('pin')} GPS Foto: ${pLat.toFixed(6)}, ${pLng.toFixed(6)} ${gpsSourceLabel}`
                     : `${ico('pin')} Nessuna coordinata GPS registrata per questa foto`;
-                lblPhotoGpsMeta.innerHTML = `${gpsInfo} • ${ico('calendar')} ${p.timestamp}`;
+                lblPhotoGpsMeta.innerHTML = `${gpsInfo} • ${ico('calendar')} ${testoHtml(p.timestamp)}`;
 
                 if (hasCoords && btnImportPhotoGps) {
                     btnImportPhotoGps.style.display = 'block';
@@ -1342,7 +1345,8 @@
                 if (!ok) return;
                 if (!state.photos || !state.photos[idx]) return;
 
-                copiaPrimaDi('eliminare una foto');
+                if (!await copiaOChiedi('eliminare una foto')) return;
+                if (!state.photos || !state.photos[idx]) return;
                 const targetId = id || state.photos[idx].id;
                 const backupPhoto = JSON.parse(JSON.stringify(state.photos[idx]));
                 // Recupera il contenuto dell'immagine prima di rimuoverla, così l'annullamento
@@ -1629,15 +1633,19 @@
                     closeQuickFaldaModal();
                 });
             }
+            let azzeramentoFaldaInCorso = false;
             if (btnQuickFaldaReset) {
                 btnQuickFaldaReset.addEventListener('click', async () => {
+                    if (azzeramentoFaldaInCorso) return;
+                    azzeramentoFaldaInCorso = true;
+                    try {
                     if (!state.header.faldaDa && !state.header.faldaA) {
                         closeQuickFaldaModal();
                         return;
                     }
                     const ok = await appConfirmDelete('Azzerare i dati della falda acquifera per questa prova?\n\nLa linea della falda scomparirà dal grafico.');
                     if (!ok) return;
-                    copiaPrimaDi('azzerare la falda');
+                    if (!(await copiaOChiedi('azzerare la falda'))) return;
                     {
                         const backupFaldaDa = state.header.faldaDa;
                         const backupFaldaA = state.header.faldaA;
@@ -1659,6 +1667,7 @@
                             updateUI();
                         });
                     }
+                    } finally { azzeramentoFaldaInCorso = false; }
                 });
             }
 
