@@ -17,8 +17,46 @@
             const MIGRAZIONI_DATI = [
                 { da: 0, a: 1, descrizione: 'versione dello schema; i salvataggi di prima dei progetti diventano progetti', esegui: migrazione0a1 },
                 { da: 1, a: 2, descrizione: 'passaggio telefono ↔ PC: ultima modifica vera, impronte dei passaggi, ora ISO delle foto nuove, progetto nelle correzioni registrate', esegui: migrazione1a2 },
-                { da: 2, a: 3, descrizione: 'la «Modalità Espansa» diventa la preferenza «tasto Registra visibile»', esegui: migrazione2a3 }
+                { da: 2, a: 3, descrizione: 'la «Modalità Espansa» diventa la preferenza «tasto Registra visibile»', esegui: migrazione2a3 },
+                { da: 3, a: 4, descrizione: 'profondità degli intervalli arrotondate al millimetro (1,9999999999999998 → 2)', esegui: migrazione3a4 }
             ];
+
+            /** MIGRAZIONE 3 → 4 (revisione, punto «falda a 2,00 m»). Le profondità si formavano sommando
+             * il passo in virgola mobile (0,2 + 0,2 + ...): a 2,00 m restava 1,9999999999999998, e un
+             * intervallo che finisce alla quota della falda sbagliava lato nel confronto. Da questa
+             * forma le profondità nascono già arrotondate al millimetro (profonditaAlMillimetro, 004d);
+             * qui si arrotondano quelle già salvate: start e end di ogni intervallo (della prova
+             * aperta, dentro `logs`, e di ogni prova dei progetti) e currentDepthStart (la profondità
+             * da cui parte il prossimo intervallo), in cima e in ogni prova.
+             * La formula è scritta qui dentro e non chiama profonditaAlMillimetro: una migrazione è una
+             * funzione pura e non deve dipendere dall'ordine in cui si caricano i pezzi dello script.
+             * Un valore che non è un numero finito (assente, null, testo) resta com'è: non si inventa
+             * e non si corregge a occhio. Non tocca registratoIl, modificatoIl, origine né i colpi:
+             * misuraDiIntervallo (004d) già confronta al millimetro, quindi nessun intervallo risulta
+             * «modificato» da questo arrotondamento. Uno stato parziale ({ versioneSchema, projects })
+             * non ha logs né currentDepthStart in cima: si saltano. */
+            function migrazione3a4(dati) {
+                const mm = (v) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1000) / 1000 : v;
+                const arrotondaIntervalli = (logs) => {
+                    if (!Array.isArray(logs)) return;
+                    logs.forEach(log => {
+                        if (!log || typeof log !== 'object') return;
+                        if ('start' in log) log.start = mm(log.start);
+                        if ('end' in log) log.end = mm(log.end);
+                    });
+                };
+                const arrotondaProfondita = (contenitore) => {
+                    if (!contenitore || typeof contenitore !== 'object') return;
+                    arrotondaIntervalli(contenitore.logs);
+                    if ('currentDepthStart' in contenitore) contenitore.currentDepthStart = mm(contenitore.currentDepthStart);
+                };
+                arrotondaProfondita(dati);
+                Object.values((dati && dati.projects) || {}).forEach(p => {
+                    Object.values((p && p.surveys) || {}).forEach(arrotondaProfondita);
+                });
+                dati.versioneSchema = 4;
+                return dati;
+            }
 
             /** MIGRAZIONE 2 → 3 (Fase 3, decisione G). La «Modalità Espansa» (settings.expandedMode, e
              * prima ancora il suo contrario compactMode) mostrava i tasti CONFERMA e ANNULLA STEP; di
@@ -78,6 +116,14 @@
                 const applicate = [];
                 let v = versione;
                 let corrente = dati;
+                // Formato 4 (versione ridisegnata): stessa forma del 3 con le profondità già arrotondate.
+                // Si legge com'è e si registra come passo 4 → 3, così all'avvio la copia automatica
+                // «prima di aggiornare i dati» salva il testo originale prima che lo si riscriva.
+                if (v > VERSIONE_SCHEMA_DATI && v <= VERSIONE_SCHEMA_LETTA) {
+                    applicate.push({ da: v, a: VERSIONE_SCHEMA_DATI, descrizione: 'dati di una versione più nuova, stessa forma: letti così come sono e salvati nel formato ' + VERSIONE_SCHEMA_DATI });
+                    corrente.versioneSchema = VERSIONE_SCHEMA_DATI;
+                    v = VERSIONE_SCHEMA_DATI;
+                }
                 while (v < VERSIONE_SCHEMA_DATI) {
                     const passo = MIGRAZIONI_DATI.find(m => m.da === v);
                     if (!passo || passo.a !== v + 1) throw new Error('nessuna migrazione registrata dalla versione ' + v);
@@ -115,9 +161,12 @@
                         // false anche quando l'ultima copia è identica: in quel caso il testo è già al sicuro.
                         const giaPresente = !scritta && copieAutomatiche.ultimaFirma === firmaTesto(testoPrima);
                         caricamentoDati.migrazione.copia = !!scritta || giaPresente;
-                        if (!caricamentoDati.migrazione.copia) console.warn('Copia prima di aggiornare i dati non riuscita: si prosegue comunque.');
+                        if (!caricamentoDati.migrazione.copia) {
+                            console.warn('Copia prima di aggiornare i dati non riuscita: si prosegue comunque.');
+                            segnalaErrore('migrazione', 'copiaPrimaDiAggiornareIDati', new Error('copia non riuscita'), 'Aggiornamento dei dati: la copia di riserva dei dati vecchi non è riuscita');
+                        }
                     })
-                    .catch(e => { caricamentoDati.migrazione.copia = false; ignoraErrore('copiaPrimaDiAggiornareIDati', e); })
+                    .catch(e => { caricamentoDati.migrazione.copia = false; segnalaErrore('migrazione', 'copiaPrimaDiAggiornareIDati', e, 'Aggiornamento dei dati: la copia di riserva dei dati vecchi non è riuscita'); })
                     .then(() => {
                         if (caricamentoDati.bloccato !== 'migrazione') return;
                         caricamentoDati.bloccato = false;
@@ -141,8 +190,8 @@
                 if (versione === null) {
                     throw new Error('Il file dichiara una versione dei dati non valida: non è stato importato niente.');
                 }
-                if (versione > VERSIONE_SCHEMA_DATI) {
-                    throw new Error(`Il file è stato creato da una versione più nuova dell'app (formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_DATI}).\n\nAggiorna l'app e riprova: non è stato importato niente.`);
+                if (versione > VERSIONE_SCHEMA_LETTA) {
+                    throw new Error(`Il file è stato creato da una versione più nuova dell'app (formato dati ${versione}; questa versione legge fino al ${VERSIONE_SCHEMA_LETTA}).\n\nAggiorna l'app e riprova: non è stato importato niente.`);
                 }
             }
 

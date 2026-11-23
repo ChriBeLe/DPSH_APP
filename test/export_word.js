@@ -178,6 +178,54 @@ const $ = (app, id) => app.d.getElementById(id);
     t('fuori dalle tabelle niente rientri negativi', !/w:(left|right)="-/.test(await app.E('paragrafoWord')(ctx, { el: app.d.body, r: { x: 0, y: 0, w: 100, h: 12 } }, 0)));
   }
 
+  console.log('--- Tabelle come l\'anteprima: griglia, testata che si ripete, righe unite ---');
+  {
+    const tab = app.d.createElement('table');
+    tab.className = 'tbl-long';
+    tab.innerHTML = '<thead><tr><th colspan="2">Titolo</th></tr></thead><tbody>'
+      + '<tr><td>a</td><td>1</td></tr><tr><td>b</td><td>2</td></tr><tr><td>c</td><td>3</td></tr></tbody>';
+    app.d.body.appendChild(tab);
+    // jsdom non impagina: si dà a ogni elemento il rettangolo che avrebbe nel browser. Colonne di
+    // larghezza non intera (100,3 + 200,4) per provare che gridCol, tcW e tblW sono la stessa somma.
+    const rett = new Map();
+    const dai = (el, l, t, w, h) => rett.set(el, { left: l, top: t, right: l + w, bottom: t + h, width: w, height: h, x: l, y: t });
+    dai(tab, 10.1, 0, 300.7, 80);
+    Array.from(tab.rows).forEach((tr, i) => {
+      dai(tr, 10.1, i * 20, 300.7, 20);
+      if (i === 0) dai(tr.cells[0], 10.1, 0, 300.7, 20);
+      else { dai(tr.cells[0], 10.1, i * 20, 100.3, 20); dai(tr.cells[1], 110.4, i * 20, 200.4, 20); }
+    });
+    const misura = app.w.Element.prototype.getBoundingClientRect;
+    app.w.Element.prototype.getBoundingClientRect = function () { return rett.get(this) || { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 }; };
+    const creaRange = app.d.createRange;
+    app.d.createRange = () => ({ selectNodeContents() {}, getClientRects: () => [{ top: 3, height: 12 }], getBoundingClientRect: () => ({ height: 12 }) });
+    const ctx = app.E('nuovoContestoWord')(app.d, {});
+    ctx.limite = Infinity;
+    const xml = await app.E('tabellaWord')(ctx, { el: tab, rientroTw: 0 });
+    app.w.Element.prototype.getBoundingClientRect = misura;
+    app.d.createRange = creaRange;
+    tab.remove();
+    const grid = [...xml.matchAll(/<w:gridCol w:w="(\d+)"/g)].map(m => +m[1]);
+    const tblW = +/<w:tblW w:w="(\d+)"/.exec(xml)[1];
+    const tcW = [...xml.matchAll(/<w:tcW w:w="(\d+)"/g)].map(m => +m[1]);
+    t('layout fisso e larghezza della tabella uguale alla somma della griglia', /<w:tblLayout w:type="fixed"\/>/.test(xml) && tblW === grid.reduce((a, b) => a + b, 0) && grid.length === 2);
+    t('la cella unita (gridSpan 2) ha tcW = somma esatta delle colonne, senza scarti di arrotondamento', /<w:gridSpan w:val="2"\/>/.test(xml) && tcW[0] === grid[0] + grid[1] && tcW[1] === grid[0] && tcW[2] === grid[1]);
+    t('le righe della testata (thead) si ripetono a ogni pagina, le altre no', (xml.match(/<w:tblHeader\/>/g) || []).length === 1 && /<w:tr><w:trPr>[^]*?<w:tblHeader\/><\/w:trPr>[^]*?<w:tr>/.test(xml));
+    t('righe che non si spezzano (cantSplit) e altezza della riga dall\'anteprima', (xml.match(/<w:cantSplit\/>/g) || []).length === 4 && /<w:trHeight w:val="300" w:hRule="exact"\/>/.test(xml));
+    t('margini e bordi di cella scritti per cella (tcMar e tcBorders), non dalla tabella', /<w:tcMar>/.test(xml) && /<w:tcBorders>/.test(xml) && /<w:tblCellMar><w:top w:w="0"/.test(xml));
+    t('la testata resta con la prima riga (keepNext) nel flusso, l\'ultima riga no', /<w:keepNext\/>/.test(xml.split('</w:tr>')[0]) && !/<w:keepNext\/>/.test(xml.split('</w:tr>')[3]));
+    t('nei fogli fissi (impaginati dall\'anteprima) nessun keepNext', !/keepNext/.test(await (async () => {
+      const tab2 = app.d.createElement('table'); tab2.innerHTML = '<tbody><tr><td>x</td></tr><tr><td>y</td></tr></tbody>'; app.d.body.appendChild(tab2);
+      dai(tab2, 0, 0, 100, 40); Array.from(tab2.rows).forEach((tr, i) => { dai(tr, 0, i * 20, 100, 20); dai(tr.cells[0], 0, i * 20, 100, 20); });
+      app.w.Element.prototype.getBoundingClientRect = function () { return rett.get(this) || { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 }; };
+      app.d.createRange = () => ({ selectNodeContents() {}, getClientRects: () => [{ top: 3, height: 12 }], getBoundingClientRect: () => ({ height: 12 }) });
+      const c2 = app.E('nuovoContestoWord')(app.d, {}); c2.limite = 1e6;
+      const r = await app.E('tabellaWord')(c2, { el: tab2, rientroTw: 0 });
+      app.w.Element.prototype.getBoundingClientRect = misura; app.d.createRange = creaRange; tab2.remove();
+      return r;
+    })()));
+  }
+
   console.log('--- Il vecchio .doc ---');
   const sorgente = fs.readFileSync(path.join(__dirname, '..', 'dist', 'DPSH.html'), 'utf8');
   t('niente più HTML salvato come .doc', !/application\/msword/.test(sorgente) && !/function costruisciDocumentoWord/.test(sorgente));

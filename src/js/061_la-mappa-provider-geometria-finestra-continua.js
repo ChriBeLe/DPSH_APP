@@ -66,12 +66,22 @@
                     url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
                     attribuzione: 'Esri, Maxar, Earthstar Geographics'
                 },
-                'osm': {
+                // OpenStreetMap rifiuta le richieste senza pagina di provenienza (Referer): aperta come
+                // file (o nell'APK, o nel programma da PC) l'app ne riceverebbe solo tessere «Access
+                // blocked». Lì la voce resta (le scelte salvate continuano a valere) ma disegna la
+                // stradale di Esri, che si apre da ovunque.
+                'osm': location.protocol === 'file:' ? {
+                    nome: 'Mappa stradale (Esri: OSM non si apre da file)',
+                    tipo: 'tessere',
+                    zoomMax: 19,
+                    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+                    attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'
+                } : {
                     nome: 'Mappa stradale (OSM)',
                     tipo: 'tessere',
                     zoomMax: 19,
-                    url: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-                    attribuzione: '© OpenStreetMap contributors'
+                    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+                    attribuzione: 'Esri, HERE, Garmin, OpenStreetMap contributors'
                 },
                 // Le altre basemap a tessere. Sono indirizzi standard e stabili, non servizi
                 // regionali: si aggiungono qui perche' in una relazione servono per cose diverse
@@ -760,7 +770,7 @@
             /** Il documento della nota come va in stampa: lo usano il PDF e il Word, che così sono
              * lo stesso documento. */
             function documentoNotaStampa(titolo, html, dataStr) {
-                return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titolo}</title>
+                return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${testoHtml(titolo)}</title>
                         <style>
                             body{font-family:Arial,sans-serif;margin:0;background:#fff;}
                             .a4-page{max-width:210mm;margin:0 auto;padding:16mm;box-sizing:border-box;}
@@ -801,7 +811,7 @@
                             <div class="no-print" style="margin-bottom:14px;display:flex;justify-content:flex-end;">
                                 <button onclick="window.print()" style="background:#f59e0b;color:#fff;border:none;padding:10px 18px;font-weight:800;font-size:14px;border-radius:6px;cursor:pointer;">🖨️ Stampa / Salva in PDF</button>
                             </div>
-                            <div class="note-print-title">${titolo}</div>
+                            <div class="note-print-title">${testoHtml(titolo)}</div>
                             <div class="note-print-meta">Esportato il ${dataStr}</div>
                             <div class="note-print-body">${html || '<p style="color:#94a3b8;">(nota vuota)</p>'}</div>
                         </div></body></html>`;
@@ -1105,8 +1115,10 @@
                     // 2. Legge l'immagine in DataURL SENZA alcuna compressione (Inner Reader)
                     const dataReader = new FileReader();
                     dataReader.onload = async (dEvt) => {
-                        const rawDataUrl = dEvt.target.result;
-                        if (!rawDataUrl) return;
+                        if (!dEvt.target.result) return;
+                        // Il GPS è già stato letto qui sopra, dal file com'era; ora la foto si raddrizza
+                        // (l'EXIF di rotazione passa nei pixel) e si ricomprime (072a).
+                        const rawDataUrl = await preparaFotoImportata(file, bEvt.target.result, dEvt.target.result);
 
                         // Cascata di fallback (IDEA 1): EXIF > GPS live del dispositivo > GPS statico del cantiere
                         let photoLat, photoLng, gpsSource;
@@ -1125,6 +1137,8 @@
                         state.photos.push({
                             id: photoId,
                             dataUrl: rawDataUrl,
+                            // Il nome del file com'era (IMG_0042.jpg): ritorna nel pacchetto «Esporta cantiere».
+                            nomeFile: String(file.name || '').slice(0, 120),
                             lat: photoLat,
                             lng: photoLng,
                             alt: photoAlt,
@@ -1217,7 +1231,10 @@
                 }
 
                 const galleryHtml = state.photos.map((p, idx) => {
-                    const imgSrc = p.dataUrl || photoMemoryCache[p.id] || '';
+                    // Il src finisce dentro un attributo: solo un dataUrl d'immagine ben formato (il dato può
+                    // venire da un file importato), altrimenti la casella resta vuota.
+                    const imgGrezza = p.dataUrl || photoMemoryCache[p.id] || '';
+                    const imgSrc = dataUrlImmagineSicuro(imgGrezza) ? imgGrezza : '';
                     const hasGpsData = !!(p.lat && p.lng);
                     const gpsBadgeIcon = !hasGpsData ? '' : (p.hasExifGps ? ico('satellite') : ico('pin'));
                     const gpsBadgeTitle = !hasGpsData ? '' : (p.hasExifGps ? 'GPS da EXIF foto' : 'GPS da prova al momento dello scatto');
@@ -1226,9 +1243,9 @@
                             <img src="${imgSrc}" data-photo-idx="${idx}" class="photo-thumb-img" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block;">
                             ${hasGpsData ? `<div title="${gpsBadgeTitle}" style="position: absolute; top: 3px; left: 3px; background: rgba(15,23,42,0.7); border-radius: 4px; padding: 1px 4px; font-size: 10px; line-height: 1.4;">${gpsBadgeIcon}</div>` : ''}
                             <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.85); padding: 2px 4px; font-size: 9px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ${ico('calendar')} ${p.timestamp}
+                                ${ico('calendar')} ${testoHtml(p.timestamp)}
                             </div>
-                            <button class="btn-del-photo" data-photo-id="${p.id}" data-photo-idx="${idx}" style="position: absolute; top: 3px; right: 3px; background: rgba(239,68,68,0.85); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <button class="btn-del-photo" data-photo-id="${testoHtml(p.id)}" data-photo-idx="${idx}" style="position: absolute; top: 3px; right: 3px; background: rgba(239,68,68,0.85); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                                 ✕
                             </button>
                         </div>
@@ -1279,7 +1296,7 @@
                 const gpsInfo = hasCoords
                     ? `${ico('pin')} GPS Foto: ${pLat.toFixed(6)}, ${pLng.toFixed(6)} ${gpsSourceLabel}`
                     : `${ico('pin')} Nessuna coordinata GPS registrata per questa foto`;
-                lblPhotoGpsMeta.innerHTML = `${gpsInfo} • ${ico('calendar')} ${p.timestamp}`;
+                lblPhotoGpsMeta.innerHTML = `${gpsInfo} • ${ico('calendar')} ${testoHtml(p.timestamp)}`;
 
                 if (hasCoords && btnImportPhotoGps) {
                     btnImportPhotoGps.style.display = 'block';
@@ -1332,7 +1349,8 @@
                 if (!ok) return;
                 if (!state.photos || !state.photos[idx]) return;
 
-                copiaPrimaDi('eliminare una foto');
+                if (!await copiaOChiedi('eliminare una foto')) return;
+                if (!state.photos || !state.photos[idx]) return;
                 const targetId = id || state.photos[idx].id;
                 const backupPhoto = JSON.parse(JSON.stringify(state.photos[idx]));
                 // Recupera il contenuto dell'immagine prima di rimuoverla, così l'annullamento
@@ -1389,6 +1407,8 @@
                 numModalEnd.value = end.toFixed(2);
                 numModalColpi.value = '';
                 txtModalNote.value = '';
+                chkModalRifiuto.checked = false;
+                aggiornaRigaRifiuto();
 
                 populateStratiDropdown();
                 if (selModalLithology) selModalLithology.value = '';
@@ -1410,6 +1430,13 @@
             // MODAL EDITING MANUALE COMPLETO (DA, A, COLPI, NOTE)
             // senzaTastiera: aperta toccando una riga (Fase 6) la scheda non chiama la tastiera; per
             // correggere un colpo bastano − e +.
+            // La scelta «solo grafico» ha senso solo se la nota contiene «Rifiuto».
+            const chkModalRifiuto = document.getElementById('chkModalRifiuto');
+            function aggiornaRigaRifiuto() {
+                document.getElementById('rigaModalRifiuto').style.display = /rifiuto/i.test(txtModalNote.value) ? 'flex' : 'none';
+            }
+            txtModalNote.addEventListener('input', aggiornaRigaRifiuto);
+
             function openEditModal(idx, { senzaTastiera = false } = {}) {
                 editingIndex = idx;
                 const item = state.logs[idx];
@@ -1422,6 +1449,8 @@
                 numModalEnd.value = item.end.toFixed(2);
                 numModalColpi.value = item.colpi === 0 ? '' : item.colpi; // Vuoto per aprire il tastierino pulito!
                 txtModalNote.value = item.note || '';
+                chkModalRifiuto.checked = !!item.rifiutoSoloGrafico;
+                aggiornaRigaRifiuto();
                 
                 // Popola dropdown strati e seleziona litologia specifica dello step
                 populateStratiDropdown();
@@ -1480,6 +1509,8 @@
                         const cur = txtModalNote.value.trim();
                         txtModalNote.value = cur ? `${cur}, ${tag}` : tag;
                     }
+                    if (tag === 'Rifiuto') chkModalRifiuto.checked = true;
+                    aggiornaRigaRifiuto();
                 });
             });
 
@@ -1510,12 +1541,13 @@
                     try {
                         if (editingIndex >= 0 && editingIndex < state.logs.length) {
                             const misuraPrima = misuraDiIntervallo(state.logs[editingIndex]);
-                            const endDepth = parseFloat(numModalEnd.value) || 0;
-                            state.logs[editingIndex].start = parseFloat(numModalStart.value) || 0;
+                            const endDepth = profonditaAlMillimetro(parseFloat(numModalEnd.value) || 0);
+                            state.logs[editingIndex].start = profonditaAlMillimetro(parseFloat(numModalStart.value) || 0);
                             state.logs[editingIndex].end = endDepth;
                             state.logs[editingIndex].colpi = Math.max(0, parseInt(numModalColpi.value) || 0);
                             state.logs[editingIndex].asta = getRodForDepth(endDepth);
                             state.logs[editingIndex].note = txtModalNote.value.trim();
+                            state.logs[editingIndex].rifiutoSoloGrafico = chkModalRifiuto.checked;
                             if (selModalLithology) {
                                 state.logs[editingIndex].lithology = selModalLithology.value || '';
                             }
@@ -1540,7 +1572,8 @@
                                 colpi: colpi,
                                 asta: getRodForDepth(endDepth),
                                 note: note,
-                                lithology: lithology
+                                lithology: lithology,
+                                rifiutoSoloGrafico: chkModalRifiuto.checked
                             }, 'modifica-manuale'));
 
                             state.currentDepthStart = endDepth;
@@ -1604,15 +1637,19 @@
                     closeQuickFaldaModal();
                 });
             }
+            let azzeramentoFaldaInCorso = false;
             if (btnQuickFaldaReset) {
                 btnQuickFaldaReset.addEventListener('click', async () => {
+                    if (azzeramentoFaldaInCorso) return;
+                    azzeramentoFaldaInCorso = true;
+                    try {
                     if (!state.header.faldaDa && !state.header.faldaA) {
                         closeQuickFaldaModal();
                         return;
                     }
                     const ok = await appConfirmDelete('Azzerare i dati della falda acquifera per questa prova?\n\nLa linea della falda scomparirà dal grafico.');
                     if (!ok) return;
-                    copiaPrimaDi('azzerare la falda');
+                    if (!(await copiaOChiedi('azzerare la falda'))) return;
                     {
                         const backupFaldaDa = state.header.faldaDa;
                         const backupFaldaA = state.header.faldaA;
@@ -1634,6 +1671,7 @@
                             updateUI();
                         });
                     }
+                    } finally { azzeramentoFaldaInCorso = false; }
                 });
             }
 

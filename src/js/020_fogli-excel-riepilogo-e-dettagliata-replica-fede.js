@@ -359,6 +359,26 @@ ${contenuto}
                 saveState();
             }));
 
+            /** Aggiunge una classe d'animazione e la toglie a fine animazione, così può ripartire. */
+            function animaUnaVolta(el, classe) {
+                el.classList.remove(classe);
+                void el.offsetWidth;
+                el.classList.add(classe);
+                el.addEventListener('animationend', () => el.classList.remove(classe), { once: true });
+            }
+
+            // L'intervallo appena registrato entra animato, sotto il contatore e nel Registro. Solo se
+            // ce n'è uno in più nella stessa prova: aprire una prova o ridisegnare non anima niente.
+            let registroVisto = { prova: null, n: 0 };
+            function segnaIntervalloNuovo() {
+                const n = state.logs.length;
+                if (registroVisto.prova === state.currentSurveyId && n === registroVisto.n + 1) {
+                    document.querySelectorAll(`#listaUltimiIntervalli [data-index="${n - 1}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${n - 1}"], #tblLogsBody .swipe-row-wrapper[data-index="${n - 1}"]`)
+                        .forEach(el => el.classList.add('appena-registrato'));
+                }
+                registroVisto = { prova: state.currentSurveyId, n };
+            }
+
             function renderUltimiIntervalli() {
                 const box = document.getElementById('listaUltimiIntervalli');
                 if (!box) return;
@@ -435,10 +455,16 @@ ${contenuto}
             }
             /** Le quattro spie sotto il titolo: GPS, foto, falda, note. Tre stati (vedi 03_regole-di-stile):
              * fatto, con quantità, non ancora. Mai rosso: una prova senza foto non è un errore. */
+            // Una spia che si accende nella stessa prova (il GPS preso, la prima foto) fa un piccolo
+            // salto; cambiando prova no, lì non è successo niente.
+            let provaDelleSpie = null;
             function aggiornaSpieProva() {
+                const stessaProva = provaDelleSpie === state.currentSurveyId;
+                provaDelleSpie = state.currentSurveyId;
                 const imposta = (id, stato, testo, idTesto) => {
                     const el = document.getElementById(id);
                     if (!el) return;
+                    if (stessaProva && stato !== 'non-ancora' && el.classList.contains('non-ancora')) animaUnaVolta(el, 'spia-accesa');
                     el.classList.toggle('fatto', stato === 'fatto');
                     el.classList.toggle('non-ancora', stato === 'non-ancora');
                     const t = idTesto ? document.getElementById(idTesto) : null;
@@ -502,6 +528,8 @@ ${contenuto}
                     const txtNomeProgetto = document.getElementById('txtNomeProgetto');
                     // Non si riscrive mentre lo si sta digitando: updateUI parte a ogni tasto.
                     if (txtNomeProgetto && document.activeElement !== txtNomeProgetto) txtNomeProgetto.value = (progettoCorrente && progettoCorrente.name) || '';
+                    const txtLocProg = document.getElementById('txtLocalitaProgetto');
+                    if (txtLocProg && document.activeElement !== txtLocProg) txtLocProg.value = (progettoCorrente && progettoCorrente.localita) || '';
                     if (txtProvincia) txtProvincia.value = (progettoCorrente && progettoCorrente.provincia) || '';
                     if (txtSedeCommittente) txtSedeCommittente.value = (progettoCorrente && progettoCorrente.sedeCommittente) || '';
                     if (txtDenominazioneIntervento) txtDenominazioneIntervento.value = (progettoCorrente && progettoCorrente.denominazioneIntervento) || '';
@@ -613,6 +641,7 @@ ${contenuto}
                 if (typeof renderSurveySwitcherBar === 'function') renderSurveySwitcherBar();
                 renderPc();
                 segnaRigaScelta();
+                segnaIntervalloNuovo();
 
                 // Pulsante "Riconoscimento automatico degli strati": visibile solo con almeno 2 intervalli
                 const hasEnoughLogsForAutoStrati = state.logs && state.logs.length >= 2;
@@ -678,7 +707,7 @@ ${contenuto}
                         state.strati.forEach(s => {
                             const badge = document.createElement('span');
                             badge.style.cssText = 'display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:var(--text-main);';
-                            badge.innerHTML = `<span style="width:8px; height:8px; ${getPatternCss(s.pattern, s.color)} border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,0.2);"></span> ${s.name}`;
+                            badge.innerHTML = `<span style="width:8px; height:8px; ${getPatternCss(s.pattern, s.color)} border-radius:3px; display:inline-block; border:1px solid rgba(0,0,0,0.2);"></span> ${testoHtml(s.name)}`;
                             legendContainer.appendChild(badge);
                         });
                     }
@@ -727,19 +756,22 @@ ${contenuto}
                     const sameAsNext = nextLit && nextLit.id === litObj.id;
 
                     const barWidthPct = Math.min(100, Math.max(6, (colpiVal / maxN) * 100));
+                    // --barre è la larghezza che le barre possono prendere al massimo: tutta la corsia sul
+                    // telefono, meno sul PC, dove a destra resta posto per leggere le note.
+                    const larghezzaBarra = p => `calc(var(--barre, 100%) * ${p / 100})`;
 
                     const isBelowFalda = (faldaDepth !== null && !isNaN(faldaDepth) && endVal > faldaDepth);
 
                     // Note / Tag con Spillo
                     let noteMarkup = '';
                     if (log.note) {
-                        noteMarkup = `<span style="font-size:12px; font-weight:700; color:#fff; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; background:rgba(15,23,42,0.55); padding:1px 6px; border-radius:8px; margin-left:6px;" title="${log.note}"><svg class="ico"><use href="#i-note"/></svg> ${log.note}</span>`;
+                        noteMarkup = `<span style="font-size:12px; font-weight:700; color:#fff; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; background:rgba(15,23,42,0.55); padding:1px 6px; border-radius:8px; margin-left:6px;" title="${testoHtml(log.note)}"><svg class="ico"><use href="#i-note"/></svg> ${testoHtml(log.note)}</span>`;
                     }
 
                     return `
                         <div class="swipe-row-wrapper" data-index="${idx}" style="border-bottom: 1px solid var(--border);">
                             <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
-                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: 14% 12% 74%; padding: 0; min-height: 34px;">
+                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: var(--colonne-registro, 14% 12% 74%); padding: 0; min-height: 34px;">
                                 <!-- Colonna Prof: lasciata vuota di proposito. Le quote di profondità
                                      vengono disegnate da renderIntegratedDepthLabels() in un overlay
                                      posizionato con le coordinate REALI delle righe, cosi ogni numero
@@ -755,7 +787,7 @@ ${contenuto}
                                     <!-- BARRA LITOLOGICA: la larghezza rappresenta i colpi (si ferma al valore misurato),
                                          l'altezza è piena e i bordi verso righe con la STESSA litologia sono rimossi,
                                          cosi gli strati contigui si toccano come nel grafico SVG. -->
-                                    <div class="int-bar-fill" data-target-w="${barWidthPct}" style="position:absolute; top:0; bottom:0; left:0; width:${growAnim ? 0 : barWidthPct}%;
+                                    <div class="int-bar-fill" data-target-w="${larghezzaBarra(barWidthPct)}" style="position:absolute; top:0; bottom:0; left:0; width:${growAnim ? 0 : larghezzaBarra(barWidthPct)};
                                         ${getPatternCss(litObj.pattern, litObj.color)}
                                         border-top:${sameAsPrev ? 'none' : '1px solid rgba(0,0,0,0.3)'};
                                         border-bottom:${sameAsNext ? 'none' : '1px solid rgba(0,0,0,0.3)'};
@@ -764,7 +796,7 @@ ${contenuto}
                                         transition: width var(--mov-medio) var(--ease-entra);
                                     "></div>
                                     <!-- Nota agganciata subito dopo la fine della barra -->
-                                    <div style="position:absolute; top:0; bottom:0; left:${barWidthPct}%; display:flex; align-items:center; padding-left:6px; z-index:3; pointer-events:none;">
+                                    <div style="position:absolute; top:0; bottom:0; left:${larghezzaBarra(barWidthPct)}; display:flex; align-items:center; padding-left:6px; z-index:3; pointer-events:none;">
                                         ${noteMarkup}
                                     </div>
                                 </div>
@@ -782,7 +814,7 @@ ${contenuto}
                         requestAnimationFrame(() => {
                             tblBody.querySelectorAll('.int-bar-fill').forEach(el => {
                                 const t = el.getAttribute('data-target-w');
-                                if (t !== null) el.style.width = t + '%';
+                                if (t !== null) el.style.width = t;
                             });
                         });
                     });
@@ -821,7 +853,7 @@ ${contenuto}
                 // ----- Overlay quote di profondità: una etichetta per ogni linea di confine -----
                 const depthOverlay = document.createElement('div');
                 depthOverlay.className = 'int-depth-overlay';
-                depthOverlay.style.cssText = 'position:absolute; top:0; left:0; width:14%; height:100%; pointer-events:none; z-index:6;';
+                depthOverlay.style.cssText = 'position:absolute; top:0; left:0; width:var(--colonna-prof, 14%); height:100%; pointer-events:none; z-index:6;';
 
                 function makeDepthLabel(depthVal, yPx, accentColor) {
                     const lbl = document.createElement('div');
@@ -880,26 +912,42 @@ ${contenuto}
             function recalculateDepths() {
                 const stepM = state.settings.stepCm / 100;
                 let d = 0.0;
-                state.logs.forEach(log => {
+                state.logs.forEach((log, i) => {
                     const prima = misuraDiIntervallo(log);
-                    log.start = d;
-                    log.end = d + stepM;
+                    // Dal numero dell'intervallo, non sommando il passo: niente errore che si accumula.
+                    log.start = profonditaAlMillimetro(i * state.settings.stepCm / 100);
+                    log.end = profonditaAlMillimetro((i + 1) * state.settings.stepCm / 100);
                     log.asta = getRodForDepth(log.end);
                     // Cambiare il passo sposta le profondità: per gli intervalli che cambiano è una
                     // modifica vera, e resta scritta (004d).
                     segnaIntervalloModificato(log, prima);
-                    d += stepM;
+                    d = log.end;
                 });
                 state.currentDepthStart = d;
                 state.currentRod = getRodForDepth(d + stepM);
             }
 
             // ELIMINAZIONE INTERVALLO (PRESERVA PROFONDITA E ASTE DEGLI ALTRI STEP)
+            // Una sola eliminazione alla volta: mentre la copia o la conferma sono in corso, un secondo
+            // tocco sullo stesso indice cancellerebbe l'intervallo successivo.
+            let eliminazioneIntervalloInCorso = false;
             async function deleteLogStep(idx) {
+                if (eliminazioneIntervalloInCorso) return;
+                eliminazioneIntervalloInCorso = true;
+                try { await deleteLogStepInterno(idx); } finally { eliminazioneIntervalloInCorso = false; }
+            }
+            async function deleteLogStepInterno(idx) {
                 if (idx < 0 || idx >= state.logs.length) return;
                 // Niente domanda prima: si elimina e per 10 secondi si annulla (come per i blocchi
                 // dell'editor). In più resta la copia automatica.
-                copiaPrimaDi('eliminare un intervallo');
+                if (!(await copiaOChiedi('eliminare un intervallo'))) return;
+                // La riga scivola via, poi si toglie (con il movimento ridotto la durata è 1 ms).
+                const righe = document.querySelectorAll(`#listaUltimiIntervalli [data-index="${idx}"], #tblIntegratedLogsBody .swipe-row-wrapper[data-index="${idx}"], #tblLogsBody .swipe-row-wrapper[data-index="${idx}"]`);
+                const uscita = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mov-breve')) || 0;
+                if (righe.length && uscita) {
+                    righe.forEach(el => el.classList.add('riga-esce'));
+                    await new Promise(r => setTimeout(r, uscita));
+                }
 
                 const backupItem = JSON.parse(JSON.stringify(state.logs[idx]));
                 const backupDepth = state.currentDepthStart;
@@ -965,9 +1013,9 @@ ${contenuto}
                                     <div class="swipe-content" data-index="${actualIdx}">
                                         <div style="font-family: var(--font-mono); font-weight: 600;">${startVal.toFixed(2)} - ${endVal.toFixed(2)}m</div>
                                         <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 800; color: var(--accent);">${colpiVal}</div>
-                                        <div class="col-nspt-value">${fmtIT(log.nsptGrezzo, 1)}</div>
-                                        <div class="col-nspt-value">${fmtIT(log.nsptFalda, 1)}</div>
-                                        <div class="col-nspt-value" style="color: var(--success); font-weight: 700;">${fmtIT(log.rpd, 1)}</div>
+                                        <div class="col-nspt-value">${intervalloSoloGrafico(log) ? 'Rifiuto' : fmtIT(log.nsptGrezzo, 1)}</div>
+                                        <div class="col-nspt-value">${intervalloSoloGrafico(log) ? '—' : fmtIT(log.nsptFalda, 1)}</div>
+                                        <div class="col-nspt-value" style="color: var(--success); font-weight: 700;">${intervalloSoloGrafico(log) ? '—' : fmtIT(log.rpd, 1)}</div>
                                     </div>
                                 </div>
                             </td>
@@ -1061,7 +1109,7 @@ ${contenuto}
                         legendHtml += `
                             <div style="display: flex; align-items: center; gap: 4px; background: var(--bg-card-hover); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">
                                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 2px; ${getPatternCss(s.pattern, s.color)} border: 1px solid rgba(255,255,255,0.4);"></span>
-                                <span style="color: var(--text-main); font-weight: 600;">${s.name}</span>
+                                <span style="color: var(--text-main); font-weight: 600;">${testoHtml(s.name)}</span>
                             </div>
                         `;
                     });
@@ -1097,7 +1145,14 @@ ${contenuto}
                 
                 // ALTEZZA DINAMICA: 28px per ogni step (es. 20cm), estensione verso il basso
                 const totalSteps = Math.ceil(maxDepth / stepM);
-                const pxPerStep = 28;
+                // Sul PC tutto il profilo in una sola vista: il passo si adatta all'altezza libera
+                // (da 8 a 28 px per intervallo) e il riquadro non scorre più.
+                let pxPerStep = 28;
+                if (suPc()) {
+                    const r = svgChart.getBoundingClientRect();
+                    const libera = window.innerHeight - (r.height > 0 ? Math.max(r.top, 0) : 220) - 50;
+                    pxPerStep = Math.max(8, Math.min(28, Math.floor((libera - padT - padB) / Math.max(1, totalSteps))));
+                }
                 const height = Math.max(240, padT + padB + (totalSteps * pxPerStep));
 
                 svgChart.setAttribute('height', height);
@@ -1119,7 +1174,7 @@ ${contenuto}
                 litIdsUsedInChart.forEach(litId => {
                     const litForDef = getStratoById(litId);
                     if (litForDef) {
-                        defsHtml += getSvgPatternDef(litForDef.pattern || 'none', `svgpat-${litForDef.id}`, litForDef.color);
+                        defsHtml += getSvgPatternDef(litForDef.pattern || 'none', `svgpat-${testoHtml(litForDef.id)}`, litForDef.color);
                     }
                 });
                 defsHtml += '</defs>';
@@ -1171,7 +1226,7 @@ ${contenuto}
                     if (!lit) return;
                     const y1 = yScale(stripe.start);
                     const y2 = yScale(stripe.end);
-                    chartHtml += `<rect x="${padL - 6}" y="${y1}" width="6" height="${y2 - y1}" fill="${lit.color}" opacity="0.85" rx="2"/>`;
+                    chartHtml += `<rect x="${padL - 6}" y="${y1}" width="6" height="${y2 - y1}" fill="${coloreSicuro(lit.color)}" opacity="0.85" rx="2"/>`;
                 });
 
                 // ASSI
@@ -1188,20 +1243,20 @@ ${contenuto}
                     const barHeight = Math.max(6, yEnd - yStart - 2);
                     const barWidth = Math.max(3, xScale(log.colpi) - padL);
                     const litObj = getEffectiveLithology(idx);
-                    const barFill = `url(#svgpat-${litObj.id})`;
+                    const barFill = `url(#svgpat-${testoHtml(litObj.id)})`;
 
                     chartHtml += `
                         <g class="chart-bar-group" data-index="${idx}" style="cursor: pointer;">
                             <rect x="${padL}" y="${yStart + 1}" width="${growAnim ? 3 : barWidth}" height="${barHeight}" data-target-w="${barWidth}"
-                                  fill="${barFill}" fill-opacity="0.92" stroke="${litObj.color}" stroke-width="1.2" rx="3" ry="3" class="chart-rect-bar">
-                                <title>Intervallo ${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m: ${log.colpi} colpi | Litologia: ${litObj.name} (Tocca per dettaglio)</title>
+                                  fill="${barFill}" fill-opacity="0.92" stroke="${coloreSicuro(litObj.color)}" stroke-width="1.2" rx="3" ry="3" class="chart-rect-bar">
+                                <title>Intervallo ${log.start.toFixed(2)}m - ${log.end.toFixed(2)}m: ${Number(log.colpi) || 0} colpi | Litologia: ${testoHtml(litObj.name)} (Tocca per dettaglio)</title>
                             </rect>
-                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${log.colpi}</text>
+                            <text x="${padL + barWidth + 6}" y="${yStart + (barHeight / 2) + 4}" font-size="10" font-weight="800" font-family="var(--font-mono)" fill="var(--text-main)">${intervalloSoloGrafico(log) ? 'Rifiuto' : (Number(log.colpi) || 0)}</text>
                     `;
 
                     if (log.note) {
                         const noteTag = log.note.split(',')[0];
-                        chartHtml += `<text x="${padL + barWidth + 30}" y="${yStart + (barHeight / 2) + 4}" font-size="9" font-weight="700" fill="var(--warning)"><svg class="ico"><use href="#i-note"/></svg> ${noteTag}</text>`;
+                        chartHtml += `<text x="${padL + barWidth + 30}" y="${yStart + (barHeight / 2) + 4}" font-size="9" font-weight="700" fill="var(--warning)"><svg class="ico"><use href="#i-note"/></svg> ${testoHtml(noteTag)}</text>`;
                     }
 
                     chartHtml += `</g>`;
@@ -1362,13 +1417,18 @@ ${contenuto}
             // NOTE RAPIDE (Fase C): il tocco applica subito la nota all'ultimo intervallo e il toast
             // dice quale; «Annulla» rimette la nota com'era. In campo, coi guanti, un dialogo di
             // conferma a ogni tocco è un ostacolo e l'alert nativo blocca tutto.
-            function applicaNotaRapida(testoNota) {
+            async function applicaNotaRapida(testoNota) {
                 if (!state.logs || state.logs.length === 0) return false;
                 const last = state.logs[state.logs.length - 1];
                 const notaPrima = last.note;
                 const modificatoPrima = last.modificatoIl;
+                const rifiutoPrima = last.rifiutoSoloGrafico;
+                const misuraPrima = misuraDiIntervallo(last);
                 last.note = last.note ? `${last.note}, ${testoNota}` : testoNota;
-                segnaIntervalloModificato(last);
+                if (testoNota === 'Rifiuto') {
+                    last.rifiutoSoloGrafico = await appDialog('Escludere questo intervallo da tabelle e calcoli? Resterà solo nel grafico, con la scritta «Rifiuto» al posto dei colpi.', { confirm: true, okLabel: 'Solo grafico', cancelLabel: 'Consideralo' });
+                }
+                segnaIntervalloModificato(last, misuraPrima);
                 triggerVibrate(30);
                 updateUI();
                 saveState();
@@ -1378,13 +1438,14 @@ ${contenuto}
                         if (!state.logs.includes(last)) return;
                         if (notaPrima === undefined) delete last.note; else last.note = notaPrima;
                         if (modificatoPrima === undefined) delete last.modificatoIl; else last.modificatoIl = modificatoPrima;
+                        if (rifiutoPrima === undefined) delete last.rifiutoSoloGrafico; else last.rifiutoSoloGrafico = rifiutoPrima;
                         updateUI();
                         saveState();
                     } } });
                 }
                 return true;
             }
-            document.querySelectorAll('.btn-tag[data-note]').forEach(tagBtn => {
+            document.querySelectorAll('.btn-tag[data-note]:not(.btn-modal-tag)').forEach(tagBtn => {
                 tagBtn.addEventListener('click', (e) => {
                     if (tagBtn.disabled) return;
                     applicaNotaRapida(e.currentTarget.getAttribute('data-note'));
@@ -1422,11 +1483,18 @@ ${contenuto}
 
             // CONFERMA STEP & AVANTI
             // =========================================================================
+            // Guardia contro il doppio tocco (coi guanti capita): un secondo «Registra» entro questo
+            // tempo dal primo è lo stesso gesto e non crea un altro intervallo.
+            const PAUSA_DOPPIO_REGISTRA_MS = 600;
+            let ultimaRegistrazioneMs = -Infinity;
             async function confirmAndNextStep() {
+                const adesso = Date.now();
+                if (adesso - ultimaRegistrazioneMs < PAUSA_DOPPIO_REGISTRA_MS) return;
+                ultimaRegistrazioneMs = adesso;
                 let finalCount = state.currentCount;
 
                 const stepM = state.settings.stepCm / 100;
-                const endDepth = state.currentDepthStart + stepM;
+                const endDepth = profonditaAlMillimetro(state.currentDepthStart + stepM);
                 const rodNum = getRodForDepth(endDepth);
                 
                 state.logs.push(nuovoIntervallo({
@@ -1462,6 +1530,12 @@ ${contenuto}
              * contatore e basta registrare di nuovo. */
             function togliUltimoIntervallo() {
                 if (!state.logs || state.logs.length === 0) return null;
+                // Nel contatore ci sono già colpi del prossimo intervallo: riportarci quelli
+                // dell'intervallo tolto li cancellerebbe. Non si tocca niente e lo si dice.
+                if (state.currentCount > 0) {
+                    if (typeof mostraToast === 'function') mostraToast('Non annullato: nel contatore ci sono ' + state.currentCount + ' colpi già contati. Azzerali o registrali, poi annulla l\'intervallo');
+                    return null;
+                }
                 const last = state.logs.pop();
                 state.currentDepthStart = last.start;
                 state.currentCount = last.colpi;
@@ -1525,12 +1599,11 @@ ${contenuto}
                 if (modalGpsOverlay) modalGpsOverlay.classList.add('open');
                 if (modalGpsSettings) modalGpsSettings.classList.add('open');
 
-                // Un solo tap sull'icona 📍 fa già partire subito la ricerca automatica, senza
-                // costringere l'utente a un secondo tocco dentro il modale appena aperto.
-                const hasGpsAlready = (state.header.lat !== null && state.header.lat !== undefined && state.header.lat !== '');
-                if (!hasGpsAlready && navigator.geolocation) {
-                    fetchGpsPositionModal();
-                }
+                // Il GPS del dispositivo NON parte da solo aprendo la finestra (chiedeva il permesso e,
+                // sul PC, finiva sempre in «Tempo scaduto»): lo si cerca solo col tasto «Rileva».
+                // Sul PC la mappa è la via principale: si apre subito, in silenzio se non si carica.
+                if (suPc()) openGpsAccordion('Manual', { silenzioso: true });
+                if (!suPc() && state.header.lat !== null && state.header.lat !== undefined && state.header.lat !== '') mostraMappaDelPunto();
             }
 
             function closeGpsModal() {
@@ -1548,7 +1621,7 @@ ${contenuto}
                     const quotaTerreno = quotaDellaProva(state.projects[state.currentProjectId], state.header);
                     const altStr = quotaTerreno !== null ? ` | Quota dal DTM: ${numeroConVirgola(quotaTerreno, 1)} m s.l.m.`
                         : (state.header.alt ? ` | Quota GPS: ${Math.round(state.header.alt)} m` : '');
-                    lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${altStr}`;
+                    lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> <strong>Coordinate Attive:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}${testoCoordSr(lat, lng)}${altStr}`;
                     lblModalGpsStatus.style.color = 'var(--accent)';
                 } else {
                     lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-pin"/></svg> GPS non ancora acquisito: rilevalo o inserisci latitudine e longitudine.`;
@@ -1556,6 +1629,7 @@ ${contenuto}
                 }
                 aggiornaApriInMappe();
                 aggiornaSpostaProva();
+                aggiornaCampiSr();
             }
 
             /** Gli indirizzi per aprire un punto nelle mappe. `geo:` è lo standard Android (apre la
@@ -1625,13 +1699,12 @@ ${contenuto}
                 else appAlert(`Copia non riuscita. Le coordinate sono: ${ind.coordinate}`);
             });
 
-            // GPS IN TEMPO REALE (IDEA 1): mantiene una posizione sempre aggiornata mentre l'app è
-            // aperta sulla schermata di campo, cosi le foto scattate/importate senza EXIF possono
-            // usare una posizione fresca invece di quella (eventualmente vecchia) del cantiere.
-            // Il permesso si chiede una volta sola: la ricerca, partita, resta accesa per tutta la
-            // sessione (riaccenderla a ogni prova faceva ricomparire la richiesta, perché aperta
-            // come file il browser non ricorda il permesso); rifiutata, non si richiede più da
-            // sola (ricordato), resta il tasto «Rileva la posizione».
+            // GPS IN TEMPO REALE (IDEA 1): mantiene una posizione sempre aggiornata, cosi le foto
+            // scattate/importate senza EXIF possono usare una posizione fresca invece di quella
+            // (eventualmente vecchia) del cantiere. NON parte più entrando in una prova: chiedeva il
+            // permesso a ogni avvio (anche sul PC, dove il GPS non c'è). Parte solo dopo che la
+            // posizione è stata rilevata col tasto «Rileva» (il permesso è già dato, nessuna nuova
+            // domanda) e poi resta accesa per la sessione; rifiutata, non si richiede più da sola.
             let gpsAutoChiesto = false;
             const GPS_RIFIUTATO = 'dpsh.gpsRifiutato';
             function startLiveGpsWatch() {
@@ -1719,6 +1792,7 @@ ${contenuto}
 
                 function handleSuccess(pos) {
                     try { localStorage.removeItem(GPS_RIFIUTATO); } catch (_) { /* niente */ }
+                    startLiveGpsWatch(); // il permesso c'è: da qui le foto hanno una posizione fresca
                     state.header.lat = pos.coords.latitude;
                     state.header.lng = pos.coords.longitude;
                     state.header.alt = pos.coords.altitude || null;
@@ -1732,16 +1806,22 @@ ${contenuto}
                     updateModalGpsStatusText();
                     updateUI();
                     saveState();
+                    mostraMappaDelPunto();
                 }
 
+                // Se non riesce lo dice dentro la finestra, al posto dello stato: niente popup da chiudere.
+                function dicoErrore(err) {
+                    if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
+                    updateModalGpsStatusText();
+                    if (lblModalGpsStatus) {
+                        lblModalGpsStatus.innerHTML = `<svg class="ico"><use href="#i-alert"/></svg> GPS non trovato: ${escapeHtmlDidascalia(describeGeoError(err))} Scegli il punto sulla mappa o scrivi le coordinate.`;
+                        lblModalGpsStatus.style.color = 'var(--warning)';
+                    }
+                }
                 function tryLowAccuracy() {
                     navigator.geolocation.getCurrentPosition(
                         handleSuccess,
-                        (err) => {
-                            if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            updateModalGpsStatusText();
-                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}\n\nIn alternativa inserisci Lat e Lng manualmente.`);
-                        },
+                        dicoErrore,
                         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
                     );
                 }
@@ -1756,11 +1836,7 @@ ${contenuto}
                     (err) => {
                         // Se il permesso è negato in modo definitivo, non ha senso ritentare
                         // subito a bassa precisione: mostriamo l'errore chiaro all'utente.
-                        if (err && err.code === 1) {
-                            if (btnGetGpsModal) btnGetGpsModal.innerHTML = '<svg class="ico"><use href="#i-satellite"/></svg> Rileva la posizione GPS';
-                            alert(`Impossibile acquisire posizione GPS.\n\n${describeGeoError(err)}`);
-                            return;
-                        }
+                        if (err && err.code === 1) return dicoErrore(err);
                         tryLowAccuracy();
                     },
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -1783,7 +1859,7 @@ ${contenuto}
                 spostandoProva = false;
                 aggiornaModoSposta();
             }
-            async function openGpsAccordion(key) {
+            async function openGpsAccordion(key, opzioni = {}) {
                 closeAllGpsAccordion();
                 const body = document.getElementById('gpsAccBody' + key);
                 const toggle = document.getElementById('btnGpsAcc' + key);
@@ -1793,6 +1869,11 @@ ${contenuto}
                     try {
                         await ensureLeafletLoaded();
                     } catch (e) {
+                        if (opzioni.silenzioso) {
+                            const el = document.getElementById('gpsMapModalEl');
+                            if (el && !gpsModalMapInstance) el.innerHTML = '<div class="gps-mappa-assente">La mappa non si carica (serve la connessione). Scrivi o incolla le coordinate qui accanto.</div>';
+                            return;
+                        }
                         alert('' + e.message);
                         closeAllGpsAccordion();
                         return;
@@ -1822,10 +1903,13 @@ ${contenuto}
             const btnUseGpsMapPin = document.getElementById('btnUseGpsMapPin');
             const btnGpsMapGoToMe = document.getElementById('btnGpsMapGoToMe');
 
-            // Fonti tile gratuite, senza chiave API: OSM per la vista Strada, Esri World Imagery
-            // per il Satellite, più uno strato di etichette/confini sopra le immagini per l'Ibrida.
+            // Fonti tile gratuite, senza chiave API, tutte Esri: World Street Map per la vista Strada,
+            // World Imagery per il Satellite, più uno strato di etichette/confini per l'Ibrida.
+            // NON OpenStreetMap: i suoi server rifiutano le richieste senza pagina di provenienza
+            // (Referer), cioè proprio quelle dell'app aperta come file o dentro l'APK/programma da PC,
+            // e al posto della mappa mostravano le tessere «Access blocked».
             const GPS_MAP_TILE_SOURCES = {
-                street: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', options: { maxZoom: 19, attribution: '&copy; OpenStreetMap' } },
+                street: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors' } },
                 satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
                 hybridLabels: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', options: { maxZoom: 19 } }
             };
@@ -1947,7 +2031,17 @@ ${contenuto}
                 // finché non arriva un resize successivo.
                 setTimeout(() => {
                     if (!gpsModalMapInstance) {
-                        gpsModalMapInstance = L.map('gpsMapModalEl').setView([centerLat, centerLng], 15);
+                        // Le opzioni vanno passate SEMPRE: aperta la mappa del progetto, il plugin
+                        // leaflet-rotate le legge in ogni L.map e senza si fermava («reading 'rotate'»),
+                        // lasciando la mappa vuota e la barra rossa «Script error».
+                        try {
+                            gpsModalMapInstance = L.map('gpsMapModalEl', { rotate: false, rotateControl: false }).setView([centerLat, centerLng], 15);
+                        } catch (e) {
+                            gpsModalMapInstance = null;
+                            const el = document.getElementById('gpsMapModalEl');
+                            if (el) el.innerHTML = `<div class="gps-mappa-assente">La mappa non si è aperta (${escapeHtmlDidascalia(e && e.message || 'errore')}). Scrivi o incolla le coordinate qui accanto.</div>`;
+                            return;
+                        }
                         setGpsMapStyle(gpsModalMapStyle);
                         gpsModalMapMarker = L.marker([centerLat, centerLng], { draggable: true, icon: gpsMiaProvaIcon((state.header && state.header.provaNr) || '?') }).addTo(gpsModalMapInstance);
                         gpsModalMapInstance.on('click', (e) => { gpsModalMapMarker.setLatLng(e.latlng); });

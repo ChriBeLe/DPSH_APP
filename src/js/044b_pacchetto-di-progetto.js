@@ -393,6 +393,25 @@
                 catch (e) { return { ok: false, problemi: ['i dati del pacchetto non si leggono: ' + e.message], manifest }; }
                 if (!progetto || typeof progetto !== 'object' || !progetto.id || !progetto.surveys) return { ok: false, problemi: ['il progetto nel pacchetto non è completo'], manifest };
 
+                // Gli id (progetto, prove, foto) e il prefisso delle immagini vengono dal file e finiscono
+                // in chiavi di state.projects e in attributi HTML: lo SHA-256 dice che il file non si è
+                // rovinato, non che sia innocuo. Un id con virgolette o '__proto__' non l'ha scritto
+                // l'app. Qui il pacchetto si rifiuta intero (rinominare un id cambierebbe l'impronta e i
+                // riferimenti incrociati), con un messaggio che dice cosa non va.
+                const nonValidi = [];
+                if (!idSicuro(progetto.id)) nonValidi.push('l\'id del progetto non ha una forma ammessa (solo lettere, cifre, trattino e trattino basso)');
+                Object.keys(progetto.surveys || {}).forEach(sid => {
+                    const surv = progetto.surveys[sid];
+                    if (!idSicuro(sid) || (surv && surv.id !== undefined && !idSicuro(surv.id))) nonValidi.push('l\'id di una prova non ha una forma ammessa');
+                    ((surv && surv.photos) || []).forEach(ph => { if (ph && ph.id !== undefined && !idSicuro(ph.id)) nonValidi.push('l\'id di una foto non ha una forma ammessa'); });
+                });
+                elenco.forEach(f => {
+                    if (!f || (f.archivio !== 'photos' && f.archivio !== 'noteImages')) return;
+                    if (!idSicuro(f.id)) nonValidi.push('l\'id di un\'immagine non ha una forma ammessa');
+                    if (!prefissoImmagineSicuro(f.prefisso)) nonValidi.push(`l'immagine «${String(f.id).slice(0, 40)}» non è un'immagine ammessa (formato del prefisso non valido)`);
+                });
+                if (nonValidi.length) return { ok: false, problemi: Array.from(new Set(nonValidi)), manifest };
+
                 // Un pacchetto di un'app più vecchia passa dalle stesse migrazioni dei file (004b).
                 const versione = versioneFileImportato(manifest);
                 if (versione < VERSIONE_SCHEMA_DATI) progetto = migraProgettiImportati({ [progetto.id]: progetto }, versione)[progetto.id];

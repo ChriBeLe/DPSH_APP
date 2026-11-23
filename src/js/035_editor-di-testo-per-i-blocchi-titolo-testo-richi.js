@@ -168,6 +168,7 @@
                 const modal = document.getElementById('modalTplTextEditor');
                 if (overlay) overlay.classList.add('open');
                 if (modal) modal.classList.add('open');
+                tplTextEditorHtmlIniziale = editorTesto ? editorTesto.getHTML() : null;
                 if (editorTesto) setTimeout(() => {
                     editorTesto.commands.focus();
                     // Subito, senza aspettare il primo tocco: aprendo la finestra su un titolo la
@@ -177,13 +178,25 @@
             }
             function chiudiTplTextEditor() {
                 tplTextEditorTargetBlockId = null;
+                // Il cursore non resta nel testo nascosto (i tasti finirebbero lì).
+                if (editorTesto && editorTesto.isFocused && document.activeElement) document.activeElement.blur();
                 const overlay = document.getElementById('modalTplTextEditorOverlay');
                 const modal = document.getElementById('modalTplTextEditor');
                 if (overlay) overlay.classList.remove('open');
                 if (modal) modal.classList.remove('open');
             }
+            // La ✕ (ed Esc, che passa dalla ✕) col testo cambiato chiede prima: un Esc scappato non
+            // butta via un'intestazione scritta a mano. «Annulla» resta «butta via», senza domande.
+            let tplTextEditorHtmlIniziale = null;
+            async function chiudiTplTextEditorChiedendo() {
+                if (!editorTesto || tplTextEditorHtmlIniziale === null || editorTesto.getHTML() === tplTextEditorHtmlIniziale) return chiudiTplTextEditor();
+                const scelta = await appDialog('Il testo è cambiato. Vuoi salvarlo?',
+                    { confirm: true, title: 'Testo non salvato', okLabel: 'Salva', extraLabel: 'Non salvare', cancelLabel: 'Continua a scrivere' });
+                if (scelta === true) { const b = document.getElementById('btnTplTextEditorSalva'); if (b) b.click(); }
+                else if (scelta === 'extra') chiudiTplTextEditor();
+            }
             const btnCloseTplTextEditorX = document.getElementById('btnCloseTplTextEditorX');
-            if (btnCloseTplTextEditorX) btnCloseTplTextEditorX.addEventListener('click', chiudiTplTextEditor);
+            if (btnCloseTplTextEditorX) btnCloseTplTextEditorX.addEventListener('click', chiudiTplTextEditorChiedendo);
             const btnTplTextEditorAnnulla = document.getElementById('btnTplTextEditorAnnulla');
             if (btnTplTextEditorAnnulla) btnTplTextEditorAnnulla.addEventListener('click', chiudiTplTextEditor);
             const btnTplTextEditorSalva = document.getElementById('btnTplTextEditorSalva');

@@ -2585,7 +2585,7 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .screen-nav-enter {
-            animation: screenNavEnter var(--mov-lungo) var(--ease-entra) .61, .36, 1);
+            animation: screenNavEnter var(--mov-lungo) var(--ease-entra);
         }
 
         /* Impulso luminoso sulle card Registro/Grafico quando cambia la prova visualizzata */

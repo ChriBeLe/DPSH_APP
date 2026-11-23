@@ -203,7 +203,7 @@
              * si ricostruisce da solo (con gli stili del documento e i caratteri incorporati) dentro
              * un SVG con foreignObject, che il browser disegna su una tela: il disegno non dipende
              * dal testo intorno, che in Word è testo. */
-            async function rasterizzaWord(ctx, foglie) {
+            async function disegnaSuTelaWord(ctx, foglie, scala) {
                 const x0 = Math.min(...foglie.map(f => f.r.x)), y0 = Math.min(...foglie.map(f => f.r.y));
                 const x1 = Math.max(...foglie.map(f => f.r.x + f.r.w)), y1 = Math.max(...foglie.map(f => f.r.y + f.r.h));
                 const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
@@ -235,11 +235,17 @@
                 img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                 await img.decode();
                 const tela = document.createElement('canvas');
-                tela.width = Math.round(w * WORD_SCALA_RASTER); tela.height = Math.round(h * WORD_SCALA_RASTER);
+                tela.width = Math.round(w * scala); tela.height = Math.round(h * scala);
                 const g = tela.getContext('2d');
                 g.fillStyle = '#ffffff'; g.fillRect(0, 0, tela.width, tela.height);
                 g.drawImage(img, 0, 0, tela.width, tela.height);
                 const conFoto = foglie.some(f => f.el.tagName === 'IMG' || f.el.querySelector && f.el.querySelector('img'));
+                return { tela, conFoto, w, h };
+            }
+
+            /** Come disegnaSuTelaWord, ma ritorna i byte codificati (JPEG se ci sono foto, PNG se no). */
+            async function rasterizzaWord(ctx, foglie) {
+                const { tela, conFoto, w, h } = await disegnaSuTelaWord(ctx, foglie, WORD_SCALA_RASTER);
                 const tipo = conFoto ? 'image/jpeg' : 'image/png';
                 const blob = await new Promise(ok => tela.toBlob(ok, tipo, ctx.qualita));
                 return { bytes: new Uint8Array(await blob.arrayBuffer()), estensione: conFoto ? 'jpeg' : 'png', w, h };
@@ -345,7 +351,14 @@
              * sulle righe vere (dipende dal carattere, una stima la sbaglierebbe). */
             function altezzaRigaWord(ctx, el, nodi) {
                 const cs = ctx.win.getComputedStyle(el);
-                if (cs.lineHeight !== 'normal') return parseFloat(cs.lineHeight);
+                if (cs.lineHeight !== 'normal') {
+                    // Il corpo vero può stare in un pezzo più grande del paragrafo (il testo che viene
+                    // da Word ha il corpo sui suoi <span>): la riga è alta quanto il pezzo più alto,
+                    // come la disegna il browser. Senza, in Word le righe si accavallavano.
+                    let lh = parseFloat(cs.lineHeight);
+                    el.querySelectorAll('span, strong, em, b, i, u, a, sub, sup').forEach(x => { const v = parseFloat(ctx.win.getComputedStyle(x).lineHeight); if (v > lh) lh = v; });
+                    return lh;
+                }
                 const rg = ctx.doc.createRange();
                 if (nodi && nodi.length === 1) rg.selectNodeContents(nodi[0]); else rg.selectNodeContents(el);
                 const tops = new Set(Array.from(rg.getClientRects()).filter(r => r.height > 0).map(r => Math.round(r.top)));
@@ -537,7 +550,28 @@
                 bordi.forEach(x => { if (!xs.length || x - xs[xs.length - 1] > 1.5) xs.push(x); });
                 const colonna = (x) => { let m = 0; xs.forEach((v, i) => { if (Math.abs(v - x) < Math.abs(xs[m] - x)) m = i; }); return m; };
                 const larghezze = xs.slice(1).map((x, i) => x - xs[i]);
-                const griglia = larghezze.map(l => `<w:gridCol w:w="${tw(l)}"/>`).join('');
+                // TWIP COERENTI: i bordi delle colonne si arrotondano una volta sola (dalla x
+                // della tabella) e ogni larghezza è la differenza di due bordi già arrotondati.
+                // Così gridCol, tcW (anche delle celle unite) e tblW sono la stessa somma esatta di
+                // interi: arrotondando ogni larghezza per conto suo, tcW e griglia divergevano di
+                // 1-2 twip per cella, e Word (che con il layout fisso si fida di tcW) spostava i
+                // bordi di colonna rispetto all'anteprima.
+                const xsTw = xs.map(x => tw(x - xs[0]));
+                const largTw = (da, a) => xsTw[a] - xsTw[da];
+                const griglia = larghezze.map((l, i) => `<w:gridCol w:w="${largTw(i, i + 1)}"/>`).join('');
+                // Righe di testata (thead) in testa alla tabella: come nell'anteprima si ripetono a ogni pagina.
+                const nTesta = (() => { let n = 0; while (n < righe.length && righe[n].parentElement && righe[n].parentElement.tagName === 'THEAD') n++; return n < righe.length ? n : 0; })();
+                // Dove l'anteprima non spezza (tabella corta, o gruppo di righe «break-inside: avoid»)
+                // le righe restano unite anche in Word. Solo nel flusso: sui fogli fissi le pagine le
+                // ha già fatte l'anteprima.
+                const unisci = (ir) => {
+                    if (ctx.limite !== Infinity || ir >= righe.length - 1) return false;
+                    if (ir < nTesta) return true;
+                    const bloccoNoSplit = (el) => { const c = ctx.win.getComputedStyle(el); return c.breakInside === 'avoid' || c.pageBreakInside === 'avoid'; };
+                    if (!tab.classList.contains('tbl-long') && bloccoNoSplit(tab)) return true;
+                    const g = righe[ir].parentElement;
+                    return !!g && g.tagName === 'TBODY' && righe[ir + 1].parentElement === g && bloccoNoSplit(g);
+                };
                 const unite = new Map();   // colonna → { righeRestanti, xmlProprieta }
                 let corpo = '';
                 for (let ir = 0; ir < righe.length; ir++) {
@@ -557,36 +591,37 @@
                         const va = { middle: 'center', bottom: 'bottom' }[cs.verticalAlign] || 'top';
                         const span = a - da > 1 ? `<w:gridSpan w:val="${a - da}"/>` : '';
                         const aspetto = `${bordiWord(ctx, td, 'tcBorders')}${sfondo ? `<w:shd w:val="clear" w:color="auto" w:fill="${sfondo}"/>` : ''}${marginiCellaWord(ctx, td)}`;
-                        const larghezza = xs[a] - xs[da];
+                        const larghezza = largTw(da, a);
                         const contenuto = chiudiCellaWord(await contenutoWord(ctx, td));
                         const unione = (td.rowSpan || 1) > 1;
                         if (unione) unite.set(da, { restanti: td.rowSpan - 1, span, aspetto, larghezza });
-                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${tw(larghezza)}" w:type="dxa"/>${span}${unione ? '<w:vMerge w:val="restart"/>' : ''}${aspetto}<w:vAlign w:val="${va}"/></w:tcPr>${contenuto}</w:tc>` });
+                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${larghezza}" w:type="dxa"/>${span}${unione ? '<w:vMerge w:val="restart"/>' : ''}${aspetto}<w:vAlign w:val="${va}"/></w:tcPr>${contenuto}</w:tc>` });
                     }
                     // Le celle che arrivano dalle righe sopra (rowspan) e i buchi della griglia.
                     unite.forEach((u, da) => {
                         if (occupate.some(o => o.da === da)) return;
                         if (u.restanti <= 0) return;
-                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${tw(u.larghezza)}" w:type="dxa"/>${u.span}<w:vMerge/>${u.aspetto}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>` });
+                        occupate.push({ da, xml: `<w:tc><w:tcPr><w:tcW w:w="${u.larghezza}" w:type="dxa"/>${u.span}<w:vMerge/>${u.aspetto}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>` });
                         u.restanti--;
                     });
                     occupate.sort((a, b) => a.da - b.da);
                     let xml = '', cursore = 0;
                     occupate.forEach(o => {
-                        if (o.da > cursore) { xml += `<w:tc><w:tcPr><w:tcW w:w="${tw(xs[o.da] - xs[cursore])}" w:type="dxa"/>${o.da - cursore > 1 ? `<w:gridSpan w:val="${o.da - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`; }
+                        if (o.da > cursore) { xml += `<w:tc><w:tcPr><w:tcW w:w="${largTw(cursore, o.da)}" w:type="dxa"/>${o.da - cursore > 1 ? `<w:gridSpan w:val="${o.da - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`; }
                         xml += o.xml;
                         const m = /<w:gridSpan w:val="(\d+)"\/>/.exec(o.xml);
                         cursore = o.da + (m ? parseInt(m[1], 10) : 1);
                     });
-                    if (cursore < larghezze.length) xml += `<w:tc><w:tcPr><w:tcW w:w="${tw(xs[larghezze.length] - xs[cursore])}" w:type="dxa"/>${larghezze.length - cursore > 1 ? `<w:gridSpan w:val="${larghezze.length - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`;
+                    if (cursore < larghezze.length) xml += `<w:tc><w:tcPr><w:tcW w:w="${largTw(cursore, larghezze.length)}" w:type="dxa"/>${larghezze.length - cursore > 1 ? `<w:gridSpan w:val="${larghezze.length - cursore}"/>` : ''}</w:tcPr>${paragrafoVuotoWord(20)}</w:tc>`;
                     // ALTEZZA ESATTA, quella del PDF: con «almeno» Word aggiungeva di suo frazioni di
                     // punto (bordi, arrotondamenti) a ogni riga, e su decine di righe la tabella
                     // usciva dal foglio. Il contenuto ci sta: è lo stesso del PDF, con le stesse righe
                     // (paragrafoWord fa in modo che non vada a capo in più).
-                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="${esatta ? 'exact' : 'atLeast'}"/></w:trPr>${xml}</w:tr>`;
+                    if (unisci(ir)) xml = xml.replace(/<w:pPr>/g, '<w:pPr><w:keepNext/>');
+                    corpo += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="${tw(altezza)}" w:hRule="${esatta ? 'exact' : 'atLeast'}"/>${ir < nTesta ? '<w:tblHeader/>' : ''}</w:trPr>${xml}</w:tr>`;
                 }
                 const sfondoTabella = coloreWord(ctx.win.getComputedStyle(tab).backgroundColor);
-                return `<w:tbl>${tblPrWord({ w: tw(xs[xs.length - 1] - xs[0]), ind: foglia.rientroTw, bordi: bordiWord(ctx, tab, 'tblBorders'), sfondo: sfondoTabella })}`
+                return `<w:tbl>${tblPrWord({ w: xsTw[xsTw.length - 1], ind: foglia.rientroTw, bordi: bordiWord(ctx, tab, 'tblBorders'), sfondo: sfondoTabella })}`
                     + `<w:tblGrid>${griglia}</w:tblGrid>${corpo}</w:tbl>`;
             }
 
@@ -616,7 +651,8 @@
                 }
                 const sinistra = f.r.x - xRegione;
                 ctx.regione = null; // dentro una tabella o una scatola la regione è un'altra
-                const conRientro = Object.assign({}, f, { rientroTw: sinistra > 0.5 ? tw(sinistra) : 0 });
+                // Anche negativo: la tabella del piè della carta intestata esce dal margine come nel Word.
+                const conRientro = Object.assign({}, f, { rientroTw: sinistra > 0.5 ? tw(sinistra) : sinistra < -0.5 ? -tw(-sinistra) : 0 });
                 return f.tipo === 'tabella' ? tabellaWord(ctx, conRientro) : scatolaWord(ctx, conRientro);
             }
 
@@ -830,7 +866,8 @@
                 if (ctx.piede) xml += (/<w:ftr[^>]*>([\s\S]*)<\/w:ftr>/.exec(ctx.piede) || [])[1] || '';
                 const fondo = Math.max(...foglie.map(f => f.r.y + f.r.h));
                 const n = ctx.piediTemplate.size + 1;
-                const parte = { rid: 'rIdPiedeT' + n, nome: `footer${n + 1}.xml`, xml, distanzaTw: tw(Math.max(0, rf.bottom - fondo)), tipo: 'footer' };
+                const cima = Math.min(...foglie.map(f => f.r.y));
+                const parte = { rid: 'rIdPiedeT' + n, nome: `footer${n + 1}.xml`, xml, distanzaTw: tw(Math.max(0, rf.bottom - fondo)), altezzaTw: tw(fondo - cima) + 20, tipo: 'footer' };
                 ctx.piediTemplate.set(chiave, parte);
                 return parte;
             }
@@ -963,7 +1000,9 @@
                 // In fondo al foglio si lascia poco margine: il contenuto è già posizionato dall'alto,
                 // e un margine piccolo evita che un arrotondamento lo spinga sulla pagina dopo.
                 // Col piè di pagina del template il margine inferiore è quello vero (la sua fascia).
-                const sotto = partePiede ? tw(rf.bottom - ri.bottom) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
+                // Col piè del template: fin dove arriva davvero il piè (Word non lascia scrivere sopra), non
+                // oltre il margine del PDF; il contenuto ha così lo stesso agio contro gli arrotondamenti.
+                const sotto = partePiede ? Math.min(tw(rf.bottom - ri.bottom), partePiede.distanzaTw + (partePiede.altezzaTw || 0)) : Math.min(tw(rf.bottom - ri.bottom), Math.max(280, ctx.piede && !foglio.hasAttribute('data-sommario') ? ctx.fondoPiedeTw || 0 : 0));
                 // Il foglio della sezione è quello del foglio vero: le tavole A3 o orizzontali restano
                 // A3 o orizzontali anche in Word (una sezione per foglio, ognuna col suo formato).
                 const pgW = Math.round(rf.width / 96 * 1440 / 10) * 10, pgH = Math.round(rf.height / 96 * 1440 / 10) * 10;
@@ -1107,10 +1146,12 @@
                 return { xml: corpo, sezione };
             }
 
-            /** Dal documento di stampa (lo stesso del PDF) al file .docx. Ritorna il Blob, quante
-             * pagine fisse ha e quanti riquadri di mappa non si sono potuti scaricare. */
-            async function documentoStampaInDocx(htmlDocumento, opzioni) {
-                const o = opzioni || {};
+            /** IL DOCUMENTO DI STAMPA, MISURATO: lo apre in una cornice nascosta larga quanto lo spazio
+             * utile del foglio, aspetta caratteri e immagini, e consegna a `lavora` ciò che serve per
+             * leggerne le misure: { doc, ctx, radice, segmenti, mancanti, mrg }. È la base comune del
+             * Word (documentoStampaInDocx) e del PDF/A (documentoStampaInPdfA, 071i2): stesse misure,
+             * stesse foglie (raccogliFoglieWord), due modi di scriverle. La cornice si toglie alla fine. */
+            async function conDocumentoStampaMisurato(htmlDocumento, o, lavora) {
                 const mrg = o.margini || marginiPaginaDiDefault();
                 const cornice = document.createElement('iframe');
                 // Larga quanto lo spazio utile del foglio stampato: i fogli hanno comunque la loro
@@ -1128,24 +1169,37 @@
                     if (o.onAvanzamento) o.onAvanzamento('Scarico le mappe…', 0);
                     const mancanti = await incorporaImmaginiWord(doc);
                     const ctx = nuovoContestoWord(doc, o);
-                    const numeroPagina = doc.querySelector('.dpsh-sheet [data-numero-pagina]');
-                    if (numeroPagina) ctx.piede = piedeWord(ctx, numeroPagina);
                     const radice = doc.querySelector('.dpsh-sheet-stack') || doc.querySelector('.a4-page') || doc.body;
                     const segmenti = segmentiWord(ctx, radice, []);
-                    let corpo = '', sezione = '';
-                    for (let i = 0; i < segmenti.length; i++) {
-                        if (o.onAvanzamento) o.onAvanzamento(`Pagina ${i + 1} di ${segmenti.length}…`, (i + 1) / segmenti.length);
-                        // Il seguito dell'indice è già nel Sommario del primo foglio (sommarioWord).
-                        if (segmenti[i].foglio && segmenti[i].foglio.hasAttribute('data-sommario-seguito')) continue;
-                        if (sezione) corpo += chiusuraSezioneWord(sezione);
-                        const f = segmenti[i].foglio ? await foglioWord(ctx, segmenti[i].foglio) : await flussoWord(ctx, segmenti[i], mrg);
-                        corpo += f.xml;
-                        sezione = f.sezione;
-                        await new Promise(r => setTimeout(r, 0));
-                    }
-                    const pagine = segmenti.filter(x => x.foglio).length;
-                    return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media, ctx)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
+                    return await lavora({ doc, ctx, radice, segmenti, mancanti, mrg });
                 } finally {
                     cornice.remove();
                 }
+            }
+
+            /** Dal documento già misurato al file .docx (le misure le ha date conDocumentoStampaMisurato). */
+            async function docxDaDocumentoMisurato({ doc, ctx, segmenti, mancanti, mrg }, o) {
+                const numeroPagina = doc.querySelector('.dpsh-sheet [data-numero-pagina]');
+                if (numeroPagina) ctx.piede = piedeWord(ctx, numeroPagina);
+                let corpo = '', sezione = '';
+                for (let i = 0; i < segmenti.length; i++) {
+                    if (o.segnale && o.segnale.aborted) { const e = new Error('Operazione annullata'); e.name = 'AbortError'; throw e; }
+                    if (o.onAvanzamento) o.onAvanzamento(`Pagina ${i + 1} di ${segmenti.length}…`, (i + 1) / segmenti.length);
+                    // Il seguito dell'indice è già nel Sommario del primo foglio (sommarioWord).
+                    if (segmenti[i].foglio && segmenti[i].foglio.hasAttribute('data-sommario-seguito')) continue;
+                    if (sezione) corpo += chiusuraSezioneWord(sezione);
+                    const f = segmenti[i].foglio ? await foglioWord(ctx, segmenti[i].foglio) : await flussoWord(ctx, segmenti[i], mrg);
+                    corpo += f.xml;
+                    sezione = f.sezione;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+                const pagine = segmenti.filter(x => x.foglio).length;
+                return { blob: new Blob([pacchettoDocxWord(corpo, sezione, ctx.media, ctx)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), mancanti, pagine };
+            }
+
+            /** Dal documento di stampa (lo stesso del PDF) al file .docx. Ritorna il Blob, quante
+             * pagine fisse ha e quanti riquadri di mappa non si sono potuti scaricare. */
+            async function documentoStampaInDocx(htmlDocumento, opzioni) {
+                const o = opzioni || {};
+                return conDocumentoStampaMisurato(htmlDocumento, o, (m) => docxDaDocumentoMisurato(m, o));
             }

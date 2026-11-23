@@ -93,6 +93,39 @@ function zip(files, comprimi) { // ZIP minimo (stored o deflate)
   file('gb.shp', sh.shp); file('gb.prj', Buffer.from('PROJCS["Monte_Mario_Italy_2",GEOGCS["GCS_Monte_Mario"],PROJECTION["Transverse_Mercator"]]'));
   r = await leggi();
   t('Gauss-Boaga: non gestito, lo dice', r.e && /Gauss-Boaga/.test(r.e));
+  // ---- ED50: letto come WGS84 sposterebbe il perimetro di 100-200 m in silenzio ----
+  const leggiAvvisi = async () => { app.E(`(window.__esito = null, poligoniDaFile(window.__f).then(v => window.__esito = { v: JSON.parse(JSON.stringify(v)), avvisi: v.avvisi }, e => window.__esito = { e: e.message }), window.__f = [])`); for (let i = 0; i < 50 && !app.w.__esito; i++) await attesa(10); return copia(app.w.__esito); };
+  const metri = (a, b) => Math.hypot((a.lat - b.lat) * 111000, (a.lng - b.lng) * 85000);
+  const ed50Geo = L_FORMA.map(p => gradi(...p)); // gli stessi numeri, dichiarati ED50
+  const prjGeoEd50 = 'GEOGCS["GCS_European_1950",DATUM["D_European_1950",SPHEROID["International_1924",6378388.0,297.0]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+  const shED = shapefile([ed50Geo.concat([ed50Geo[0]])]);
+  file('ed.shp', shED.shp); file('ed.prj', Buffer.from(prjGeoEd50));
+  r = await leggiAvvisi();
+  const spost = r.v && r.v[0].punti.map((q, i) => metri(q, { lat: ed50Geo[i][1], lng: ed50Geo[i][0] }));
+  t(`ED50 geografico (.prj ESRI): portato in WGS84, spostamento ${spost && spost[0].toFixed(0)} m (atteso 100-200 m), e l'utente è avvisato`, spost && spost.every(m => m > 80 && m < 250) && r.avvisi.some(a => /ED50/.test(a)));
+  // ED50 UTM 33N (nome OGC e ESRI): stesso punto, passato da UTM con l'ellissoide di Hayford, deve dare lo stesso WGS84
+  const utmEd = ed50Geo.map(([x, y]) => { const u = copia(app.E(`utmDaGeo(${y}, ${x}, 33, 6378388, 1 / 297)`)); return [u.x, u.y]; });
+  for (const prjUtm of ['PROJCS["ED50 / UTM zone 33N",GEOGCS["ED50",DATUM["European_Datum_1950",SPHEROID["International 1924",6378388,297]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],UNIT["metre",1],AUTHORITY["EPSG","23033"]]',
+    'PROJCS["ED_1950_UTM_Zone_33N",GEOGCS["GCS_European_1950",DATUM["D_European_1950",SPHEROID["International_1924",6378388.0,297.0]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],UNIT["Meter",1.0]]']) {
+    const shU = shapefile([utmEd.concat([utmEd[0]])]);
+    file('u.shp', shU.shp); file('u.prj', Buffer.from(prjUtm));
+    r = await leggiAvvisi();
+    const dalGeo = r.v && r.v[0].punti.map((q, i) => metri(q, { lat: ed50Geo[i][1], lng: ed50Geo[i][0] }));
+    t(`ED50 UTM 33N (${/EPSG/.test(prjUtm) ? 'OGC' : 'ESRI'}): coincide con l'ED50 geografico convertito (scarto ${dalGeo && dalGeo[0].toFixed(0)} m dai numeri grezzi, 80-250 m)`, r.v && dalGeo.every((m, i) => m > 80 && m < 250 && Math.abs(m - spost[i]) < 0.5));
+  }
+  // un .prj che non si riconosce: non si finge WGS84 in silenzio
+  file('x.shp', sh.shp); file('x.prj', Buffer.from('GEOGCS["GCS_Qualcosa_Di_Strano",DATUM["D_Strano",SPHEROID["Strano",6378137.0,298.0]]]'));
+  r = await leggiAvvisi();
+  t('un .prj con un datum sconosciuto: il perimetro si legge ma l\'utente è avvisato', r.v && r.v.length === 1 && r.avvisi.some(a => /non è tra quelli che l'app conosce/.test(a)));
+  file('y.shp', sh.shp); file('y.prj', Buffer.from('questo non è un WKT'));
+  r = await leggiAvvisi();
+  t('un .prj illeggibile: avviso invece di WGS84 in silenzio', r.v && r.avvisi.some(a => /non si riconosce/.test(a)));
+  file('z.shp', sh.shp); // senza .prj
+  r = await leggiAvvisi();
+  t('uno shapefile senza .prj: avviso', r.v && r.avvisi.some(a => /non ha il \.prj/.test(a)));
+  file('w.shp', sh.shp); file('w.prj', sh.prj);
+  r = await leggiAvvisi();
+  t('un .prj WGS84 normale: nessun avviso', r.v && r.avvisi.length === 0);
   file('niente.txt', Buffer.from('ciao'));
   r = await leggi();
   t('un file che non è vettoriale: lo dice', r.e && /Formato non riconosciuto/.test(r.e));

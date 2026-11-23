@@ -93,6 +93,7 @@
                     <div id="spazioBarra" style="height: 100%; width: 0%; background: var(--accent); transition: width var(--mov-lungo) var(--ease-entra), background var(--mov-lungo) var(--ease-entra);"></div>
                 </div>
                 <div id="spazioDettaglio" style="font-size: 11px; color: var(--text-muted); line-height: 1.6;"></div>
+                <div id="spazioErrori" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.5; margin-top: 6px;"></div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <button class="btn-action" id="btnSpazioRicalcola" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 10px 4px; font-weight: 700;">
                         <svg class="ico"><use href="#i-reset"/></svg> Ricalcola
@@ -142,6 +143,24 @@
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-layers"/></svg> Libreria</div>
                 <button class="btn-action" id="btnDrawerTemplate" style="width: 100%;"><svg class="ico"><use href="#i-layout-pagina"/></svg> Template di report e dell'indice</button>
                 <button class="btn-action" id="btnDrawerArchivio" style="width: 100%;"><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</button>
+            </div>
+
+            <!-- ASSISTENTE IA (facoltativo, spento di serie). Solo l'interruttore e il tasto dei provider
+                 stanno qui; la bolla e le procedure guidate sono costruite da js/073. Le chiavi API non
+                 stanno in state: restano in una voce a parte del localStorage, fuori da backup e condivisioni. -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><svg class="ico"><use href="#i-info"/></svg> Assistente IA</div>
+                <div class="setting-row">
+                    <div class="setting-text">
+                        <div class="setting-label">Assistente a bolla</div>
+                        <div class="setting-desc">Una bolla in basso a destra a cui chiedere di leggere o fare le cose dell'app. Serve internet e un provider IA scelto da te. Le domande e i dati che l'assistente legge vengono inviati al provider.</div>
+                    </div>
+                    <label class="switch setting-control">
+                        <input type="checkbox" id="chkAssistenteIa">
+                        <span class="switch-visual"></span>
+                    </label>
+                </div>
+                <button class="btn-action" id="btnAssistenteProvider" style="width: 100%;"><svg class="ico"><use href="#i-settings"/></svg> Provider e chiavi API <span id="lblAssistenteProviderN" style="opacity:.7; margin-left:4px;"></span></button>
             </div>
 
             <!-- 5. ASPETTO E VISUALIZZAZIONE -->

@@ -540,7 +540,7 @@
                 // riquadro perché viveva nello stesso contenitore. blockObj.captionFontSizePt,
                 // selettore "Dimensione" nel menu della didascalia): 8pt di default, equivalente al
                 // precedente valore fisso 10.5px.
-                const ptDidascalia = (blockObj && blockObj.captionFontSizePt) || 8;
+                const ptDidascalia = numeroSicuro(blockObj && blockObj.captionFontSizePt, 0, 1, 400) || 8;
                 return `${contentHtml}<div data-ruolo="didascalia" style="margin-top:6px; text-align:center; font-size:${ptDidascalia}pt; color:#334155; font-style:italic;">${marcaNumeroDidascalia(testo, blockObj, type)}</div>`;
             }
 
@@ -660,9 +660,10 @@
                         // sopra — due blocchi grafico nello stesso template possono volerle diverse
                         // (es. uno di dettaglio sui primi metri e uno d'insieme).
                         return buildStratigrafiaColpiRpdSvg(raw.stratiEff, raw.logsCalc, raw.provaNr, larghezzaGrafico, {
+                            strati: raw.strati,
                             profonditaAsseM: profonditaAsseEffettiva(blockObj, ctx),
                             altezza: blockObj && blockObj.altezzaScalaGrafico,
-                            fontPt: blockObj && blockObj.fontSizePt,
+                            fontPt: numeroSicuro(blockObj && blockObj.fontSizePt, 0, 1, 400) || undefined,
                             legenda: blockObj && blockObj.legendaGrafico,
                             retinoLegenda: blockObj && blockObj.retinoLegendaGrafico,
                             mostraGuidaNomi: !!(ctx && ctx.anteprima) && !!(blockObj && blockObj.mostraGuidaNomiGrafico),
@@ -834,14 +835,15 @@
                         // Una misura scelta per il singolo blocco resta possibile e vince, ma e'
                         // un'eccezione dichiarata, non piu' l'unico modo di decidere.
                         const livelloNum = parseInt((blockObj.livelloTitolo || 'H1').replace('H', ''), 10) || 1;
-                        const ptTitolo = blockObj.fontSizePt
-                            ? blockObj.fontSizePt + 'pt'
+                        // numeroSicuro: la misura viene anche da template importati, e finisce dentro style="...".
+                        const ptTitolo = numeroSicuro(blockObj.fontSizePt, 0, 1, 400)
+                            ? numeroSicuro(blockObj.fontSizePt, 0, 1, 400) + 'pt'
                             : `var(--tpl-h${Math.max(1, Math.min(3, livelloNum))}, 16pt)`;
                         // data-titolo-indice: e' cosi' che l'indice riconosce un'intestazione nel
                         // documento finito. Il livello (H1/H2/H3) e' la gerarchia; senza questo
                         // marcatore un titolo sarebbe indistinguibile da un testo in grassetto.
                         const livelloIndice = (blockObj.livelloTitolo || 'H1').replace('H', '');
-                        return `<div class="tpl-block-richtext" data-titolo-indice="${livelloIndice}" style="font-size:${ptTitolo}; font-weight:var(--tpl-peso-titoli, 700); line-height:1.3; color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${blockObj.richHtml}</div>`;
+                        return `<div class="tpl-block-richtext" data-titolo-indice="${livelloIndice}" style="font-size:${ptTitolo}; font-weight:var(--tpl-peso-titoli, 700); line-height:1.3; color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${sanificaHtmlTemplate(blockObj.richHtml)}</div>`;
                     }
                     case 'testo': {
                         if (!blockObj || !blockObj.richHtml) return '';
@@ -861,10 +863,10 @@
                         // dell'altezza a moltiplicarla, ed e' il motivo per cui trascinandola il
                         // testo "si schiacciava riga su riga". L'altezza di un testo e' un
                         // risultato (corpo x interlinea x righe), non un dato da imporre.
-                        const ptTesto = blockObj.fontSizePt ? blockObj.fontSizePt + 'pt' : 'var(--tpl-corpo-pt, 11pt)';
+                        const ptTesto = numeroSicuro(blockObj.fontSizePt, 0, 1, 400) ? numeroSicuro(blockObj.fontSizePt, 0, 1, 400) + 'pt' : 'var(--tpl-corpo-pt, 11pt)';
                         // I titoli scritti QUI DENTRO diventano voci dell'indice: e' la
                         // marcatura che prima stava sul contenitore del blocco 'titolo'.
-                        return `<div class="tpl-block-richtext" style="font-size:${ptTesto}; font-weight:400; line-height:var(--tpl-interlinea, 1.5); text-align:var(--tpl-allineamento, justify); color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${marcaTitoliPerIndice(risolviTagInStampa(blockObj.richHtml, ctx, blockObj), (typeof templateEditorState !== 'undefined' && templateEditorState.stileTesto) || (ctx && ctx.stileTesto))}</div>`;
+                        return `<div class="tpl-block-richtext" style="font-size:${ptTesto}; font-weight:400; line-height:var(--tpl-interlinea, 1.5); text-align:var(--tpl-allineamento, justify); color:#0f172a; font-family:var(--tpl-font, Arial, sans-serif);">${marcaTitoliPerIndice(risolviTagInStampa(sanificaHtmlTemplate(blockObj.richHtml), ctx, blockObj), (typeof templateEditorState !== 'undefined' && templateEditorState.stileTesto) || (ctx && ctx.stileTesto))}</div>`;
                     }
                     // Riga sottile a tutta larghezza (la "compattezza" generica del blocco, già
                     // disponibile per qualunque tipo, permette comunque di restringerla se serve).
@@ -1002,7 +1004,8 @@
                 const hMm = headerEnabled ? altezzaIntestazioneMm(header, mrg) : 0;
                 if (hMm) mrg.top = Math.max(mrg.top, hMm + respiroIntestazioneMm(mrg, header));
                 if (footerEnabled && footer && footer.html) {
-                    mrg.bottom = Math.max(mrg.bottom, altezzaPiedeMm(footer) + distanzaPiedeMm(mrg) + 2);
+                    // Il piè che viene da un Word (daWord, 071s): il testo arriva fino al piè, senza stacco, come in Word.
+                    mrg.bottom = Math.max(mrg.bottom, altezzaPiedeMm(footer) + distanzaPiedeMm(mrg) + (Number(footer.rigaSottoMm) || 0) + (footer.daWord ? 0 : 2));
                     mrg.piedeNelMargine = true;
                 }
                 return mrg;
@@ -1032,9 +1035,12 @@
                 const ft = footer || {};
                 if (!ft.html && !(extra && extra.anche_vuota)) return '';
                 const mrg = Object.assign(marginiPaginaDiDefault(), margins || {});
-                const fascia = Math.max(mrg.bottom, altezzaPiedeMm(ft) + distanzaPiedeMm(mrg) + 2);
-                return `<div data-blocco="piede"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; bottom:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:2mm 0 ${distanzaPiedeMm(mrg)}mm; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden;">`
-                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${ft.html || ''}</div></div>`;
+                // rigaSottoMm: la riga vuota che Word mette sotto la tabella del piè (071s), che lo alza dal bordo.
+                const sotto = distanzaPiedeMm(mrg) + (Number(ft.rigaSottoMm) || 0);
+                const stacco = ft.daWord ? 0 : 2;
+                const fascia = Math.max(mrg.bottom, altezzaPiedeMm(ft) + sotto + stacco);
+                return `<div data-blocco="piede"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; bottom:0; left:${mrg.left}mm; right:${mrg.right}mm; height:${fascia}mm; box-sizing:border-box; padding:${stacco}mm 0 ${sotto}mm; display:flex; flex-direction:column; justify-content:flex-end; overflow-x:visible; overflow-y:clip;">`
+                    + `<div class="tpl-block-richtext tpl-piede-testo" style="font-size:10pt; line-height:1.2; text-align:center; color:#595959; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx && ft.html ? risolviTagInStampa(sanificaHtmlTemplate(ft.html), extra.ctx) : sanificaHtmlTemplate(ft.html || '')}</div></div>`;
             }
 
             /** L'intestazione disegnata nella fascia del margine superiore: un riquadro assoluto dentro
@@ -1050,15 +1056,15 @@
                 const tutta = !!(hd.tuttaPagina && hd.imageDataUrl);
                 const lati = tutta ? `left:0; right:0; padding:0 0 2mm; justify-content:flex-start; align-items:stretch;` : `left:${mrg.left}mm; right:${mrg.right}mm; padding:${distanzaIntestazioneMm(mrg)}mm 0 2mm; justify-content:center; align-items:center;`;
                 const testoLati = tutta ? ` margin-left:${mrg.left}mm; margin-right:${mrg.right}mm; width:auto;` : ' width:100%;';
-                return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; ${lati} height:${fascia}mm; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden;">
+                return `<div data-blocco="intestazione"${extra && extra.id ? ` id="${extra.id}"` : ''}${extra && extra.classe ? ` class="${extra.classe}"` : ''} style="position:absolute; top:0; ${lati} height:${fascia}mm; box-sizing:border-box; display:flex; flex-direction:column; overflow-x:visible; overflow-y:clip;">
                         ${hd.imageDataUrl ? (tutta
                             ? `<img data-tutta-pagina="1" src="${hd.imageDataUrl}" style="width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; object-position:top center; display:block;"/>`
                             : `<img src="${hd.imageDataUrl}" style="max-width:100%; min-height:0; flex:0 1 auto; max-height:100%; object-fit:contain; display:block;"/>`) : ''}
                         ${hd.html
                             // IL TESTO FORMATTATO (scritto con l'editor dei blocchi Testo): grassetto,
                             // colori, più righe, allineamento. Di base centrato, come la riga semplice.
-                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${hd.html}</div>`
-                            : hd.text ? `<div style="${testoLati} font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${hd.text}</div>` : ''}
+                            ? `<div class="tpl-block-richtext tpl-intestazione-testo" style="${testoLati} font-size:10pt; line-height:1.25; text-align:center; color:#0f172a; margin-top:2px; flex-shrink:0; font-family:var(--tpl-font, Arial, sans-serif);">${extra && extra.ctx ? risolviTagInStampa(sanificaHtmlTemplate(hd.html), extra.ctx) : sanificaHtmlTemplate(hd.html)}</div>`
+                            : hd.text ? `<div style="${testoLati} font-size:10px; color:#334155; text-align:center; margin-top:2px; flex-shrink:0; line-height:1.2;">${testoHtml(hd.text)}</div>` : ''}
                     </div>`;
             }
 
@@ -1120,7 +1126,7 @@
                 // Col testo formattato il piè di pagina sta nel margine (htmlPiedeNelMargine), non qui.
                 const footerHtml = footerEnabled && !ft.html ? `
                     <div data-blocco="pie" style="position:absolute; left:0; right:0; bottom:0; padding-top:6px; font-size:9px; color:#94a3b8; background:#fff;">
-                        <span>${ft.text || ''}</span>
+                        <span>${testoHtml(ft.text)}</span>
                     </div>
                 ` : '';
                 return `${headerHtml}${innerHtml}${footerHtml}`;
@@ -1296,7 +1302,7 @@
                 // costruisciPagineTemplateUnificato qui sopra, invece di ricalcolare a mano —
                 // coerenza garantita tra miniatura editor ed export vero.
                 const mrgFoglio = margineConIntestazione(mrg, pageDef.header, headerEnabled, pageDef.footer, footerEnabled);
-                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg) : '');
+                const intestazione = (headerEnabled ? htmlIntestazioneNelMargine(pageDef.header, mrg, { ctx }) : '') + (footerEnabled ? htmlPiedeNelMargine(pageDef.footer, mrg, { ctx }) : '');
                 // I MARGINI DEL TEMPLATE SUL FOGLIO, tutti e quattro. Prima solo quello superiore (e
                 // solo se l'intestazione lo alzava): gli altri venivano dalla regola comune del
                 // documento di stampa, che nel report di progetto ha i margini PREDEFINITI. Un

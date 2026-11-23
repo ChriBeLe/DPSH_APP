@@ -82,6 +82,14 @@
                 return true;
             }
 
+            /** Una voce d'archivio che arriva da un file: il colore finisce in attributi style e in
+             * <input type=color>, quindi si riduce a un colore di forma ammessa (coloreSicuro). Il nome
+             * non si tocca qui: si escapa dove lo si scrive. Modifica la voce sul posto. */
+            function rendiSicuraVoceArchivio(voce) {
+                if (voce && typeof voce === 'object' && voce.color !== undefined) voce.color = coloreSicuro(voce.color);
+                return voce;
+            }
+
             /** Unisce un dizionario di voci d'archivio { archId: {...} } importato da un file
              * (esportazione dell'archivio da solo, o l'intero "state" di un Backup Completo) dentro
              * state.lithologyArchive — SEMPRE un merge, mai una sostituzione, e mai una sovrascrittura
@@ -100,8 +108,12 @@
                 if (!state.lithologyArchive) state.lithologyArchive = {};
                 let imported = 0, renamed = 0;
                 Object.keys(incoming).forEach(origId => {
-                    const entry = JSON.parse(JSON.stringify(incoming[origId]));
-                    let targetId = entry.id || origId;
+                    if (!incoming[origId] || typeof incoming[origId] !== 'object') return;
+                    const entry = rendiSicuraVoceArchivio(JSON.parse(JSON.stringify(incoming[origId])));
+                    // Un id che non ha la forma di quelli dell'app (virgolette, '<', '__proto__') diventa
+                    // un id nuovo: finirebbe in data-id e come chiave dell'archivio. La voce si importa.
+                    let targetId = idSicuroOppureNuovo(entry.id || origId, 'arch');
+                    if (targetId !== (entry.id || origId)) entry.id = targetId;
                     if (state.lithologyArchive[targetId]) {
                         targetId = 'arch_' + Date.now() + '_' + imported;
                         entry.id = targetId;
@@ -260,8 +272,11 @@
                     // (tranne nome e cestino, che hanno le loro azioni) per aprire o chiudere.
                     row.innerHTML = `
                         <div class="strato-row-header" data-strato-idx="${idx}" style="display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; cursor:pointer;">
+                            <span class="strato-maniglia" data-strato-idx="${idx}" role="button" aria-label="Trascina per spostare lo strato" title="Trascina per spostare">
+                                <svg class="ico"><use href="#i-grip"/></svg>
+                            </span>
                             <div class="strato-pattern-preview" data-strato-idx="${idx}" title="Colore e pattern" style="width:26px; height:26px; border-radius:6px; border:1px solid rgba(0,0,0,0.25); flex:0 0 auto; ${getPatternCss(pat, s.color)}"></div>
-                            <input type="text" value="${s.name}" data-strato-idx="${idx}" class="strato-name-input form-control" style="flex:1; min-width:0; font-weight:700;" placeholder="Nome strato">
+                            <input type="text" value="${testoHtml(s.name)}" data-strato-idx="${idx}" class="strato-name-input form-control" style="flex:1; min-width:0; font-weight:700;" placeholder="Nome strato">
                             ${stratoHaCollegamentoArchivioValido(s) ? '<svg class="ico" style="width:14px; height:14px; color:var(--purple); flex:0 0 auto;" title="Collegato all\'archivio"><use href="#i-folder-open"/></svg>' : (s.sourceArchiveId ? '<svg class="ico" style="width:14px; height:14px; color:#f59e0b; flex:0 0 auto;" title="Collegamento archivio perso — apri la riga per ripristinarlo"><use href="#i-alert"/></svg>' : '')}
                             ${idx === 0 ? '<span style="font-size:9.5px; color:var(--text-muted); font-weight:700; flex:0 0 auto;">Default</span>' : ''}
                             <svg class="ico strato-row-chevron" style="width:14px; height:14px; color:var(--text-muted); flex:0 0 auto; transition: transform var(--mov-medio) var(--ease-entra); transform: rotate(${rowOpen ? '180' : '0'}deg);"><use href="#i-chevron-down"/></svg>
@@ -300,7 +315,7 @@
                             <div class="strato-row-body-inner" style="display:flex; flex-direction:column; gap:8px; padding:0 0 10px;">
                                 <div style="display:flex; gap:6px;">
                                     <div style="flex:1.3; min-width:0; display:flex; align-items:center; gap:6px; background:var(--bg-sunken); border-radius:8px; padding:0 8px;">
-                                        <input type="color" value="${s.color}" data-strato-idx="${idx}" class="strato-color-pick" style="width:18px; height:18px; border:none; background:none; padding:0; cursor:pointer; border-radius:4px; flex:0 0 auto;" title="Colore dello strato">
+                                        <input type="color" value="${coloreSicuro(s.color)}" data-strato-idx="${idx}" class="strato-color-pick" style="width:18px; height:18px; border:none; background:none; padding:0; cursor:pointer; border-radius:4px; flex:0 0 auto;" title="Colore dello strato">
                                         <div style="flex:1; min-width:0;">
                                             ${buildPatternPickerHtml(idx, pat, s.color)}
                                         </div>
@@ -507,6 +522,73 @@
                     });
                 });
 
+                // MANIGLIA DI TRASCINAMENTO (richiesta di Romeo, 17/11/2026): si afferra la maniglia a
+                // sinistra della riga e si trascina; le altre righe scorrono con una transizione per
+                // far posto, la riga trascinata segue il dito e al rilascio si assesta nel suo posto.
+                // I tasti «Sposta su/giù» del menu ⋮ restano per chi preferisce toccare.
+                container.querySelectorAll('.strato-maniglia').forEach(man => {
+                    man.addEventListener('click', e => e.stopPropagation());
+                    man.addEventListener('pointerdown', ev => {
+                        if (ev.button !== undefined && ev.button !== 0) return;
+                        ev.preventDefault(); ev.stopPropagation();
+                        const righe = Array.from(container.children).filter(r => r.dataset && r.dataset.stratoRowIdx != null);
+                        const da = parseInt(man.dataset.stratoIdx);
+                        const mossa = righe[da];
+                        if (!mossa || righe.length < 2) return;
+                        const rect = righe.map(r => r.getBoundingClientRect());
+                        const alt = rect[da].height + 8;           // altezza + margine tra le righe
+                        const y0 = ev.clientY, scroll0 = (container.closest('.modal') || container).scrollTop;
+                        const scorrevole = container.closest('.modal') || container;
+                        const anim = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                        let verso = da, y = 0, rAF = 0, passo = 0;
+                        righe.forEach((r, i) => { if (i !== da) r.style.transition = anim ? 'transform .18s cubic-bezier(.2,.8,.2,1)' : 'none'; });
+                        mossa.style.transition = 'none'; mossa.style.zIndex = '50'; mossa.style.position = 'relative';
+                        mossa.style.boxShadow = '0 8px 22px rgba(0,0,0,.35)'; mossa.style.cursor = 'grabbing';
+                        man.setPointerCapture && man.setPointerCapture(ev.pointerId);
+                        function aggiorna() {
+                            const dy = y + (scorrevole.scrollTop - scroll0);
+                            mossa.style.transform = 'translateY(' + dy + 'px) scale(1.02)';
+                            const centro = rect[da].top + rect[da].height / 2 + dy;
+                            let nuovo = da;
+                            rect.forEach((rc, i) => { if (i < da && centro < rc.top + rc.height / 2) nuovo = Math.min(nuovo, i); if (i > da && centro > rc.top + rc.height / 2) nuovo = Math.max(nuovo, i); });
+                            if (nuovo !== verso) {
+                                verso = nuovo;
+                                righe.forEach((r, i) => { if (i === da) return; r.style.transform = (da < verso && i > da && i <= verso) ? 'translateY(' + (-alt) + 'px)' : (da > verso && i < da && i >= verso) ? 'translateY(' + alt + 'px)' : ''; });
+                                if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) { /* non supportato */ } }
+                            }
+                        }
+                        function scorriAi_bordi() {
+                            const b = scorrevole.getBoundingClientRect();
+                            const p = ultimoY;
+                            passo = p < b.top + 50 ? -Math.ceil((b.top + 50 - p) / 4) : p > b.bottom - 50 ? Math.ceil((p - (b.bottom - 50)) / 4) : 0;
+                            if (passo) { scorrevole.scrollTop += passo; aggiorna(); }
+                            rAF = requestAnimationFrame(scorriAi_bordi);
+                        }
+                        let ultimoY = ev.clientY;
+                        const muovi = e => { ultimoY = e.clientY; y = e.clientY - y0; aggiorna(); };
+                        const fine = e => {
+                            man.removeEventListener('pointermove', muovi); man.removeEventListener('pointerup', fine); man.removeEventListener('pointercancel', fine);
+                            cancelAnimationFrame(rAF);
+                            const dest = e.type === 'pointercancel' ? da : verso;
+                            const dy = rect[dest].top - rect[da].top;
+                            mossa.style.transition = anim ? 'transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s' : 'none';
+                            mossa.style.transform = 'translateY(' + dy + 'px)'; mossa.style.boxShadow = '';
+                            setTimeout(() => {
+                                if (dest !== da) {
+                                    const [s] = state.strati.splice(da, 1);
+                                    state.strati.splice(dest, 0, s);
+                                    saveState();
+                                    triggerVibrate([20]);
+                                }
+                                renderStratiList();
+                            }, anim ? 190 : 0);
+                        };
+                        man.addEventListener('pointermove', muovi); man.addEventListener('pointerup', fine); man.addEventListener('pointercancel', fine);
+                        rAF = requestAnimationFrame(scorriAi_bordi);
+                        aggiorna();
+                    });
+                });
+
                 // "Duplica strato" (richiesto esplicitamente, menu ⋮): copia completa dello strato
                 // — nome, colore, pattern, geotecnica, parametri avanzati E il collegamento
                 // all'archivio se presente (un duplicato è tipicamente "stesso materiale, un altro
@@ -564,7 +646,8 @@
                         const ok = await appConfirmDelete(`Eliminare lo strato "${state.strati[i].name}"? Potrai comunque annullare entro 10 secondi dopo la conferma.`);
                         if (!ok) return;
                         if (!state.strati[i]) return;
-                        copiaPrimaDi(`eliminare lo strato «${state.strati[i].name}»`);
+                        if (!await copiaOChiedi(`eliminare lo strato «${state.strati[i].name}»`)) return;
+                        if (!state.strati[i]) return;
                         const deletedId = state.strati[i].id;
                         const backupStrato = JSON.parse(JSON.stringify(state.strati[i]));
                         // Memorizza quali intervalli erano assegnati a questo strato, per poterli

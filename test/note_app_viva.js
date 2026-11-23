@@ -18,7 +18,10 @@ const stato = { projects: {
 const dom=new JSDOM(src,{runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc,url:'https://locale.test/',
   beforeParse(w){
     w.localStorage.setItem('dpsh_app_state', JSON.stringify(stato));
-    w.indexedDB={open(){const r={};setTimeout(()=>{r.onerror&&r.onerror({target:{error:new Error('no idb')}});},0);return r;}};
+    // Archivio finto ma funzionante: il ritaglio ora attende l'esito della scrittura e, se
+    // l'archivio la rifiuta, NON cambia l'immagine (giusto cosi). Con l'archivio sempre guasto
+    // non si potrebbe provare il caso buono.
+    w.indexedDB=require('./dati/idb_finto').creaIndexedDB();
     w.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}});
     // Una tela finta che TIENE NOTA di cosa le viene chiesto di dipingere: senza un browser
     // vero e' l'unico modo di sapere se lo sfondo bianco e' stato riempito, dove sono finite
@@ -81,8 +84,8 @@ let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;
   t('l app si carica senza errori', errori.length===0); if(errori.length) console.log('      ', errori.slice(0,3));
   // Fase 3: le note non hanno più un bottone sulla card (la card si tocca tutta per aprire il
   // progetto); si aprono dal ⋯ del progetto, «Note di progetto». Stessa nota, stesso editor.
-  d.querySelector('.btn-project-actions').click();
-  d.getElementById('btnProjActNote').click();         // apre la nota del primo progetto in Home
+  d.querySelector('.btn-project-actions[data-id="p1"]').click(); // Nardo: l'ordine della Home lo sceglie l'utente
+  d.getElementById('btnProjActNote').click();         // apre la nota di Nardo
   await attesa(300);
   const corpo=d.getElementById('noteEditorBody');
   const pm=corpo.querySelector('.ProseMirror');

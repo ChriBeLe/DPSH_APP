@@ -44,10 +44,8 @@
                     const prove = Object.values(proj.surveys || {});
                     progetti[pid] = { nome: proj.name || proj.comune || 'Progetto', prove: prove.length, modificato: proj.updatedAt || 0 };
                     prove.forEach(s => ((s && s.photos) || []).forEach(f => { if (f && f.id) foto.add(f.id); }));
-                    const html = (proj.notes && proj.notes.html) || '';
-                    const re = /data-note-img-id="([^"]+)"/g;
-                    let m;
-                    while ((m = re.exec(html)) !== null) note.add(m[1]);
+                    // Anche la nota conservata prima del nuovo motore: le sue immagini servono al ripristino.
+                    idImmaginiDiUnaNota(proj.notes).forEach(id => note.add(id));
                 });
                 return { progetti, foto: Array.from(foto), note: Array.from(note) };
             }
@@ -135,6 +133,26 @@
              * non deve fermare quello che l'utente sta facendo. Uno stato identico all'ultima copia non
              * viene salvato di nuovo. */
             async function scriviCopiaAutomatica(tipo, motivo, testoStato) {
+                // Se la stessa copia è già in scrittura, non si ritorna «uguale all'ultima» finché non è
+                // finita: chi la aspetta (copiaPrimaDi) deve sapere che c'è davvero, non che sta per esserci.
+                const inCorso = copieAutomatiche.scrittureInCorso || (copieAutomatiche.scrittureInCorso = new Map());
+                let firmaOra = null;
+                try {
+                    const j = typeof testoStato === 'string' ? testoStato : localStorage.getItem('dpsh_app_state');
+                    if (j) firmaOra = firmaTesto(j);
+                } catch (e) { /* localStorage non leggibile: lo dirà scriviCopiaAutomaticaOra */ }
+                if (firmaOra !== null && firmaOra === copieAutomatiche.ultimaFirma && inCorso.has(firmaOra)) {
+                    await inCorso.get(firmaOra).catch(() => {});
+                    return false;
+                }
+                const lavoro = scriviCopiaAutomaticaOra(tipo, motivo, testoStato);
+                if (firmaOra !== null) inCorso.set(firmaOra, lavoro);
+                try { return await lavoro; }
+                finally { if (firmaOra !== null && inCorso.get(firmaOra) === lavoro) inCorso.delete(firmaOra); }
+            }
+
+            async function scriviCopiaAutomaticaOra(tipo, motivo, testoStato) {
+                copieAutomatiche.ultimaScritturaFallita = false;
                 try {
                     const json = typeof testoStato === 'string' ? testoStato : localStorage.getItem('dpsh_app_state');
                     if (!json) return false;
@@ -166,16 +184,39 @@
                     return true;
                 } catch (e) {
                     copieAutomatiche.ultimaFirma = null;
-                    ignoraErrore('scriviCopiaAutomatica', e);
+                    copieAutomatiche.ultimaScritturaFallita = true;
+                    segnalaErrore('copia', 'scriviCopiaAutomatica', e, 'Copia di sicurezza non riuscita: i dati sono salvati, ma questa copia di riserva no');
                     return false;
                 }
             }
 
             /** Copia «prima di…»: va chiamata subito PRIMA di modificare state, perché fotografa lo stato
              * salvato in quel momento. */
-            function copiaPrimaDi(motivo) {
-                if (!copieAutomatiche.pronto) return;
-                scriviCopiaAutomatica('prima', 'prima di ' + motivo, localStorage.getItem('dpsh_app_state'));
+            /** Ritorna una promessa con l'ESITO: true se la copia c'è davvero (scritta ora, o già uguale
+             * all'ultima), false se non è riuscita. Chi elimina deve aspettarla e, se è false, chiedere
+             * all'utente (vedi copiaOChiedi): prima la scrittura partiva senza essere attesa e, nei primi
+             * secondi dopo l'avvio, non partiva affatto, ma l'eliminazione andava avanti lo stesso. */
+            async function copiaPrimaDi(motivo) {
+                // La fotografia dello stato si prende SUBITO, in modo sincrono: dopo gli await lo stato
+                // potrebbe essere già cambiato.
+                const testo = localStorage.getItem('dpsh_app_state');
+                if (!testo) return true; // niente di salvato: niente da perdere
+                try {
+                    // Copie non ancora pronte (primi secondi dopo l'avvio): si aspetta che lo siano.
+                    if (!copieAutomatiche.pronto) await Promise.resolve(copieAutomatiche.caricamento).catch(() => {});
+                    const scritta = await scriviCopiaAutomatica('prima', 'prima di ' + motivo, testo);
+                    return !!scritta || copieAutomatiche.ultimaFirma === firmaTesto(testo);
+                } catch (e) {
+                    ignoraErrore('copiaPrimaDi', e);
+                    return false;
+                }
+            }
+
+            /** Copia di sicurezza prima di un'azione che toglie dati. Ritorna true se si può procedere:
+             * la copia è riuscita, oppure non è riuscita e l'utente ha detto di procedere lo stesso. */
+            async function copiaOChiedi(motivo) {
+                if (await copiaPrimaDi(motivo)) return true;
+                return await appConfirm('Non sono riuscito a fare la copia di sicurezza prima di ' + motivo + '. Procedo lo stesso?');
             }
 
             async function leggiCopiaAutomatica(idCopia) {

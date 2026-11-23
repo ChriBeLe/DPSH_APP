@@ -9,7 +9,14 @@
             // Esagerazione verticale e scala orizzontale si regolano; correlazioni, etichette lungo i
             // profili, scale delle prove e grafico dei colpi si accendono e spengono.
 
-            const sezioneStato = { escluse: new Set(), esagV: null, scalaH: 1, correlazioni: true, etichette: true, scale: true, grafico: true };
+            const sezioneStato = { escluse: new Set(), esagV: null, scalaH: 1, correlazioni: true, etichette: true, scale: true, grafico: true, carattere: 'sans' };
+            // Il carattere della figura, scritto per esteso (non con le variabili dell'app): così resta
+            // anche nell'SVG scaricato.
+            const CARATTERI_SEZIONE = {
+                sans: "Manrope, 'Segoe UI', Arial, sans-serif",
+                serif: "Georgia, 'Times New Roman', serif",
+                mono: "'JetBrains Mono', Consolas, monospace"
+            };
 
             function proveDellaSezione(proj) {
                 const tutte = Object.values(proj.surveys || {}).filter(s => (s.logs || []).length > 0)
@@ -150,7 +157,7 @@
                 const X = d => mL + lc / 2 + d * sx;
                 const Y = z => mT + (zAlto - z) / (zAlto - zBasso) * plotH;
                 const f1 = n => numeroConVirgola(n, 1);
-                let s = `<svg viewBox="0 0 ${W} ${H}" width="${o.scalaH > 1 ? W : '100%'}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sezione tra le prove" style="display: block; font-family: var(--font-mono), monospace;">`;
+                let s = `<svg viewBox="0 0 ${W} ${H}" width="${o.scalaH > 1 ? W : '100%'}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sezione tra le prove" style="display: block; font-family: ${CARATTERI_SEZIONE[o.carattere].replace(/"/g, "'")};">`;
                 s += `<rect x="0" y="0" width="${W}" height="${H}" fill="var(--bg-card, #fff)"/>`;
                 // Assi e griglia: quote a sinistra, distanze in basso.
                 const passoZ = massimoTondo((zAlto - zBasso) / Math.max(3, plotH / 70));
@@ -233,6 +240,16 @@
                         const x0 = x + lc + 4, larg = gW - 10;
                         s += `<rect x="${x0}" y="${Y(p.z)}" width="${larg}" height="${Y(p.z - p.fondo) - Y(p.z)}" fill="currentColor" fill-opacity="0.05"/><line x1="${x0}" y1="${Y(p.z)}" x2="${x0}" y2="${Y(p.z - p.fondo)}" stroke="currentColor" stroke-opacity="0.5"/>`;
                         s += `<path d="${pathColpi(p.s.logs, x0, larg, nMax, m => Y(p.z - m))}" fill="none" stroke="var(--accent, #0d9488)" stroke-width="1.6" class="sezione-grafico"/>`;
+                        // I colpi di ogni intervallo accanto al loro gradino; dove gli intervalli sono troppo
+                        // fitti per leggerli tutti se ne salta qualcuno invece di sovrapporli.
+                        let ultimoY = -Infinity;
+                        (p.s.logs || []).forEach(l => {
+                            const colpi = parseFloat(l.colpi) || 0, y = (Y(p.z - (parseFloat(l.start) || 0)) + Y(p.z - (parseFloat(l.end) || 0))) / 2;
+                            if (y - ultimoY < 9) return;
+                            ultimoY = y;
+                            const xl = x0 + Math.min(1, colpi / nMax) * larg, aDestra = colpi / nMax < 0.6;
+                            s += `<text x="${(xl + (aDestra ? 3 : -3)).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="${aDestra ? 'start' : 'end'}" font-size="8.5" fill="var(--accent, #0d9488)" class="sezione-colpi">${colpi}</text>`;
+                        });
                     }
                     if (isFinite(p.falda)) s += `<path d="M${x - 7},${Y(p.z - p.falda) - 5} h${lc + 14} l${-(lc + 14) / 2},8 z" fill="#3b82f6"><title>Falda a ${f1(p.falda)} m</title></path>`;
                     s += `<text x="${X(p.d)}" y="${mT - 22}" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" class="sezione-etichetta">${nome}</text>`;
@@ -248,6 +265,7 @@
                 document.getElementById('proveSezione').innerHTML = tutte.map(({ s, gps }) =>
                     `<button type="button" class="pillola" data-prova="${escapeHtmlDidascalia(s.id)}" aria-pressed="${gps && !sezioneStato.escluse.has(s.id)}"${gps ? ` title="${escapeHtmlDidascalia(nomeDpsh(s))}"` : ' disabled title="Senza GPS: non si sa dove metterla"'}>${escapeHtmlDidascalia(String((s.header || {}).provaNr || '?'))}</button>`).join('');
                 document.querySelectorAll('#opzioniSezione [data-opzione]').forEach(b => b.setAttribute('aria-pressed', String(sezioneStato[b.dataset.opzione])));
+                document.getElementById('selCarattereSezione').value = sezioneStato.carattere;
                 document.getElementById('opzioniSezione').querySelector('[data-opzione="etichette"]').disabled = !sezioneStato.correlazioni;
                 const scelte = tutte.filter(v => v.gps && !sezioneStato.escluse.has(v.s.id)).map(v => v.s);
                 document.getElementById('lblProveSezioneBreve').textContent = `${scelte.length} su ${tutte.filter(v => v.gps).length}`;
@@ -318,6 +336,7 @@
             document.getElementById('rngEsagSezione').addEventListener('input', (e) => { sezioneStato.esagV = Number(e.target.value); ridisegnaSezione(); });
             document.getElementById('btnEsagAutoSezione').addEventListener('click', () => { sezioneStato.esagV = null; renderSezione(); });
             document.getElementById('rngScalaHSezione').addEventListener('input', (e) => { sezioneStato.scalaH = Number(e.target.value); ridisegnaSezione(); });
+            document.getElementById('selCarattereSezione').addEventListener('change', (e) => { sezioneStato.carattere = e.target.value; renderSezione(); });
             document.getElementById('graficoSezione').addEventListener('click', (e) => {
                 const col = e.target.closest('.sezione-colonna');
                 if (col) apriFumettoProva(col.dataset.prova, e.clientX, e.clientY);

@@ -156,6 +156,10 @@ function conRange(app, buf, range) {
   t(`Terrarium: ritaglio in UTM 33, la fonte lo dice (${dtmT.fonte})`, dtmT.crs.tipo === 'utm' && dtmT.crs.zona === 33 && /Terrarium/.test(dtmT.fonte) && dtmT.nx < 260);
   t('dopo il caricamento la finestra resta aperta e lo dice; ora c\'è «DTM del progetto (.asc)»', !$(app, 'trovaDtm').hidden && /Caricato: Tessere di quota Terrarium/.test($(app, 'trovaDtmEsito').textContent) && !$(app, 'trovaDtmRitaglio').hidden);
   t('«Terreno e sezioni» sotto è già aggiornato (quote delle prove)', /Prova 1\s*\d+,\d m s\.l\.m\./.test($(app, 'statoTerreno').textContent));
+  clic(app, $(app, 'trovaDtmTogli'));
+  t('«Togli il DTM» anche da qui: lo toglie, con Annulla, e aggiorna «Terreno e sezioni»', !app.E(`${P}.dtm`) && $(app, 'trovaDtmTogli').hidden && $(app, 'undoNotificationBanner').style.display === 'flex' && /GeoTIFF/.test($(app, 'statoTerreno').textContent));
+  clic(app, $(app, 'btnUndoDeleteProject'));
+  t('Annulla lo rimette', app.E(`${P}.dtm.fonte`) === dtmT.fonte && !$(app, 'trovaDtmTogli').hidden);
 
   // ---- Il ritaglio in .asc, e si ricarica uguale ----
   clic(app, $(app, 'trovaDtmRitaglio'));
