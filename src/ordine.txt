@@ -9,6 +9,7 @@ css/02_passaggio-telefono-pc.css
 css/03_regole-di-stile.css
 css/04_prova-e-home.css
 css/05_assistente-ia.css
+css/06_leggi-foglio.css
 css/05_leaflet.css
 shell/03_fine-head.html
 markup/00_icone-e-schermate-principali.html
@@ -193,5 +194,6 @@ js/071s_importa-da-word.js
 js/071v_tasto-destro.js
 js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
+js/072b_leggi-foglio-di-campo.js
 js/073_assistente-ia.js
 shell/06_fine.html

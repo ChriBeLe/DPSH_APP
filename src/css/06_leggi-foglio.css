@@ -1,0 +1,32 @@
+        /* LEGGI FOGLIO DI CAMPO: schermata a tutto schermo, foto a sinistra e tabella a destra (sul telefono
+           una sopra l'altra). Costruita da js/074; qui solo l'aspetto. */
+        #ocrSchermata { position: fixed; inset: 0; z-index: 9700; background: var(--bg-main); color: var(--text-main); display: flex; flex-direction: column; }
+        #ocrSchermata .ocr-testa { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-weight: 800; font-size: 15px; }
+        #ocrSchermata .ocr-testa .ocr-spazio { flex: 1; }
+        #ocrSchermata .ocr-corpo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+        #ocrSchermata .ocr-foto { position: relative; overflow: hidden; background: #111; touch-action: none; min-height: 0; cursor: grab; }
+        #ocrSchermata .ocr-foto.trascina { cursor: grabbing; }
+        #ocrSchermata .ocr-tela { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+        #ocrSchermata .ocr-tela img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+        #ocrSchermata .ocr-box { position: absolute; border: 2px solid var(--warning); background: rgba(234, 179, 8, .22); border-radius: 3px; pointer-events: none; display: none; }
+        #ocrSchermata .ocr-zoom { position: absolute; right: 8px; bottom: 8px; display: flex; gap: 6px; }
+        #ocrSchermata .ocr-zoom button { width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,.6); color: #fff; font-size: 20px; font-weight: 800; cursor: pointer; }
+        #ocrSchermata .ocr-dati { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--border); }
+        #ocrSchermata .ocr-nota { margin: 10px 14px 0; padding: 8px 10px; border-radius: 10px; background: var(--warning-soft); font-size: 12.5px; line-height: 1.4; }
+        #ocrSchermata .ocr-nota:empty { display: none; }
+        #ocrSchermata .ocr-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; }
+        #ocrSchermata .ocr-barra label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        #ocrSchermata .ocr-barra select, #ocrSchermata .ocr-barra input { font-size: 13px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); color: var(--text-main); box-sizing: border-box; }
+        #ocrSchermata .ocr-barra input { width: 70px; }
+        #ocrSchermata .ocr-tab-scroll { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 10px; }
+        #ocrSchermata table { border-collapse: collapse; width: 100%; }
+        #ocrSchermata th { position: sticky; top: 0; background: var(--bg-card); font-size: 11px; text-align: left; color: var(--text-muted); padding: 4px; }
+        #ocrSchermata td { padding: 2px; }
+        #ocrSchermata td input { width: 100%; box-sizing: border-box; font-size: 14px; padding: 7px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-main); color: var(--text-main); }
+        #ocrSchermata td input.dubbio { background: var(--warning-soft); border-color: var(--warning); }
+        #ocrSchermata tr.attiva td input { border-color: var(--accent); }
+        #ocrSchermata .ocr-piede { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--bg-card); }
+        @media (max-width: 760px) {
+            #ocrSchermata .ocr-corpo { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 38%) minmax(0, 62%); }
+            #ocrSchermata .ocr-dati { border-left: none; border-top: 1px solid var(--border); }
+        }
