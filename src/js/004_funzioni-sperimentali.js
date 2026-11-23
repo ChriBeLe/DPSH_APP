@@ -357,6 +357,10 @@
                     caricamentoDati.bloccato = false;
                 }
                 updateUI();
+                // DATI GRANDI (004g): se il testo salvato porta riferimenti «dpsh-grande:», si leggono da
+                // IndexedDB e si rimettono nello stato (poi si ridisegna). Intanto saveState li riscrive
+                // com'erano e gli export aspettano (attendiDatiGrandi).
+                if (saved.indexOf('dpsh-grande:') !== -1) avviaRisoluzioneDatiGrandi(true);
                 // Asincrono (legge gli id delle foto in IndexedDB) e dopo l'avvio: non rallenta
                 // l'apertura, e l'eventuale avviso arriva quando l'app è già in piedi.
                 setTimeout(() => { controllaIntegritaDopoAvvio().catch(e => segnalaErrore('integrita', 'controllaIntegritaDopoAvvio', e, 'Il controllo dei dati salvati non è riuscito: i dati non sono stati verificati')); }, 0);
@@ -431,14 +435,26 @@
                     // serializzava di nuovo. Ora si fanno copie SUPERFICIALI dei soli rami da ripulire
                     // (foto, note) e tutto il resto lo legge direttamente JSON.stringify. Lo spread
                     // conserva l'ordine delle chiavi, quindi il testo salvato è identico a quello di prima.
-                    const senzaImmagini = (foto) => Array.isArray(foto)
-                        ? foto.map(p => {
-                            if (!p || typeof p !== 'object' || !p.dataUrl) return p;
+                    //
+                    // DATI GRANDI (004g): lo stesso JSON.stringify porta un replacer che al posto di una
+                    // stringa da 64 KB in su scrive «dpsh-grande:<id>», ma solo se quella stringa è già
+                    // stata scritta e riletta in IndexedDB. Foto e note hanno già il loro meccanismo:
+                    // i loro contenitori (le copie fatte qui sotto) si segnano in `esclusi` e il replacer
+                    // li salta. Lo stato in memoria non cambia: cambia solo il testo.
+                    const esclusi = new WeakSet();
+                    const senzaImmagini = (foto) => {
+                        if (!Array.isArray(foto)) return foto;
+                        const copia = foto.map(p => {
+                            if (!p || typeof p !== 'object') return p;
+                            if (!p.dataUrl) { esclusi.add(p); return p; }
                             photoMemoryCache[p.id] = p.dataUrl;
                             const { dataUrl, ...resto } = p;
+                            esclusi.add(resto);
                             return resto;
-                        })
-                        : foto;
+                        });
+                        esclusi.add(copia);
+                        return copia;
+                    };
                     const cleanState = { ...state };
                     if (Array.isArray(state.photos) && state.photos.length > 0) {
                         cleanState.photos = senzaImmagini(state.photos);
@@ -460,8 +476,10 @@
                                         : prova;
                                 });
                             }
+                            if (origine.notes && typeof origine.notes === 'object') esclusi.add(origine.notes);
                             if (origine.notes && typeof origine.notes === 'object' && (origine.notes.html || origine.notes.htmlPrimaDelMotore)) {
                                 proj.notes = { ...origine.notes };
+                                esclusi.add(proj.notes);
                                 if (origine.notes.html) {
                                     proj.notes.html = stripNoteImagesHtml(origine.notes.html);
                                 }
@@ -475,7 +493,7 @@
                             cleanState.projects[pid] = proj;
                         });
                     }
-                    const testoStato = JSON.stringify(cleanState);
+                    const testoStato = JSON.stringify(cleanState, sostituisciDatiGrandi(esclusi));
                     localStorage.setItem('dpsh_app_state', testoStato);
                     // SALVATAGGIO VERIFICATO (Fase 1): si rilegge e si confronta la lunghezza, come fa
                     // salvaFotoConGaranzia per le foto. setItem che «riesce» ma lascia in memoria altro

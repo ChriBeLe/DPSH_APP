@@ -577,6 +577,7 @@
              * satellite (al massimo 20 secondi: un PDF può uscire senza qualche tessera, non sparire)
              * e si apre il pannello di stampa, dove si sceglie «Salva come PDF». */
             async function esportaPdfSezioni(tracce) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const d = datiVista3dCorrenti, proj = state.projects[state.currentProjectId];
                 if (!d || !proj) return;
                 const titolo = `Sezioni ${tracce.map(t => t.nome).join(', ')} — ${proj.name || ''}`;

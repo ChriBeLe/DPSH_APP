@@ -66,6 +66,7 @@
             }
 
             async function creaEScaricaPacchetto() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const projId = portaProgettoId;
                 if (!projId) return;
                 const bottone = document.getElementById('btnCreaPacchetto');

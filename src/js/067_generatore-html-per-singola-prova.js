@@ -1,6 +1,7 @@
             // ===================== GENERATORE HTML PER SINGOLA PROVA =====================
             // USATO SIA DA PROVA SINGOLA CHE DA PROGETTO MULTI-PAGINA
             async function buildSurveyReportHtml(survData, projData, isMultiPage = false) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const h = survData.header || {};
                 const inst = survData.instrument || {};
                 const logs = survData.logs || [];

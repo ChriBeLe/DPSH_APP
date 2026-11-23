@@ -28,6 +28,10 @@ const STATO_V0 = fs.readFileSync(path.join(__dirname, '..', 'test', 'dati', 'sta
     if (proj.notes) proj.notes.html = (proj.notes.html || '') + '<p>' + 'testo '.repeat(2000) + '</p>';
   })()`);
   app.E('saveState()');
+  // Dati grandi (passo 2): le stringhe grandi escono dal testo salvato solo dopo che la scrittura in
+  // IndexedDB è confermata, quindi serve una breve attesa e un secondo salvataggio prima di misurare.
+  await attesa(1500);
+  app.E('saveState()');
   const misura = (nome, codice, n = 10) => {
     app.E(codice); // riscaldamento
     const t0 = process.hrtime.bigint();

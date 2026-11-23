@@ -198,7 +198,24 @@
                 // Le foto ancora in memoria (scattate in questa sessione) contano come presenti.
                 if (fotoPresenti) Object.keys(photoMemoryCache).forEach(id => fotoPresenti.add(id));
                 if (immaginiNotePresenti) Object.keys(noteImageMemoryCache).forEach(id => immaginiNotePresenti.add(id));
-                return verificaIntegrita(stato, { fotoPresenti, immaginiNotePresenti });
+                const esito = verificaIntegrita(stato, { fotoPresenti, immaginiNotePresenti });
+                // DATI GRANDI (004g): un riferimento «dpsh-grande:» che in IndexedDB non si trova (o non si
+                // è potuto leggere) lascia nello stato il riferimento al posto dell'immagine. Prima si
+                // aspetta la lettura iniziale, poi si segnalano i mancanti dei progetti controllati.
+                try {
+                    await attendiDatiGrandi();
+                    datiGrandi().mancanti.forEach(m => {
+                        if (m.projId ? !(stato.projects && stato.projects[m.projId]) : stato !== state) return;
+                        const proj = m.projId && stato.projects[m.projId];
+                        const nomeP = proj ? (proj.name || proj.comune || 'Progetto') : 'Archivio';
+                        esito.anomalie.push({
+                            tipo: 'dato-grande-mancante', chiave: 'dato-grande-mancante|' + (m.projId || '') + '|' + m.id,
+                            projId: m.projId || undefined,
+                            testo: `${nomeP}: un'immagine grande (carta intestata, DTM o simili) non si trova più sul dispositivo${m.motivo === 'assente' ? '' : ' (' + m.motivo + ')'}`
+                        });
+                    });
+                } catch (e) { ignoraErrore('verificaIntegritaConFoto', e); }
+                return esito;
             }
 
             /** Testo per l'utente: un elenco breve, le prime righe e quante ne restano. */
