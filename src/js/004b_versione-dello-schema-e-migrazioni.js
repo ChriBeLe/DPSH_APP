@@ -18,8 +18,19 @@
                 { da: 0, a: 1, descrizione: 'versione dello schema; i salvataggi di prima dei progetti diventano progetti', esegui: migrazione0a1 },
                 { da: 1, a: 2, descrizione: 'passaggio telefono ↔ PC: ultima modifica vera, impronte dei passaggi, ora ISO delle foto nuove, progetto nelle correzioni registrate', esegui: migrazione1a2 },
                 { da: 2, a: 3, descrizione: 'la «Modalità Espansa» diventa la preferenza «tasto Registra visibile»', esegui: migrazione2a3 },
-                { da: 3, a: 4, descrizione: 'profondità degli intervalli arrotondate al millimetro (1,9999999999999998 → 2)', esegui: migrazione3a4 }
+                { da: 3, a: 4, descrizione: 'profondità degli intervalli arrotondate al millimetro (1,9999999999999998 → 2)', esegui: migrazione3a4 },
+                { da: 4, a: 5, descrizione: 'immagini e dati grandi (carte intestate, DTM) fuori dal testo salvato: compaiono man mano come riferimenti, i dati non cambiano', esegui: migrazione4a5 }
             ];
+
+            /** MIGRAZIONE 4 → 5 (prestazioni, passo 2). Non tocca i dati: i riferimenti «dpsh-grande:»
+             * compaiono nel testo salvato man mano che le stringhe grandi vengono scritte in IndexedDB
+             * (004g). Il salto di versione serve perché un'app del formato 4, trovando un riferimento,
+             * rifiuti i dati («versione più nuova») invece di mostrare una carta intestata vuota e
+             * salvarci sopra. */
+            function migrazione4a5(dati) {
+                dati.versioneSchema = 5;
+                return dati;
+            }
 
             /** MIGRAZIONE 3 → 4 (revisione, punto «falda a 2,00 m»). Le profondità si formavano sommando
              * il passo in virgola mobile (0,2 + 0,2 + ...): a 2,00 m restava 1,9999999999999998, e un
@@ -116,9 +127,8 @@
                 const applicate = [];
                 let v = versione;
                 let corrente = dati;
-                // Formato più nuovo ma letto (VERSIONE_SCHEMA_LETTA, oggi 5: dati e file scritti come 5 per
-                // qualche ora, stessa forma del 4; i riferimenti «dpsh-grande:» li risolve 004g).
-                // Si legge com'è e si registra come passo 5 → 4, così all'avvio la copia automatica
+                // Formato 4 (versione ridisegnata): stessa forma del 3 con le profondità già arrotondate.
+                // Si legge com'è e si registra come passo 4 → 3, così all'avvio la copia automatica
                 // «prima di aggiornare i dati» salva il testo originale prima che lo si riscriva.
                 if (v > VERSIONE_SCHEMA_DATI && v <= VERSIONE_SCHEMA_LETTA) {
                     applicate.push({ da: v, a: VERSIONE_SCHEMA_DATI, descrizione: 'dati di una versione più nuova, stessa forma: letti così come sono e salvati nel formato ' + VERSIONE_SCHEMA_DATI });
