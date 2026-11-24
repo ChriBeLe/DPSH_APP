@@ -8,7 +8,16 @@
            lontane sulla ruota colore (>20°) per non confondersi come le due precedenti
            che le hanno ispirate. Ogni palette è una coppia chiaro/scuro calcolata con lo
            stesso rapporto di luminosità (verificato: testo su sfondo sempre oltre 12:1 di
-           contrasto, accento sempre almeno 2.7:1).
+           contrasto).
+           SOGLIE DI CONTRASTO (WCAG 2.1 AA, Fase D della revisione 11/2026), uguali in ogni
+           palette e in tutti e due i temi, controllate dal test contrasto_palette.js:
+           · --on-accent su --accent (il tasto principale) almeno 4,5:1;
+           · --accent e --accent-ink usati come testo su sfondo e card almeno 4,5:1, e
+             --accent-ink anche sopra --accent-soft (pillole e voci selezionate);
+           · --text-muted su sfondo, card e incavato almeno 4,5:1;
+           · --border-control, il bordo di campi e tasti, almeno 3:1 su sfondo e card, perché
+             si vedano al sole. --border resta il separatore leggero, non un contorno.
+           Per correggere una palette si sposta la luminosità e si tiene la tinta.
            I token semantici (success/danger/info/purple) restano fissi in ogni
            palette: sono colori di stato, non d'identità visiva.
            ========================================================================= */
@@ -17,6 +26,11 @@
             --font-sans: 'Manrope', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
             --on-solid: #ffffff;        /* bianco su rosso/verde/blu pieni, sempre */
+            /* Raggi: uguali in tutte le palette (prima cambiavano con la palette, e scegliere un
+               colore cambiava anche la forma dei tasti). Pillole: 999px. */
+            --radius-lg: 14px; --radius-md: 10px; --radius-sm: 6px;
+            /* Ombre: due livelli soli, la card e la finestra (menu, finestre, fumetti).
+               Le palette chiare le alleggeriscono ridefinendo --shadow e --shadow-sm. */
 
             /* =====================  LA CADENZA DEL MOVIMENTO  =====================
                Prima c'erano 12 durate diverse (0,05 · 0,08 · 0,1 · 0,14 · 0,15 · 0,16 ·
@@ -93,12 +107,12 @@
         :root {
 
             --success: #10b981;
-            --danger: #ef4444;
+            --danger: #dc2626;          /* pieno: bianco sopra 4,8:1. Come testo si usa --pericolo-testo */
             --info: #3b82f6;
             --purple: #a855f7;
             --warning: #eab308;
             --success-soft: rgba(16, 185, 129, 0.16);
-            --danger-soft: rgba(239, 68, 68, 0.16);
+            --danger-soft: rgba(220, 38, 38, 0.16);
             --info-soft: rgba(59, 130, 246, 0.16);
             --purple-soft: rgba(168, 85, 247, 0.16);
             --warning-soft: rgba(234, 179, 8, 0.16);
@@ -113,27 +127,25 @@
         :root:not([data-hue]), [data-hue="antracite"] {
             --bg-main: #16201e; --bg-card: #22322f; --bg-card-hover: #314743; --bg-sunken: #101715;
             --text-main: #f1f3f3; --text-muted: #91a9a4;
-            --accent: #11bec3; --accent-hover: #0e999d; --accent-ink: #11bec3;
+            --accent: #11bec3; --accent-hover: #0e999d; --accent-ink: #11c3c9;
             --accent-soft: rgba(17, 190, 195, 0.16);
-            --border: #3e4c49; --border-strong: #586a66;
+            --border: #3e4c49; --border-strong: #586a66; --border-control: #6f8782;
             --on-accent: #0d1c1a;
             --overlay: rgba(0, 0, 0, 0.75);
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
             --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
         }
         /* ---- ANTRACITE: chiaro ---- */
         :root:not([data-hue])[data-theme="light"], [data-hue="antracite"][data-theme="light"] {
             --bg-main: #eef1f1; --bg-card: #ffffff; --bg-card-hover: #e6ecea; --bg-sunken: #e8ecec;
-            --text-main: #16201e; --text-muted: #5c6e6a;
-            --accent: #0d9488; --accent-hover: #09655d; --accent-ink: #0f4f49;
+            --text-main: #16201e; --text-muted: #4f605c;
+            --accent: #0b7a70; --accent-hover: #09655d; --accent-ink: #0f4f49;
             --accent-soft: #d7f3ef;
-            --border: #d7e0de; --border-strong: #8fa8a3;
+            --border: #d7e0de; --border-strong: #8fa8a3; --border-control: #6f8883;
             --on-accent: #ffffff;
             --overlay: rgba(22, 32, 30, 0.45);
             --shadow: 0 10px 24px -6px rgba(22, 32, 30, 0.18);
             --shadow-sm: 0 1px 4px rgba(22, 32, 30, 0.12);
-            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
         }
 
         /* ---- AMBRA ---- */
@@ -145,42 +157,38 @@
             --text-main: #f1f5f9; --text-muted: #94a3b8;
             --accent: #f59e0b; --accent-hover: #d97706; --accent-ink: #f59e0b;
             --accent-soft: rgba(245, 158, 11, 0.16);
-            --border: #334155; --border-strong: #475569;
+            --border: #334155; --border-strong: #475569; --border-control: #627691;
             --on-accent: #0f172a;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 16px; --radius-md: 12px; --radius-sm: 8px;
         }
         [data-hue="ambra"][data-theme="light"] {
             --bg-main: #eef2f7; --bg-card: #ffffff; --bg-card-hover: #e8edf4; --bg-sunken: #f8fafc;
             --text-main: #0f172a; --text-muted: #5b6b7f;
-            --accent: #c2680a; --accent-hover: #9a5208; --accent-ink: #9a5208;
-            --accent-soft: rgba(194, 104, 10, 0.12);
-            --border: #d3dbe6; --border-strong: #adb9c9;
+            --accent: #a55808; --accent-hover: #9a5208; --accent-ink: #9a5208;
+            --accent-soft: rgba(165, 88, 8, 0.12);
+            --border: #d3dbe6; --border-strong: #adb9c9; --border-control: #778ba5;
             --on-accent: #ffffff;
             --overlay: rgba(15, 23, 42, 0.45); --shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.18); --shadow-sm: 0 1px 4px rgba(15, 23, 42, 0.12);
-            --radius-lg: 16px; --radius-md: 12px; --radius-sm: 8px;
         }
 
         /* ---- AMETISTA ---- */
         [data-hue="ametista"] {
             --bg-main: #241f2e; --bg-card: #322b40; --bg-card-hover: #433a56; --bg-sunken: #1d1925;
             --text-main: #f7f4fa; --text-muted: #aba3b9;
-            --accent: #a272cb; --accent-hover: #8e54c0; --accent-ink: #a272cb;
-            --accent-soft: rgba(162, 114, 203, 0.16);
-            --border: #3f2e5b; --border-strong: #594181;
+            --accent: #b087d3; --accent-hover: #8e54c0; --accent-ink: #c0a0dc;
+            --accent-soft: rgba(176, 135, 211, 0.16);
+            --border: #3f2e5b; --border-strong: #594181; --border-control: #886db5;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 20px; --radius-md: 12px; --radius-sm: 7px;
         }
         [data-hue="ametista"][data-theme="light"] {
             --bg-main: #f4f1f8; --bg-card: #ffffff; --bg-card-hover: #ede8f4; --bg-sunken: #efeaf5;
-            --text-main: #241f2e; --text-muted: #726a82;
+            --text-main: #241f2e; --text-muted: #6d657c;
             --accent: #7c4dbd; --accent-hover: #643a9d; --accent-ink: #4c2c78;
             --accent-soft: #ece2fa;
-            --border: #e2dbee; --border-strong: #9c84c5;
+            --border: #e2dbee; --border-strong: #9c84c5; --border-control: #967dc2;
             --on-accent: #ffffff;
             --overlay: rgba(36, 31, 46, 0.45); --shadow: 0 10px 24px -6px rgba(36, 31, 46, 0.18); --shadow-sm: 0 1px 4px rgba(36, 31, 46, 0.12);
-            --radius-lg: 20px; --radius-md: 12px; --radius-sm: 7px;
         }
 
         /* ---- GRANITO ---- */
@@ -189,22 +197,20 @@
         [data-hue="granito"] {
             --bg-main: #262323; --bg-card: #363232; --bg-card-hover: #494343; --bg-sunken: #1e1c1c;
             --text-main: #f3f1f1; --text-muted: #b6adad;
-            --accent: #be8a8b; --accent-hover: #af7071; --accent-ink: #be8a8b;
-            --accent-soft: rgba(190, 138, 139, 0.16);
-            --border: #494141; --border-strong: #675b5b;
+            --accent: #c29192; --accent-hover: #af7071; --accent-ink: #cfa9aa;
+            --accent-soft: rgba(194, 145, 146, 0.16);
+            --border: #494141; --border-strong: #675b5b; --border-control: #8a7b7b;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
         }
         [data-hue="granito"][data-theme="light"] {
             --bg-main: #f1eeee; --bg-card: #fbfafa; --bg-card-hover: #e6e0e0; --bg-sunken: #ece8e8;
-            --text-main: #262323; --text-muted: #6f6969;
-            --accent: #a8636a; --accent-hover: #8b4d54; --accent-ink: #6b3238;
+            --text-main: #262323; --text-muted: #6c6666;
+            --accent: #9c575e; --accent-hover: #8b4d54; --accent-ink: #6b3238;
             --accent-soft: #ecdcde;
-            --border: #e0dada; --border-strong: #a69595;
+            --border: #e0dada; --border-strong: #a69595; --border-control: #968282;
             --on-accent: #ffffff;
             --overlay: rgba(38, 35, 35, 0.45); --shadow: 0 10px 24px -6px rgba(38, 35, 35, 0.18); --shadow-sm: 0 1px 4px rgba(38, 35, 35, 0.12);
-            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
         }
 
         /* ---- ARENARIA ---- */
@@ -213,22 +219,20 @@
         [data-hue="arenaria"] {
             --bg-main: #2e2618; --bg-card: #423722; --bg-card-hover: #5a4a2f; --bg-sunken: #241e13;
             --text-main: #f7f3ec; --text-muted: #b5a994;
-            --accent: #caae7a; --accent-hover: #bf9c5d; --accent-ink: #caae7a;
+            --accent: #caae7a; --accent-hover: #bf9c5d; --accent-ink: #d3bb90;
             --accent-soft: rgba(202, 174, 122, 0.16);
-            --border: #5b4d2f; --border-strong: #806c42;
+            --border: #5b4d2f; --border-strong: #806c42; --border-control: #9a824f;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
         }
         [data-hue="arenaria"][data-theme="light"] {
             --bg-main: #f6f1e8; --bg-card: #ffffff; --bg-card-hover: #efe8d8; --bg-sunken: #f3ede1;
-            --text-main: #2e2618; --text-muted: #776b57;
-            --accent: #b98a4e; --accent-hover: #98703c; --accent-ink: #6b4d24;
+            --text-main: #2e2618; --text-muted: #756955;
+            --accent: #8b6637; --accent-hover: #76572f; --accent-ink: #6b4d24;
             --accent-soft: #ecdfc4;
-            --border: #e5dcc9; --border-strong: #bca473;
+            --border: #e5dcc9; --border-strong: #bca473; --border-control: #a1854d;
             --on-accent: #ffffff;
             --overlay: rgba(46, 38, 24, 0.45); --shadow: 0 10px 24px -6px rgba(46, 38, 24, 0.18); --shadow-sm: 0 1px 4px rgba(46, 38, 24, 0.12);
-            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
         }
 
         /* ---- ARDESIA ---- */
@@ -237,22 +241,20 @@
         [data-hue="ardesia"] {
             --bg-main: #1e262b; --bg-card: #2b363d; --bg-card-hover: #394952; --bg-sunken: #181e22;
             --text-main: #f1f3f5; --text-muted: #9caab4;
-            --accent: #6883a7; --accent-hover: #546f92; --accent-ink: #6883a7;
-            --accent-soft: rgba(104, 131, 167, 0.16);
-            --border: #3b474f; --border-strong: #53646f;
+            --accent: #8ba0bb; --accent-hover: #546f92; --accent-ink: #a6b6cb;
+            --accent-soft: rgba(139, 160, 187, 0.16);
+            --border: #3b474f; --border-strong: #53646f; --border-control: #6c8291;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
         }
         [data-hue="ardesia"][data-theme="light"] {
             --bg-main: #eef1f3; --bg-card: #ffffff; --bg-card-hover: #e7ebee; --bg-sunken: #e8ecef;
-            --text-main: #1e262b; --text-muted: #606d77;
+            --text-main: #1e262b; --text-muted: #5e6b75;
             --accent: #4d6a85; --accent-hover: #3a5065; --accent-ink: #2c3f52;
             --accent-soft: #dbe4ea;
-            --border: #dde3e7; --border-strong: #92a5b2;
+            --border: #dde3e7; --border-strong: #92a5b2; --border-control: #738b9c;
             --on-accent: #ffffff;
             --overlay: rgba(30, 38, 43, 0.45); --shadow: 0 10px 24px -6px rgba(30, 38, 43, 0.18); --shadow-sm: 0 1px 4px rgba(30, 38, 43, 0.12);
-            --radius-lg: 12px; --radius-md: 8px; --radius-sm: 5px;
         }
 
         /* ---- RAME ---- */
@@ -262,22 +264,20 @@
         [data-hue="rame"] {
             --bg-main: #35201a; --bg-card: #4a2c24; --bg-card-hover: #613b30; --bg-sunken: #2b1a15;
             --text-main: #f6f0ea; --text-muted: #beaba3;
-            --accent: #c67859; --accent-hover: #b7613f; --accent-ink: #c67859;
-            --accent-soft: rgba(198, 120, 89, 0.16);
-            --border: #5d412d; --border-strong: #835b3f;
+            --accent: #cf8e74; --accent-hover: #b7613f; --accent-ink: #daa894;
+            --accent-soft: rgba(207, 142, 116, 0.16);
+            --border: #5d412d; --border-strong: #835b3f; --border-control: #a77450;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
         }
         [data-hue="rame"][data-theme="light"] {
             --bg-main: #f5ede6; --bg-card: #fffaf6; --bg-card-hover: #ecdccf; --bg-sunken: #f2e8df;
-            --text-main: #35201a; --text-muted: #7b655c;
+            --text-main: #35201a; --text-muted: #79635a;
             --accent: #a8503a; --accent-hover: #823e2d; --accent-ink: #5c2a18;
             --accent-soft: #edd9cd;
-            --border: #e6d4c7; --border-strong: #bf906f;
+            --border: #e6d4c7; --border-strong: #bf906f; --border-control: #b27a53;
             --on-accent: #ffffff;
             --overlay: rgba(53, 32, 26, 0.45); --shadow: 0 10px 24px -6px rgba(53, 32, 26, 0.18); --shadow-sm: 0 1px 4px rgba(53, 32, 26, 0.12);
-            --radius-lg: 14px; --radius-md: 9px; --radius-sm: 6px;
         }
 
         /* ---- GIADA ---- */
@@ -286,22 +286,20 @@
         [data-hue="giada"] {
             --bg-main: #1c2b22; --bg-card: #283e31; --bg-card-hover: #365342; --bg-sunken: #16221b;
             --text-main: #f1f6f3; --text-muted: #99afa2;
-            --accent: #6cab90; --accent-hover: #56977c; --accent-ink: #6cab90;
-            --accent-soft: rgba(108, 171, 144, 0.16);
-            --border: #3a4f40; --border-strong: #526f5a;
+            --accent: #75b097; --accent-hover: #56977c; --accent-ink: #99c5b2;
+            --accent-soft: rgba(117, 176, 151, 0.16);
+            --border: #3a4f40; --border-strong: #526f5a; --border-control: #698e73;
             --on-accent: #1c1a17;
             --overlay: rgba(0, 0, 0, 0.75); --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45); --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
         }
         [data-hue="giada"][data-theme="light"] {
             --bg-main: #eef4f0; --bg-card: #ffffff; --bg-card-hover: #e6eee9; --bg-sunken: #e8f0eb;
-            --text-main: #1c2b22; --text-muted: #5f7267;
-            --accent: #4f8a6c; --accent-hover: #3c6a53; --accent-ink: #2a4c3a;
+            --text-main: #1c2b22; --text-muted: #5c6f64;
+            --accent: #45785e; --accent-hover: #3c6a53; --accent-ink: #2a4c3a;
             --accent-soft: #dbece2;
-            --border: #dbe6de; --border-strong: #90b299;
+            --border: #dbe6de; --border-strong: #90b299; --border-control: #679473;
             --on-accent: #ffffff;
             --overlay: rgba(28, 43, 34, 0.45); --shadow: 0 10px 24px -6px rgba(28, 43, 34, 0.18); --shadow-sm: 0 1px 4px rgba(28, 43, 34, 0.12);
-            --radius-lg: 16px; --radius-md: 10px; --radius-sm: 6px;
         }
 
         * {
@@ -356,18 +354,18 @@
             justify-content: center;
             color: var(--on-accent);
             font-weight: 800;
-            font-size: 18px;
+            font-size: var(--fs-campo);
             box-shadow: var(--shadow-sm);
         }
 
         .brand-text h1 {
-            font-size: 16px;
+            font-size: var(--fs-campo);
             font-weight: 700;
             line-height: 1.2;
         }
 
         .brand-text span {
-            font-size: 11px;
+            font-size: var(--fs-didascalia);
             color: var(--text-muted);
             font-weight: 500;
             letter-spacing: 0.5px;
@@ -409,7 +407,7 @@
                 padding: 6px;
                 gap: 2px;
                 z-index: 60;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+                box-shadow: var(--shadow);
                 transform-origin: top right;
                 transform: scale(0.96) translateY(-4px);
                 opacity: 0;
@@ -429,8 +427,8 @@
                 padding: 10px 14px;
                 border: none;
                 background: transparent;
-                font-size: 13px;
-                font-weight: 600;
+                font-size: var(--fs-testo);
+                font-weight: 700;
                 white-space: nowrap;
             }
             .header-actions-secondary .btn-icon::after {
@@ -479,13 +477,13 @@
             width: 42px;
             height: 42px;
             border-radius: var(--radius-md);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-control);
             background: var(--bg-card-hover);
             color: var(--text-main);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: var(--fs-campo);
             cursor: pointer;
             /* Elenco esplicito invece di `all`: `all` anima anche le proprieta di LAYOUT che
                cambiano insieme alle altre, e ognuna di quelle costa un ricalcolo per fotogramma. */
@@ -507,7 +505,7 @@
         .btn-icon-sm {
             width: 36px;
             height: 36px;
-            font-size: 15px;
+            font-size: var(--fs-testo);
         }
         /* (nessuna regola sull'icona: la dimensione la fissa già ".btn-icon .ico" più avanti nel
            foglio, e va bene così — l'aspetto deve restare identico a prima.) */
@@ -557,8 +555,8 @@
         }
 
         .card-title {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: var(--fs-testo);
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -591,13 +589,13 @@
         }
 
         .summary-title {
-            font-size: 13px;
+            font-size: var(--fs-testo);
             font-weight: 700;
             color: var(--accent);
         }
 
         .summary-sub {
-            font-size: 11px;
+            font-size: var(--fs-didascalia);
             color: var(--text-muted);
         }
 
@@ -620,13 +618,13 @@
 
         .gps-coords {
             font-family: var(--font-mono);
-            font-size: 13px;
+            font-size: var(--fs-testo);
             font-weight: 700;
             color: var(--text-main);
         }
 
         .gps-meta {
-            font-size: 11px;
+            font-size: var(--fs-didascalia);
             color: var(--text-muted);
         }
 
@@ -637,7 +635,7 @@
             border: none;
             padding: 8px 14px;
             border-radius: var(--radius-sm);
-            font-size: 12px;
+            font-size: var(--fs-didascalia);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -664,7 +662,7 @@
             border: none;
             border-radius: 999px;
             padding: 6px 16px;
-            font-size: 12.5px;
+            font-size: var(--fs-didascalia);
             font-weight: 700;
             color: var(--accent-ink);
             display: flex;
@@ -683,7 +681,7 @@
         }
 
         .rod-info {
-            font-size: 12px;
+            font-size: var(--fs-didascalia);
             color: var(--text-muted);
             font-weight: 500;
         }
@@ -708,7 +706,7 @@
             justify-content: center;
             gap: 4px;
             transition: transform var(--mov-istante) var(--ease-entra), filter var(--mov-istante) var(--ease-entra);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-touch:active {
@@ -718,7 +716,7 @@
 
         .btn-minus {
             background-color: var(--bg-sunken);
-            color: var(--danger);
+            color: var(--pericolo-testo);
             font-size: 32px;
             height: 120px;
             border: 2px solid var(--danger);
@@ -733,7 +731,7 @@
         }
 
         .btn-plus-label {
-            font-size: 14px;
+            font-size: var(--fs-testo);
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -750,11 +748,11 @@
             box-sizing: border-box;
             padding: 14px;
             border-radius: var(--radius-md);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-control);
             background: var(--bg-card-hover);
             color: var(--text-main);
             font-weight: 700;
-            font-size: 13px;
+            font-size: var(--fs-testo);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -777,14 +775,18 @@
 
         .btn-tag {
             background: var(--bg-main);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-control);
             color: var(--text-main);
             padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: 22px;
+            font-size: var(--fs-testo);
+            font-weight: 700;
             white-space: nowrap;
             cursor: pointer;
+            /* 44 di altezza come le pillole: le note rapide si toccano in campo, coi guanti. */
+            min-height: var(--h-bottone, 44px);
+            display: inline-flex;
+            align-items: center;
         }
 
         .btn-tag:active {
@@ -811,7 +813,7 @@
         table.logs-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: var(--fs-testo);
             text-align: left;
         }
 
@@ -824,7 +826,7 @@
             top: 0;
             z-index: 30;
             border-bottom: 2px solid var(--border);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            box-shadow: var(--shadow-sm);
         }
 
         table.logs-table td {
@@ -857,13 +859,13 @@
             align-items: center;
             padding: 10px 10px;
             box-sizing: border-box;
-            font-size: 13px;
+            font-size: var(--fs-testo);
             touch-action: pan-y;
             cursor: pointer;
         }
         .swipe-content .col-nspt-value {
             font-family: var(--font-mono);
-            font-size: 12.5px;
+            font-size: var(--fs-didascalia);
             color: var(--text-main);
             text-align: center;
         }
@@ -876,9 +878,9 @@
             background: var(--accent-soft);
             color: var(--accent-ink);
             padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-didascalia);
+            font-weight: 700;
         }
 
         /* SVG CHART */
@@ -958,7 +960,7 @@
            e la sua ombra (30px di sfumatura) rientrava nello schermo come una striscia scura. */
         .drawer.open {
             transform: translateX(0);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            box-shadow: var(--shadow);
         }
 
         .drawer-header {
@@ -970,7 +972,7 @@
         }
 
         .drawer-title {
-            font-size: 16px;
+            font-size: var(--fs-campo);
             font-weight: 700;
         }
 
@@ -1001,7 +1003,7 @@
         }
 
         .drawer-section-title {
-            font-size: 11px;
+            font-size: var(--fs-didascalia);
             font-weight: 800;
             color: var(--accent);
             letter-spacing: 0.6px;
@@ -1045,7 +1047,7 @@
             background: transparent;
             border: none;
             font-family: var(--font-sans);
-            font-size: 11.5px;
+            font-size: var(--fs-didascalia);
             font-weight: 700;
             color: var(--text-muted);
             text-align: left;
@@ -1066,7 +1068,7 @@
         .info-collapsible-body-inner {
             padding: 10px 12px 12px;
             border-top: 1px solid var(--border);
-            font-size: 11.5px;
+            font-size: var(--fs-didascalia);
             line-height: 1.5;
             color: var(--text-main);
         }
@@ -1084,13 +1086,13 @@
         .setting-row:last-of-type { border-bottom: none; }
         .setting-text { flex: 1; min-width: 0; }
         .setting-label {
-            font-size: 13.5px;
-            font-weight: 650;
+            font-size: var(--fs-testo);
+            font-weight: 700;
             color: var(--text-main);
             line-height: 1.25;
         }
         .setting-desc {
-            font-size: 11px;
+            font-size: var(--fs-didascalia);
             color: var(--text-muted);
             line-height: 1.4;
             margin-top: 3px;
@@ -1151,7 +1153,7 @@
         }
 
         .switch-row span {
-            font-size: 14px;
+            font-size: var(--fs-testo);
             font-weight: 500;
         }
 
@@ -1164,8 +1166,8 @@
         }
 
         .form-group label {
-            font-size: 11px;
-            font-weight: 600;
+            font-size: var(--fs-didascalia);
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.3px;
@@ -1176,12 +1178,12 @@
 
         .form-control {
             background: var(--bg-main);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-control);
             color: var(--text-main);
             padding: 10px 12px;
             border-radius: var(--radius-sm);
             font-family: var(--font-sans);
-            font-size: 14px;
+            font-size: var(--fs-testo);
             width: 100%;
             box-sizing: border-box;
             min-width: 0;
@@ -1191,6 +1193,8 @@
             outline: none;
             border-color: var(--accent);
         }
+        /* Da tastiera il bordo da solo non basta: torna l'anello comune (vedi 03_regole-di-stile.css). */
+        .form-control:focus-visible { outline: 3px solid var(--focus-anello); outline-offset: 2px; }
 
         /* MODAL EDITING DIALOG */
         .modal-overlay {
@@ -1279,12 +1283,12 @@
         .tpl-editor-canvas .dato-cantiere, .dpsh-tag { cursor: pointer; }
         .tpl-editor-canvas .dato-cantiere:hover, .tpl-editor-canvas .dpsh-tag:hover { outline: 1.5px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
         .dpsh-tag-manca { background: rgba(220,38,38,0.12); color: #b91c1c; box-shadow: inset 0 0 0 1px #dc2626; font-style: italic; }
-        .menu-tag { position: fixed; z-index: 500; width: 260px; max-height: 320px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); padding: 4px; }
-        .menu-tag-gruppo { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); padding: 7px 8px 3px; }
-        .menu-tag-voce { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; border: none; background: transparent; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+        .menu-tag { position: fixed; z-index: 500; width: 260px; max-height: 320px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); padding: 4px; }
+        .menu-tag-gruppo { font-size: var(--fs-didascalia); font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); padding: 7px 8px 3px; }
+        .menu-tag-voce { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; border: none; background: transparent; border-radius: var(--radius-sm); padding: 6px 8px; cursor: pointer; }
         .menu-tag-voce.is-active, .menu-tag-voce:hover { background: var(--accent-soft); }
-        .menu-tag-nome { font-size: 12px; font-weight: 700; color: var(--text-main); }
-        .menu-tag-valore { font-size: 10.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .menu-tag-nome { font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-main); }
+        .menu-tag-valore { font-size: var(--fs-didascalia); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .dpsh-formula { font-family: 'Cambria Math', 'STIX Two Math', 'Cambria', serif; }
         .dpsh-interruzione { position: relative; height: 0; border-top: 2px dashed var(--accent); margin: 16px 0; }
         .dpsh-interruzione::after { content: 'interruzione di pagina'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: var(--bg-card); color: var(--accent-ink); font-size: 9.5px; font-weight: 800; letter-spacing: .3px; padding: 0 8px; text-transform: uppercase; }
@@ -1304,16 +1308,16 @@
              fanno i sistemi operativi, e conviene non inventarne un'altra. */
         #composizioneBarra .comp-sw { border: 1px solid var(--border); background: var(--bg-card); font-weight: 700; }
         #composizioneBarra .comp-sw.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-        #composizioneBarra .comp-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border); }
+        #composizioneBarra .comp-seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-md); background: var(--bg-sunken); border: 1px solid var(--border); }
         #composizioneBarra .comp-seg .note-tb-btn { border-color: transparent; background: transparent; color: var(--text-muted); }
-        #composizioneBarra .comp-seg .note-tb-btn.is-active { background: var(--bg-card); color: var(--text-main); border-color: var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.25); font-weight: 800; }
+        #composizioneBarra .comp-seg .note-tb-btn.is-active { background: var(--bg-card); color: var(--text-main); border-color: var(--border); box-shadow: var(--shadow-sm); font-weight: 800; }
         /* UNA RIGA PER OGGETTO. Le proprieta' della freccia del nord stavano in tre gruppi
            diversi, mescolate a quelle della barra di scala: l'occhio doveva ricomporle da
            solo. Ora ogni riga comincia col nome dell'oggetto e contiene tutto e solo cio'
            che lo riguarda. */
         #composizioneBarra .comp-riga { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; width: 100%; padding: 3px 0; }
         #composizioneBarra .comp-riga + .comp-riga { border-top: 1px dashed var(--border); }
-        #composizioneBarra .comp-oggetto { font-size: 10.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; min-width: 74px; }
+        #composizioneBarra .comp-oggetto { font-size: var(--fs-didascalia); font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; min-width: 74px; }
         /* La scheda scelta dev'essere la piu' evidente: prima il passaggio del mouse era piu'
            marcato dello stato attivo, cioe' la gerarchia era rovesciata. */
         #composizioneSchede .note-tb-btn { border: 1px solid transparent; color: var(--text-muted); }
@@ -1321,16 +1325,16 @@
         #composizioneSchede .note-tb-btn.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
         #composizioneBarra { gap: 6px; padding: 0; border-bottom: none; }
         #composizioneBarra .comp-pannello { gap: 6px 8px !important; align-items: center; }
-        #composizioneBarra .note-tb-group { padding: 1px 4px 1px 2px; gap: 3px; border-radius: 7px; }
+        #composizioneBarra .note-tb-group { padding: 1px 4px 1px 2px; gap: 3px; border-radius: var(--radius-sm); }
         #composizioneBarra .note-tb-group > .note-tb-status:first-child { padding-left: 4px; }
-        #composizioneBarra .note-tb-btn { height: 26px; min-width: 26px; padding: 0 8px; font-size: 11.5px; }
-        #composizioneBarra .note-tb-select { height: 26px; font-size: 11px; }
+        #composizioneBarra .note-tb-btn { height: 26px; min-width: 26px; padding: 0 8px; font-size: var(--fs-didascalia); }
+        #composizioneBarra .note-tb-select { height: 26px; font-size: var(--fs-didascalia); }
         #composizioneBarra input[type="range"] { height: 22px; margin: 0; }
         /* Le note esplicative: restano (spiegano scelte non ovvie) ma non occupano una riga
            intera ciascuna — diventano una riga sola sotto la scheda, piccola e discreta. */
-        #composizioneBarra .comp-nota { font-size: 9.5px; color: var(--text-muted); width: 100%; line-height: 1.4; margin: -1px 0 0; opacity: .85; }
+        #composizioneBarra .comp-nota { font-size: var(--fs-didascalia); color: var(--text-muted); width: 100%; line-height: 1.4; margin: -1px 0 0; opacity: .85; }
         #composizioneSchede { gap: 3px !important; padding-bottom: 5px !important; }
-        #composizioneSchede .note-tb-btn { height: 27px; padding: 0 9px; font-size: 11.5px; }
+        #composizioneSchede .note-tb-btn { height: 27px; padding: 0 9px; font-size: var(--fs-didascalia); }
         #lblComposizioneStato { margin-left: 0; }
         @media (max-width: 640px) {
             #composizioneBarra .note-tb-btn { height: 30px; min-width: 30px; }
@@ -1456,8 +1460,8 @@
             min-height: 52px; padding: 0 18px;
             border-radius: 26px;
             border: 2px dashed var(--danger); background: var(--bg-card);
-            color: var(--danger); font-size: 12px; font-weight: 800;
-            box-shadow: 0 6px 22px rgba(0,0,0,0.35);
+            color: var(--pericolo-testo); font-size: var(--fs-didascalia); font-weight: 800;
+            box-shadow: var(--shadow);
             z-index: 60; pointer-events: none;
             animation: tplCestinoEntra var(--mov-medio) var(--ease-entra);
         }
@@ -1499,7 +1503,7 @@
         }
         /* In "anteprima pulita" sparisce come tutto il resto: lì si guarda il risultato. */
         .tpl-editor-preview-mode .tpl-editor-block-body.selezionato { outline: none !important; }
-        .tpl-editor-block-chip { position: absolute; top: -12px; left: 8px; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 30px); background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 800; padding: 3px 9px 3px 6px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); cursor: grab; touch-action: none; pointer-events: auto; white-space: nowrap; }
+        .tpl-editor-block-chip { position: absolute; top: -12px; left: 8px; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 30px); background: var(--accent); color: var(--on-accent); font-size: var(--fs-didascalia); font-weight: 800; padding: 3px 9px 3px 6px; border-radius: 999px; box-shadow: var(--shadow-sm); cursor: grab; touch-action: none; pointer-events: auto; white-space: nowrap; }
         /* Il pallino delle eccezioni: piccolo, in alto a destra, e c'e' SOLO quando il
            blocco si scosta davvero dallo stile del documento. E' il controllo che l'utente
            non deve piu' fare a mano. */
@@ -1509,7 +1513,7 @@
            (richiesto esplicitamente): comunica subito "non si muove" senza dover aprire il menu. */
         @keyframes tplEditorChipShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
         .tpl-editor-chip-shake { animation: tplEditorChipShake 0.32s ease; cursor: not-allowed !important; }
-        .tpl-editor-block-handle { position: absolute; pointer-events: auto; touch-action: none; z-index: 6; background: var(--accent); border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; }
+        .tpl-editor-block-handle { position: absolute; pointer-events: auto; touch-action: none; z-index: 6; background: var(--accent); border: 2.5px solid #fff; box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
         .tpl-editor-block-handle .ico { width: 11px; height: 11px; color: var(--on-accent); pointer-events: none; }
 
         /* ============ AREE DI TOCCO (44px) — vedi Design_Mobile_Editor_Template.md ============
@@ -1557,7 +1561,7 @@
            selezione, trascinamento verticale — invertito su richiesta esplicita: spostare verso
            il BASSO ingrandisce, verso l'ALTO rimpicciolisce. Icona i-move-y (freccette su/giù) a
            indicare l'asse di trascinamento. */
-        .tpl-editor-handle-bottom { width: 40px; height: 13px; left: 50%; bottom: -6.5px; transform: translateX(-50%); border-radius: 7px; cursor: ns-resize; }
+        .tpl-editor-handle-bottom { width: 40px; height: 13px; left: 50%; bottom: -6.5px; transform: translateX(-50%); border-radius: var(--radius-sm); cursor: ns-resize; }
         /* DUE MANIGLIE SULLO STESSO LATO, MAI SUGLI ANGOLI. Un angolo, in ogni programma di
            disegno, vuol dire "ridimensiona in diagonale": mettere li' un comando che taglia le
            pagine sarebbe una promessa falsa. Restano tutte e due sul bordo inferiore — dove il
@@ -1576,7 +1580,7 @@
            range fisso e ampio (10%-400%) sempre disponibile per tutti i blocchi. */
         /* Maniglia larghezza colonna: icona i-expand-h (frecce sx/dx) a indicare l'asse
            orizzontale di trascinamento. */
-        .tpl-editor-handle-side { width: 13px; height: 40px; right: -6.5px; top: 50%; transform: translateY(-50%); border-radius: 7px; cursor: ew-resize; }
+        .tpl-editor-handle-side { width: 13px; height: 40px; right: -6.5px; top: 50%; transform: translateY(-50%); border-radius: var(--radius-sm); cursor: ew-resize; }
         /* Interruttore "testo fisso" (richiesto esplicitamente): accanto alla maniglia di
            ridimensionamento, per evitare che trascinandola cambi anche la dimensione del testo —
            di default il testo segue lo zoom del blocco come sempre, attivandolo invece il testo
@@ -1586,7 +1590,7 @@
            meccanismo più radicale): i blocchi di testo/tabelle non usano più zoom CSS affatto (vedi
            BLOCCHI_CON_FONT_REGOLABILE in costruisciHtmlBloccoEditor), quindi non serve più
            compensare il suo effetto sul font — non c'è più nessun effetto da compensare. */
-        .tpl-editor-handle-label { position: fixed; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 400; box-shadow: 0 3px 8px rgba(0,0,0,0.35); display: none; }
+        .tpl-editor-handle-label { position: fixed; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); font-size: var(--fs-didascalia); font-weight: 800; padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 400; box-shadow: var(--shadow-sm); display: none; }
 
         /* Ghost di trascinamento (richiesto esplicitamente: dev'essere "fisicamente" animato):
          * segue il puntatore con un breve scorrimento (non un salto istantaneo, vedi transition su
@@ -1600,9 +1604,9 @@
            Portarlo alla scala del movimento lo renderebbe visibilmente in ritardo sul dito,
            che è peggio di non animarlo affatto. */
 .tpl-editor-drag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; transition: left 0.05s linear, top 0.05s linear; }
-        .tpl-editor-drag-ghost-chip { background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); white-space: nowrap; transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
-        .tpl-editor-drag-ghost-card { position: absolute; left: 0; top: 0; width: 150px; max-height: 210px; overflow: hidden; background: #fff; border: 2px solid var(--accent); border-radius: 8px; box-shadow: 0 10px 26px rgba(0,0,0,0.4); opacity: 0; transform: scale(0.85); transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
-        .tpl-editor-drag-ghost-card-label { background: var(--accent); color: var(--on-accent); font-size: 9.5px; font-weight: 800; padding: 3px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tpl-editor-drag-ghost-chip { background: var(--accent); color: var(--on-accent); font-size: var(--fs-didascalia); font-weight: 800; padding: 4px 9px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); white-space: nowrap; transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-drag-ghost-card { position: absolute; left: 0; top: 0; width: 150px; max-height: 210px; overflow: hidden; background: #fff; border: 2px solid var(--accent); border-radius: var(--radius-md); box-shadow: var(--shadow); opacity: 0; transform: scale(0.85); transform-origin: 0 0; transition: opacity var(--mov-breve) var(--ease-entra), transform var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-drag-ghost-card-label { background: var(--accent); color: var(--on-accent); font-size: var(--fs-didascalia); font-weight: 800; padding: 3px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tpl-editor-drag-ghost-card-body { padding: 6px; color: #1e293b; }
         .tpl-editor-drag-ghost.morphed .tpl-editor-drag-ghost-chip { opacity: 0; transform: scale(0.6); }
         .tpl-editor-drag-ghost.morphed .tpl-editor-drag-ghost-card { opacity: 1; transform: scale(1); }
@@ -1613,7 +1617,7 @@
          * vedi mostraIndicatoreDropEditor. */
                 /* FUORI SCALA DI PROPOSITO, stessa ragione del ghost qui sopra: l'indicatore di
            rilascio deve raggiungere la posizione nuova prima che il dito ci arrivi. */
-.tpl-editor-drop-ghost-shape { position: absolute; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: 6px; z-index: 3; pointer-events: none; opacity: 0.8; transition: left 0.08s ease, top 0.08s ease, width 0.08s ease, height 0.08s ease, border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease; }
+.tpl-editor-drop-ghost-shape { position: absolute; border: 2px dashed var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); z-index: 3; pointer-events: none; opacity: 0.8; transition: left 0.08s ease, top 0.08s ease, width 0.08s ease, height 0.08s ease, border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease; }
         /* Semaforo predittivo di piazzamento (richiesto esplicitamente: non più solo un'area
          * gialla generica ma un vero alone colorato in base a quanto "pulito" sarebbe il
          * piazzamento) — vedi valutaQualitaPiazzamento/applicaStatoQualitaGhost. Le classi si
@@ -1629,7 +1633,7 @@
            maniglie accento dei blocchi — quelle agiscono sul singolo blocco, queste sull'intero
            foglio. La variante ".header" usa l'accento perché condivide semanticamente il concetto
            di "dimensione" con le maniglie dei blocchi (angolo/lato), non è un margine del foglio. */
-        .tpl-editor-page-margin-handle { position: absolute; pointer-events: auto; touch-action: none; background: #0f172a; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35); border-radius: 6px; z-index: 8; width: 34px; height: 11px; cursor: ns-resize; }
+        .tpl-editor-page-margin-handle { position: absolute; pointer-events: auto; touch-action: none; background: #0f172a; border: 2px solid #fff; box-shadow: var(--shadow-sm); border-radius: var(--radius-sm); z-index: 8; width: 34px; height: 11px; cursor: ns-resize; }
         .tpl-editor-page-margin-handle.vert { width: 11px; height: 34px; cursor: ew-resize; }
         .tpl-editor-page-margin-handle.header { background: var(--accent); cursor: ns-resize; }
         /* Anteprima a schermo intero: quando la modale è l'elemento in Fullscreen nativo del
@@ -1648,7 +1652,7 @@
            finiva per coprire praticamente tutto quanto — "appare sempre in mezzo ai coglioni"):
            non supera mai l'altezza della finestra, il resto scorre dentro invece di sforare sotto
            il bordo visibile senza modo di raggiungerlo. */
-        .tpl-editor-block-menu { position: fixed; z-index: 330; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 10px; width: 220px; display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 20px); overflow-y: auto; }
+        .tpl-editor-block-menu { position: fixed; z-index: 330; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); padding: 10px; width: 220px; display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 20px); overflow-y: auto; }
         /* Maniglia di trascinamento del popover (richiesta esplicitamente): una barretta a tutta
            larghezza in cima al menu, sporgente oltre il normale padding così resta ben distinta dal
            primo controllo reale sotto — un tocco/trascinamento su di essa sposta l'intero popover,
@@ -1664,19 +1668,19 @@
            un click/tap su un elemento interno non fa comunque scattare il drag della maniglia
            (quello parte solo da pointerdown sulla maniglia stessa, vedi
            attivaTrascinamentoMenuBloccoEditor). */
-        .tpl-editor-block-menu-collapse { position: absolute; right: 4px; background: none; border: none; cursor: pointer; color: inherit; padding: 3px; display: flex; align-items: center; border-radius: 4px; }
+        .tpl-editor-block-menu-collapse { position: absolute; right: 4px; background: none; border: none; cursor: pointer; color: inherit; padding: 3px; display: flex; align-items: center; border-radius: var(--radius-sm); }
         .tpl-editor-block-menu-collapse:hover { background: var(--bg-card-hover); }
         /* Bolla (popover ridotto a icona): stessa area occupata dal popover pieno ma minuscola,
            per lasciare libero il resto dello schermo mentre il blocco resta selezionato — un tap
            la riapre. */
-        .tpl-editor-block-menu-bubble { position: fixed; z-index: 330; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35); cursor: pointer; border: none; padding: 0; }
-        .tpl-editor-menu-section-label { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+        .tpl-editor-block-menu-bubble { position: fixed; z-index: 330; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); cursor: pointer; border: none; padding: 0; }
+        .tpl-editor-menu-section-label { font-size: var(--fs-didascalia); font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
         /* Sotto-sezione dentro una sezione già etichettata (es. "Asse"/"Dimensioni"/"Etichette
            strati" dentro "Grafico"): un pallino colorato invece del testo muto, un filo verticale
            che raccoglie visivamente i comandi sotto — abbastanza distinta dalla sezione principale
            da non essere scambiata per un'altra sezione di pari livello, abbastanza leggera da non
            competere con essa. */
-        .tpl-editor-menu-sottosezione { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 800; color: var(--accent-ink); text-transform: uppercase; letter-spacing: 0.03em; margin: 4px 0 -2px; }
+        .tpl-editor-menu-sottosezione { display: flex; align-items: center; gap: 5px; font-size: var(--fs-didascalia); font-weight: 800; color: var(--accent-ink); text-transform: uppercase; letter-spacing: 0.03em; margin: 4px 0 -2px; }
         .tpl-editor-menu-sottosezione::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
         .tpl-editor-menu-gruppo { border-left: 1.5px solid var(--border); padding-left: 8px; margin-left: 1px; display: flex; flex-direction: column; gap: 6px; }
         /* Interruzioni di pagina — comportamento DESKTOP (la navigazione a due pagine vive solo
@@ -1685,42 +1689,42 @@
            il contenuto, come è sempre stato. */
         .tpl-editor-interr-riepilogo { display: none; }
         .tpl-editor-interr-chiudi { display: none; }
-        .tpl-editor-interr-testata { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
+        .tpl-editor-interr-testata { font-size: var(--fs-didascalia); font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
         /* Controllo numerico condiviso: slider per esplorare, campo per essere precisi.
            L'unità sta FUORI dal campo, come etichetta: dentro il campo diventerebbe testo da
            cancellare ogni volta che si riscrive il numero. */
         .tpl-ctrl-num { display: flex; flex-direction: column; gap: 2px; }
-        .tpl-ctrl-num-testata { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--text-muted); font-weight: 700; }
+        .tpl-ctrl-num-testata { display: flex; align-items: center; gap: 6px; font-size: var(--fs-didascalia); color: var(--text-muted); font-weight: 700; }
         .tpl-ctrl-num-etichetta { flex-shrink: 0; }
-        .tpl-ctrl-num-secondario { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; opacity: .75; }
+        .tpl-ctrl-num-secondario { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; opacity: .75; }
         .tpl-ctrl-num-campo { display: inline-flex; align-items: baseline; gap: 3px; flex-shrink: 0; }
         .tpl-ctrl-num-input {
             width: 52px; text-align: right;
-            padding: 3px 5px; border: 1px solid var(--border); border-radius: 6px;
+            padding: 3px 5px; border: 1px solid var(--border-control); border-radius: var(--radius-sm);
             background: var(--bg-main); color: var(--text-main);
-            font-size: 12px; font-weight: 800; font-family: var(--font-mono);
+            font-size: var(--fs-didascalia); font-weight: 800; font-family: var(--font-mono);
         }
         /* Via le frecce del campo numerico: rubano larghezza al numero e su un telefono non le
            usa nessuno — per variare di poco c'è già il cursore accanto. */
         .tpl-ctrl-num-input::-webkit-outer-spin-button,
         .tpl-ctrl-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .tpl-ctrl-num-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-        .tpl-ctrl-num-unita { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-        .tpl-ctrl-num-scala { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); margin-top: -1px; }
+        .tpl-ctrl-num-unita { font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); }
+        .tpl-ctrl-num-scala { display: flex; justify-content: space-between; font-size: var(--fs-didascalia); color: var(--text-muted); margin-top: -1px; }
         /* Il tasto che risolve l'avviso rosso: vive dentro il riquadro d'allarme, quindi ne prende
            i colori invece di introdurne di nuovi. */
         .tpl-editor-dividi-btn {
             align-self: flex-start; min-height: 32px; padding: 0 10px;
-            border: 1px solid #b91c1c; border-radius: 7px;
+            border: 1px solid #b91c1c; border-radius: var(--radius-sm);
             background: #fff; color: #b91c1c;
-            font-size: 10.5px; font-weight: 800; cursor: pointer; white-space: nowrap;
+            font-size: var(--fs-didascalia); font-weight: 800; cursor: pointer; white-space: nowrap;
         }
         .tpl-editor-dividi-btn:active { background: #b91c1c; color: #fff; }
         /* ⋮ della testata: ospita le azioni rare e distruttive, fuori dal flusso dei comandi. */
         .tpl-editor-menu-altro-btn {
             flex-shrink: 0; width: 28px; height: 28px; padding: 0;
             border: none; background: none; cursor: pointer;
-            color: var(--text-muted); font-size: 17px; line-height: 1; border-radius: 6px;
+            color: var(--text-muted); font-size: var(--fs-campo); line-height: 1; border-radius: var(--radius-sm);
         }
         .tpl-editor-menu-altro-btn[aria-expanded="true"] { background: var(--bg-main); color: var(--text-main); }
         /* .tpl-editor-menu-altro: vedi le regole condivise dei menu di azioni più sotto. */
@@ -1732,24 +1736,24 @@
             min-height: 44px; padding: 2px 0; cursor: pointer;
         }
         .tpl-editor-interruttore-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-        .tpl-editor-interruttore-nome { font-size: 12px; font-weight: 700; color: var(--text-main); }
+        .tpl-editor-interruttore-nome { font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-main); }
         /* Lo stato è scritto: il colore da solo non basta a dire in che situazione sei, e non
            tutti lo distinguono. */
         .tpl-editor-interruttore-stato {
-            font-size: 10px; color: var(--text-muted); font-weight: 600;
+            font-size: var(--fs-didascalia); color: var(--text-muted); font-weight: 700;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         /* ℹ️: una riga discreta, non un paragrafo. Chi la vuole la tocca, chi no non la legge. */
         .tpl-editor-spiegazione {
             align-self: flex-start; min-height: 32px; padding: 0 8px;
             border: none; background: none; cursor: pointer;
-            color: var(--text-muted); font-size: 10.5px; font-weight: 700;
+            color: var(--text-muted); font-size: var(--fs-didascalia); font-weight: 700;
         }
         .tpl-editor-spiegazione:active { color: var(--text-main); }
         .tpl-editor-menu-row { display: flex; align-items: center; gap: 6px; }
-        .tpl-editor-menu-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 34px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-main); font-weight: 800; font-size: 12px; cursor: pointer; }
+        .tpl-editor-menu-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 34px; background: var(--bg-main); border: 1px solid var(--border-control); border-radius: var(--radius-sm); color: var(--text-main); font-weight: 800; font-size: var(--fs-didascalia); cursor: pointer; }
         .tpl-editor-menu-btn:disabled { opacity: 0.4; cursor: default; }
-        .tpl-editor-menu-value { min-width: 34px; text-align: center; font-size: 10.5px; color: var(--text-muted); }
+        .tpl-editor-menu-value { min-width: 34px; text-align: center; font-size: var(--fs-didascalia); color: var(--text-muted); }
         /* ===== RIORDINO DELLE SCHEDE "DATI PROVA" A TRASCINAMENTO =====
            Altezza 36px: e' la misura minima perche' un dito colpisca la riga giusta senza
            mirare. touch-action:none sulla voce e' obbligatorio, non decorativo — senza,
@@ -1758,8 +1762,8 @@
         .tpl-schede-lista { position: relative; }
         .tpl-scheda-voce {
             display: flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 8px;
-            font-size: 11px; background: var(--bg-main); border: 1px solid var(--border);
-            border-radius: 8px; color: var(--text-main); cursor: grab; user-select: none;
+            font-size: var(--fs-didascalia); background: var(--bg-main); border: 1px solid var(--border);
+            border-radius: var(--radius-md); color: var(--text-main); cursor: grab; user-select: none;
             touch-action: none; will-change: transform;
             transition: transform 170ms cubic-bezier(.22, 1, .36, 1), box-shadow 140ms ease, border-color 140ms ease;
         }
@@ -1771,20 +1775,20 @@
         .tpl-scheda-voce.e-in-mano {
             transition: box-shadow 140ms ease, border-color 140ms ease;
             cursor: grabbing; z-index: 3; position: relative;
-            border-color: var(--accent); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+            border-color: var(--accent); box-shadow: var(--shadow);
         }
         .tpl-scheda-voce.e-in-mano .tpl-scheda-grip { color: var(--accent); }
         /* La stessa scheda, accesa sul foglio: si sposta guardando il documento, non l'elenco. */
         .databox-in-movimento {
-            outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 5px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22); position: relative; z-index: 2;
+            outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm);
+            box-shadow: var(--shadow); position: relative; z-index: 2;
         }
         .databox-sbiadita { opacity: 0.45; }
         .databox-in-movimento, .databox-sbiadita { transition: opacity 160ms ease, outline-color 160ms ease, box-shadow 160ms ease; }
         /* Dopo il rilascio: un lampo breve sulla scheda spostata, perche' si veda DOVE e'
            atterrata. Senza, il blocco si ridisegna e non si capisce se e' cambiato qualcosa. */
         @keyframes dpshSchedaAtterrata { 0% { outline-color: var(--accent); } 100% { outline-color: transparent; } }
-        .databox-atterrata { outline: 2px solid transparent; outline-offset: 2px; border-radius: 5px; animation: dpshSchedaAtterrata 620ms ease-out; }
+        .databox-atterrata { outline: 2px solid transparent; outline-offset: 2px; border-radius: var(--radius-sm); animation: dpshSchedaAtterrata 620ms ease-out; }
         /* .tpl-editor-menu-remove/.tpl-editor-menu-sposta: sono righe del menu ⋮, stilate
            dalle regole condivise dei menu di azioni. Il riquadro rosso a tutta larghezza che
            c'era qui è stato tolto — vedi il commento là sotto. */
@@ -1801,18 +1805,18 @@
         .tpl-editor-spostamento { position: absolute; left: 14px; bottom: 14px; z-index: 420;
             display: flex; flex-direction: column-reverse; gap: 8px; align-items: flex-start; max-width: min(340px, calc(100% - 28px)); }
         .tpl-editor-spostamento-pill { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 7px 12px 7px 8px;
-            border: none; border-radius: 14px; background: var(--accent); color: var(--on-accent); cursor: pointer;
-            box-shadow: 0 8px 22px rgba(15,23,42,0.26); font-family: inherit; text-align: left; max-width: 100%;
+            border: none; border-radius: var(--radius-lg); background: var(--accent); color: var(--on-accent); cursor: pointer;
+            box-shadow: var(--shadow); font-family: inherit; text-align: left; max-width: 100%;
             animation: tplSpostamentoEntra var(--mov-medio) var(--ease-entra) both; }
         .tpl-editor-spostamento-pill:active { transform: scale(0.98); }
         .tpl-editor-spostamento-pill .sp-ico { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-            border-radius: 10px; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+            border-radius: var(--radius-md); background: rgba(255,255,255,0.2); flex-shrink: 0; }
         .tpl-editor-spostamento-pill .sp-ico .ico { width: 17px; height: 17px; }
         .tpl-editor-spostamento-pill .sp-etichette { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
         /* Lo STATO sopra e il NOME sotto, non il contrario: la domanda a cui la pillola risponde è
            "cosa sta succedendo?", e solo dopo "a quale blocco". */
-        .tpl-editor-spostamento-pill .sp-stato { font-size: 9px; font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; opacity: 0.82; }
-        .tpl-editor-spostamento-pill .sp-nome { font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tpl-editor-spostamento-pill .sp-stato { font-size: var(--fs-didascalia); font-weight: 800; letter-spacing: 0.7px; text-transform: uppercase; opacity: 0.82; }
+        .tpl-editor-spostamento-pill .sp-nome { font-size: var(--fs-testo); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tpl-editor-spostamento-pill .sp-freccia { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.8; transition: transform var(--mov-medio) var(--ease-entra); }
         .tpl-editor-spostamento.aperta .sp-freccia { transform: rotate(180deg); }
         /* UN SOLO LINGUAGGIO PER I MENU DI AZIONI. Le stesse regole valgono per la tendina della
@@ -1822,8 +1826,8 @@
            due riquadri della stessa taglia che si contendevano l'attenzione, con quello distruttivo
            che vinceva perché era l'unico colorato. Un menu non è un modulo: sono righe, non bottoni.
            Regole condivise = non possono più divergere. */
-        .tpl-editor-spostamento-menu, .tpl-editor-menu-altro { display: flex; flex-direction: column; gap: 1px; padding: 6px; border-radius: 14px;
-            background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 12px 34px rgba(15,23,42,0.26); min-width: 232px; }
+        .tpl-editor-spostamento-menu, .tpl-editor-menu-altro { display: flex; flex-direction: column; gap: 1px; padding: 6px; border-radius: var(--radius-lg);
+            background: var(--bg-card); border: 1px solid var(--border); box-shadow: var(--shadow); min-width: 232px; }
         .tpl-editor-spostamento-menu[hidden], .tpl-editor-menu-altro[hidden] { display: none; }
         /* COMPARSA DELLE DUE TENDINE DI AZIONI. Prima apparivano di colpo: `hidden` toglie e
            rimette l'elemento, e da `display:none` non si può transitare.
@@ -1840,12 +1844,12 @@
         }
         .tpl-editor-menu-altro:not([hidden]) { transform-origin: top right; }
         .tpl-editor-spostamento-menu button, .tpl-editor-menu-altro button { display: flex; align-items: center; gap: 10px; width: 100%;
-            min-height: 46px; padding: 5px 10px; border: none; border-radius: 10px; background: none; color: var(--text-main);
+            min-height: 46px; padding: 5px 10px; border: none; border-radius: var(--radius-md); background: none; color: var(--text-main);
             font-family: inherit; text-align: left; cursor: pointer; }
         .tpl-editor-spostamento-menu button .ico, .tpl-editor-menu-altro button .ico { width: 15px; height: 15px; flex-shrink: 0; color: var(--accent-ink); }
         .tpl-editor-spostamento-menu .sp-testo, .tpl-editor-menu-altro .sp-testo { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
-        .tpl-editor-spostamento-menu .sp-verbo, .tpl-editor-menu-altro .sp-verbo { font-size: 13px; font-weight: 800; }
-        .tpl-editor-spostamento-menu .sp-nota, .tpl-editor-menu-altro .sp-nota { font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+        .tpl-editor-spostamento-menu .sp-verbo, .tpl-editor-menu-altro .sp-verbo { font-size: var(--fs-testo); font-weight: 800; }
+        .tpl-editor-spostamento-menu .sp-nota, .tpl-editor-menu-altro .sp-nota { font-size: var(--fs-didascalia); color: var(--text-muted); font-weight: 700; }
         .tpl-editor-spostamento-menu button:hover, .tpl-editor-menu-altro button:hover { background: var(--bg-sunken); }
         .tpl-editor-spostamento-menu button:active, .tpl-editor-menu-altro button:active { background: var(--bg-sunken); transform: scale(0.99); }
         .tpl-editor-spostamento-menu button:disabled, .tpl-editor-menu-altro button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -1853,15 +1857,15 @@
            Il riquadro rosso pieno di prima la rendeva l'elemento più vistoso del menu — cioè
            l'esatto contrario di quello che serve per l'azione più rara e irreversibile. */
         .tpl-editor-spostamento-menu button.pericolo, .tpl-editor-menu-altro button.pericolo {
-            margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--border); border-radius: 0 0 10px 10px; }
+            margin-top: 5px; padding-top: 9px; border-top: 1px solid var(--border); border-radius: 0 0 var(--radius-md) var(--radius-md); }
         .tpl-editor-spostamento-menu button.pericolo .ico, .tpl-editor-menu-altro button.pericolo .ico,
-        .tpl-editor-spostamento-menu button.pericolo .sp-verbo, .tpl-editor-menu-altro button.pericolo .sp-verbo { color: var(--danger); }
+        .tpl-editor-spostamento-menu button.pericolo .sp-verbo, .tpl-editor-menu-altro button.pericolo .sp-verbo { color: var(--pericolo-testo); }
         /* Unica differenza fra i due: la tendina della barra di spostamento FLOTTA sopra il canvas
            (quindi ombra marcata e larghezza propria), quella del ⋮ vive DENTRO il pannello del
            blocco, in colonna con gli altri comandi — lì una larghezza fissa sfonderebbe il pannello
            sui telefoni stretti, e un'ombra pesante la farebbe sembrare staccata da ciò che la
            contiene. */
-        .tpl-editor-menu-altro { width: 100%; min-width: 0; margin: 2px 0 4px; box-shadow: 0 4px 14px rgba(15,23,42,0.14); }
+        .tpl-editor-menu-altro { width: 100%; min-width: 0; margin: 2px 0 4px; box-shadow: var(--shadow); }
         @keyframes tplSpostamentoEntra { from { opacity: 0; transform: translateY(10px) scale(0.94); } to { opacity: 1; transform: none; } }
         /* La scheda del blocco in spostamento nella barra degli strumenti: stessa forma e stessa
            altezza delle altre — cambiano solo i colori e un piccolo bollo d'angolo. Prima aveva una
@@ -1874,7 +1878,7 @@
         .tpl-editor-palette-item.spostamento-lampeggia { animation: tplSpostamentoLampeggia 0.45s ease-in-out 3; }
         @keyframes tplSpostamentoLampeggia { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 0 4px rgba(255,255,255,0.55); } }
 
-        .tpl-editor-palette-item { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; padding: 8px 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 9.5px; font-weight: 600; text-align: center; line-height: 1.25; cursor: grab; touch-action: none; transition: transform var(--mov-istante) var(--ease-entra), box-shadow var(--mov-istante) var(--ease-entra), background var(--mov-istante) var(--ease-entra); }
+        .tpl-editor-palette-item { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px; padding: 8px 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: var(--fs-didascalia); font-weight: 700; text-align: center; line-height: 1.25; cursor: grab; touch-action: none; transition: transform var(--mov-istante) var(--ease-entra), box-shadow var(--mov-istante) var(--ease-entra), background var(--mov-istante) var(--ease-entra); }
         /* Animazione di pressione (richiesta esplicitamente): un piccolo "schiacciamento" al tocco,
          * come un bottone premuto — vedi la classe aggiunta/rimossa su pointerdown/pointerup in
          * renderTemplateEditorPalette. */
@@ -1924,7 +1928,7 @@
            Tutto con classi, niente style="" in linea: uno stile in linea batte la modalità guanti
            (stessa lezione di .btn-icon-sm), ed era proprio il caso del vecchio Salva a 32px. */
         .tpl-barra-titolo { display: flex; align-items: center; gap: 9px; min-width: 0; }
-        .tpl-barra-badge { width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tpl-barra-badge { width: 30px; height: 30px; border-radius: var(--radius-md); background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .tpl-barra-badge .ico { width: 17px; height: 17px; vertical-align: 0; }
         .tpl-barra-destra { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .tpl-barra-segmento { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--bg-main); }
@@ -1935,18 +1939,18 @@
         @supports (background: color-mix(in srgb, red 6%, transparent)) {
             .tpl-barra-segmento { background: color-mix(in srgb, var(--text-main) 6%, transparent); }
         }
-        .tpl-barra-gh { height: 34px; min-width: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 11.5px; font-weight: 700; white-space: nowrap; cursor: pointer; user-select: none; transition: background var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-gh { height: 34px; min-width: 36px; padding: 0 8px; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: var(--fs-didascalia); font-weight: 700; white-space: nowrap; cursor: pointer; user-select: none; transition: background var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
         .tpl-barra-gh .ico { width: 18px; height: 18px; vertical-align: 0; }
         .tpl-barra-gh:hover:not(:disabled) { background: var(--bg-card-hover); color: var(--text-main); }
         .tpl-barra-gh:disabled { opacity: .35; cursor: default; }
         /* Stato ACCESO visibile: "Riquadri" è una vista, non un comando — deve dire se è attiva. */
         .tpl-barra-gh.premuto, .tpl-barra-gh.premuto:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-ink); }
         .tpl-barra-divisore { width: 1px; height: 18px; margin: 0 1px; background: var(--border); flex-shrink: 0; }
-        .tpl-barra-out { height: 38px; min-width: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent; color: var(--text-main); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: 11.5px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-out { height: 38px; min-width: 38px; padding: 0 11px; border: 1px solid var(--border); border-radius: var(--radius-md); background: transparent; color: var(--text-main); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; font-size: var(--fs-didascalia); font-weight: 700; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra), border-color var(--mov-breve) var(--ease-entra); }
         .tpl-barra-out .ico { width: 17px; height: 17px; vertical-align: 0; }
         .tpl-barra-out:hover { background: var(--bg-card-hover); border-color: var(--border-strong, var(--border)); }
-        .tpl-barra-split { display: flex; align-items: stretch; border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,0.25); flex-shrink: 0; }
-        .tpl-barra-salva { height: 38px; padding: 0 15px; border: none; background: var(--accent); color: var(--on-accent); font-family: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra); }
+        .tpl-barra-split { display: flex; align-items: stretch; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); flex-shrink: 0; }
+        .tpl-barra-salva { height: 38px; padding: 0 15px; border: none; background: var(--accent); color: var(--on-accent); font-family: inherit; font-size: var(--fs-didascalia); font-weight: 800; white-space: nowrap; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra); }
         .tpl-barra-freccia { width: 30px; border: none; border-left: 1px solid rgba(0,0,0,0.22); background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--mov-breve) var(--ease-entra); }
         .tpl-barra-freccia .ico { width: 15px; height: 15px; vertical-align: 0; }
         .tpl-barra-salva:hover, .tpl-barra-freccia:hover { background: var(--accent-hover, var(--accent)); }
@@ -1971,9 +1975,9 @@
            comparsa) invece di limitarsi a comprimere la barra del titolo come altrove. Gli elementi
            restano sempre nel DOM (mai creati/distrutti al volo) così le transizioni funzionano. */
         #btnTemplateEditorMobileMore { display: none; }
-        .tpl-editor-mobile-more-menu { display: none; position: absolute; top: 38px; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.35); padding: 6px; min-width: 220px; z-index: 60; flex-direction: column; gap: 2px; transform-origin: top right; transform: scale(0.96) translateY(-4px); opacity: 0; pointer-events: none; transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
+        .tpl-editor-mobile-more-menu { display: none; position: absolute; top: 38px; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow); padding: 6px; min-width: 220px; z-index: 60; flex-direction: column; gap: 2px; transform-origin: top right; transform: scale(0.96) translateY(-4px); opacity: 0; pointer-events: none; transition: transform var(--mov-breve) var(--ease-entra), opacity var(--mov-breve) var(--ease-entra); }
         .tpl-editor-mobile-more-menu.open { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
-        .tpl-editor-mobile-more-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; background: transparent; border-radius: var(--radius-sm); color: var(--text-main); font-size: 12.5px; font-weight: 700; text-align: left; cursor: pointer; }
+        .tpl-editor-mobile-more-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: none; background: transparent; border-radius: var(--radius-sm); color: var(--text-main); font-size: var(--fs-didascalia); font-weight: 700; text-align: left; cursor: pointer; }
         .tpl-editor-mobile-more-menu button:active { background: var(--bg-card-hover); }
         /* ---- RIGHE DELL'ELENCO TEMPLATE: miniatura + un verbo + il resto nel menù ----
            Prima ogni riga finiva con quattro bottoni-icona muti, di cui due con la STESSA
@@ -1990,16 +1994,16 @@
         .tpl-riga-idxr i { height: 2px; background: #a99e88; border-radius: 1px; flex: 1; display: block; min-width: 3px; }
         .tpl-riga-idxr b { width: 3px; height: 3px; border-radius: 50%; background: #a99e88; flex-shrink: 0; }
         .tpl-riga-idxr u { width: 4px; height: 2px; background: #8a7f6b; flex-shrink: 0; }
-        .tpl-riga-primaria { height: 42px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-card-hover); color: var(--text-main); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .tpl-riga-primaria { height: 42px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 0 13px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-card-hover); color: var(--text-main); font-family: inherit; font-size: var(--fs-didascalia); font-weight: 800; cursor: pointer; }
         .tpl-riga-primaria .ico { width: 17px; height: 17px; }
         .tpl-riga-kebab { width: 42px; height: 42px; flex-shrink: 0; border-radius: var(--radius-md); border: 1px solid var(--border); background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .tpl-riga-kebab .ico { width: 18px; height: 18px; fill: currentColor; stroke: none; }
         .tpl-riga-kebab.aperto { background: var(--bg-card-hover); color: var(--text-main); border-color: var(--border-strong); }
-        .tpl-riga-menu { position: fixed; z-index: 500; width: 194px; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 12px 28px rgba(0,0,0,0.5); padding: 5px; display: none; flex-direction: column; gap: 2px; }
+        .tpl-riga-menu { position: fixed; z-index: 500; width: 194px; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow); padding: 5px; display: none; flex-direction: column; gap: 2px; }
         .tpl-riga-menu.open { display: flex; }
-        .tpl-riga-menu button { display: flex; align-items: center; gap: 9px; padding: 10px 9px; border: none; background: transparent; border-radius: 7px; color: var(--text-main); font-family: inherit; font-size: 12.5px; font-weight: 700; text-align: left; cursor: pointer; }
+        .tpl-riga-menu button { display: flex; align-items: center; gap: 9px; padding: 10px 9px; border: none; background: transparent; border-radius: var(--radius-sm); color: var(--text-main); font-family: inherit; font-size: var(--fs-didascalia); font-weight: 700; text-align: left; cursor: pointer; }
         .tpl-riga-menu button:active { background: var(--bg-card-hover); }
-        .tpl-riga-menu button.pericolo { color: var(--danger); }
+        .tpl-riga-menu button.pericolo { color: var(--pericolo-testo); }
         .tpl-riga-menu-sep { height: 1px; background: var(--border); margin: 3px 6px; }
         .tpl-editor-mobile-palette-close { display: none; }
         .tpl-editor-mobile-fab { display: none; }
@@ -2033,8 +2037,8 @@
                 display: flex; flex-direction: column;
                 background: var(--bg-card);
                 border: 1px solid var(--border);
-                border-radius: 12px;
-                box-shadow: 0 -10px 30px rgba(0,0,0,0.35);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow);
                 padding: 8px 10px;
                 overflow: hidden;
             }
@@ -2078,13 +2082,13 @@
             #templateEditorPaletteSidebar {
                 position: fixed; inset: auto 0 0 0; z-index: 400; width: auto;
                 max-height: 58vh;
-                border-radius: 16px 16px 0 0; border: none; border-top: 1px solid var(--border);
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0; border: none; border-top: 1px solid var(--border);
                 padding: 16px; padding-top: 22px;
                 /* Spazio in fondo perché il FAB, che galleggia sopra il pannello facendo da
                    bottone di chiusura, non copra l'ultimo comando dell'elenco. */
                 padding-bottom: 78px;
                 transform: translateY(100%); transition: transform var(--mov-medio) var(--ease-entra);
-                box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+                box-shadow: var(--shadow);
                 overflow-y: auto; overscroll-behavior: contain;
             }
             /* Chiuso vuol dire CHIUSO. Il solo translateY(100%) lo spingeva fuori schermo ma lo
@@ -2129,7 +2133,7 @@
                Sollevato sopra la maniglia sempre visibile del cassetto pagine (40px, vedi sotto)
                e spostato a sinistra della barra zoom (che qui sotto passa a bottom-left) per non
                sovrapporsi né all'una né all'altra. */
-            .tpl-editor-mobile-fab { display: flex; position: absolute; right: 14px; bottom: 54px; z-index: 6; width: 52px; height: 52px; border-radius: 50%; border: none; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 18px rgba(0,0,0,0.35); cursor: pointer; }
+            .tpl-editor-mobile-fab { display: flex; position: absolute; right: 14px; bottom: 54px; z-index: 6; width: 52px; height: 52px; border-radius: 50%; border: none; align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow); cursor: pointer; }
             .tpl-editor-mobile-fab:active { transform: scale(0.92); }
             .tpl-editor-mobile-fab .ico { width: 24px; height: 24px; }
 
@@ -2151,11 +2155,11 @@
             /* Cassetto pagine: resta quasi tutto fuori schermo dietro la maniglia sempre visibile,
                si apre toccandola/trascinandola verso l'alto invece di occupare permanentemente
                spazio verticale accanto al foglio a tutto schermo. */
-            #templateEditorPagesDrawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 20px rgba(0,0,0,0.3); padding: 0 12px 12px; margin-top: 0 !important; max-height: 62vh; overflow-y: auto; transform: translateY(calc(100% - 40px)); transition: transform var(--mov-medio) var(--ease-entra); }
+            #templateEditorPagesDrawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; background: var(--bg-card); border-top: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow); padding: 0 12px 12px; margin-top: 0 !important; max-height: 62vh; overflow-y: auto; transform: translateY(calc(100% - 40px)); transition: transform var(--mov-medio) var(--ease-entra); }
             #templateEditorPagesDrawer.drawer-open { transform: translateY(0); }
             .tpl-editor-pages-drawer-handle { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 8px 0 6px; touch-action: none; }
             .tpl-editor-pages-drawer-grip { width: 36px; height: 4px; border-radius: 3px; background: var(--border); }
-            .tpl-editor-pages-drawer-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+            .tpl-editor-pages-drawer-label { font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
 
             /* Menu a comparsa del blocco (Allineamento/Dimensione/Interruzioni di pagina/...): su
                desktop è un popover stretto (220px) posizionato via JS accanto al blocco toccato
@@ -2187,9 +2191,9 @@
                    alla cieca. Ora l'altezza è una variabile che la maniglia in cima cambia con tre
                    scatti — spia / metà / intero — e la scelta resta per le aperture successive. */
                 max-height: var(--tpl-menu-h, 55vh) !important;
-                border-radius: 16px 16px 0 0 !important;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
                 padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
-                box-shadow: 0 -8px 26px rgba(0,0,0,0.4) !important;
+                box-shadow: var(--shadow) !important;
                 gap: 10px !important;
                 transition: max-height var(--mov-medio) var(--ease-entra);
             }
@@ -2235,15 +2239,15 @@
             .tpl-editor-interr-riepilogo {
                 display: flex; align-items: center; gap: 10px; width: 100%;
                 min-height: 46px; padding: 0 10px;
-                border-radius: 9px; border: 1px solid var(--border); background: var(--bg-main);
-                color: var(--text-main); font-size: 12px; font-weight: 700; cursor: pointer;
+                border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-main);
+                color: var(--text-main); font-size: var(--fs-didascalia); font-weight: 700; cursor: pointer;
                 text-align: left;
             }
             .tpl-editor-interr-riepilogo-titolo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .tpl-editor-interr-riepilogo-valore { flex-shrink: 0; font-size: 11px; font-weight: 800; color: var(--text-muted); }
+            .tpl-editor-interr-riepilogo-valore { flex-shrink: 0; font-size: var(--fs-didascalia); font-weight: 800; color: var(--text-muted); }
             /* Il chevron è ciò che comunica "porta a un'altra schermata" invece di "apre/chiude
                qui": è la differenza tra una navigazione e un interruttore. */
-            .tpl-editor-interr-riepilogo-freccia { flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--text-muted); }
+            .tpl-editor-interr-riepilogo-freccia { flex-shrink: 0; font-size: var(--fs-campo); line-height: 1; color: var(--text-muted); }
 
             /* La seconda pagina non si vede finché non ci si naviga. */
             .tpl-editor-interr-pagina2 { display: none; }
@@ -2260,7 +2264,7 @@
                annidata. La freccia è un bersaglio pieno da 44px, non una scritta piccola. */
             .tpl-editor-interr-testata {
                 display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-                margin: -2px 0 6px; font-size: 13px; font-weight: 800; color: var(--text-main);
+                margin: -2px 0 6px; font-size: var(--fs-testo); font-weight: 800; color: var(--text-main);
                 /* Annulla il maiuscoletto da "etichetta di sezione" che la regola desktop mette:
                    qui non è più un'etichetta ma il titolo di una schermata. */
                 text-transform: none; letter-spacing: 0;
@@ -2268,8 +2272,8 @@
             .tpl-editor-interr-chiudi {
                 display: inline-flex; align-items: center; justify-content: center;
                 width: 44px; height: 44px; flex-shrink: 0;
-                border-radius: 10px; border: 1px solid var(--border); background: var(--bg-main);
-                color: var(--text-main); font-size: 22px; line-height: 1; cursor: pointer; padding: 0;
+                border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-main);
+                color: var(--text-main); font-size: var(--fs-sezione); line-height: 1; cursor: pointer; padding: 0;
             }
 
             /* Stato "seconda pagina": il menu diventa alto quanto lo schermo e mostra SOLO la
@@ -2308,8 +2312,8 @@
             .tpl-editor-menu-scheda-btn {
                 flex: 0 0 auto; min-height: 40px; padding: 0 13px;
                 border: none; background: none; cursor: pointer;
-                color: var(--text-muted); font-size: 12.5px; font-weight: 800;
-                border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
+                color: var(--text-muted); font-size: var(--fs-didascalia); font-weight: 800;
+                border-bottom: 2px solid transparent; border-radius: var(--radius-md) var(--radius-md) 0 0;
                 white-space: nowrap;
             }
             /* Sottolineatura invece di riempimento: la linguetta attiva deve dire "sei qui" senza
@@ -2343,8 +2347,8 @@
                bastano a distinguere una riga dall'altra né a centrare il "+" tra due. */
             .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-chip { padding: 10px 9px !important; }
             .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-add-btn { padding: 10px 0 !important; }
-            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-plus-glyph { font-size: 18px !important; }
-            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-intro { font-size: 11.5px; line-height: 1.5; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-plus-glyph { font-size: var(--fs-campo) !important; }
+            .tpl-editor-block-menu.solo-interruzioni .tpl-editor-interr-intro { font-size: var(--fs-didascalia); line-height: 1.5; }
             .tpl-editor-block-menu-bubble { width: 54px; height: 54px; }
 
             /* Controlli comuni del menu (condivisi da tutte le sezioni: Allineamento, Dimensione,
@@ -2353,18 +2357,18 @@
                (stessa specificità, questa arriva dopo nel foglio di stile), gli stili inline messi
                dal JS per colorare i pulsanti attivi (background/color/border-color) non toccano
                queste proprietà quindi non c'è conflitto da vincere. */
-            .tpl-editor-block-menu .tpl-editor-menu-btn { min-height: 42px; font-size: 13px; }
-            .tpl-editor-block-menu label { min-height: 36px; font-size: 12.5px; }
+            .tpl-editor-block-menu .tpl-editor-menu-btn { min-height: 42px; font-size: var(--fs-testo); }
+            .tpl-editor-block-menu label { min-height: 36px; font-size: var(--fs-didascalia); }
             .tpl-editor-block-menu input[type="checkbox"] { width: 19px; height: 19px; }
             .tpl-editor-block-menu input[type="range"] { height: 30px; }
-            .tpl-editor-block-menu input[type="text"], .tpl-editor-block-menu input[type="number"], .tpl-editor-block-menu select { min-height: 40px; font-size: 13px; }
+            .tpl-editor-block-menu input[type="text"], .tpl-editor-block-menu input[type="number"], .tpl-editor-block-menu select { min-height: 40px; font-size: var(--fs-testo); }
             /* Il campo del controllo numerico è più largo su mobile: 52px bastano al desktop ma
                non a un dito che deve appoggiarsi dentro per correggere una cifra. Font a 16px
                perché sotto quella misura iOS ingrandisce la pagina da solo quando il campo prende
                il fuoco, e il foglio salta via da sotto le mani. */
-            .tpl-ctrl-num-input { width: 68px !important; font-size: 16px !important; }
-            .tpl-ctrl-num-testata { font-size: 12px; }
-            .tpl-ctrl-num-scala { font-size: 10px; }
+            .tpl-ctrl-num-input { width: 68px !important; font-size: var(--fs-campo) !important; }
+            .tpl-ctrl-num-testata { font-size: var(--fs-didascalia); }
+            .tpl-ctrl-num-scala { font-size: var(--fs-didascalia); }
             .tpl-editor-block-menu-collapse { width: 30px; height: 30px; }
 
             /* Sezione "Interruzioni di pagina" (vedi apriMenuBloccoEditor): stessa lista, ma chip
@@ -2373,17 +2377,17 @@
                !important per vincere sulla stessa proprietà già impostata inline. */
             .tpl-editor-interr-list { max-height: 42vh !important; padding: 6px !important; }
             .tpl-editor-interr-chip { padding: 10px 10px !important; gap: 8px !important; }
-            .tpl-editor-interr-badge { font-size: 11px !important; padding: 3px 8px !important; }
+            .tpl-editor-interr-badge { font-size: var(--fs-didascalia) !important; padding: 3px 8px !important; }
             /* I millimetri sono il dato su cui si decide il taglio: a 9px sul telefono non si
                leggono. Non diventano però più grandi del nome della categoria, che resta la cosa
                principale della riga. */
-            .tpl-editor-interr-mm { font-size: 10.5px !important; }
-            .tpl-editor-dividi-btn { min-height: 42px !important; font-size: 12px !important; }
-            .tpl-editor-interr-riempimento { font-size: 10px !important; }
-            .tpl-editor-interr-divider { font-size: 11.5px !important; margin: 6px 0 !important; gap: 8px !important; }
+            .tpl-editor-interr-mm { font-size: var(--fs-didascalia) !important; }
+            .tpl-editor-dividi-btn { min-height: 42px !important; font-size: var(--fs-didascalia) !important; }
+            .tpl-editor-interr-riempimento { font-size: var(--fs-didascalia) !important; }
+            .tpl-editor-interr-divider { font-size: var(--fs-didascalia) !important; margin: 6px 0 !important; gap: 8px !important; }
             .tpl-editor-interr-add-btn { padding: 12px 0 !important; min-height: 40px; }
-            .tpl-editor-interr-plus-glyph { font-size: 18px !important; font-weight: 800; }
-            .tpl-editor-interr-remove-btn { padding: 8px 10px !important; font-size: 16px !important; min-width: 38px; min-height: 38px; }
+            .tpl-editor-interr-plus-glyph { font-size: var(--fs-campo) !important; font-weight: 800; }
+            .tpl-editor-interr-remove-btn { padding: 8px 10px !important; font-size: var(--fs-campo) !important; min-width: 38px; min-height: 38px; }
         }
 
         /* Riordino pagine tenendo premuto e trascinando (vedi gestisciSpostamentoPaginaEditor):
@@ -2396,7 +2400,7 @@
            della card (senza maniglia) resta comunque disponibile col MOUSE su desktop, dove non c'è
            nessuno scroll nativo col dito da preservare (vedi il controllo pointerType nel JS). */
         .tpl-editor-page-thumb, .tpl-editor-page-tab { touch-action: pan-x; }
-        .tpl-editor-page-drag-handle { touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); background: rgba(15,23,42,0.55); border-radius: 5px; }
+        .tpl-editor-page-drag-handle { touch-action: none; cursor: grab; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); background: rgba(15,23,42,0.55); border-radius: var(--radius-sm); }
         .tpl-editor-page-tab .tpl-editor-page-drag-handle { color: inherit; background: none; opacity: 0.55; width: 16px; height: 16px; flex-shrink: 0; }
         .tpl-editor-page-drag-handle:active { cursor: grabbing; }
         .tpl-editor-page-drag-active { opacity: 0.4; }
@@ -2416,7 +2420,7 @@
         .tpl-editor-row-drop-target { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: var(--radius-sm); background: var(--accent-soft); transition: background var(--mov-breve) var(--ease-entra), outline-color var(--mov-breve) var(--ease-entra); }
         @keyframes tplDropPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         #templateEditorDropIndicator { animation: tplDropPulse 0.9s ease-in-out infinite; box-shadow: 0 0 0 4px var(--accent-soft); }
-        #templateEditorDropLabel { position: absolute; background: var(--accent); color: var(--on-accent); font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: 0 3px 8px rgba(0,0,0,0.35); }
+        #templateEditorDropLabel { position: absolute; background: var(--accent); color: var(--on-accent); font-size: var(--fs-didascalia); font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: var(--shadow-sm); }
 
         /* "Anteprima pulita": nasconde tutte le maniglie/pulsanti di editing (testata del blocco,
            bordo del riquadro, linea di fine pagina) per vedere il contenuto esattamente come uscirà
@@ -2450,7 +2454,7 @@
             min-height: 50px !important;
             font-size: 15px;
         }
-        body.glove-mode .blow-display { font-size: 68px; }
+        body.glove-mode .blow-display { font-size: var(--fs-contatore, 96px); }
 
         /* Estensione modalità guanti oltre il contatore di Vista Prova: campi di testo,
            interruttori e righe delle Impostazioni sono i bersagli più piccoli e frequenti
@@ -2727,8 +2731,8 @@
             border: none;
             background: transparent;
             color: var(--text-muted);
-            font-size: 10.5px;
-            font-weight: 600;
+            font-size: var(--fs-didascalia);
+            font-weight: 700;
             font-family: var(--font-sans);
             cursor: pointer;
             transition: background var(--mov-breve) var(--ease-entra), color var(--mov-breve) var(--ease-entra);
@@ -2737,7 +2741,7 @@
         .gps-tab-btn.open {
             background: var(--bg-card);
             color: var(--accent-ink);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-sm);
         }
         .gps-method-panel { margin-bottom: 14px; }
         .gps-accordion-body { background: var(--bg-main); border-radius: var(--radius-sm); padding: 0 12px; }
@@ -2752,12 +2756,13 @@
             margin-bottom: 8px;
         }
         .gps-map-layer-btn {
+            min-height: var(--h-bottone, 44px);
             padding: 7px 6px;
             border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-control);
             background: var(--bg-card-hover);
             color: var(--text-muted);
-            font-size: 11.5px;
+            font-size: var(--fs-didascalia);
             font-weight: 700;
             font-family: var(--font-sans);
             cursor: pointer;
@@ -2786,7 +2791,7 @@
             height: 28px;
             border-radius: 999px;
             background: var(--bg-sunken);
-            border: 1px solid var(--border-strong);
+            border: 1px solid var(--border-control);
             display: block;
             flex: 0 0 auto;
         }
@@ -2810,7 +2815,7 @@
         [data-theme="light"] .theme-ico-sun { display: block; }
         [data-theme="light"] .theme-ico-moon { display: none; }
         .theme-toggle-label {
-            font-size: 12px;
+            font-size: var(--fs-didascalia);
             font-weight: 700;
             color: var(--text-muted);
             min-width: 44px;
@@ -2818,7 +2823,7 @@
         }
 
         .modal-title {
-            font-size: 16px;
+            font-size: var(--fs-campo);
             font-weight: 700;
             margin-bottom: 14px;
             display: flex;

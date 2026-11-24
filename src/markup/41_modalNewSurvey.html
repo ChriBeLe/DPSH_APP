@@ -1,53 +1,53 @@
 
     <!-- MODAL NUOVA PROVA: COMPILAZIONE INTESTAZIONE CANTIERE -->
     <div class="modal-overlay" id="modalNewSurveyOverlay"></div>
-    <div class="modal" id="modalNewSurvey">
-        <div class="modal-title"><svg class="ico"><use href="#i-list"/></svg> Nuova prova — Scheda della prova</div>
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Compila i dati del progetto prima di iniziare. Il campo <strong style="color:var(--danger);">Comune</strong> è obbligatorio.</p>
+    <div class="modal" id="modalNewSurvey" role="dialog" aria-modal="true" aria-labelledby="modalNewSurveyTitolo">
+        <div class="modal-title" id="modalNewSurveyTitolo"><svg class="ico"><use href="#i-list"/></svg> Nuova prova — Scheda della prova</div>
+        <p class="c-did-muto-mb5">Compila i dati del progetto prima di iniziare. Il campo <strong class="c-pericolo">Comune</strong> è obbligatorio.</p>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px;">
+        <div class="c-griglia-mb">
             <div class="form-group">
-                <label>Cliente / Committente</label>
+                <label for="txtNewCommittente">Cliente / Committente</label>
                 <input type="text" id="txtNewCommittente" class="form-control" placeholder="es. Mario Rossi">
             </div>
             <div class="form-group">
-                <label style="color: var(--danger); font-weight: 700;">Comune *</label>
-                <input type="text" id="txtNewComune" class="form-control" placeholder="es. Genzano" style="border-color: var(--danger);">
+                <label for="txtNewComune" class="c-pericolo2">Comune *</label>
+                <input type="text" id="txtNewComune" class="form-control c-x11" placeholder="es. Genzano">
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px;">
+        <div class="c-griglia-mb">
             <div class="form-group">
-                <label>Località / Indirizzo</label>
+                <label for="txtNewLocalita">Località / Indirizzo</label>
                 <input type="text" id="txtNewLocalita" class="form-control" placeholder="es. Via Roma 10">
             </div>
             <div class="form-group">
-                <label>Data Indagine</label>
+                <label for="txtNewData">Data Indagine</label>
                 <input type="date" id="txtNewData" class="form-control">
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px;">
+        <div class="nuovaprova-griglia-mb">
             <div class="form-group">
-                <label>Prova N°</label>
+                <label for="txtNewProvaNr">Prova N°</label>
                 <input type="text" id="txtNewProvaNr" class="form-control" placeholder="es. 1" value="1">
             </div>
             <div class="form-group">
-                <label>Lunghezza Asta (m)</label>
+                <label for="numNewLunghAsta">Lunghezza Asta (m)</label>
                 <input type="number" id="numNewLunghAsta" class="form-control" value="1.00" step="0.1">
             </div>
         </div>
 
-        <div class="modal-actions" style="justify-content: flex-end; gap: 8px;">
+        <div class="modal-actions c-x3">
             <button class="btn-action" id="btnNewSurveyCancel">Chiudi</button>
-            <button class="btn-action" id="btnNewSurveyConfirm" style="background: var(--success); color: #fff; border: none; font-weight: 700;"><svg class="ico"><use href="#i-check"/></svg> Conferma e Inizia</button>
+            <button class="btn-action c-sfondo-bordo4" id="btnNewSurveyConfirm"><svg class="ico"><use href="#i-check"/></svg> Conferma e Inizia</button>
         </div>
     </div>
 
     <!-- BANNER ANNULLA ELIMINAZIONE FLUTTUANTE (TOAST 10s) -->
-    <div id="undoNotificationBanner" style="display: none; position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); z-index: 10000; background: #0f172a; color: #f8fafc; border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); align-items: center; gap: 14px; min-width: 310px; max-width: 92vw;">
-        <div style="font-size: 13px; font-weight: 600; flex: 1; display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            <span><svg class="ico"><use href="#i-trash"/></svg></span> <span id="undoBannerText" style="overflow: hidden; text-overflow: ellipsis;">Progetto eliminato</span>
+    <div id="undoNotificationBanner" class="nuovaprova-sfondo-bordo-pad" style="display:none">
+        <div class="nuovaprova-riga-testo-ellissi">
+            <span><svg class="ico"><use href="#i-trash"/></svg></span> <span id="undoBannerText" class="nuovaprova-ellissi">Progetto eliminato</span>
         </div>
         <button id="btnUndoDeleteProject" style="background: var(--accent); color: var(--on-accent); border: none; font-weight: 800; font-size: 12px; padding: 7px 13px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
             <svg class="ico"><use href="#i-reset"/></svg> Annulla (<span id="undoTimerCountdown">10</span>s)

@@ -1,15 +1,15 @@
 
     <!-- DRAWER GESTIONE DEI DATI LITOLOGICI -->
     <div class="modal-overlay tier-strati" id="modalStratiOverlay"></div>
-    <div class="modal tier-strati" id="modalManageStrati" style="max-height: 92vh; overflow-y: auto; max-width: 480px; padding: 0;">
+    <div class="modal tier-strati" id="modalManageStrati" role="dialog" aria-modal="true" aria-labelledby="modalManageStratiTitolo" style="max-height: 92vh; overflow-y: auto; max-width: 480px; padding: 0;">
         <div class="drawer-header">
-            <div class="drawer-title" style="display: flex; align-items: center; gap: 9px;">
-                <div style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-stack"/></svg>
+            <div class="drawer-title c-riga2" id="modalManageStratiTitolo">
+                <div class="c-riga-q30-sfondo">
+                    <svg class="ico c-accento"><use href="#i-stack"/></svg>
                 </div>
                 Strati
             </div>
-            <button class="btn-icon btn-icon-sm" id="btnCloseStrati"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon btn-icon-sm" id="btnCloseStrati" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div class="drawer-body">
             <!-- In testa: la prova su cui si calcolano Nspt, Rpd e i candidati (gli strati sono del
@@ -37,16 +37,16 @@
                 </div>
             </div>
                         <div id="stratiExportNascosto" hidden style="display: none;">
-                            <button class="btn-action" id="btnExportProcessingExcel" style="flex: 1; min-width: 130px; background: var(--success-soft); color: var(--success); border: 1px solid var(--success); font-weight: 700; font-size: 12px;">
+                            <button class="btn-action strati-did-sfondo-bordo" id="btnExportProcessingExcel">
                                 <svg class="ico"><use href="#i-file"/></svg> Excel
                             </button>
-                            <button class="btn-action" id="btnExportProcessingCsv" style="flex: 1; min-width: 130px; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-weight: 700; font-size: 12px;">
+                            <button class="btn-action strati-did-sfondo-bordo2" id="btnExportProcessingCsv">
                                 <svg class="ico"><use href="#i-clipboard"/></svg> CSV
                             </button>
-                            <button class="btn-action" id="btnExportProcessingPdf" style="flex: 1; min-width: 130px; background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); font-weight: 700; font-size: 12px;">
+                            <button class="btn-action strati-did-pericolo-sfondo" id="btnExportProcessingPdf">
                                 <svg class="ico"><use href="#i-print"/></svg> PDF
                             </button>
-                            <button class="btn-action" id="btnExportProcessingWord" style="flex: 1; min-width: 130px; background: var(--purple-soft); color: var(--purple); border: 1px solid var(--purple); font-weight: 700; font-size: 12px;">
+                            <button class="btn-action strati-did-sfondo-bordo3" id="btnExportProcessingWord">
                                 <svg class="ico"><use href="#i-file"/></svg> Word
                             </button>
                         </div>

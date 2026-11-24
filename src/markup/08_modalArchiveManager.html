@@ -1,25 +1,25 @@
 
     <!-- MODAL GESTIONE ARCHIVIO LITOLOGICO GLOBALE (elenco, statistiche, export/import) -->
     <div class="modal-overlay tier-strati-top" id="modalArchiveManagerOverlay"></div>
-    <div class="modal tier-strati-top" id="modalArchiveManager" style="max-height: 88vh; overflow-y: auto; max-width: 480px;">
-        <div class="modal-title" style="justify-content: space-between;">
+    <div class="modal tier-strati-top arcman-x" id="modalArchiveManager" role="dialog" aria-modal="true" aria-labelledby="modalArchiveManagerTitolo">
+        <div class="modal-title c-tra" id="modalArchiveManagerTitolo">
             <span><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</span>
-            <button class="btn-icon" id="btnCloseArchiveManagerX" style="background: transparent; border: none; color: var(--text-muted); width:auto; height:auto;"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon c-muto-sfondo-bordo" id="btnCloseArchiveManagerX" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--purple); margin-bottom: 14px; line-height: 1.4;">
+        <div class="arcman-did-muto-sfondo">
             <svg class="ico"><use href="#i-info"/></svg> Voci comuni a tutti i progetti del software. Le statistiche sono calcolate in tempo reale su tutto l'archivio prove.
         </div>
-        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-            <button class="btn-action" id="btnExportArchive" style="flex: 1; background: var(--success-soft); color: var(--success); border: 1px solid var(--success); font-size: 12px; font-weight: 700;"><svg class="ico"><use href="#i-download"/></svg> Esporta JSON</button>
-            <button class="btn-action" id="btnImportArchiveBtn" style="flex: 1; background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-size: 12px; font-weight: 700;"><svg class="ico"><use href="#i-upload"/></svg> Importa JSON</button>
+        <div class="arcman-riga-mb">
+            <button class="btn-action arcman-did-sfondo-bordo" id="btnExportArchive"><svg class="ico"><use href="#i-download"/></svg> Esporta JSON</button>
+            <button class="btn-action arcman-did-sfondo-bordo2" id="btnImportArchiveBtn"><svg class="ico"><use href="#i-upload"/></svg> Importa JSON</button>
             <input type="file" id="fileImportArchive" accept="application/json,.json" style="display:none;">
         </div>
-        <div style="position:relative; margin-bottom: 12px;">
-            <input type="text" id="txtArchiveSearch" class="form-control" placeholder="Cerca strato per nome..." style="padding-right:34px;">
-            <svg class="ico" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"><use href="#i-search"/></svg>
+        <div class="arcman-mb-pos">
+            <input type="text" id="txtArchiveSearch" class="form-control arcman-x2" placeholder="Cerca strato per nome...">
+            <svg class="ico arcman-muto-pos"><use href="#i-search"/></svg>
         </div>
-        <div id="archiveManagerList" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        <div class="modal-actions" style="justify-content: flex-end; margin-top: 14px;">
-            <button class="btn-action" id="btnCloseArchiveManager" style="background: var(--accent); color: var(--on-accent); border: none;"><svg class="ico"><use href="#i-x"/></svg> Chiudi</button>
+        <div id="archiveManagerList" class="c-colonna2"></div>
+        <div class="modal-actions arcman-mt">
+            <button class="btn-action c-accento-sfondo-bordo" id="btnCloseArchiveManager"><svg class="ico"><use href="#i-x"/></svg> Chiudi</button>
         </div>
     </div>

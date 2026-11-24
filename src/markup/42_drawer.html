@@ -4,15 +4,15 @@
          singola prova e da tempo vivono altrove (vedi i commenti 1-3 qui sotto): il nome
          prometteva cose che qui dentro non ci sono più. -->
     <div class="drawer-overlay" id="drawerOverlay"></div>
-    <div class="drawer" id="drawerMenu">
+    <div class="drawer" id="drawerMenu" role="dialog" aria-modal="true" aria-labelledby="drawerMenuTitolo">
         <div class="drawer-header">
-            <div class="drawer-title" style="display: flex; align-items: center; gap: 9px;">
-                <div style="width: 30px; height: 30px; border-radius: 10px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg class="ico" style="color: var(--accent-ink);"><use href="#i-settings"/></svg>
+            <div class="drawer-title c-riga2" id="drawerMenuTitolo">
+                <div class="c-riga-q30-sfondo">
+                    <svg class="ico c-accento"><use href="#i-settings"/></svg>
                 </div>
                 Impostazioni
             </div>
-            <button class="btn-icon btn-icon-sm" id="btnCloseDrawer"><svg class="ico"><use href="#i-x"/></svg></button>
+            <button class="btn-icon btn-icon-sm" id="btnCloseDrawer" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <div class="drawer-body">
             
@@ -88,21 +88,21 @@
                  davvero e si mostrano i numeri che contano. -->
             <div class="drawer-section">
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-database"/></svg> Spazio occupato</div>
-                <div id="spazioRiepilogo" style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5;">Calcolo in corso…</div>
-                <div style="height: 8px; border-radius: 999px; background: var(--bg-card-hover); overflow: hidden; border: 1px solid var(--border);">
-                    <div id="spazioBarra" style="height: 100%; width: 0%; background: var(--accent); transition: width var(--mov-lungo) var(--ease-entra), background var(--mov-lungo) var(--ease-entra);"></div>
+                <div id="spazioRiepilogo" class="menu-did-muto">Calcolo in corso…</div>
+                <div class="menu-sfondo-bordo">
+                    <div id="spazioBarra" class="menu-sfondo"></div>
                 </div>
-                <div id="spazioDettaglio" style="font-size: 11px; color: var(--text-muted); line-height: 1.6;"></div>
-                <div id="spazioErrori" style="font-size: 10.5px; color: var(--text-muted); line-height: 1.5; margin-top: 6px;"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button class="btn-action" id="btnSpazioRicalcola" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 10px 4px; font-weight: 700;">
+                <div id="spazioDettaglio" class="menu-did-muto2"></div>
+                <div id="spazioErrori" class="menu-did-muto-mt"></div>
+                <div class="c-griglia">
+                    <button class="btn-action menu-did-sfondo-bordo" id="btnSpazioRicalcola">
                         <svg class="ico"><use href="#i-reset"/></svg> Ricalcola
                     </button>
-                    <button class="btn-action" id="btnSpazioPulisciOrfane" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 10px 4px; font-weight: 700;">
+                    <button class="btn-action menu-did-sfondo-bordo" id="btnSpazioPulisciOrfane">
                         <svg class="ico"><use href="#i-trash"/></svg> Foto orfane
                     </button>
                 </div>
-                <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.45;">
+                <div class="menu-did-muto3">
                     I dati restano su questo dispositivo, nell'area privata dell'app: nessuna cartella da aprire con un gestore file, e disinstallando l'app vengono rimossi. L'unico modo per portarli altrove è <strong>Esporta</strong> qui sotto.
                 </div>
             </div>
@@ -113,8 +113,8 @@
                  le copie sono la rete per gli errori, il backup quella per il telefono perso. -->
             <div class="drawer-section">
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-reset"/></svg> Copie automatiche</div>
-                <div id="lblCopieRiepilogo" style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">Nessuna copia ancora.</div>
-                <button class="btn-action" id="btnApriCronologia" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 10px 4px; font-weight: 700; width: 100%;">
+                <div id="lblCopieRiepilogo" class="menu-did-muto3">Nessuna copia ancora.</div>
+                <button class="btn-action menu-did-sfondo-bordo2" id="btnApriCronologia">
                     <svg class="ico"><use href="#i-list"/></svg> Copie automatiche e ripristino
                 </button>
             </div>
@@ -122,15 +122,15 @@
             <!-- 7. BACKUP COMPLETO -->
             <div class="drawer-section">
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-file"/></svg> Copia di tutti i progetti</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+                <div class="menu-did-muto3">
                     Salva o ripristina <strong>tutti</strong> i progetti in un unico file.
                 </div>
-                <div id="lblUltimoBackup" style="font-size: 11.5px; color: var(--text-main); line-height: 1.45;"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button class="btn-action" id="btnExportGlobalJson" style="background: var(--info-soft); color: var(--info); border: 1px solid var(--info); font-size: 12px; padding: 10px 4px; font-weight: 700;">
+                <div id="lblUltimoBackup" class="menu-did"></div>
+                <div class="c-griglia">
+                    <button class="btn-action menu-did-sfondo-bordo3" id="btnExportGlobalJson">
                         <svg class="ico"><use href="#i-download"/></svg> Esporta
                     </button>
-                    <button class="btn-action" id="btnImportGlobalJson" style="background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 10px 4px; font-weight: 700;">
+                    <button class="btn-action menu-did-sfondo-bordo" id="btnImportGlobalJson">
                         <svg class="ico"><use href="#i-upload"/></svg> Importa
                     </button>
                     <input type="file" id="fileImportJson" accept=".json,application/json,.zip,application/zip" style="display:none;">
@@ -141,8 +141,8 @@
                  raggiungevano solo dalla Home. -->
             <div class="drawer-section">
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-layers"/></svg> Libreria</div>
-                <button class="btn-action" id="btnDrawerTemplate" style="width: 100%;"><svg class="ico"><use href="#i-layout-pagina"/></svg> Template di report e dell'indice</button>
-                <button class="btn-action" id="btnDrawerArchivio" style="width: 100%;"><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</button>
+                <button class="btn-action menu-x" id="btnDrawerTemplate"><svg class="ico"><use href="#i-layout-pagina"/></svg> Template di report e dell'indice</button>
+                <button class="btn-action menu-x" id="btnDrawerArchivio"><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</button>
             </div>
 
             <!-- ASSISTENTE IA (facoltativo, spento di serie). Solo l'interruttore e il tasto dei provider
@@ -160,7 +160,7 @@
                         <span class="switch-visual"></span>
                     </label>
                 </div>
-                <button class="btn-action" id="btnAssistenteProvider" style="width: 100%;"><svg class="ico"><use href="#i-settings"/></svg> Provider e chiavi API <span id="lblAssistenteProviderN" style="opacity:.7; margin-left:4px;"></span></button>
+                <button class="btn-action menu-x" id="btnAssistenteProvider"><svg class="ico"><use href="#i-settings"/></svg> Provider e chiavi API <span id="lblAssistenteProviderN" class="menu-x2"></span></button>
             </div>
 
             <!-- 5. ASPETTO E VISUALIZZAZIONE -->
@@ -186,12 +186,12 @@
                     </div>
                 </div>
 
-                <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                <div class="setting-row menu-x3">
                     <div class="setting-text">
                         <div class="setting-label">Palette Colore</div>
                         <div class="setting-desc">Il tema sopra decide chiaro/scuro; questa sceglie la tonalità. Vale per tutta l'app.</div>
                     </div>
-                    <div id="themeHuePicker" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                    <div id="themeHuePicker" class="c-riga-avvolge"></div>
                 </div>
 
             </div>
@@ -205,17 +205,17 @@
                  fuori dai piedi nell'uso quotidiano. -->
             <div class="drawer-section">
                 <button type="button" class="btn-action" id="btnToggleFunzioniSperimentali" style="width:100%; background: var(--bg-card-hover); border: 1px solid var(--border); font-weight: 700; font-size: 12.5px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                    <span style="display:flex; align-items:center; gap:8px;"><svg class="ico"><use href="#i-flask"/></svg> Funzioni Sperimentali</span>
-                    <svg class="ico" id="chevronFunzioniSperimentali" style="transition: transform var(--mov-medio) var(--ease-entra); flex-shrink:0;"><use href="#i-chevron-down"/></svg>
+                    <span class="c-riga2"><svg class="ico"><use href="#i-flask"/></svg> Funzioni Sperimentali</span>
+                    <svg class="ico menu-x4" id="chevronFunzioniSperimentali"><use href="#i-chevron-down"/></svg>
                 </button>
 
-                <div id="funzioniSperimentaliBody" style="display:none; flex-direction:column; gap:14px; margin-top:12px;">
+                <div id="funzioniSperimentaliBody" class="menu-mt" style="display:none">
 
                     <!-- MODALITÀ DEBUG -->
                     <div>
                         <div class="drawer-section-title"><svg class="ico"><use href="#i-bug"/></svg> Modalità Debug</div>
 
-                        <div class="setting-row" style="margin-top: 11px;">
+                        <div class="setting-row menu-mt2">
                             <div class="setting-text">
                                 <div class="setting-label">Strumenti di Debug</div>
                                 <div class="setting-desc">Mostra pannelli diagnostici avanzati (diagnostica GPS, info di sistema). Tienila spenta durante il lavoro normale.</div>
@@ -227,12 +227,12 @@
                         </div>
 
                         <div id="debugToolsBox" style="display:none;">
-                            <button class="btn-action" id="btnShowSystemInfo" style="width:100%; background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 700; font-size: 12px;">
+                            <button class="btn-action menu-did-sfondo-bordo4" id="btnShowSystemInfo">
                                 <svg class="ico"><use href="#i-activity"/></svg> Info Sistema
                             </button>
-                            <div id="systemInfoBox" style="display:none; font-size:11px; line-height:1.5; background: var(--bg-main); border:1px solid var(--border); border-radius: var(--radius-sm); padding:10px; margin-top:10px; font-family: var(--font-mono); word-break: break-word;"></div>
-                            <div style="font-size:10.5px; color:var(--text-muted); margin-top:10px; line-height:1.5;">
-                                La diagnostica GPS si trova nel menu Posizione GPS del progetto (icona <svg class="ico" style="width:11px; height:11px;"><use href="#i-pin"/></svg>), disponibile finché questa modalità è attiva.
+                            <div id="systemInfoBox" class="menu-did-sfondo-bordo5" style="display:none"></div>
+                            <div class="menu-did-muto-mt2">
+                                La diagnostica GPS si trova nel menu Posizione GPS del progetto (icona <svg class="ico menu-q11"><use href="#i-pin"/></svg>), disponibile finché questa modalità è attiva.
                             </div>
                         </div>
                     </div>
@@ -245,8 +245,8 @@
                          smetterà di conservare la copia vecchia delle note (htmlPrimaDelMotore). -->
                     <div>
                         <div class="drawer-section-title"><svg class="ico"><use href="#i-note"/></svg> Diagnostica Note</div>
-                        <div class="setting-desc" style="margin-top: 11px;">Prova, solo in memoria, la conversione delle note al nuovo editor e dice se qualcosa andrebbe perso. Non modifica nulla.</div>
-                        <button class="btn-action" id="btnDiagnosticaNote" style="width: 100%; margin-top: 10px; background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); font-size: 12px; padding: 9px;">
+                        <div class="setting-desc menu-mt2">Prova, solo in memoria, la conversione delle note al nuovo editor e dice se qualcosa andrebbe perso. Non modifica nulla.</div>
+                        <button class="btn-action menu-did-sfondo-bordo6" id="btnDiagnosticaNote">
                             <svg class="ico"><use href="#i-note"/></svg> Controlla note (prova a vuoto)
                         </button>
                     </div>
@@ -260,10 +260,10 @@
                  dalla parola da digitare (vedi il listener di btnClearHistory). -->
             <div class="drawer-section">
                 <div class="drawer-section-title"><svg class="ico"><use href="#i-alert"/></svg> Reset</div>
-                <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+                <div class="menu-did-muto3">
                     Cancella da questo dispositivo tutti i progetti con le loro foto, i template, l'archivio litologico, le impostazioni e le copie automatiche. Prima esporta un backup.
                 </div>
-                <button class="btn-action" id="btnClearHistory" style="color: var(--danger); border-color: var(--danger); width: 100%;">
+                <button class="btn-action menu-pericolo" id="btnClearHistory">
                     <svg class="ico"><use href="#i-alert"/></svg> Reset Dati Locale
                 </button>
             </div>
@@ -271,9 +271,9 @@
             <!-- INFORMAZIONI: la versione in chiaro, in fondo e senza una sezione sua, perché si legge
                  e non si tocca. Il numero lo scrive lo script (APP_VERSIONE): qui c'è solo il posto
                  dove compare, così non esistono due copie da tenere allineate. -->
-            <div style="text-align: center; font-size: 11px; color: var(--text-muted); line-height: 1.6; padding: 2px 0 12px;">
-                DPSH Field Collector · versione <span id="lblVersioneApp" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-main);">—</span>
-                <div style="font-size: 10.5px;">Indicala quando segnali un problema.</div>
+            <div class="menu-did-muto-pad">
+                DPSH Field Collector · versione <span id="lblVersioneApp" class="menu-x5">—</span>
+                <div class="c-did">Indicala quando segnali un problema.</div>
             </div>
 
         </div>

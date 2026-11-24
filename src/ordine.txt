@@ -8,6 +8,7 @@ css/01_app.css
 css/02_passaggio-telefono-pc.css
 css/03_regole-di-stile.css
 css/04_prova-e-home.css
+css/05_classi-schermate.css
 css/05_assistente-ia.css
 css/06_leggi-foglio.css
 css/05_leaflet.css
@@ -85,6 +86,7 @@ shell/05_tra-motore-e-app.html
 js/000_avvio-stato-e-salvataggio.js
 js/001_fase-3-gps-live-fallback-foto-import-batch.js
 js/002_dialoghi-in-app.js
+js/002b_fuoco-nelle-finestre.js
 js/002a_testo-sicuro-e-dati-in-ingresso.js
 js/003_toggle-tema-sole-luna.js
 js/004_funzioni-sperimentali.js

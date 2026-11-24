@@ -4,16 +4,16 @@
          prova, tavole 2D e 3D. Non ha dati propri: legge e scrive le stesse proprietà del progetto
          che usa «Esporta PDF», che da qui in poi parte da queste scelte. Righe disegnate in JS. -->
     <div class="modal-overlay" id="modalScalettaOverlay"></div>
-    <div class="modal" id="modalScaletta" role="dialog" aria-labelledby="titoloScaletta" style="max-height: 92vh; overflow-y: auto; max-width: 520px;">
-        <div class="modal-title" style="justify-content: space-between;">
+    <div class="modal scal-x" id="modalScaletta" role="dialog" aria-modal="true" aria-labelledby="titoloScaletta">
+        <div class="modal-title c-tra">
             <span><svg class="ico"><use href="#i-print"/></svg> <span id="titoloScaletta">Scaletta del report</span></span>
             <button type="button" class="btn-icon" id="btnScalettaX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         <p class="t-didascalia" id="lblScalettaIntro">Le sezioni del documento, nell'ordine in cui escono. Accendi quelle che vuoi e scegli il template di ognuna.</p>
-        <div id="listaScaletta" style="display: flex; flex-direction: column; gap: 6px; margin: 12px 0;"></div>
-        <div class="modal-actions" style="justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div id="listaScaletta" class="c-colonna"></div>
+        <div class="modal-actions c-tra-avvolge">
             <button type="button" class="bt-link" id="btnScalettaTemplate">Modifica template</button>
-            <span style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span class="c-riga-avvolge">
                 <button type="button" class="bt" id="btnScalettaChiudi">Chiudi</button>
                 <button type="button" class="bt" id="btnScalettaWord">Word</button>
                 <button type="button" class="bt bt-principale" id="btnScalettaPdf">Esporta PDF</button>

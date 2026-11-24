@@ -772,7 +772,7 @@ ${contenuto}
                     return `
                         <div class="swipe-row-wrapper" data-index="${idx}" style="border-bottom: 1px solid var(--border);">
                             <div class="riga-azioni"><button type="button" class="riga-azione-modifica">Modifica</button><button type="button" class="riga-azione-elimina">Elimina</button></div>
-                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: var(--colonne-registro, 14% 12% 74%); padding: 0; min-height: 34px;">
+                            <div class="swipe-content" data-index="${idx}" style="grid-template-columns: var(--colonne-registro, 14% 12% 74%); padding: 0; min-height: 44px;">
                                 <!-- Colonna Prof: lasciata vuota di proposito. Le quote di profondità
                                      vengono disegnate da renderIntegratedDepthLabels() in un overlay
                                      posizionato con le coordinate REALI delle righe, cosi ogni numero
@@ -782,7 +782,7 @@ ${contenuto}
                                 <div style="font-family:var(--font-mono); font-size:14px; font-weight:800; color:var(--accent); text-align:center; display:flex; align-items:center; justify-content:center; height:100%;">
                                     ${colpiVal}
                                 </div>
-                                <div style="position:relative; height:100%; min-height:34px; overflow:hidden;">
+                                <div style="position:relative; height:100%; min-height:44px; overflow:hidden;">
                                     <!-- Sfondo neutro della corsia (zona freatica evidenziata se sotto falda) -->
                                     <div style="position:absolute; inset:0; background:${isBelowFalda ? 'rgba(59,130,246,0.10)' : 'transparent'};"></div>
                                     <!-- BARRA LITOLOGICA: la larghezza rappresenta i colpi (si ferma al valore misurato),

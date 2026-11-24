@@ -1,62 +1,62 @@
 
     <!-- MODAL EDITING COMPLETO SINGOLO STEP -->
     <div class="modal-overlay" id="modalOverlay"></div>
-    <div class="modal" id="modalEditStep">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px;">
-            <div class="modal-title" style="margin-bottom: 0;"><svg class="ico"><use href="#i-edit"/></svg> Modifica Intervallo</div>
-            <button class="btn-icon" id="btnCloseEditModalX" title="Chiudi" style="flex: 0 0 auto; background: transparent; border: none; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;"><svg class="ico"><use href="#i-x"/></svg></button>
+    <div class="modal" id="modalEditStep" role="dialog" aria-modal="true" aria-labelledby="modalEditStepTitolo">
+        <div class="mod-riga-tra-mb">
+            <div class="modal-title mod-mb" id="modalEditStepTitolo"><svg class="ico"><use href="#i-edit"/></svg> Modifica Intervallo</div>
+            <button class="btn-icon mod-sez-muto-sfondo" id="btnCloseEditModalX" title="Chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
         </div>
         
         <!-- CAMPO PRINCIPALE COLPI (IN PRIMISSIMO PIANO) -->
-        <div class="form-group" style="margin-bottom: 12px; text-align: center;">
-            <label style="font-size: 13px; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px;">Numero Colpi (N) *</label>
+        <div class="form-group mod-mb2">
+            <label for="numModalColpi" class="mod-testo-accento-mb">Numero Colpi (N) *</label>
             <!-- − e + (Fase 6): si corregge un colpo senza aprire la tastiera. -->
             <div class="colpi-passo">
                 <button type="button" class="bt-icona" id="btnModalColpiMeno" aria-label="Un colpo in meno">−</button>
-                <input type="number" id="numModalColpi" class="form-control" min="0" inputmode="numeric" pattern="[0-9]*"
-                       style="font-size: 26px; font-weight: 800; font-family: var(--font-mono); text-align: center; color: var(--accent); background: var(--bg-card-hover); border: 2px solid var(--accent); padding: 8px; border-radius: var(--radius-md);" placeholder="Digita colpi...">
+                <input type="number" id="numModalColpi" class="form-control mod-schermo-accento-sfondo" min="0" inputmode="numeric" pattern="[0-9]*"
+                       placeholder="Digita colpi...">
                 <button type="button" class="bt-icona" id="btnModalColpiPiu" aria-label="Un colpo in più">+</button>
             </div>
             <div class="t-didascalia" id="lblModalOrigine"></div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px;">
+        <div class="mod-griglia-mb">
             <div class="form-group">
-                <label>Profondità Da (m)</label>
+                <label for="numModalStart">Profondità Da (m)</label>
                 <input type="number" id="numModalStart" class="form-control" step="0.01">
             </div>
             <div class="form-group">
-                <label>Profondità A (m)</label>
+                <label for="numModalEnd">Profondità A (m)</label>
                 <input type="number" id="numModalEnd" class="form-control" step="0.01">
             </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 10px;">
-            <label><svg class="ico"><use href="#i-layers"/></svg> Strato dell'intervallo (vale anche per i successivi)</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-                <select id="selModalLithology" class="form-control" style="flex: 1;"></select>
-                <button class="btn-action" id="btnManageStrati" title="Strati" style="padding: 8px 12px; white-space: nowrap; font-size: 13px;"><svg class="ico"><use href="#i-settings"/></svg> Strati</button>
+        <div class="form-group c-mb">
+            <label for="selModalLithology"><svg class="ico"><use href="#i-layers"/></svg> Strato dell'intervallo (vale anche per i successivi)</label>
+            <div class="mod-riga">
+                <select id="selModalLithology" class="form-control c-x2"></select>
+                <button class="btn-action mod-testo-pad" id="btnManageStrati" title="Strati"><svg class="ico"><use href="#i-settings"/></svg> Strati</button>
             </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 12px;">
-            <label>Note / Eventi Intervallo</label>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+        <div class="form-group c-mb">
+            <label for="txtModalNote">Note / Eventi Intervallo</label>
+            <div class="mod-riga-mb-avvolge">
                 <button class="btn-tag btn-modal-tag" data-note="Ciottoli"><svg class="ico"><use href="#i-layers"/></svg> Ciottoli</button>
                 <button class="btn-tag btn-modal-tag" data-note="Cavità"><svg class="ico"><use href="#i-alert"/></svg> Cavità</button>
                 <button class="btn-tag btn-modal-tag" data-note="Rifiuto"><svg class="ico"><use href="#i-x"/></svg> Rifiuto</button>
             </div>
             <input type="text" id="txtModalNote" class="form-control" placeholder="Note per questo intervallo">
-            <label id="rigaModalRifiuto" style="display: none; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px;">
+            <label id="rigaModalRifiuto" class="mod-testo-mt" style="display:none">
                 <input type="checkbox" id="chkModalRifiuto"> Escludi da tabelle e calcoli (resta solo nel grafico come «Rifiuto»)
             </label>
         </div>
 
-        <div class="modal-actions" style="justify-content: space-between;">
-            <button class="btn-action" id="btnModalDelete" style="color: var(--danger); border-color: var(--danger);"><svg class="ico"><use href="#i-trash"/></svg> Elimina</button>
-            <div style="display: flex; gap: 8px;">
+        <div class="modal-actions c-tra">
+            <button class="btn-action mod-pericolo" id="btnModalDelete"><svg class="ico"><use href="#i-trash"/></svg> Elimina</button>
+            <div class="c-riga">
                 <button class="btn-action" id="btnModalCancel">Chiudi</button>
-                <button class="btn-action" id="btnModalSave" style="background: var(--success); color: #fff; border: none;">Salva</button>
+                <button class="btn-action mod-sfondo-bordo" id="btnModalSave">Salva</button>
             </div>
         </div>
     </div>

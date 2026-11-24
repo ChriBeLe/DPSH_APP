@@ -570,7 +570,7 @@ console.log('--- La stampa aspetta le mappe, e lo verifica ---');
 console.log('--- Il compositore sta SOPRA l editor che lo apre ---');
 {
   t('non e piu a livello 301, sotto l editor (321) e il suo menu (330)',
-     /<div class="modal tier-editor-top" id="modalComposizioneMappa"/.test(src));
+     /<div class="modal tier-editor-top[^"]*" id="modalComposizioneMappa"/.test(src));
   t('e anche il suo velo di fondo', /<div class="modal-overlay tier-editor-top" id="modalComposizioneMappaOverlay">/.test(src));
   t('tier-editor-top vale 341, sopra tutto quello che puo aprirlo',
      /\.modal\.tier-editor-top \{ z-index: 341; \}/.test(src));
@@ -731,7 +731,7 @@ console.log('--- La barra del compositore: allineata e compatta ---');
   t('ma non sotto il dito su mobile, dove tornano a 30',
      /@media \(max-width: 640px\) \{[\s\S]{0,200}#composizioneBarra \.note-tb-btn \{ height: 30px;/.test(src));
   t('le note esplicative hanno una classe loro, piccola',
-     /#composizioneBarra \.comp-nota \{ font-size: 9\.5px;/.test(src));
+     /#composizioneBarra \.comp-nota \{ font-size: var\(--fs-didascalia\);/.test(src));
   t('e sono davvero usate, invece di stili ripetuti a mano',
      (src.match(/class="comp-nota"/g) || []).length >= 6);
   t('nessuna nota lunga e rimasta con lo stile scritto in linea',

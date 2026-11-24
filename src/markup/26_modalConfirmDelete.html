@@ -1,25 +1,25 @@
 
     <div class="modal-overlay" id="modalConfirmDeleteOverlay"></div>
-    <div class="modal" id="modalConfirmDelete">
-        <div class="modal-title" style="color: var(--danger); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+    <div class="modal" id="modalConfirmDelete" role="dialog" aria-modal="true" aria-labelledby="modalConfirmDeleteTitolo">
+        <div class="modal-title conf-riga-campo-pericolo" id="modalConfirmDeleteTitolo">
             <svg class="ico"><use href="#i-trash"/></svg> Elimina Progetto
         </div>
-        <p style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; line-height: 1.5;">
-            Sei sicuro di voler eliminare il progetto <strong id="lblDeleteProjName" style="color: var(--accent);">"Progetto"</strong> e tutte le relative prove penetrometriche?
+        <p class="conf-testo-mb">
+            Sei sicuro di voler eliminare il progetto <strong id="lblDeleteProjName" class="conf-accento">"Progetto"</strong> e tutte le relative prove penetrometriche?
         </p>
         <!-- (Fase C) Stesso campo «Scrivi CANCELLA» della prova: due tocchi per sbaglio non bastano. -->
-        <div class="form-group" style="margin-bottom: 6px;">
-            <label style="color: var(--danger);">Scrivi CANCELLA per confermare</label>
+        <div class="form-group c-mb3">
+            <label class="c-pericolo">Scrivi CANCELLA per confermare</label>
             <input type="text" id="txtDeleteProjConfirm" class="form-control" placeholder="CANCELLA" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); background: var(--bg-main); padding: 8px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); margin-bottom: 18px;">
+        <div class="conf-did-muto-sfondo">
             <svg class="ico"><use href="#i-info"/></svg> Per 10 secondi puoi ancora annullare dalla barra notifiche; dopo, il progetto resta solo nelle copie automatiche.
         </div>
-        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button class="btn-action" id="btnCancelDeleteProjModal" style="background: var(--bg-card-hover); border: 1px solid var(--border); font-size: 12px; font-weight: 600;">
+        <div class="modal-actions conf-riga">
+            <button class="btn-action conf-did-sfondo-bordo" id="btnCancelDeleteProjModal">
                 Chiudi
             </button>
-            <button class="btn-action" id="btnConfirmDeleteProjModal" style="background: var(--danger); color: #ffffff; border: none; font-size: 12px; font-weight: 800; padding: 8px 16px; opacity: 0.45; pointer-events: none;" disabled aria-disabled="true">
+            <button class="btn-action conf-did-sfondo-bordo2" id="btnConfirmDeleteProjModal" disabled aria-disabled="true">
                 <svg class="ico"><use href="#i-trash"/></svg> Elimina definitivamente
             </button>
         </div>
