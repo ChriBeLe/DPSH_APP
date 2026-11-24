@@ -293,7 +293,7 @@
                                 pendingBarGrowAnim = !animato;
                                 updateUI();
                                 pendingBarGrowAnim = false;
-                                saveState();
+                                salvaDopoLaTransizione();
                             });
                             triggerVibrate(30);
                             if (!conMorph) flashDataChangedCards();

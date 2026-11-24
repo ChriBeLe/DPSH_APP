@@ -394,7 +394,7 @@
                 viewTransitionsEnabled = true;
                 renderPc();
 
-                saveState();
+                salvaDopoLaTransizione();
             }
 
             // PUNTO DI EXPORT UNICO: da Vista Prova ed Elaborazione, apre sempre la stessa modale
