@@ -105,6 +105,9 @@
             const aggiornaCursori = (dentro) => (dentro || document).querySelectorAll(SCHEDE_CON_CURSORE).forEach(aggiornaCursore);
 
             // Un osservatore solo per i due casi: una scheda scelta, una finestra aperta.
+            // I cursori si aggiornano tutti in un solo fotogramma (niente layout forzato dentro gli aggiornamenti).
+            const gruppiDaAggiornare = new Set();
+            let rafCursori = 0;
             new MutationObserver(lista => {
                 const gruppi = new Set();
                 lista.forEach(m => {
@@ -115,7 +118,14 @@
                         requestAnimationFrame(() => aggiornaCursori(el));
                     }
                 });
-                gruppi.forEach(aggiornaCursore);
+                if (!gruppi.size) return;
+                gruppi.forEach(g => gruppiDaAggiornare.add(g));
+                if (!rafCursori) rafCursori = requestAnimationFrame(() => {
+                    rafCursori = 0;
+                    const da = [...gruppiDaAggiornare];
+                    gruppiDaAggiornare.clear();
+                    da.forEach(aggiornaCursore);
+                });
             }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-selected', 'class'], attributeOldValue: true });
             window.addEventListener('resize', () => aggiornaCursori());
             aggiornaCursori();
@@ -149,7 +159,12 @@
                 metti(document.getElementById('lblIntegratedTotalSteps'), 'mp-reg-titolo');
                 metti(document.getElementById('integratedLegendContainer'), 'mp-legenda');
                 ['cardCounterDashboard', 'cardUltimiIntervalli', 'cardLogsTable', 'cardChart'].forEach(id => metti(document.getElementById(id), 'mp-' + id));
-                const righe = [...document.querySelectorAll('#tblIntegratedLogsBody .swipe-row-wrapper')].slice(0, MORPH_PROVA_RIGHE);
+                // Solo le righe che toccano la finestra: le altre non si vedono, nominarle costa e basta
+                const altezzaFinestra = window.innerHeight;
+                const righe = [...document.querySelectorAll('#tblIntegratedLogsBody .swipe-row-wrapper')].filter(r => {
+                    const b = r.getBoundingClientRect();
+                    return b.bottom > 0 && b.top < altezzaFinestra;
+                }).slice(0, MORPH_PROVA_RIGHE);
                 righe.forEach((r, i) => {
                     metti(r, 'mp-riga-' + i, 'mp-riga');
                     metti(r.querySelector('.swipe-content > div:nth-child(2)'), 'mp-colpi-' + i, 'mp-riga');
