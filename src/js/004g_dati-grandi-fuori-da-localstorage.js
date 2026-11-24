@@ -11,6 +11,12 @@
             // confermata i salvataggi successivi scrivono il riferimento. Se l'app si chiude in mezzo,
             // il dato è ancora nel testo; se IndexedDB non funziona resta tutto com'è sempre stato.
             //
+            // COMPATIBILITÀ ALL'INDIETRO (resta il formato dati 4, nessun salto di versione): i file
+            // esportati non contengono mai riferimenti perché ogni export aspetta attendiDatiGrandi, quindi
+            // un'app di prima li apre. In localStorage il riferimento è una breve stringa: un'app di prima
+            // la tiene e la riscrive com'è, il blob in IndexedDB non si perde e questa app lo risolve di
+            // nuovo; l'app vecchia mostrerebbe soltanto quell'unica immagine/DTM come mancante.
+            //
             // Niente cancellazioni: copie automatiche e cronologia possono citare un id vecchio, quindi
             // un blob non si toglie mai in automatico (lo mostra «Spazio occupato»).
             //
