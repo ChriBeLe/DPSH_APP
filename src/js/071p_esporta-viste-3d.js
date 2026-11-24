@@ -860,6 +860,7 @@
 
             /** ESPORTA: le pagine spuntate, nell'ordine, in un PDF o in immagini (una sola: il file; più: ZIP). */
             async function esportaTavole3d() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const d = datiVista3dCorrenti, proj = state.projects[state.currentProjectId];
                 const voci = tavole3d.voci.filter(v => !tavole3d.escluse.has(v.id));
                 if (!d || !proj || !voci.length || tavole3d.lavoro) return;

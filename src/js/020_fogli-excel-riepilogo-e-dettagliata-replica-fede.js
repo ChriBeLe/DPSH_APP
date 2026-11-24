@@ -170,6 +170,7 @@
             }
 
             async function documentoEsportazioneAvanzata(){
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const proj = state.projects[state.currentProjectId];
                 const prove = elencoProveProgetto();
                 if (prove.length === 0) return '<p style="font-family:Arial,sans-serif;">Nessuna prova disponibile in questo progetto.</p>';

@@ -15,6 +15,7 @@
              * foglio (vedi .dpsh-preview-sheet), che in stampa non esiste. Quel che si vede qui è
              * quindi letteralmente lo stesso elemento che verrà stampato, non una sua imitazione. */
             async function generaAnteprimaStampaReale() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const iframe = document.getElementById('iframeAnteprimaStampaReale');
                 const statusBar = document.getElementById('anteprimaStampaRealeStatus');
                 if (!iframe) return;

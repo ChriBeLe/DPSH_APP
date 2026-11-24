@@ -471,6 +471,7 @@
              * e un messaggio d'errore sui popup, tutto per una finestra che nell'uso reale non si
              * apre. Rimossa: resta un solo percorso, uguale su APK e su desktop. */
             async function avviaGenerazioneEsportazionePdf() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (!esportaPdfContext) return;
                 sincronizzaTemplateEditorConStatoSalvato();
 
@@ -1274,6 +1275,7 @@
             // opz.perPacchetto(nomeFile, byte): invece di scaricare, consegna il file al pacchetto ZIP
             // di «Esporta cantiere» (044d), e gli errori risalgono invece di finire in un avviso.
             async function exportProjectExcel(projId, soloProve, opz) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 try {
                     const proj = state.projects[projId];
                     if (!proj) {

@@ -307,6 +307,13 @@
              * porterebbe alcun dato utente) — stesso identico pattern già usato per il backup globale
              * dell'archivio (vedi exportGlobalJSONBackup), solo con un payload più mirato. */
             function esportaBackupTemplateReport() {
+                // Dati grandi (004g): le carte intestate dei template possono essere ancora riferimenti
+                // subito dopo l'avvio; si esporta quando sono tornate immagini vere.
+                // Se non c'è nessuna lettura in corso va subito, come prima (anche in modo sincrono).
+                if (!(datiGrandi.dati && datiGrandi.dati.risoluzione)) return esportaBackupTemplateReportOra();
+                attendiDatiGrandi().then(esportaBackupTemplateReportOra);
+            }
+            function esportaBackupTemplateReportOra() {
                 try {
                     const daEsportare = {};
                     Object.values(state.reportTemplates || {}).forEach(t => {

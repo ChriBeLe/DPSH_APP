@@ -119,6 +119,7 @@
              * opz: soloProve (Set di id, null = tutte), segnale (AbortSignal), onAvanzamento(testo, quota 0-1),
              * salta ({ report, excel, kmz, foto }: true per non produrre quella parte). */
             async function costruisciPacchettoProgetto(projId, opz) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const o = opz || {};
                 const proj = state.projects[projId];
                 if (!proj) throw new Error('Progetto non trovato.');
@@ -272,6 +273,7 @@
             }
 
             async function esportaCantiereZip(projId, soloProve) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (pacchettoInCorso) return;
                 const proj = state.projects[projId];
                 if (!proj) return;

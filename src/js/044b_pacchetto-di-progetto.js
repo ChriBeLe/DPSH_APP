@@ -264,6 +264,7 @@
             /** Crea il pacchetto di un progetto. Ritorna { blob, nomeFile, manifest }. Registra nel
              * progetto (proj.passaggi) l'impronta con cui è uscito. Non scarica niente: lo fa chi chiama. */
             async function creaPacchettoProgetto(projId) {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 if (caricamentoDati.bloccato) throw new Error('i dati di questo dispositivo non sono stati letti: prima va risolto l\'avviso sui dati.');
                 if (!state.projects || !state.projects[projId]) throw new Error('progetto non trovato');
                 // Prima si salva: la prova aperta finisce nel progetto com'è adesso.

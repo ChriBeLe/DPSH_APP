@@ -105,7 +105,7 @@
              * la QUOTA CONCESSA dal browser a questa app — che non è lo spazio libero del telefono,
              * ma è il numero che conta davvero, perché è quello contro cui si va a sbattere. */
             async function calcolaSpazioOccupato() {
-                const risultato = { usato: 0, quota: 0, stimaDisponibile: false, localStorageBytes: 0, fotoBytes: 0, fotoCount: 0, noteBytes: 0, noteCount: 0, orfaneCount: 0, orfaneBytes: 0 };
+                const risultato = { usato: 0, quota: 0, stimaDisponibile: false, localStorageBytes: 0, fotoBytes: 0, fotoCount: 0, noteBytes: 0, noteCount: 0, grandiBytes: 0, grandiCount: 0, orfaneCount: 0, orfaneBytes: 0 };
                 try {
                     const raw = localStorage.getItem('dpsh_app_state') || '';
                     // 2 byte per carattere: le stringhe in localStorage sono UTF-16.
@@ -126,6 +126,12 @@
                 risultato.fotoBytes = foto.reduce((s, r) => s + r.bytes, 0);
                 risultato.noteCount = note.length;
                 risultato.noteBytes = note.reduce((s, r) => s + r.bytes, 0);
+
+                // DATI GRANDI (004g): il peso di DPSH_DatiGrandi. Non è mai «orfano» in questo passo:
+                // le copie e la cronologia possono citarne gli id, quindi nessuna cancellazione.
+                const grandi = await elencaDatiGrandi();
+                risultato.grandiCount = grandi.count;
+                risultato.grandiBytes = grandi.bytes;
 
                 const fotoVive = idFotoAncoraInUso();
                 const noteVive = idImmaginiNoteAncoraInUso();

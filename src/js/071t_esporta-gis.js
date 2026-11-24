@@ -390,6 +390,7 @@
             /** Le tavole e la vista 3D si fanno dal 3D: se si è nella mappa 2D, ci si passa. */
             function nel3d() { if (areaMappa.modo !== '3d') modoAreaMappa('3d'); }
             async function esportaGis() {
+                await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti || datiVista3d(proj), f = gisStato.formato;
                 if (!FORMATI_GIS.includes(f)) {
                     G('esportaGis').hidden = true;

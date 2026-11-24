@@ -57,13 +57,44 @@ PDF (045) e la miniatura nella mappa del progetto (071l).
 Restano nel costo di un tocco `registraModificheVere` e la cronologia (proporzionali all'archivio):
 li toglie il passo 3.
 
-### Passo 2 — Immagini e DTM fuori da `localStorage` (dopo la fase A)
-Carte intestate (`tpl.cartaIntestata`), immagine dell'intestazione (`hd.imageDataUrl`),
-`templateImages` delle prove e `proj.dtm` vanno in IndexedDB, nello stesso database delle foto,
-con un riferimento per id nello stato. Serve una **migrazione registrata** (dopo la 3→4 della fase
-B), la reidratazione negli export e nei pacchetti, e `idImmaginiAncoraInUso` per non cancellarle
-finché un passo di Annulla le cita. Tocca import, pacchetto ed export, cioè i file della fase A:
-va fatto quando la fase A è unita.
+### Passo 2 — Immagini e DTM fuori da `localStorage` (dopo la fase A, progetto del 23/11/2026)
+**Idea: si sposta solo il testo salvato, non lo stato in memoria.** In memoria carte intestate,
+immagini dei template, `templateImages` e `proj.dtm.quote` restano come oggi, quindi nessuno dei
+circa 40 punti che li leggono cambia. Cambia solo cosa scrive `saveState`.
+
+1. **Cosa esce.** Ogni stringa di almeno 64 KB nello stato, fuori da foto e note (che hanno già il
+   loro meccanismo). Una regola generica copre carte intestate, intestazioni, `templateImages`, DTM
+   e qualunque immagine grande aggiunta in futuro, senza un elenco di campi da tenere aggiornato.
+2. **Dove va.** Un database IndexedDB nuovo e separato, `DPSH_DatiGrandi`, archivio `blob`
+   (`{ id, testo, scrittoIl }`). Separato per non cambiare versione a `DPSH_PhotoStorageDB`.
+3. **Il riferimento.** Al posto della stringa, nel testo salvato: `"dpsh-grande:<id>"`. L'id si
+   assegna la prima volta che una stringa si vede (una `Map` testo → id in memoria) ed è casuale.
+4. **Prima il dato, poi il riferimento.** Una stringa nuova si salva ancora **dentro** il testo di
+   `localStorage`, come oggi, e intanto parte la scrittura in IndexedDB (riletta, come
+   `salvaFotoConGaranzia`). Solo quando quella scrittura è confermata, i salvataggi successivi
+   scrivono il riferimento. Se il telefono chiude l'app in mezzo, il dato è ancora nel testo.
+   Se IndexedDB non funziona, resta tutto com'è oggi (inline): nessuna perdita, solo meno spazio.
+5. **Lettura all'avvio.** `loadState` resta sincrono. Se il testo contiene riferimenti, dopo
+   l'avvio li si risolve da IndexedDB e si rimettono nello stato, poi `updateUI()`. Finché non sono
+   risolti, `saveState` riscrive i riferimenti così come sono (non li perde) e gli export
+   aspettano la risoluzione (`attendiDatiGrandi()`), così nessun file esce con un riferimento al
+   posto dell'immagine. Un riferimento che non si trova diventa un'anomalia di
+   `controllaIntegritaDopoAvvio`, con l'avviso esistente.
+6. **Niente cancellazioni in questo passo.** Le copie automatiche e la cronologia possono citare un
+   id vecchio: un blob non si cancella mai in automatico. «Spazio occupato» mostra il peso di
+   `DPSH_DatiGrandi`; la pulizia sicura (scansione di stato e copie) è un lavoro a parte.
+7. **Migrazione 4→5.** Non tocca i dati (i riferimenti compaiono man mano), ma alza
+   `VERSIONE_SCHEMA_DATI` a 5: un'app vecchia che trova riferimenti rifiuta i dati con il
+   messaggio «dati di una versione più nuova» invece di mostrare carte intestate vuote e salvarci
+   sopra.
+
+Misura attesa: la chiave `dpsh_app_state` torna alle dimensioni dei soli dati di prova, e un +1
+non riscrive più carte intestate e DTM.
+
+**Esito (23/11/2026).** Codice in `src/js/004g_dati-grandi-fuori-da-localstorage.js`, migrazione
+4→5 in 004b, suite `test/dati_grandi.js`. Misura: chiave `dpsh_app_state` da 3,0 a 1,0 M caratteri,
+`saveState` dopo un +1 da ~52 a ~43 ms. Da sapere: anche i file esportati dichiarano formato 5,
+quindi un'app di prima li rifiuta («versione più nuova»): telefono e PC vanno aggiornati insieme.
 
 ### Passo 3 — Salvare solo il progetto che cambia (da decidere)
 Una chiave di `localStorage` per progetto più un indice, con la stessa scrittura sincrona e

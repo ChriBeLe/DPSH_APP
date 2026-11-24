@@ -40,12 +40,17 @@
             //   esito: 'in-corso' | 'ok' | 'vuoto' | 'illeggibile' | 'piu-nuovo' | 'inaccessibile'
             //   bloccato: perché saveState non scrive ('avvio', 'dati-non-letti', 'migrazione') o false
             // Formato 4 (revisione dei calcoli, Fase B): le profondità sono arrotondate al millimetro.
-            // L'app scrive SEMPRE il formato 4. Legge il 3 (e i più vecchi) passando dalle migrazioni,
-            // che prima salvano una copia automatica del testo di prima; legge il 4 così com'è.
+            // Formato 5 (prestazioni, passo 2): il testo salvato può portare «dpsh-grande:<id>» al posto
+            // delle stringhe da 64 KB in su (carte intestate, DTM…), che stanno in IndexedDB (004g). I dati
+            // non cambiano forma, ma un'app del formato 4 non saprebbe risolvere i riferimenti: alzando
+            // il numero li rifiuta con «dati di una versione più nuova» invece di mostrare carte
+            // intestate vuote e salvarci sopra.
+            // L'app scrive SEMPRE il formato 5. Legge il 4 e i precedenti passando dalle migrazioni,
+            // che prima salvano una copia automatica del testo di prima; legge il 5 così com'è.
             // VERSIONE_SCHEMA_LETTA è il massimo formato accettato: una forma futura identica a
             // quella corrente si leggerebbe com'è (vedi migraDati), oltre si rifiuta senza toccare nulla.
-            const VERSIONE_SCHEMA_DATI = 4;
-            const VERSIONE_SCHEMA_LETTA = 4;
+            const VERSIONE_SCHEMA_DATI = 5;
+            const VERSIONE_SCHEMA_LETTA = 5;
             const caricamentoDati = {
                 esito: 'in-corso', bloccato: 'avvio', salvataggiEvitati: 0,
                 dettaglio: '', testoGrezzo: null, quarantena: null, scaricato: false, migrazione: null
