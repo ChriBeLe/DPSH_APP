@@ -514,10 +514,27 @@
                     throw e;
                 } finally { clearTimeout(timer); }
             }
+
+            // Prima di ogni richiesta la cronologia si «pota» (la copia salvata non cambia): risultati di strumenti
+            // vecchi accorciati, immagini solo nelle ultime 2 domande, al massimo ~40 voci. Meno testo = meno timeout.
+            const AI_MAX_VOCI = 40, AI_MAX_RIS = 6000, AI_MAX_RIS_VECCHIO = 500;
+            function aiPotaCrono(crono) {
+                let da = 0;
+                if (crono.length > AI_MAX_VOCI) for (let i = crono.length - AI_MAX_VOCI; i < crono.length; i++) if (crono[i].r === 'u') { da = i; break; }
+                const v = crono.slice(da), ultimaT = (() => { for (let i = v.length - 1; i >= 0; i--) if (v[i].r === 't') return i; return -1; })();
+                const conImg = []; v.forEach((m, i) => { if (m.r === 'u' && (m.all || []).some(a => a.tipo === 'img' && a.b64)) conImg.push(i); });
+                const tieni = new Set(conImg.slice(-2));
+                const taglia = (c, lim) => (typeof c === 'string' && c.length > lim) ? c.slice(0, lim) + '…[troncato]' : c;
+                return v.map((m, i) => {
+                    if (m.r === 't') return Object.assign({}, m, { res: m.res.map(x => Object.assign({}, x, { c: taglia(x.c, i === ultimaT ? AI_MAX_RIS : AI_MAX_RIS_VECCHIO) })) });
+                    if (m.r === 'u' && m.all && conImg.includes(i) && !tieni.has(i)) return Object.assign({}, m, { all: m.all.map(a => a.tipo === 'img' ? Object.assign({}, a, { b64: undefined }) : a) });
+                    return m;
+                });
+            }
             async function aiChiama(id, crono, onTesto) {
-                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, crono);
+                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, aiPotaCrono(crono));
                 if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
-                return aiPostaRichiesta(d, r, 60000, onTesto);
+                return aiPostaRichiesta(d, r, 120000, onTesto);
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
             async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {
@@ -616,14 +633,29 @@
             }
 
             const aiVicino = () => aiChat.scrollHeight - aiChat.scrollTop - aiChat.clientHeight < 120;
-            // copia + «Mostra tutto» per i messaggi lunghi
-            function aiRifinisci(m, testo, cls) {
-                m.querySelectorAll('.ai-copia, .ai-espandi').forEach(x => x.remove());
+            // sotto ogni messaggio: Copia (sempre), Modifica (le tue domande), «Mostra tutto» se è lungo
+            function aiCopiaTesto(t) {
+                if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+                return new Promise((ok, ko) => { const x = document.createElement('textarea'); x.value = t; x.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(x); x.select(); try { document.execCommand('copy') ? ok() : ko(); } catch (e) { ko(e); } x.remove(); });
+            }
+            function aiModifica(m, ci) {
+                if (aiOccupato) return;
+                const e = aiCrono[ci]; if (!e || e.r !== 'u') return;
+                aiCampo.value = e.t === 'Guarda gli allegati.' ? '' : e.t;
+                aiAllegati = (e.all || []).filter(a => a.tipo === 'txt' ? a.contenuto != null : !!a.b64);
+                aiCrono.length = ci;
+                if (aiChatAtt) { const k = aiChatAtt.vista.findIndex(v => v[2] === ci); if (k >= 0) aiChatAtt.vista.length = k; }
+                while (m.nextSibling) m.nextSibling.remove();
+                m.remove(); aiDisegnaAllegati(); aiCampo.dispatchEvent(new Event('input')); aiCampo.focus(); aiSalvaChat();
+            }
+            function aiRifinisci(m, testo, cls, ci) {
+                m.querySelectorAll('.ai-az, .ai-espandi').forEach(x => x.remove());
                 if (cls !== 'ia' && cls !== 'utente') return;
-                const b = aiEl('button', 'ai-copia'); b.type = 'button'; b.setAttribute('aria-label', 'Copia il messaggio'); b.title = 'Copia';
-                b.innerHTML = '<svg class="ico"><use href="#i-copy"/></svg>';
-                b.onclick = async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(testo); b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1200); } catch (er) { /* copia negata dal browser */ } };
-                m.appendChild(b);
+                const az = aiEl('div', 'ai-az');
+                const bt = (et, ic, fn) => { const b = aiEl('button'); b.type = 'button'; b.innerHTML = '<svg class="ico"><use href="#' + ic + '"/></svg>'; b.appendChild(document.createTextNode(et)); b.onclick = fn; az.appendChild(b); };
+                bt('Copia', 'i-copy', async ev => { ev.stopPropagation(); const b = ev.currentTarget; try { await aiCopiaTesto(testo); b.lastChild.textContent = 'Copiato ✓'; } catch (er) { b.lastChild.textContent = 'Non riesco'; } setTimeout(() => { b.lastChild.textContent = 'Copia'; }, 1400); });
+                if (cls === 'utente' && ci != null) bt('Modifica', 'i-edit', () => aiModifica(m, ci));
+                m.appendChild(az);
                 if (testo && testo.length > 900) {
                     m.classList.add('lungo', 'chiuso');
                     const t = aiEl('button', 'ai-espandi', 'Mostra tutto'); t.type = 'button';
@@ -632,14 +664,14 @@
                 }
             }
             function aiMsg(cls, testo, salva) {
-                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
-                if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
+                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls, cls === 'utente' ? aiCrono.length - 1 : null); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
+                if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push(cls === 'utente' ? [cls, testo, aiCrono.length - 1] : [cls, testo]); aiSalvaChat(); }
                 return m;
             }
             function aiMostraChat(c) {
                 aiChatAtt = c; aiCrono = c.crono;
                 aiChat.textContent = '';
-                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls); });
+                c.vista.forEach(([cls, t, ci]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls, ci); });
                 if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
                 aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
             }
