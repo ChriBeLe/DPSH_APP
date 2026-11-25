@@ -12,15 +12,15 @@
             // acceso questo pezzo non fa nessuna richiesta di rete.
             const AI_CHIAVE = 'DPSH_AI_V1';
             const AI_PROVIDER = [
-                { id: 'gemini', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
+                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
-                { id: 'groq', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
+                { id: 'groq', prefisso: 'gsk_', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
-                { id: 'openrouter', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
+                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
                   passi: ['Apri OpenRouter e crea un account.', 'Vai su «Keys» e premi «Create Key».', 'Copia la chiave (inizia con «sk-or-») e incollala qui sotto. I modelli con «:free» nel nome non costano.'] },
-                { id: 'anthropic', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
+                { id: 'anthropic', prefisso: 'sk-ant-', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
                   passi: ['Apri la console di Anthropic e accedi.', 'In «Billing» aggiungi un po\' di credito (bastano pochi euro).', 'In «API Keys» premi «Create Key», copia la chiave (inizia con «sk-ant-») e incollala qui sotto.'] },
-                { id: 'openai', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', pref: /mini/, costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
+                { id: 'openai', prefisso: 'sk-', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', pref: /mini/, costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
                   passi: ['Apri la piattaforma OpenAI e accedi.', 'In «Billing» aggiungi un po\' di credito.', 'In «API keys» premi «Create new secret key», copia la chiave (inizia con «sk-») e incollala qui sotto.'] },
                 { id: 'ollama', nome: 'Ollama (sul tuo PC)', tipo: 'openai', base: 'http://localhost:11434/v1', pref: /./, costo: 'Gratis, funziona sul tuo computer', url: 'https://ollama.com/download', senzaChiave: true,
                   passi: ['Installa Ollama dalla pagina qui sopra e avvialo.', 'Da terminale scarica un modello, per esempio: ollama pull llama3.1', 'Per far parlare l\'app con Ollama avvialo con la variabile OLLAMA_ORIGINS="*" (altrimenti il browser blocca la richiesta).', 'L\'indirizzo qui sotto è quello standard: cambialo solo se Ollama è su un altro computer.'] }
@@ -46,6 +46,36 @@
             const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
             const aiProntiInOrdine = () => aiCfg.ordine.filter(aiPronto);
             const aiEl = (tag, cls, testo) => { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; };
+
+
+            // Formattazione sicura delle risposte: solo nodi DOM (mai innerHTML). Capisce **grassetto**, `codice`,
+            // blocchi ```codice```, elenchi con - o 1.
+            function aiInline(el, t) {
+                t.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(pz => {
+                    if (!pz) return;
+                    if (/^\*\*[^*]+\*\*$/.test(pz)) el.appendChild(aiEl('strong', null, pz.slice(2, -2)));
+                    else if (/^`[^`]+`$/.test(pz)) el.appendChild(aiEl('code', null, pz.slice(1, -1)));
+                    else el.appendChild(document.createTextNode(pz));
+                });
+            }
+            function aiFormatta(testo) {
+                const fr = document.createDocumentFragment(); let lista = null, cod = null;
+                String(testo == null ? '' : testo).split('\n').forEach(r => {
+                    if (/^\s*```/.test(r)) { if (cod) { fr.appendChild(cod.el); cod = null; } else { lista = null; cod = { el: aiEl('pre', 'ai-cod'), righe: [] }; } return; }
+                    if (cod) { cod.el.textContent += (cod.el.textContent ? '\n' : '') + r; return; }
+                    const m = /^\s*(?:([-*•])|(\d+)[.)])\s+(.*)$/.exec(r);
+                    if (m) {
+                        const tipo = m[1] ? 'UL' : 'OL';
+                        if (!lista || lista.tagName !== tipo) { lista = aiEl(tipo.toLowerCase(), 'ai-lista'); fr.appendChild(lista); }
+                        const li = aiEl('li'); aiInline(li, m[3]); lista.appendChild(li); return;
+                    }
+                    lista = null;
+                    if (!r.trim()) return;
+                    const p = aiEl('div', 'ai-par'); aiInline(p, r); fr.appendChild(p);
+                });
+                if (cod) fr.appendChild(cod.el);
+                return fr;
+            }
 
             // --- strumenti: cosa può fare l'assistente ---
             // w = modifica (chiede conferma), altrimenti lettura libera. Nessuno strumento elimina dati.
@@ -442,7 +472,8 @@
             aiBolla.innerHTML = '<svg class="ico"><use href="#i-sparkles"/></svg>';
             const aiPannello = aiEl('div'); aiPannello.id = 'aiPannello'; aiPannello.setAttribute('role', 'dialog'); aiPannello.setAttribute('aria-label', 'Assistente IA');
             const aiTesta = aiEl('div', 'ai-testa'); aiTesta.append(aiEl('span', null, 'Assistente IA'), aiEl('span', 'ai-spazio'));
-            const aiBtnCron = aiEl('button', null, 'Cronologia'), aiBtnNuova = aiEl('button', null, '+ Nuova'), aiBtnChiudi = aiEl('button', null, '✕'); aiBtnChiudi.setAttribute('aria-label', 'Chiudi');
+            const aiBtnCron = aiEl('button', 'ai-ib'), aiBtnNuova = aiEl('button', 'ai-ib'), aiBtnChiudi = aiEl('button', 'ai-ib');
+            [[aiBtnCron, 'i-list', 'Cronologia delle chat'], [aiBtnNuova, 'i-plus', 'Nuova chat'], [aiBtnChiudi, 'i-x', 'Chiudi']].forEach(([b, ic, et]) => { b.type = 'button'; b.setAttribute('aria-label', et); b.title = et; b.innerHTML = '<svg class="ico"><use href="#' + ic + '"/></svg>'; });
             aiTesta.append(aiBtnCron, aiBtnNuova, aiBtnChiudi);
             const aiSub = aiEl('div', 'ai-sub'), aiChip = aiEl('div', 'ai-chip-prog');
             const aiSelProv = aiEl('select'), aiSelMod = aiEl('select'); aiSelProv.setAttribute('aria-label', 'Provider'); aiSelMod.setAttribute('aria-label', 'Modello');
@@ -478,14 +509,14 @@
                 aiScriviArchivio();
             }
             function aiMsg(cls, testo, salva) {
-                const m = aiEl('div', 'ai-msg ' + cls, testo); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight;
+                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight;
                 if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
                 return m;
             }
             function aiMostraChat(c) {
                 aiChatAtt = c; aiCrono = c.crono;
                 aiChat.textContent = '';
-                c.vista.forEach(([cls, t]) => aiChat.appendChild(aiEl('div', 'ai-msg ' + cls, t)));
+                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); });
                 if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
                 aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
             }
@@ -553,9 +584,9 @@
                 const testo = aiCampo.value.trim();
                 if (!testo || aiOccupato) return;
                 if (!aiChatAtt) aiSaluto();
-                aiCampo.value = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
+                aiCampo.value = ''; aiCampo.style.height = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
                 aiOccupato = true; aiInvia.disabled = true;
-                const attesa = aiMsg('attesa info', 'Penso…', false);
+                const attesa = aiMsg('attesa info', 'Penso', false); attesa.append(aiEl('span', 'ai-pt')); for (let i = 0; i < 3; i++) attesa.lastChild.appendChild(aiEl('i'));
                 let spinto = false;
                 try {
                     for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
@@ -575,6 +606,7 @@
                 aiSalvaChat(); attesa.remove(); aiOccupato = false; aiInvia.disabled = false; aiCampo.focus();
             }
             aiInvia.onclick = aiInviaDomanda;
+            aiCampo.addEventListener('input', () => { aiCampo.style.height = 'auto'; aiCampo.style.height = Math.min(110, Math.max(40, aiCampo.scrollHeight)) + 'px'; });
             aiCampo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiInviaDomanda(); } });
             aiBtnNuova.onclick = () => { if (!aiOccupato) { aiSaluto(); aiAggiornaTesta(); } };
             const aiApri = su => {
@@ -585,7 +617,7 @@
                 const pid = aiPidAtt();
                 if (!aiChatAtt || aiChatAtt.pid !== pid) { const ultima = (aiArchivio[pid] || [])[0]; if (ultima) aiMostraChat(ultima); else aiSaluto(); }
                 aiAggiornaTesta();
-                if (!aiProntiInOrdine().length) aiMsg('info', 'Prima scegli un provider da Impostazioni › Assistente IA.', false);
+                if (!aiProntiInOrdine().length) { const mm = aiMsg('info', 'Manca la chiave API. ', false), bb = aiEl('button', 'ai-chip', 'Configura ora'); bb.type = 'button'; bb.onclick = aiWizElenco; mm.appendChild(bb); }
                 setTimeout(() => aiCampo.focus(), 50);
             };
             aiBolla.onclick = () => { if (aiDopoTrascina) return; aiApri(!aiPannello.classList.contains('aperto')); };
@@ -739,6 +771,11 @@
                 aiRiadTimer = setTimeout(() => { aiBollaRiadatta(false); aiPonia(aiPannello, 'pannello'); if (aiPannello.classList.contains('aperto')) aiPosizionaPannello(); }, 60);
             };
             addEventListener('resize', aiRiadatta); addEventListener('orientationchange', aiRiadatta);
+            // tastiera su telefono: il pannello segue l'area davvero visibile
+            if (window.visualViewport) {
+                const vv = window.visualViewport, aiVv = () => { aiPannello.style.setProperty('--ai-vh', vv.height + 'px'); aiPannello.style.setProperty('--ai-off', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); };
+                vv.addEventListener('resize', aiVv); vv.addEventListener('scroll', aiVv); aiVv();
+            }
             aiBollaRiadatta(false);
 
             // --- bolla «intelligente»: sa dove sei e cosa manca, e propone 1-3 scorciatoie (calcolate qui, senza IA) ---
@@ -814,7 +851,8 @@
             aiOv.addEventListener('click', e => { if (e.target === aiOv) aiWizChiudi(); });
             function aiWizMostra(nodi) { const w = aiEl('div', 'ai-wiz'); w.setAttribute('role', 'dialog'); w.append(...nodi); aiOv.textContent = ''; aiOv.appendChild(w); aiOv.classList.add('aperto'); }
             function aiWizElenco() {
-                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Configurane quanti vuoi; i gratuiti vanno benissimo per cominciare.')];
+                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare basta Gemini, che è gratis.')];
+                const altri = [];
                 aiCfg.ordine.forEach((id, i) => {
                     const d = aiDef(id), pronto = aiPronto(id);
                     const riga = aiEl('div', 'ai-riga');
@@ -825,8 +863,9 @@
                     giu.onclick = () => { aiCfg.ordine.splice(i + 1, 0, aiCfg.ordine.splice(i, 1)[0]); aiSalva(); aiWizElenco(); };
                     ap.onclick = () => aiWizProvider(id);
                     riga.append(nome, aiEl('span', 'ai-badge' + (pronto ? '' : ' no'), pronto ? 'pronto' : 'non configurato'), su, giu, ap);
-                    n.push(riga);
+                    if (pronto || id === 'gemini') n.push(riga); else altri.push(riga);
                 });
+                if (altri.length) { const det = aiEl('details', 'ai-altri'); det.appendChild(aiEl('summary', null, 'Altri provider (' + altri.length + ')')); altri.forEach(r => det.appendChild(r)); n.push(det); }
                 const az = aiEl('div', 'ai-azioni'), ok = aiEl('button', 'pri', 'Fatto'); ok.onclick = aiWizChiudi; az.appendChild(ok); n.push(az);
                 aiWizMostra(n);
             }
@@ -838,13 +877,14 @@
                 const azA = aiEl('div', 'ai-azioni'); azA.appendChild(apri); n.push(azA);
                 const campo = (et, tipo, val, ph) => { const w = aiEl('div'); w.appendChild(aiEl('label', null, et)); const i = aiEl('input'); i.type = tipo; i.value = val || ''; i.placeholder = ph || ''; i.autocomplete = 'off'; i.spellcheck = false; w.appendChild(i); n.push(w); return i; };
                 const iChiave = d.senzaChiave ? null : campo('Chiave API (resta solo su questo dispositivo)', 'password', c.chiave, 'incolla qui la chiave');
+                if (iChiave) { const tg = aiEl('button', 'ai-chip', 'Mostra la chiave'); tg.type = 'button'; tg.style.alignSelf = 'flex-start'; tg.onclick = () => { const mostraC = iChiave.type === 'password'; iChiave.type = mostraC ? 'text' : 'password'; tg.textContent = mostraC ? 'Nascondi la chiave' : 'Mostra la chiave'; }; n.push(tg); }
                 const iBase = d.senzaChiave ? campo('Indirizzo di Ollama', 'text', c.base || d.base) : null;
                 const wm = aiEl('div'); wm.appendChild(aiEl('label', null, 'Modello (si scarica dal provider dopo la chiave)'));
                 const sel = aiEl('select'); sel.style.cssText = 'width:100%;box-sizing:border-box;background:var(--bg-sunken);color:var(--text-main);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 10px;font:inherit;font-size:13px;';
                 wm.appendChild(sel); n.push(wm);
                 const esito = aiEl('div', 'ai-esito'); esito.style.display = 'none'; n.push(esito);
-                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), carica = aiEl('button', null, 'Carica i modelli'), prova = aiEl('button', null, 'Prova'), salva = aiEl('button', 'pri', 'Salva'), togli = aiEl('button', null, 'Rimuovi');
-                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim() : '', base: iBase ? iBase.value.trim() : '', modello: sel.value });
+                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), carica = aiEl('button', null, 'Carica i modelli'), prova = aiEl('button', null, 'Prova'), salva = aiEl('button', 'pri', 'Collega e salva'), togli = aiEl('button', null, 'Rimuovi');
+                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim().replace(/^["'«]+|["'»]+$/g, '').replace(/\s+/g, '') : '', base: iBase ? iBase.value.trim() : '', modello: sel.value });
                 const mostra = (ok, t) => { esito.style.display = ''; esito.className = 'ai-esito ' + (ok ? 'ok' : 'ko'); esito.textContent = t; };
                 const riempi = (el, scelto) => {
                     sel.textContent = '';
@@ -855,6 +895,7 @@
                 const caricaModelli = async () => {
                     const v = leggi();
                     if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return false; }
+                    if (d.prefisso && !v.chiave.startsWith(d.prefisso)) { mostra(false, 'La chiave di ' + d.nome + ' inizia con «' + d.prefisso + '». Questa no: controlla di aver copiato la chiave intera, senza spazi.'); return false; }
                     carica.disabled = true; mostra(true, 'Scarico l\'elenco dei modelli…');
                     try { const el = await aiElencoModelli(id, v); riempi(el, c.modello); mostra(true, el.length + ' modelli disponibili. Scegli dal menu.'); return true; }
                     catch (e) { sel.textContent = ''; mostra(false, 'Non riesco: ' + e.message); return false; }
@@ -876,7 +917,7 @@
                     } catch (e) { mostra(false, 'Non funziona: ' + e.message); }
                     for (const k of Object.keys(c)) delete c[k]; Object.assign(c, prec); prova.disabled = false;
                 };
-                salva.onclick = () => { const v = leggi(); if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } if (!v.modello) { mostra(false, 'Scegli un modello dal menu (premi «Carica i modelli»).'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
+                salva.onclick = async () => { let v = leggi(); if (!v.modello && (d.senzaChiave || v.chiave)) { if (!(await caricaModelli())) return; v = leggi(); } if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } if (!v.modello) { mostra(false, 'Scegli un modello dal menu (premi «Carica i modelli»).'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
                 togli.onclick = () => { delete aiCfg.provider[id]; aiSalva(); aiWizElenco(); };
                 indietro.onclick = aiWizElenco;
                 az.append(indietro); if (aiPronto(id)) az.appendChild(togli); az.append(carica, prova, salva); n.push(az);
