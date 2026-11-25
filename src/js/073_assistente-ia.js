@@ -12,15 +12,15 @@
             // acceso questo pezzo non fa nessuna richiesta di rete.
             const AI_CHIAVE = 'DPSH_AI_V1';
             const AI_PROVIDER = [
-                { id: 'gemini', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
+                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
-                { id: 'groq', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
+                { id: 'groq', prefisso: 'gsk_', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
-                { id: 'openrouter', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
+                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
                   passi: ['Apri OpenRouter e crea un account.', 'Vai su «Keys» e premi «Create Key».', 'Copia la chiave (inizia con «sk-or-») e incollala qui sotto. I modelli con «:free» nel nome non costano.'] },
-                { id: 'anthropic', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
+                { id: 'anthropic', prefisso: 'sk-ant-', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
                   passi: ['Apri la console di Anthropic e accedi.', 'In «Billing» aggiungi un po\' di credito (bastano pochi euro).', 'In «API Keys» premi «Create Key», copia la chiave (inizia con «sk-ant-») e incollala qui sotto.'] },
-                { id: 'openai', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', pref: /mini/, costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
+                { id: 'openai', prefisso: 'sk-', nome: 'OpenAI (ChatGPT)', tipo: 'openai', base: 'https://api.openai.com/v1', pref: /mini/, costo: 'A pagamento (credito prepagato)', url: 'https://platform.openai.com/api-keys',
                   passi: ['Apri la piattaforma OpenAI e accedi.', 'In «Billing» aggiungi un po\' di credito.', 'In «API keys» premi «Create new secret key», copia la chiave (inizia con «sk-») e incollala qui sotto.'] },
                 { id: 'ollama', nome: 'Ollama (sul tuo PC)', tipo: 'openai', base: 'http://localhost:11434/v1', pref: /./, costo: 'Gratis, funziona sul tuo computer', url: 'https://ollama.com/download', senzaChiave: true,
                   passi: ['Installa Ollama dalla pagina qui sopra e avvialo.', 'Da terminale scarica un modello, per esempio: ollama pull llama3.1', 'Per far parlare l\'app con Ollama avvialo con la variabile OLLAMA_ORIGINS="*" (altrimenti il browser blocca la richiesta).', 'L\'indirizzo qui sotto è quello standard: cambialo solo se Ollama è su un altro computer.'] }
@@ -46,6 +46,36 @@
             const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
             const aiProntiInOrdine = () => aiCfg.ordine.filter(aiPronto);
             const aiEl = (tag, cls, testo) => { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; };
+
+
+            // Formattazione sicura delle risposte: solo nodi DOM (mai innerHTML). Capisce **grassetto**, `codice`,
+            // blocchi ```codice```, elenchi con - o 1.
+            function aiInline(el, t) {
+                t.split(/(\*\*[^*]+\*\*|`[^`]+`)/).forEach(pz => {
+                    if (!pz) return;
+                    if (/^\*\*[^*]+\*\*$/.test(pz)) el.appendChild(aiEl('strong', null, pz.slice(2, -2)));
+                    else if (/^`[^`]+`$/.test(pz)) el.appendChild(aiEl('code', null, pz.slice(1, -1)));
+                    else el.appendChild(document.createTextNode(pz));
+                });
+            }
+            function aiFormatta(testo) {
+                const fr = document.createDocumentFragment(); let lista = null, cod = null;
+                String(testo == null ? '' : testo).split('\n').forEach(r => {
+                    if (/^\s*```/.test(r)) { if (cod) { fr.appendChild(cod.el); cod = null; } else { lista = null; cod = { el: aiEl('pre', 'ai-cod'), righe: [] }; } return; }
+                    if (cod) { cod.el.textContent += (cod.el.textContent ? '\n' : '') + r; return; }
+                    const m = /^\s*(?:([-*•])|(\d+)[.)])\s+(.*)$/.exec(r);
+                    if (m) {
+                        const tipo = m[1] ? 'UL' : 'OL';
+                        if (!lista || lista.tagName !== tipo) { lista = aiEl(tipo.toLowerCase(), 'ai-lista'); fr.appendChild(lista); }
+                        const li = aiEl('li'); aiInline(li, m[3]); lista.appendChild(li); return;
+                    }
+                    lista = null;
+                    if (!r.trim()) return;
+                    const p = aiEl('div', 'ai-par'); aiInline(p, r); fr.appendChild(p);
+                });
+                if (cod) fr.appendChild(cod.el);
+                return fr;
+            }
 
             // --- strumenti: cosa può fare l'assistente ---
             // w = modifica (chiede conferma), altrimenti lettura libera. Nessuno strumento elimina dati.
@@ -330,11 +360,16 @@
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
+
+            // Allegati di un messaggio utente: m.all = [{tipo:'img', mime, b64, nome} | {tipo:'txt', nome, contenuto, tagliato}].
+            // Quando una chat si salva, b64/contenuto/anteprima non vengono scritti (spazio): resta solo il nome.
+            const aiTestoU = m => { let t = m.t || ''; (m.all || []).forEach(a => { if (a.tipo === 'txt') t += '\n\n[Allegato: ' + a.nome + (a.tagliato ? ' (troncato)' : '') + ']\n' + (a.contenuto != null ? a.contenuto : '(contenuto non più disponibile)'); else if (!a.b64) t += '\n\n[Immagine «' + a.nome + '» non più disponibile]'; }); return t; };
+            const aiImg = m => (m.all || []).filter(a => a.tipo === 'img' && a.b64);
             const aiSchema = s => ({ type: 'object', properties: s.p, required: s.req || [] });
             const aiSenzaVuoti = o => Object.keys(o.properties).length ? o : undefined;
             const AI_ADATTATORI = {
                 anthropic(d, c, crono) {
-                    const msgs = crono.map(m => m.r === 'u' ? { role: 'user', content: m.t }
+                    const msgs = crono.map(m => m.r === 'u' ? { role: 'user', content: aiImg(m).length ? aiImg(m).map(a => ({ type: 'image', source: { type: 'base64', media_type: a.mime, data: a.b64 } })).concat([{ type: 'text', text: aiTestoU(m) }]) : aiTestoU(m) }
                         : m.r === 'a' ? { role: 'assistant', content: [].concat(m.t ? [{ type: 'text', text: m.t }] : [], (m.calls || []).map(k => ({ type: 'tool_use', id: k.id, name: k.n, input: k.a || {} }))) }
                         : { role: 'user', content: m.res.map(x => ({ type: 'tool_result', tool_use_id: x.id, content: x.c })) });
                     return {
@@ -346,7 +381,7 @@
                 openai(d, c, crono) {
                     const msgs = [{ role: 'system', content: aiMsgSistema() }];
                     crono.forEach(m => {
-                        if (m.r === 'u') msgs.push({ role: 'user', content: m.t });
+                        if (m.r === 'u') msgs.push({ role: 'user', content: aiImg(m).length ? [{ type: 'text', text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ type: 'image_url', image_url: { url: 'data:' + a.mime + ';base64,' + a.b64 } }))) : aiTestoU(m) });
                         else if (m.r === 'a') msgs.push({ role: 'assistant', content: m.t || null, ...(m.calls && m.calls.length ? { tool_calls: m.calls.map(k => ({ id: k.id, type: 'function', function: { name: k.n, arguments: JSON.stringify(k.a || {}) } })) } : {}) });
                         else m.res.forEach(x => msgs.push({ role: 'tool', tool_call_id: x.id, content: x.c }));
                     });
@@ -362,7 +397,7 @@
                     };
                 },
                 gemini(d, c, crono) {
-                    const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: m.t }] }
+                    const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ inlineData: { mimeType: a.mime, data: a.b64 } }))) }
                         : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => ({ functionCall: { name: k.n, args: k.a || {} } }))) }
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
@@ -399,13 +434,69 @@
                 if (!el.length) throw new Error('nessun modello disponibile' + (id === 'ollama' ? ': scaricane uno con «ollama pull llama3.1»' : ''));
                 return el;
             }
+
+            // --- risposta a flusso (SSE): il testo compare mentre arriva. Se il provider non manda un flusso
+            // (o il browser non lo sa leggere) si ricade sulla risposta intera, come prima. ---
+            const aiJson = t => { try { return JSON.parse(t || '{}'); } catch (e) { return {}; } };
+            const AI_FLUSSI = {
+                anthropic: () => ({
+                    corpo: { stream: true }, nuovo: () => ({ testo: '', b: {} }),
+                    evento(e, st) {
+                        if (e.type === 'error') throw new Error((e.error && e.error.message) || 'errore nel flusso');
+                        if (e.type === 'content_block_start') st.b[e.index] = Object.assign({ txt: '', json: '' }, e.content_block);
+                        else if (e.type === 'content_block_delta' && st.b[e.index]) {
+                            const b = st.b[e.index], dl = e.delta || {};
+                            if (dl.type === 'text_delta') b.txt += dl.text || ''; else if (dl.type === 'input_json_delta') b.json += dl.partial_json || '';
+                            st.testo = Object.keys(st.b).map(Number).sort((x, y) => x - y).map(k => st.b[k]).filter(x => x.type === 'text').map(x => x.txt).join('\n');
+                        }
+                    },
+                    fine: st => { const bl = Object.keys(st.b).map(Number).sort((x, y) => x - y).map(k => st.b[k]); return { t: st.testo, calls: bl.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, n: b.name, a: aiJson(b.json) })) }; }
+                }),
+                openai: () => ({
+                    corpo: { stream: true }, nuovo: () => ({ testo: '', k: {} }),
+                    evento(e, st) {
+                        if (e.error) throw new Error(e.error.message || 'errore nel flusso');
+                        const dl = ((e.choices || [])[0] || {}).delta || {};
+                        if (dl.content) st.testo += dl.content;
+                        (dl.tool_calls || []).forEach(t => { const i = t.index || 0, x = st.k[i] || (st.k[i] = { id: '', n: '', arg: '' }); if (t.id) x.id = t.id; if (t.function) { if (t.function.name) x.n += t.function.name; if (t.function.arguments) x.arg += t.function.arguments; } });
+                    },
+                    fine: st => ({ t: st.testo, calls: Object.keys(st.k).map(i => ({ id: st.k[i].id || ('call_' + i), n: st.k[i].n, a: aiJson(st.k[i].arg) })) })
+                }),
+                gemini: (d, c) => ({
+                    url: d.base + '/models/' + encodeURIComponent(c.modello) + ':streamGenerateContent?alt=sse', corpo: {}, nuovo: () => ({ testo: '', calls: [] }),
+                    evento(e, st) {
+                        if (e.error) throw new Error(e.error.message || 'errore nel flusso');
+                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {} }); });
+                    },
+                    fine: st => ({ t: st.testo, calls: st.calls })
+                })
+            };
+            async function aiLeggiFlusso(risp, fl, onTesto, arma) {
+                const rd = risp.body.getReader(), dec = new TextDecoder(), st = fl.nuovo(); let buf = '';
+                const elabora = blocco => {
+                    const dati = blocco.split(/\r?\n/).filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('');
+                    if (!dati || dati === '[DONE]') return;
+                    let ev; try { ev = JSON.parse(dati); } catch (e) { return; }
+                    const prima = st.testo.length; fl.evento(ev, st);
+                    if (st.testo.length !== prima) onTesto(st.testo);
+                };
+                for (;;) {
+                    const { done, value } = await rd.read();
+                    if (done) break;
+                    arma(); buf += dec.decode(value, { stream: true });
+                    let i; while ((i = buf.search(/\r?\n\r?\n/)) >= 0) { const bl = buf.slice(0, i); buf = buf.slice(i).replace(/^\r?\n\r?\n/, ''); elabora(bl); }
+                }
+                if (buf.trim()) elabora(buf);
+                return fl.fine(st);
+            }
             // Invio di una richiesta già costruita (url, headers, corpo) con tempo massimo e messaggi d'errore
             // in italiano. Lo usano la chat (aiChiama) e la lettura dei fogli di campo (072b).
-            async function aiPostaRichiesta(d, r, ms) {
-                const ctl = new AbortController();
-                const timer = setTimeout(() => ctl.abort(), ms || 60000);
+            async function aiPostaRichiesta(d, r, ms, onTesto) {
+                const ctl = new AbortController(); aiCtlAtt = ctl;
+                let timer = 0; const arma = () => { clearTimeout(timer); timer = setTimeout(() => ctl.abort(), ms || 60000); }; arma();
+                const fl = onTesto && r.flusso && typeof TextDecoder === 'function' ? r.flusso : null;
                 try {
-                    const risp = await fetch(r.url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, r.headers), body: JSON.stringify(r.corpo), signal: ctl.signal });
+                    const risp = await fetch(fl && fl.url ? fl.url : r.url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, r.headers), body: JSON.stringify(fl ? Object.assign({}, r.corpo, fl.corpo) : r.corpo), signal: ctl.signal });
                     if (!risp.ok) {
                         let det = ''; try { const j = await risp.json(); det = (j.error && (j.error.message || j.error)) || ''; } catch (e) { /* corpo non JSON */ }
                         const m = risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso'
@@ -414,25 +505,28 @@
                             : 'errore ' + risp.status;
                         throw new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
                     }
+                    if (fl && risp.body && risp.body.getReader && /event-stream/i.test((risp.headers && risp.headers.get && risp.headers.get('content-type')) || '')) return await aiLeggiFlusso(risp, fl, onTesto, arma);
                     return r.leggi(await risp.json());
                 } catch (e) {
+                    if (e.name === 'AbortError' && aiFermato) throw new Error('Interrotto da te.');
                     if (e.name === 'AbortError') throw new Error('nessuna risposta entro ' + Math.round((ms || 60000) / 1000) + ' secondi');
                     if (e instanceof TypeError) throw new Error(d.id === 'ollama' ? 'Ollama non raggiungibile: è avviato e ha OLLAMA_ORIGINS="*"?' : 'rete assente o richiesta bloccata');
                     throw e;
                 } finally { clearTimeout(timer); }
             }
-            async function aiChiama(id, crono) {
-                const d = aiDef(id), c = aiConf(id);
-                return aiPostaRichiesta(d, AI_ADATTATORI[d.tipo](d, c, crono), 60000);
+            async function aiChiama(id, crono, onTesto) {
+                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, crono);
+                if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
+                return aiPostaRichiesta(d, r, 60000, onTesto);
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
-            async function aiChiamaConFallback(crono, avvisa) {
+            async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {
                 const pronti = aiProntiInOrdine();
                 if (!pronti.length) throw new Error('Nessun provider configurato. Aprilo da Impostazioni › Assistente IA › Provider e chiavi API.');
                 const errori = [];
                 for (const id of pronti) {
-                    try { const r = await aiChiama(id, crono); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
-                    catch (e) { errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
+                    try { if (inizio) inizio(id); const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
+                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
                 }
                 throw new Error('Nessun provider ha risposto.\n' + errori.join('\n'));
             }
@@ -442,7 +536,8 @@
             aiBolla.innerHTML = '<svg class="ico"><use href="#i-sparkles"/></svg>';
             const aiPannello = aiEl('div'); aiPannello.id = 'aiPannello'; aiPannello.setAttribute('role', 'dialog'); aiPannello.setAttribute('aria-label', 'Assistente IA');
             const aiTesta = aiEl('div', 'ai-testa'); aiTesta.append(aiEl('span', null, 'Assistente IA'), aiEl('span', 'ai-spazio'));
-            const aiBtnCron = aiEl('button', null, 'Cronologia'), aiBtnNuova = aiEl('button', null, '+ Nuova'), aiBtnChiudi = aiEl('button', null, '✕'); aiBtnChiudi.setAttribute('aria-label', 'Chiudi');
+            const aiBtnCron = aiEl('button', 'ai-ib'), aiBtnNuova = aiEl('button', 'ai-ib'), aiBtnChiudi = aiEl('button', 'ai-ib');
+            [[aiBtnCron, 'i-list', 'Cronologia delle chat'], [aiBtnNuova, 'i-plus', 'Nuova chat'], [aiBtnChiudi, 'i-x', 'Chiudi']].forEach(([b, ic, et]) => { b.type = 'button'; b.setAttribute('aria-label', et); b.title = et; b.innerHTML = '<svg class="ico"><use href="#' + ic + '"/></svg>'; });
             aiTesta.append(aiBtnCron, aiBtnNuova, aiBtnChiudi);
             const aiSub = aiEl('div', 'ai-sub'), aiChip = aiEl('div', 'ai-chip-prog');
             const aiSelProv = aiEl('select'), aiSelMod = aiEl('select'); aiSelProv.setAttribute('aria-label', 'Provider'); aiSelMod.setAttribute('aria-label', 'Modello');
@@ -452,9 +547,51 @@
             const aiChat = aiEl('div', 'ai-chat'); aiChat.setAttribute('aria-live', 'polite');
             const aiPiedi = aiEl('div', 'ai-piedi');
             const aiCampo = aiEl('textarea'); aiCampo.placeholder = 'Chiedi o ordina qualcosa…'; aiCampo.rows = 1;
-            const aiInvia = aiEl('button', null, 'Invia');
-            aiPiedi.append(aiCampo, aiInvia);
-            aiPannello.append(aiTesta, aiSub, aiElencoCron, aiChat, aiPiedi);
+            const aiInvia = aiEl('button', 'ai-invia', 'Invia');
+            const aiClip = aiEl('button', 'ai-clip'); aiClip.type = 'button'; aiClip.setAttribute('aria-label', 'Allega un\'immagine o un file di testo'); aiClip.title = 'Allega'; aiClip.innerHTML = '<svg class="ico"><use href="#i-upload"/></svg>';
+            const aiFile = aiEl('input'); aiFile.type = 'file'; aiFile.multiple = true; aiFile.hidden = true; aiFile.accept = 'image/*,.txt,.csv,.tsv,.json,.md,.xml,.kml,.gpx,.log';
+            const aiAllRiga = aiEl('div', 'ai-allegati'); aiAllRiga.hidden = true;
+            const aiGiu = aiEl('button', 'ai-giu'); aiGiu.type = 'button'; aiGiu.setAttribute('aria-label', 'Vai in fondo'); aiGiu.innerHTML = '<svg class="ico"><use href="#i-chevron-down"/></svg>';
+            aiPiedi.append(aiClip, aiCampo, aiInvia, aiFile);
+            aiPannello.append(aiTesta, aiSub, aiElencoCron, aiChat, aiGiu, aiAllRiga, aiPiedi);
+            aiChat.addEventListener('scroll', () => aiGiu.classList.toggle('vis', !aiVicino()));
+            aiGiu.onclick = () => { aiChat.scrollTo ? aiChat.scrollTo({ top: aiChat.scrollHeight, behavior: 'smooth' }) : (aiChat.scrollTop = aiChat.scrollHeight); };
+            // allegati: immagini (rimpicciolite a 1280 px) e file di testo (fino a 60 000 caratteri), max 4 per messaggio
+            let aiAllegati = [];
+            function aiDisegnaAllegati() {
+                aiAllRiga.textContent = ''; aiAllRiga.hidden = !aiAllegati.length;
+                aiAllegati.forEach((a, i) => {
+                    const c = aiEl('div', 'ai-all');
+                    if (a.anteprima) { const im = aiEl('img'); im.src = a.anteprima; im.alt = ''; c.appendChild(im); } else c.appendChild(aiEl('span', 'ai-all-ico', 'TXT'));
+                    const x = aiEl('button', null, '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Togli ' + a.nome); x.onclick = () => { aiAllegati.splice(i, 1); aiDisegnaAllegati(); };
+                    c.append(aiEl('span', 'ai-all-nome', a.nome), x); aiAllRiga.appendChild(c);
+                });
+            }
+            async function aiLeggiAllegato(f) {
+                if (/^image\//.test(f.type)) return new Promise((ok, ko) => {
+                    const url = URL.createObjectURL(f), im = new Image();
+                    im.onload = () => { const sc = Math.min(1, 1280 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(im.width * sc)); cv.height = Math.max(1, Math.round(im.height * sc)); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); const u = cv.toDataURL('image/jpeg', 0.82); ok({ tipo: 'img', mime: 'image/jpeg', b64: u.split(',')[1], nome: f.name || 'immagine', anteprima: u }); };
+                    im.onerror = () => { URL.revokeObjectURL(url); ko(new Error('Non riesco a leggere l\'immagine «' + (f.name || '') + '».')); };
+                    im.src = url;
+                });
+                if (f.size > 3e6) throw new Error('«' + f.name + '» è troppo grande (massimo 3 MB).');
+                const t = await (f.text ? f.text() : new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(f); }));
+                if (t.indexOf('\u0000') >= 0) throw new Error('«' + f.name + '» non è un file di testo.');
+                return { tipo: 'txt', nome: f.name, contenuto: t.slice(0, 60000), tagliato: t.length > 60000 };
+            }
+            async function aiAggiungiFile(files) {
+                for (const f of files) {
+                    if (aiAllegati.length >= 4) { aiMsg('info', 'Al massimo 4 allegati per messaggio.', false); break; }
+                    try { aiAllegati.push(await aiLeggiAllegato(f)); } catch (e) { aiMsg('info', e.message, false); }
+                }
+                aiDisegnaAllegati();
+            }
+            aiClip.onclick = () => aiFile.click();
+            aiFile.onchange = async () => { await aiAggiungiFile([].slice.call(aiFile.files)); aiFile.value = ''; };
+            aiPannello.addEventListener('paste', e => { const fs = [].slice.call((e.clipboardData && e.clipboardData.files) || []).filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); aiAggiungiFile(fs); } });
+            aiPannello.addEventListener('dragover', e => { if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], 'Files') >= 0) { e.preventDefault(); aiPannello.classList.add('trascina'); } });
+            aiPannello.addEventListener('dragleave', e => { if (e.target === aiPannello) aiPannello.classList.remove('trascina'); });
+            aiPannello.addEventListener('drop', e => { aiPannello.classList.remove('trascina'); if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); aiAggiungiFile([].slice.call(e.dataTransfer.files)); } });
             document.body.append(aiBolla, aiPannello);
 
             // CRONOLOGIA PER PROGETTO: le chat si salvano in una voce propria del localStorage (come le chiavi,
@@ -464,8 +601,8 @@
             try { const g = JSON.parse(localStorage.getItem(AI_CRONO_CHIAVE) || 'null'); if (g && typeof g === 'object') aiArchivio = g; } catch (e) { /* voce rovinata: si riparte vuoti */ }
             const aiPidAtt = () => state.currentProjectId || '_';
             const aiNomeProg = pid => pid === '_' ? 'Nessun progetto aperto' : (((state.projects || {})[pid] || {}).name || 'Progetto');
-            function aiScriviArchivio() { try { localStorage.setItem(AI_CRONO_CHIAVE, JSON.stringify(aiArchivio)); } catch (e) { /* spazio pieno: la chat resta solo a schermo */ } }
-            let aiCrono = [], aiOccupato = false, aiChatAtt = null;
+            function aiScriviArchivio() { try { localStorage.setItem(AI_CRONO_CHIAVE, JSON.stringify(aiArchivio, (k, v) => (k === 'b64' || k === 'contenuto' || k === 'anteprima') ? undefined : v)); } catch (e) { /* spazio pieno: la chat resta solo a schermo */ } }
+            let aiCrono = [], aiOccupato = false, aiChatAtt = null, aiFermato = false, aiCtlAtt = null, aiStatoFn = () => {};
             const aiNuovaChat = pid => ({ id: 'c' + Date.now(), pid, titolo: '', ts: Date.now(), vista: [], crono: [] });
             function aiSalvaChat() {
                 if (!aiChatAtt || !aiChatAtt.crono.some(m => m.r === 'u')) return;
@@ -477,15 +614,32 @@
                 lista.unshift(aiChatAtt); lista.length = Math.min(lista.length, AI_MAX_CHAT);
                 aiScriviArchivio();
             }
+
+            const aiVicino = () => aiChat.scrollHeight - aiChat.scrollTop - aiChat.clientHeight < 120;
+            // copia + «Mostra tutto» per i messaggi lunghi
+            function aiRifinisci(m, testo, cls) {
+                m.querySelectorAll('.ai-copia, .ai-espandi').forEach(x => x.remove());
+                if (cls !== 'ia' && cls !== 'utente') return;
+                const b = aiEl('button', 'ai-copia'); b.type = 'button'; b.setAttribute('aria-label', 'Copia il messaggio'); b.title = 'Copia';
+                b.innerHTML = '<svg class="ico"><use href="#i-copy"/></svg>';
+                b.onclick = async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(testo); b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1200); } catch (er) { /* copia negata dal browser */ } };
+                m.appendChild(b);
+                if (testo && testo.length > 900) {
+                    m.classList.add('lungo', 'chiuso');
+                    const t = aiEl('button', 'ai-espandi', 'Mostra tutto'); t.type = 'button';
+                    t.onclick = () => { const c = m.classList.toggle('chiuso'); t.textContent = c ? 'Mostra tutto' : 'Riduci'; };
+                    m.appendChild(t);
+                }
+            }
             function aiMsg(cls, testo, salva) {
-                const m = aiEl('div', 'ai-msg ' + cls, testo); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight;
+                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
                 if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
                 return m;
             }
             function aiMostraChat(c) {
                 aiChatAtt = c; aiCrono = c.crono;
                 aiChat.textContent = '';
-                c.vista.forEach(([cls, t]) => aiChat.appendChild(aiEl('div', 'ai-msg ' + cls, t)));
+                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls); });
                 if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
                 aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
             }
@@ -528,6 +682,7 @@
             }
             aiBtnCron.onclick = () => { if (aiElencoCron.classList.contains('aperto')) aiElencoCron.classList.remove('aperto'); else aiMostraCronologia(); };
             function aiConferma(testo, pericolo) {
+                aiStatoFn('Aspetto la tua conferma…');
                 return new Promise(res => {
                     const testoM = pericolo ? 'ATTENZIONE, ultima conferma: ' + testo : 'L\'assistente vuole: ' + testo;
                     const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo, false);
@@ -549,32 +704,70 @@
             }
             // vero se la risposta spiega all'utente cosa premere invece di farlo (l'assistente deve agire da sé)
             const aiDaIstruzioni = t => /\b(premi|clicca|cliccare|tocca|apri il menu|apri le impostazioni|vai (su|in|nel|alla|a)|seleziona|scegli la voce|puoi (premere|cliccare|aprire))\b/i.test(t || '');
+            // frase breve in italiano su cosa sta facendo l'assistente con un certo strumento
+            function aiEtichetta(n, a) {
+                const s = AI_STRUMENTI.find(x => x.n === n);
+                if (/^leggi_schermata$/.test(n)) return 'Guardo cosa c\'è sullo schermo';
+                if (n === 'clicca') return 'Premo un pulsante';
+                if (n === 'compila_campo') return 'Compilo un campo';
+                if (n === 'vai_a') return 'Apro la schermata' + (a && a.schermata ? ' «' + a.schermata + '»' : '');
+                if (n === 'esegui_comando') return 'Eseguo il comando' + (a && a.etichetta ? ' «' + a.etichetta + '»' : '');
+                if (n === 'elenco_comandi') return 'Cerco i comandi disponibili';
+                if (/^(leggi|elenco|cerca|calcola|mostra)/.test(n)) return 'Leggo i dati (' + n.replace(/_/g, ' ') + ')';
+                return (s && s.ds ? s.ds(a || {}) : 'Uso lo strumento «' + n.replace(/_/g, ' ') + '»');
+            }
             async function aiInviaDomanda() {
+                if (aiOccupato) { aiFermato = true; try { aiCtlAtt && aiCtlAtt.abort(); } catch (e) { /* già finita */ } return; }
                 const testo = aiCampo.value.trim();
-                if (!testo || aiOccupato) return;
+                if (!testo && !aiAllegati.length) return;
                 if (!aiChatAtt) aiSaluto();
-                aiCampo.value = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
-                aiOccupato = true; aiInvia.disabled = true;
-                const attesa = aiMsg('attesa info', 'Penso…', false);
+                const allegati = aiAllegati.slice(), testoU = testo || 'Guarda gli allegati.';
+                aiCampo.value = ''; aiCampo.style.height = ''; aiAllegati = []; aiDisegnaAllegati();
+                aiCrono.push({ r: 'u', t: testoU, all: allegati.length ? allegati : undefined }); aiChatAtt.crono = aiCrono;
+                aiMsg('utente', testoU + (allegati.length ? '\n📎 ' + allegati.map(a => a.nome).join(', ') : ''));
+                aiOccupato = true; aiFermato = false; aiInvia.textContent = 'Stop'; aiInvia.classList.add('stop'); aiPannello.classList.add('occupato'); aiBolla.classList.add('pensa');
+                // la bolla di attesa dice cosa succede: fase corrente, secondi, passi già fatti
+                const attesa = aiMsg('attesa info', '', false); attesa.setAttribute('role', 'status');
+                const fase = aiEl('span', 'ai-fase', 'Penso'), pt = aiEl('span', 'ai-pt'), sec = aiEl('span', 'ai-sec'), passi = aiEl('div', 'ai-passi');
+                for (let i = 0; i < 3; i++) pt.appendChild(aiEl('i'));
+                attesa.append(fase, pt, sec, passi);
+                const t0 = Date.now(), tick = setInterval(() => { sec.textContent = Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000);
+                const stato = t => { fase.textContent = t; }; aiStatoFn = stato;
+                const passo = t => { const r = aiEl('div', 'ai-passo', t + '…'); passi.appendChild(r); while (passi.children.length > 5) passi.firstChild.remove(); aiChat.scrollTop = aiVicino() ? aiChat.scrollHeight : aiChat.scrollTop; return { ok: () => { r.classList.add('fatto'); r.textContent = '✓ ' + t; }, no: () => { r.classList.add('fallito'); r.textContent = '✕ ' + t; } }; };
                 let spinto = false;
                 try {
-                    for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
-                        const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t));
+                    for (let giro = 0; giro < AI_MAX_GIRI && !aiFermato; giro++) {
+                        attesa.style.display = ''; aiChat.appendChild(attesa); let vivo = null; stato(giro ? 'Rifletto sul risultato' : 'Penso');
+                        const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t), tutto => {
+                            const vic = aiVicino();
+                            if (!vivo) { vivo = aiEl('div', 'ai-msg ia'); aiChat.insertBefore(vivo, attesa); stato('Scrivo la risposta'); }
+                            vivo.textContent = ''; vivo.appendChild(aiFormatta(tutto)); if (vic) aiChat.scrollTop = aiChat.scrollHeight;
+                        }, () => { if (vivo) { vivo.remove(); vivo = null; } }, id => stato('Chiedo a ' + aiDef(id).nome + (aiConf(id).modello ? ' (' + aiConf(id).modello + ')' : '')));
                         aiCrono.push({ r: 'a', t: r.t, calls: r.calls });
-                        if (r.t) aiMsg('ia', r.t);
+                        if (vivo) { vivo.textContent = ''; vivo.appendChild(aiFormatta(r.t)); aiRifinisci(vivo, r.t, 'ia'); if (aiChatAtt) { aiChatAtt.vista.push(['ia', r.t]); aiSalvaChat(); } }
+                        else if (r.t) aiMsg('ia', r.t);
                         if (!r.calls.length) {
                             if (!spinto && aiDaIstruzioni(r.t)) { spinto = true; aiCrono.push({ r: 'u', t: 'Non dirmi come fare: fallo tu adesso con gli strumenti (esegui_comando, vai_a, leggi_schermata, clicca, compila_campo) e poi dimmi in una frase cosa hai fatto.' }); continue; }
                             break;
                         }
                         const res = [];
-                        for (const k of r.calls) { const o = await aiEseguiStrumento(k); res.push({ id: k.id, n: k.n, c: o.c }); }
+                        for (const k of r.calls) {
+                            if (aiFermato) break;
+                            const ps = passo(aiEtichetta(k.n, k.a)); stato('Lavoro sull\'app');
+                            const o = await aiEseguiStrumento(k); res.push({ id: k.id, n: k.n, c: o.c });
+                            if (/"errore"/.test(o.c)) ps.no(); else ps.ok();
+                        }
+                        if (aiFermato) { aiCrono.push({ r: 't', res: r.calls.map(k => ({ id: k.id, n: k.n, c: (res.find(x => x.id === k.id) || {}).c || JSON.stringify({ errore: 'Interrotto.' }) })) }); break; }
                         aiCrono.push({ r: 't', res });
                         if (giro === AI_MAX_GIRI - 1) aiMsg('info', 'Mi fermo qui: troppi passaggi di fila.');
                     }
-                } catch (e) { aiMsg('errore', e.message); }
-                aiSalvaChat(); attesa.remove(); aiOccupato = false; aiInvia.disabled = false; aiCampo.focus();
+                    if (aiFermato) aiMsg('info', 'Mi sono fermato, come hai chiesto.');
+                } catch (e) { aiMsg(aiFermato ? 'info' : 'errore', e.message); }
+                clearInterval(tick); aiStatoFn = () => {};
+                aiSalvaChat(); attesa.remove(); aiOccupato = false; aiFermato = false; aiCtlAtt = null; aiInvia.textContent = 'Invia'; aiInvia.classList.remove('stop'); aiPannello.classList.remove('occupato'); aiBolla.classList.remove('pensa'); aiCampo.focus();
             }
             aiInvia.onclick = aiInviaDomanda;
+            aiCampo.addEventListener('input', () => { aiCampo.style.height = 'auto'; aiCampo.style.height = Math.min(168, Math.max(40, aiCampo.scrollHeight)) + 'px'; });
             aiCampo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiInviaDomanda(); } });
             aiBtnNuova.onclick = () => { if (!aiOccupato) { aiSaluto(); aiAggiornaTesta(); } };
             const aiApri = su => {
@@ -585,7 +778,7 @@
                 const pid = aiPidAtt();
                 if (!aiChatAtt || aiChatAtt.pid !== pid) { const ultima = (aiArchivio[pid] || [])[0]; if (ultima) aiMostraChat(ultima); else aiSaluto(); }
                 aiAggiornaTesta();
-                if (!aiProntiInOrdine().length) aiMsg('info', 'Prima scegli un provider da Impostazioni › Assistente IA.', false);
+                if (!aiProntiInOrdine().length) { const mm = aiMsg('info', 'Manca la chiave API. ', false), bb = aiEl('button', 'ai-chip', 'Configura ora'); bb.type = 'button'; bb.onclick = aiWizElenco; mm.appendChild(bb); }
                 setTimeout(() => aiCampo.focus(), 50);
             };
             aiBolla.onclick = () => { if (aiDopoTrascina) return; aiApri(!aiPannello.classList.contains('aperto')); };
@@ -656,16 +849,17 @@
                 const tx = aiBTargetX(), w = aiBolla.offsetWidth || 52, ridotto = aiRidotto();
                 let tr = 'translate3d(' + aiB.ox.toFixed(1) + 'px,' + aiB.oy.toFixed(1) + 'px,0)', g = 0;
                 if (!ridotto) {
-                    const v = Math.hypot(aiB.vx, aiB.vy), st = Math.min(0.32, v / 3200), a = Math.atan2(aiB.vy, aiB.vx);
+                    const v = Math.hypot(aiB.vx, aiB.vy), st = Math.min(0.4, v / 2600), a = Math.atan2(aiB.vy, aiB.vx);
                     const lungo = (aiB.lato === 's' ? -aiB.ox : aiB.ox) / w; // >0 verso il bordo (nascosta o in rimbalzo contro il muro)
-                    const bordo = Math.max(0, Math.min(1, lungo / AI_NASCOSTA));
-                    g = bordo;
-                    tr += ' scale(' + (1 - 0.1 * bordo).toFixed(3) + ',' + (1 + 0.06 * bordo).toFixed(3) + ')';
+                    // a riposo la bolla resta un cerchio perfetto; si schiaccia solo se rimbalza contro il bordo
+                    const premuto = Math.max(0, Math.min(1, (lungo / AI_NASCOSTA) - 1)), lato = aiB.lato === 's' ? -1 : 1;
+                    g = Math.min(1, premuto * 1.4);
+                    if (premuto > 0.01) tr += ' scale(' + (1 - 0.22 * premuto).toFixed(3) + ',' + (1 + 0.12 * premuto).toFixed(3) + ')';
                     if (st > 0.01) tr += ' rotate(' + a.toFixed(3) + 'rad) scale(' + (1 + st).toFixed(3) + ',' + (1 / (1 + st)).toFixed(3) + ') rotate(' + (-a).toFixed(3) + 'rad)';
                 }
                 aiBolla.style.transform = tr;
                 aiGoo.style.opacity = g.toFixed(2);
-                aiGoo.style.transform = 'scale(' + (0.4 + 0.6 * g).toFixed(2) + ',' + (0.7 + 0.5 * g).toFixed(2) + ')';
+                aiGoo.style.transform = 'scale(' + (0.3 + 0.5 * g).toFixed(2) + ',' + (0.6 + 0.4 * g).toFixed(2) + ')';
                 return tx;
             }
             function aiBTick(t) {
@@ -676,7 +870,7 @@
                     const nx = aiB.px - aiB.lx, ny = aiB.py - aiB.ly, k = Math.min(1, dt * 14);
                     aiB.vx += ((nx - aiB.ox) / dt - aiB.vx) * k; aiB.vy += ((ny - aiB.oy) / dt - aiB.vy) * k; aiB.ox = nx; aiB.oy = ny; vivo = true;
                 } else {
-                    const tx = aiBTargetX(), K = 260, C = 17;
+                    const tx = aiBTargetX(), K = 210, C = 12;
                     aiB.vx += (-K * (aiB.ox - tx) - C * aiB.vx) * dt; aiB.vy += (-K * aiB.oy - C * aiB.vy) * dt;
                     aiB.ox += aiB.vx * dt; aiB.oy += aiB.vy * dt;
                     vivo = Math.abs(aiB.ox - tx) > 0.3 || Math.abs(aiB.oy) > 0.3 || Math.abs(aiB.vx) > 6 || Math.abs(aiB.vy) > 6;
@@ -739,6 +933,11 @@
                 aiRiadTimer = setTimeout(() => { aiBollaRiadatta(false); aiPonia(aiPannello, 'pannello'); if (aiPannello.classList.contains('aperto')) aiPosizionaPannello(); }, 60);
             };
             addEventListener('resize', aiRiadatta); addEventListener('orientationchange', aiRiadatta);
+            // tastiera su telefono: il pannello segue l'area davvero visibile
+            if (window.visualViewport) {
+                const vv = window.visualViewport, aiVv = () => { aiPannello.style.setProperty('--ai-vh', vv.height + 'px'); aiPannello.style.setProperty('--ai-off', Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px'); };
+                vv.addEventListener('resize', aiVv); vv.addEventListener('scroll', aiVv); aiVv();
+            }
             aiBollaRiadatta(false);
 
             // --- bolla «intelligente»: sa dove sei e cosa manca, e propone 1-3 scorciatoie (calcolate qui, senza IA) ---
@@ -814,7 +1013,8 @@
             aiOv.addEventListener('click', e => { if (e.target === aiOv) aiWizChiudi(); });
             function aiWizMostra(nodi) { const w = aiEl('div', 'ai-wiz'); w.setAttribute('role', 'dialog'); w.append(...nodi); aiOv.textContent = ''; aiOv.appendChild(w); aiOv.classList.add('aperto'); }
             function aiWizElenco() {
-                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Configurane quanti vuoi; i gratuiti vanno benissimo per cominciare.')];
+                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare basta Gemini, che è gratis.')];
+                const altri = [];
                 aiCfg.ordine.forEach((id, i) => {
                     const d = aiDef(id), pronto = aiPronto(id);
                     const riga = aiEl('div', 'ai-riga');
@@ -825,8 +1025,9 @@
                     giu.onclick = () => { aiCfg.ordine.splice(i + 1, 0, aiCfg.ordine.splice(i, 1)[0]); aiSalva(); aiWizElenco(); };
                     ap.onclick = () => aiWizProvider(id);
                     riga.append(nome, aiEl('span', 'ai-badge' + (pronto ? '' : ' no'), pronto ? 'pronto' : 'non configurato'), su, giu, ap);
-                    n.push(riga);
+                    if (pronto || id === 'gemini') n.push(riga); else altri.push(riga);
                 });
+                if (altri.length) { const det = aiEl('details', 'ai-altri'); det.appendChild(aiEl('summary', null, 'Altri provider (' + altri.length + ')')); altri.forEach(r => det.appendChild(r)); n.push(det); }
                 const az = aiEl('div', 'ai-azioni'), ok = aiEl('button', 'pri', 'Fatto'); ok.onclick = aiWizChiudi; az.appendChild(ok); n.push(az);
                 aiWizMostra(n);
             }
@@ -838,13 +1039,14 @@
                 const azA = aiEl('div', 'ai-azioni'); azA.appendChild(apri); n.push(azA);
                 const campo = (et, tipo, val, ph) => { const w = aiEl('div'); w.appendChild(aiEl('label', null, et)); const i = aiEl('input'); i.type = tipo; i.value = val || ''; i.placeholder = ph || ''; i.autocomplete = 'off'; i.spellcheck = false; w.appendChild(i); n.push(w); return i; };
                 const iChiave = d.senzaChiave ? null : campo('Chiave API (resta solo su questo dispositivo)', 'password', c.chiave, 'incolla qui la chiave');
+                if (iChiave) { const tg = aiEl('button', 'ai-chip', 'Mostra la chiave'); tg.type = 'button'; tg.style.alignSelf = 'flex-start'; tg.onclick = () => { const mostraC = iChiave.type === 'password'; iChiave.type = mostraC ? 'text' : 'password'; tg.textContent = mostraC ? 'Nascondi la chiave' : 'Mostra la chiave'; }; n.push(tg); }
                 const iBase = d.senzaChiave ? campo('Indirizzo di Ollama', 'text', c.base || d.base) : null;
                 const wm = aiEl('div'); wm.appendChild(aiEl('label', null, 'Modello (si scarica dal provider dopo la chiave)'));
                 const sel = aiEl('select'); sel.style.cssText = 'width:100%;box-sizing:border-box;background:var(--bg-sunken);color:var(--text-main);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 10px;font:inherit;font-size:13px;';
                 wm.appendChild(sel); n.push(wm);
                 const esito = aiEl('div', 'ai-esito'); esito.style.display = 'none'; n.push(esito);
-                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), carica = aiEl('button', null, 'Carica i modelli'), prova = aiEl('button', null, 'Prova'), salva = aiEl('button', 'pri', 'Salva'), togli = aiEl('button', null, 'Rimuovi');
-                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim() : '', base: iBase ? iBase.value.trim() : '', modello: sel.value });
+                const az = aiEl('div', 'ai-azioni'), indietro = aiEl('button', null, 'Indietro'), carica = aiEl('button', null, 'Carica i modelli'), prova = aiEl('button', null, 'Prova'), salva = aiEl('button', 'pri', 'Collega e salva'), togli = aiEl('button', null, 'Rimuovi');
+                const leggi = () => ({ chiave: iChiave ? iChiave.value.trim().replace(/^["'«]+|["'»]+$/g, '').replace(/\s+/g, '') : '', base: iBase ? iBase.value.trim() : '', modello: sel.value });
                 const mostra = (ok, t) => { esito.style.display = ''; esito.className = 'ai-esito ' + (ok ? 'ok' : 'ko'); esito.textContent = t; };
                 const riempi = (el, scelto) => {
                     sel.textContent = '';
@@ -855,6 +1057,7 @@
                 const caricaModelli = async () => {
                     const v = leggi();
                     if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return false; }
+                    if (d.prefisso && !v.chiave.startsWith(d.prefisso)) { mostra(false, 'La chiave di ' + d.nome + ' inizia con «' + d.prefisso + '». Questa no: controlla di aver copiato la chiave intera, senza spazi.'); return false; }
                     carica.disabled = true; mostra(true, 'Scarico l\'elenco dei modelli…');
                     try { const el = await aiElencoModelli(id, v); riempi(el, c.modello); mostra(true, el.length + ' modelli disponibili. Scegli dal menu.'); return true; }
                     catch (e) { sel.textContent = ''; mostra(false, 'Non riesco: ' + e.message); return false; }
@@ -876,7 +1079,7 @@
                     } catch (e) { mostra(false, 'Non funziona: ' + e.message); }
                     for (const k of Object.keys(c)) delete c[k]; Object.assign(c, prec); prova.disabled = false;
                 };
-                salva.onclick = () => { const v = leggi(); if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } if (!v.modello) { mostra(false, 'Scegli un modello dal menu (premi «Carica i modelli»).'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
+                salva.onclick = async () => { let v = leggi(); if (!v.modello && (d.senzaChiave || v.chiave)) { if (!(await caricaModelli())) return; v = leggi(); } if (!d.senzaChiave && !v.chiave) { mostra(false, 'Incolla prima la chiave.'); return; } if (!v.modello) { mostra(false, 'Scegli un modello dal menu (premi «Carica i modelli»).'); return; } Object.assign(c, v, { configurato: true, attivo: true }); aiSalva(); aiWizElenco(); };
                 togli.onclick = () => { delete aiCfg.provider[id]; aiSalva(); aiWizElenco(); };
                 indietro.onclick = aiWizElenco;
                 az.append(indietro); if (aiPronto(id)) az.appendChild(togli); az.append(carica, prova, salva); n.push(az);
