@@ -152,6 +152,8 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('modifica_strato', app2.E('state.strati[0].name') === 'Sabbia test' && app2.E('state.strati[0].behavior') === 'coesivo');
   T('aggiungi_strato', { nome: 'Nuovo' }); T('sposta_strato', { strato_id: app2.E('state.strati[state.strati.length-1].id'), posizione: 1 });
   t('aggiungi + sposta strato', app2.E('state.strati[0].name') === 'Nuovo');
+  T('crea_stratigrafia', { strati: [{ nome: 'Riporto test', da_m: 0, a_m: 0.3 }, { nome: 'Argilla test', da_m: 0.3, a_m: 99, comportamento: 'coesivo' }] });
+  t('crea_stratigrafia crea tutti gli strati insieme', app2.E("state.strati.some(x => x.name === 'Riporto test') && state.strati.some(x => x.name === 'Argilla test')") === true && (!app2.E('state.logs.length') || app2.E("state.logs.every(l => l.lithology === state.strati.find(x => x.name === 'Argilla test').id || l.lithology === state.strati.find(x => x.name === 'Riporto test').id)") === true));
   const n0 = app2.E('state.logs.length'); if (n0) { T('modifica_intervallo', { numero: 1, colpi: 7, note: 'x' }); t('modifica_intervallo', app2.E('state.logs[0].colpi') === 7); }
   T('modifica_strumento', { campo: 'pesoMassa', valore: 64 }); t('modifica_strumento', app2.E('state.instrument.pesoMassa') === 64);
   T('imposta_preferenza', { nome: 'vibrazione', valore: 'false' }); t('imposta_preferenza', app2.E('state.settings.haptic') === false);

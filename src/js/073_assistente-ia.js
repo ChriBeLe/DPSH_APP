@@ -221,6 +221,31 @@
                     const st = { id: 'strato_' + Date.now(), name: String(a.nome).trim() || 'Nuovo strato', color: a.colore || '#94a3b8', behavior: a.comportamento || 'granulare' };
                     state.strati.push(st); saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true, id: st.id };
                 } },
+                { n: 'crea_stratigrafia', d: 'Crea in UNA sola volta tutta la stratigrafia della prova aperta: per ogni strato nome, da_m e a_m (metri, in ordine) e, se vuoi, colore (#rrggbb) e comportamento. Aggiunge gli strati e li assegna agli intervalli già inseriti. Chiamala UNA volta con tutti gli strati.',
+                  p: { strati: { type: 'array', items: { type: 'object', properties: { nome: { type: 'string' }, da_m: { type: 'number' }, a_m: { type: 'number' }, colore: { type: 'string' }, comportamento: { type: 'string', enum: ['granulare', 'coesivo'] } }, required: ['nome', 'da_m', 'a_m'] } }, autocompila: { type: 'boolean', description: 'compila anche i parametri avanzati consigliati' } }, req: ['strati'], w: true,
+                  ds: a => `Creare ${(a.strati || []).length} strati: ` + (a.strati || []).slice(0, 10).map(x => `«${x.nome}» ${x.da_m}-${x.a_m} m`).join(', ') + ((a.strati || []).length > 10 ? '…' : '') + (a.autocompila ? ', con parametri avanzati automatici' : ''), run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    if (!Array.isArray(a.strati) || !a.strati.length) throw new Error('Serve l\'elenco degli strati.');
+                    a.strati.forEach(x => {
+                        if (!x || !String(x.nome || '').trim()) throw new Error('Ogni strato vuole un nome.');
+                        if (!(Number(x.a_m) > Number(x.da_m)) || Number(x.da_m) < 0) throw new Error('Profondità non valide per «' + x.nome + '»: serve a_m maggiore di da_m.');
+                        if (x.colore != null && !/^#[0-9a-f]{6}$/i.test(x.colore)) throw new Error('Il colore di «' + x.nome + '» deve essere #rrggbb.');
+                        if (x.comportamento != null && !['granulare', 'coesivo'].includes(x.comportamento)) throw new Error('Comportamento non valido per «' + x.nome + '».');
+                    });
+                    const tav = ['#d4a373', '#8d6e63', '#a1887f', '#90a4ae', '#b0bec5', '#c5a880', '#7e8f6a', '#9aa5b1'];
+                    let assegnati = 0, creati = 0; const vuoti = [];
+                    a.strati.forEach((x, i) => {
+                        const nome = String(x.nome).trim();
+                        let st = state.strati.find(y => String(y.name).trim().toLowerCase() === nome.toLowerCase());
+                        if (!st) { st = { id: 'strato_' + Date.now() + '_' + i, name: nome, color: x.colore || tav[state.strati.length % tav.length], behavior: x.comportamento || 'granulare' }; state.strati.push(st); creati++; }
+                        else { if (x.colore) st.color = x.colore; if (x.comportamento) st.behavior = x.comportamento; }
+                        let n = 0; state.logs.forEach(l => { if (l.end > x.da_m + 1e-6 && l.start < x.a_m - 1e-6) { l.lithology = st.id; l.modificatoIl = new Date().toISOString(); n++; } });
+                        if (!n) vuoti.push(nome); assegnati += n;
+                        if (a.autocompila) { ensureParametriAvanzati(st); autoCompilaStrato(st); }
+                    });
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList();
+                    return { ok: true, strati_creati: creati, intervalli_assegnati: assegnati, senza_intervalli: vuoti.length ? vuoti : undefined };
+                } },
                 { n: 'sposta_strato', d: 'Sposta uno strato a una nuova posizione (1 = primo) nell\'elenco della prova aperta.', p: { strato_id: { type: 'string' }, posizione: { type: 'integer' } }, req: ['strato_id', 'posizione'], w: true,
                   ds: a => `Spostare lo strato ${a.strato_id} alla posizione ${a.posizione}`, run: a => {
                     const i = state.strati.findIndex(x => x.id === a.strato_id), j = a.posizione - 1;
@@ -355,7 +380,7 @@
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'REGOLA PRINCIPALE: se l\'utente chiede di fare qualcosa, LA FAI TU con gli strumenti. Non dirgli mai di premere, cliccare, aprire un menu, andare su una schermata o compilare un campo: fallo tu e poi riassumi in una frase cosa hai fatto. Chiedi all\'utente solo i dati che mancano davvero. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
-                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
+                'Sii veloce: raggruppa il lavoro. Più azioni indipendenti vanno chiamate insieme nello stesso passaggio; gli intervalli con aggiungi_intervalli in una sola chiamata; tutta la stratigrafia con crea_stratigrafia in una sola chiamata. Non fare un passaggio per ogni piccolo dato. Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
                 'Se non c\'è uno strumento diretto per l\'azione: prima prova elenco_comandi/esegui_comando o vai_a; altrimenti usa leggi_schermata, poi clicca e compila_campo, e rileggi la schermata dopo ogni azione (e dopo ogni apertura di finestra) finché il lavoro non è finito. ' +
                 'Se uno strumento dà errore, riprova in un altro modo prima di arrenderti; solo se non è possibile dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
@@ -364,7 +389,7 @@
             // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
             const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
             const AI_GRUPPI = [
-                { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
+                { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
@@ -753,9 +778,9 @@
                     const testoM = pericolo ? 'ATTENZIONE, ultima conferma: ' + testo : 'L\'assistente vuole: ' + testo;
                     const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo, false);
                     const riga = aiEl('div', 'ai-conferma'), si = aiEl('button', 'si', 'Conferma'), no = aiEl('button', null, 'Annulla');
-                    riga.append(no, si); m.appendChild(riga);
+                    const sempre = aiEl('button', null, 'Sempre in questa chat'); sempre.title = 'Da ora le modifiche normali in questa chat non chiedono conferma. Le eliminazioni la chiedono sempre.'; if (pericolo) riga.append(no, si); else riga.append(no, sempre, si); m.appendChild(riga);
                     const fine = v => { riga.remove(); m.appendChild(aiEl('div', null, v ? '✓ Confermato' : '✕ Annullato')); if (aiChatAtt) { aiChatAtt.vista.push([pericolo ? 'errore' : 'azione', testoM + (v ? ' — ✓ Confermato' : ' — ✕ Annullato')]); aiSalvaChat(); } res(v); };
-                    si.onclick = () => fine(true); no.onclick = () => fine(false);
+                    si.onclick = () => fine(true); no.onclick = () => fine(false); sempre.onclick = () => { if (aiChatAtt) { aiChatAtt.auto = true; aiSalvaChat(); } fine(true); };
                 });
             }
             async function aiEseguiStrumento(k) {
@@ -763,7 +788,9 @@
                 if (!s) return { c: JSON.stringify({ errore: 'Strumento sconosciuto.' }) };
                 const args = (k.a && typeof k.a === 'object') ? k.a : {};
                 const serveConferma = typeof s.w === 'function' ? s.w(args) : !!s.w;
-                if (serveConferma && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
+                if (k.pre === 'no') return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
+                const salta = (k.pre === true || (aiChatAtt && aiChatAtt.auto)) && s.w !== 'doppia';
+                if (serveConferma && !salta && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 if (s.w === 'doppia' && !(await aiConferma(s.ds(args), true))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 try { const out = await s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
                 catch (e) { return { c: JSON.stringify({ errore: e.message }) }; }
@@ -817,6 +844,13 @@
                             break;
                         }
                         const res = [];
+                        // più modifiche nello stesso passaggio: una conferma sola per tutte
+                        const daConf = r.calls.filter(k => { const sx = AI_STRUMENTI.find(x => x.n === k.n); return sx && (typeof sx.w === 'function' ? sx.w(k.a || {}) : !!sx.w) && sx.w !== 'doppia'; });
+                        if (daConf.length > 1 && !(aiChatAtt && aiChatAtt.auto)) {
+                            const riep = daConf.map(k => { const sx = AI_STRUMENTI.find(x => x.n === k.n); try { return '• ' + (sx.ds ? sx.ds(k.a || {}) : sx.n); } catch (e) { return '• ' + sx.n; } }).join('\n');
+                            const ok = await aiConferma(daConf.length + ' azioni insieme:\n' + riep);
+                            daConf.forEach(k => { k.pre = ok ? true : 'no'; });
+                        }
                         for (const k of r.calls) {
                             if (aiFermato) break;
                             const ps = passo(aiEtichetta(k.n, k.a)); stato('Lavoro sull\'app');
