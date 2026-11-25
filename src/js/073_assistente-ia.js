@@ -12,7 +12,7 @@
             // acceso questo pezzo non fa nessuna richiesta di rete.
             const AI_CHIAVE = 'DPSH_AI_V1';
             const AI_PROVIDER = [
-                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
+                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /2\.5-flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
                 { id: 'groq', prefisso: 'gsk_', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
@@ -144,8 +144,9 @@
                     if (!state.currentProjectId) throw new Error('Apri prima un progetto.');
                     openNewSurveyModal(); return { ok: true, provaId: state.currentSurveyId };
                 } },
-                { n: 'aggiungi_intervalli', d: 'Aggiunge in coda alla prova aperta gli intervalli di colpi indicati (un numero per intervallo, in ordine di profondità).', p: { colpi: { type: 'array', items: { type: 'integer' } }, prova_id: { type: 'string' } }, req: ['colpi'], w: true,
+                { n: 'aggiungi_intervalli', d: 'Aggiunge in coda alla prova aperta gli intervalli di colpi indicati (un numero per intervallo, in ordine di profondità). Chiamala UNA SOLA VOLTA con TUTTI i numeri nell\'array colpi, per esempio {"colpi":[3,4,5,7,9]}: non un intervallo per chiamata.', p: { colpi: { type: 'array', items: { type: 'integer' } }, prova_id: { type: 'string' } }, req: ['colpi'], w: true,
                   ds: a => `Aggiungere ${(a.colpi || []).length} intervalli alla prova aperta: ${(a.colpi || []).slice(0, 12).join(', ')}${(a.colpi || []).length > 12 ? '…' : ''}`, run: a => {
+                    if (typeof a.colpi === 'string') a.colpi = (a.colpi.match(/\d+/g) || []).map(Number);
                     if (!Array.isArray(a.colpi) || !a.colpi.length || a.colpi.some(n => !Number.isInteger(n) || n < 0 || n > 999)) throw new Error('I colpi devono essere numeri interi tra 0 e 999.');
                     if (a.prova_id) aiAttiva(null, a.prova_id);
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
@@ -416,14 +417,14 @@
                 },
                 gemini(d, c, crono) {
                     const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ inlineData: { mimeType: a.mime, data: a.b64 } }))) }
-                        : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => ({ functionCall: { name: k.n, args: k.a || {} } }))) }
+                        : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => Object.assign({ functionCall: { name: k.n, args: k.a || {} } }, k.ts ? { thoughtSignature: k.ts } : /gemini-3/i.test(c.modello || '') ? { thoughtSignature: 'skip_thought_signature_validator' } : {}))) }
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
                         url: d.base + '/models/' + encodeURIComponent(c.modello) + ':generateContent', headers: { 'x-goog-api-key': c.chiave },
                         corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: aiStrumentiPer(crono).map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
                         leggi: j => {
                             const parti = (((j.candidates || [])[0] || {}).content || {}).parts || [];
-                            return { t: parti.filter(p => p.text).map(p => p.text).join('\n'), calls: parti.filter(p => p.functionCall).map((p, i) => ({ id: 'g' + Date.now() + i, n: p.functionCall.name, a: p.functionCall.args || {} })) };
+                            return { t: parti.filter(p => p.text).map(p => p.text).join('\n'), calls: parti.filter(p => p.functionCall).map((p, i) => ({ id: 'g' + Date.now() + i, n: p.functionCall.name, a: p.functionCall.args || {}, ts: p.thoughtSignature || undefined })) };
                         }
                     };
                 }
@@ -484,7 +485,7 @@
                     url: d.base + '/models/' + encodeURIComponent(c.modello) + ':streamGenerateContent?alt=sse', corpo: {}, nuovo: () => ({ testo: '', calls: [] }),
                     evento(e, st) {
                         if (e.error) throw new Error(e.error.message || 'errore nel flusso');
-                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {} }); });
+                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {}, ts: p.thoughtSignature || undefined }); });
                     },
                     fine: st => ({ t: st.testo, calls: st.calls })
                 })
@@ -518,13 +519,13 @@
                     if (!risp.ok) {
                         let det = ''; try { const j = await risp.json(); det = (j.error && (j.error.message || j.error)) || ''; } catch (e) { /* corpo non JSON */ }
                         const m = risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso'
-                            : risp.status === 429 ? 'limite raggiunto o credito esaurito'
+                            : risp.status === 429 ? (/quota|billing|exceeded/i.test(String(det)) ? 'quota del piano finita: aspetta (di solito il giorno dopo) o scegli un altro modello dal menu, per esempio flash-lite' : 'limite raggiunto o credito esaurito')
                             : risp.status === 404 ? 'modello non più disponibile: riapri il provider e scegline un altro dal menu'
                             : 'errore ' + risp.status;
                         const err = new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
                         if (risp.status === 429) {
                             let att = parseFloat(risp.headers && risp.headers.get && risp.headers.get('retry-after'));
-                            if (isNaN(att)) { const mm = /(?:in|after|ritenta\w*)\D{0,12}([\d.]+)\s*(ms|s|m)\b/i.exec(String(det)); att = mm ? parseFloat(mm[1]) * ({ ms: 0.001, s: 1, m: 60 })[mm[2].toLowerCase()] : 8; }
+                            if (isNaN(att)) { const mm = /(?:in|after|ritenta\w*)\D{0,12}([\d.]+)\s*(ms|s|m)\b/i.exec(String(det)); att = mm ? parseFloat(mm[1]) * ({ ms: 0.001, s: 1, m: 60 })[mm[2].toLowerCase()] : (/quota|billing|exceeded/i.test(String(det)) ? 999 : 8); }
                             err.limite = true; err.attesa = att;
                         }
                         throw err;

@@ -55,6 +55,11 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const po = JSON.parse(app.E(`(() => { const g = 'x'.repeat(9000), cr = []; for (let i = 0; i < 30; i++) cr.push({ r: 'u', t: 'd' + i }, { r: 'a', t: '', calls: [{ id: 'a' + i, n: 'leggi_schermata', a: {} }] }, { r: 't', res: [{ id: 'a' + i, n: 'leggi_schermata', c: g }] });
     const p = aiPotaCrono(cr); const ts = p.filter(m => m.r === 't'); return JSON.stringify({ n: p.length, orig: cr.length, ultima: ts[ts.length - 1].res[0].c.length, vecchia: ts[0].res[0].c.length, intatto: cr[2].res[0].c.length, inizio: p[0].r }); })()`));
   t('potatura: cronologia corta e risultati accorciati', po.n <= 42 && po.inizio === 'u' && po.ultima < 6100 && po.vecchia < 600 && po.intatto === 9000);
+  const ge = JSON.parse(app.E(`(() => { const cr = [{ r: 'u', t: 'x' }, { r: 'a', t: '', calls: [{ id: 'g1', n: 'elenco_progetti', a: {}, ts: 'SIG' }, { id: 'g2', n: 'stato_app', a: {} }] }, { r: 't', res: [{ id: 'g1', n: 'elenco_progetti', c: '[]' }, { id: 'g2', n: 'stato_app', c: '{}' }] }];
+    const c = aiConf('gemini'), v = c.modello; c.modello = 'gemini-3-flash'; const parti = AI_ADATTATORI.gemini(aiDef('gemini'), c, cr).corpo.contents[1].parts; c.modello = v;
+    const lett = AI_ADATTATORI.gemini(aiDef('gemini'), c, cr).leggi({ candidates: [{ content: { parts: [{ functionCall: { name: 'a', args: {} }, thoughtSignature: 'ZZ' }] } }] });
+    return JSON.stringify({ p0: parti[0].thoughtSignature, p1: parti[1].thoughtSignature, ts: lett.calls[0].ts }); })()`));
+  t('gemini 3: thoughtSignature letta e rimandata', ge.p0 === 'SIG' && ge.p1 === 'skip_thought_signature_validator' && ge.ts === 'ZZ');
   const sg = JSON.parse(app.E(`JSON.stringify({ a: aiStrumentiPer([{ r: 'u', t: 'cambia il colore del tema' }]).map(x => x.n), b: aiStrumentiPer([{ r: 'u', t: 'ok fallo' }]).length, tot: AI_STRUMENTI.length, c: aiStrumentiPer([{ r: 'u', t: 'cambia gli strati' }]).map(x => x.n) })`));
   t('strumenti: invio ridotto se il tema è chiaro, tutti se non lo è', sg.a.length < sg.tot && sg.a.includes('imposta_preferenza') && !sg.a.includes('elimina_strato') && sg.b === sg.tot && sg.c.includes('modifica_strato') && sg.c.includes('leggi_schermata'));
   const conf = $('aiPannello').querySelector('.ai-conferma');
