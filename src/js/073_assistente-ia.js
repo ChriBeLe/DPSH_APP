@@ -313,7 +313,7 @@
                     aiUiMappa = [];
                     Array.from(radice.querySelectorAll('button, input, select, textarea, [role=button], [role=menuitem]')).forEach(e => {
                         if (e.closest('#aiPannello, #aiWizOverlay') || e.type === 'hidden' || !aiVisibile(e)) return;
-                        if (aiUiMappa.length >= 90) return;
+                        if (aiUiMappa.length >= 60) return;
                         const tipo = e.tagName === 'SELECT' ? 'menu' : e.tagName === 'TEXTAREA' ? 'testo' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'campo') : 'pulsante';
                         const riga = e.closest('.setting-row, .form-group, .field-row');
                         const lab = [e.getAttribute('aria-label'), e.title, e.textContent, e.placeholder, e.labels && e.labels[0] && e.labels[0].textContent, riga && (riga.querySelector('.setting-label, label') || {}).textContent, e.id].map(x => String(x || '').replace(/\s+/g, ' ').trim()).find(x => x).slice(0, 70) || '';
@@ -358,6 +358,24 @@
                 'Se non c\'è uno strumento diretto per l\'azione: prima prova elenco_comandi/esegui_comando o vai_a; altrimenti usa leggi_schermata, poi clicca e compila_campo, e rileggi la schermata dopo ogni azione (e dopo ogni apertura di finestra) finché il lavoro non è finito. ' +
                 'Se uno strumento dà errore, riprova in un altro modo prima di arrenderti; solo se non è possibile dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
+
+            // Strumenti inviati a ogni richiesta: sempre i generali; i gruppi specifici solo se la conversazione ne parla
+            // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
+            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
+            const AI_GRUPPI = [
+                { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
+                { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
+                { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
+            ];
+            function aiStrumentiPer(crono) {
+                const utenti = crono.filter(m => m.r === 'u').slice(-3).map(m => m.t || '').join(' ');
+                const usati = new Set(); crono.forEach(m => { (m.calls || []).forEach(k => usati.add(k.n)); });
+                const gr = AI_GRUPPI.filter(g => g.re.test(utenti) || g.t.some(n => usati.has(n)));
+                if (!gr.length) return AI_STRUMENTI;
+                const ok = new Set(AI_CORE); gr.forEach(g => g.t.forEach(n => ok.add(n)));
+                return AI_STRUMENTI.filter(x => ok.has(x.n));
+            }
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
 
@@ -374,7 +392,7 @@
                         : { role: 'user', content: m.res.map(x => ({ type: 'tool_result', tool_use_id: x.id, content: x.c })) });
                     return {
                         url: d.base + '/messages', headers: { 'x-api-key': c.chiave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                        corpo: { model: c.modello, max_tokens: 1500, system: aiMsgSistema(), messages: msgs, tools: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) })) },
+                        corpo: { model: c.modello, max_tokens: 1500, system: [{ type: 'text', text: aiMsgSistema(), cache_control: { type: 'ephemeral' } }], messages: msgs, tools: (t => { if (t.length) t[t.length - 1].cache_control = { type: 'ephemeral' }; return t; })(aiStrumentiPer(crono).map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) }))) },
                         leggi: j => ({ t: (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), calls: (j.content || []).filter(b => b.type === 'tool_use').map(b => ({ id: b.id, n: b.name, a: b.input || {} })) })
                     };
                 },
@@ -389,7 +407,7 @@
                     if (c.chiave) h.Authorization = 'Bearer ' + c.chiave;
                     return {
                         url: (c.base || d.base).replace(/\/$/, '') + '/chat/completions', headers: h,
-                        corpo: { model: c.modello, messages: msgs, tools: AI_STRUMENTI.map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
+                        corpo: { model: c.modello, messages: msgs, tools: aiStrumentiPer(crono).map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
                         leggi: j => {
                             const m = ((j.choices || [])[0] || {}).message || {};
                             return { t: m.content || '', calls: (m.tool_calls || []).map((k, i) => { let a = {}; try { a = JSON.parse(k.function.arguments || '{}'); } catch (e) { /* argomenti rovinati: strumento senza argomenti */ } return { id: k.id || ('call_' + i), n: k.function.name, a }; }) };
@@ -402,7 +420,7 @@
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
                         url: d.base + '/models/' + encodeURIComponent(c.modello) + ':generateContent', headers: { 'x-goog-api-key': c.chiave },
-                        corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
+                        corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: aiStrumentiPer(crono).map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
                         leggi: j => {
                             const parti = (((j.candidates || [])[0] || {}).content || {}).parts || [];
                             return { t: parti.filter(p => p.text).map(p => p.text).join('\n'), calls: parti.filter(p => p.functionCall).map((p, i) => ({ id: 'g' + Date.now() + i, n: p.functionCall.name, a: p.functionCall.args || {} })) };
@@ -503,7 +521,13 @@
                             : risp.status === 429 ? 'limite raggiunto o credito esaurito'
                             : risp.status === 404 ? 'modello non più disponibile: riapri il provider e scegline un altro dal menu'
                             : 'errore ' + risp.status;
-                        throw new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
+                        const err = new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
+                        if (risp.status === 429) {
+                            let att = parseFloat(risp.headers && risp.headers.get && risp.headers.get('retry-after'));
+                            if (isNaN(att)) { const mm = /(?:in|after|ritenta\w*)\D{0,12}([\d.]+)\s*(ms|s|m)\b/i.exec(String(det)); att = mm ? parseFloat(mm[1]) * ({ ms: 0.001, s: 1, m: 60 })[mm[2].toLowerCase()] : 8; }
+                            err.limite = true; err.attesa = att;
+                        }
+                        throw err;
                     }
                     if (fl && risp.body && risp.body.getReader && /event-stream/i.test((risp.headers && risp.headers.get && risp.headers.get('content-type')) || '')) return await aiLeggiFlusso(risp, fl, onTesto, arma);
                     return r.leggi(await risp.json());
@@ -532,9 +556,18 @@
                 });
             }
             async function aiChiama(id, crono, onTesto) {
-                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, aiPotaCrono(crono));
-                if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
-                return aiPostaRichiesta(d, r, 120000, onTesto);
+                const d = aiDef(id), c = aiConf(id);
+                for (let tent = 0; ; tent++) {
+                    try {
+                        const r = AI_ADATTATORI[d.tipo](d, c, aiPotaCrono(crono));
+                        if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
+                        return await aiPostaRichiesta(d, r, 120000, onTesto);
+                    } catch (e) {
+                        // «troppe richieste»: se l'attesa è breve si aspetta e si riprova, prima di passare al provider dopo
+                        if (!e.limite || tent >= 2 || e.attesa > 30 || aiFermato) throw e;
+                        for (let k = Math.ceil(e.attesa) + 1; k > 0 && !aiFermato; k--) { aiStatoFn('Limite di ' + d.nome + ' raggiunto: riprovo tra ' + k + ' s'); await new Promise(r => setTimeout(r, 1000)); }
+                    }
+                }
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
             async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {

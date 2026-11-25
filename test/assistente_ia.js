@@ -19,7 +19,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   w.fetch = async (url, opz) => {
     chiamate.push(url);
     const corpo = JSON.parse(opz.body);
-    if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota' } }) };
+    if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota, try again in 90s' } }) };
     const ultimo = corpo.contents[corpo.contents.length - 1];
     const eRisultato = ultimo.parts[0].functionResponse;
     if (!eRisultato) {
@@ -55,6 +55,8 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const po = JSON.parse(app.E(`(() => { const g = 'x'.repeat(9000), cr = []; for (let i = 0; i < 30; i++) cr.push({ r: 'u', t: 'd' + i }, { r: 'a', t: '', calls: [{ id: 'a' + i, n: 'leggi_schermata', a: {} }] }, { r: 't', res: [{ id: 'a' + i, n: 'leggi_schermata', c: g }] });
     const p = aiPotaCrono(cr); const ts = p.filter(m => m.r === 't'); return JSON.stringify({ n: p.length, orig: cr.length, ultima: ts[ts.length - 1].res[0].c.length, vecchia: ts[0].res[0].c.length, intatto: cr[2].res[0].c.length, inizio: p[0].r }); })()`));
   t('potatura: cronologia corta e risultati accorciati', po.n <= 42 && po.inizio === 'u' && po.ultima < 6100 && po.vecchia < 600 && po.intatto === 9000);
+  const sg = JSON.parse(app.E(`JSON.stringify({ a: aiStrumentiPer([{ r: 'u', t: 'cambia il colore del tema' }]).map(x => x.n), b: aiStrumentiPer([{ r: 'u', t: 'ok fallo' }]).length, tot: AI_STRUMENTI.length, c: aiStrumentiPer([{ r: 'u', t: 'cambia gli strati' }]).map(x => x.n) })`));
+  t('strumenti: invio ridotto se il tema è chiaro, tutti se non lo è', sg.a.length < sg.tot && sg.a.includes('imposta_preferenza') && !sg.a.includes('elimina_strato') && sg.b === sg.tot && sg.c.includes('modifica_strato') && sg.c.includes('leggi_schermata'));
   const conf = $('aiPannello').querySelector('.ai-conferma');
   t('la creazione chiede conferma', !!conf && !app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   clic(conf.querySelector('.si'));
@@ -68,7 +70,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   // l'assistente che spiega invece di agire viene rimandato a usare gli strumenti
   { let n = 0, vistoSpinta = false;
     w.fetch = async (url, opz) => {
-      if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota' } }) };
+      if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota, try again in 90s' } }) };
       const corpo = JSON.parse(opz.body); n++;
       const ult = corpo.contents[corpo.contents.length - 1].parts[0];
       if (ult.text && /fallo tu/i.test(ult.text)) vistoSpinta = true;
