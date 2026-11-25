@@ -117,3 +117,9 @@
             .ai-piedi textarea, .ai-wiz input[type=text], .ai-wiz input[type=password], .ai-sel select { font-size: 16px; }
             .ai-sel select { min-height: 40px; }
         }
+
+        /* bolla: respiro lento a riposo (proprietà `scale`, si somma al transform della molla) */
+        #aiBolla.attiva { width: clamp(46px, 13vw, 54px); height: clamp(46px, 13vw, 54px); animation: aiRespiro 4.2s ease-in-out infinite; }
+        @keyframes aiRespiro { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
+        #aiBolla:active { animation: none; scale: .94; transition: scale .12s ease-out; }
+        @media (prefers-reduced-motion: reduce) { #aiBolla.attiva { animation: none; } }

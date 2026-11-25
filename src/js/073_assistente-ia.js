@@ -429,13 +429,69 @@
                 if (!el.length) throw new Error('nessun modello disponibile' + (id === 'ollama' ? ': scaricane uno con «ollama pull llama3.1»' : ''));
                 return el;
             }
+
+            // --- risposta a flusso (SSE): il testo compare mentre arriva. Se il provider non manda un flusso
+            // (o il browser non lo sa leggere) si ricade sulla risposta intera, come prima. ---
+            const aiJson = t => { try { return JSON.parse(t || '{}'); } catch (e) { return {}; } };
+            const AI_FLUSSI = {
+                anthropic: () => ({
+                    corpo: { stream: true }, nuovo: () => ({ testo: '', b: {} }),
+                    evento(e, st) {
+                        if (e.type === 'error') throw new Error((e.error && e.error.message) || 'errore nel flusso');
+                        if (e.type === 'content_block_start') st.b[e.index] = Object.assign({ txt: '', json: '' }, e.content_block);
+                        else if (e.type === 'content_block_delta' && st.b[e.index]) {
+                            const b = st.b[e.index], dl = e.delta || {};
+                            if (dl.type === 'text_delta') b.txt += dl.text || ''; else if (dl.type === 'input_json_delta') b.json += dl.partial_json || '';
+                            st.testo = Object.keys(st.b).map(Number).sort((x, y) => x - y).map(k => st.b[k]).filter(x => x.type === 'text').map(x => x.txt).join('\n');
+                        }
+                    },
+                    fine: st => { const bl = Object.keys(st.b).map(Number).sort((x, y) => x - y).map(k => st.b[k]); return { t: st.testo, calls: bl.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, n: b.name, a: aiJson(b.json) })) }; }
+                }),
+                openai: () => ({
+                    corpo: { stream: true }, nuovo: () => ({ testo: '', k: {} }),
+                    evento(e, st) {
+                        if (e.error) throw new Error(e.error.message || 'errore nel flusso');
+                        const dl = ((e.choices || [])[0] || {}).delta || {};
+                        if (dl.content) st.testo += dl.content;
+                        (dl.tool_calls || []).forEach(t => { const i = t.index || 0, x = st.k[i] || (st.k[i] = { id: '', n: '', arg: '' }); if (t.id) x.id = t.id; if (t.function) { if (t.function.name) x.n += t.function.name; if (t.function.arguments) x.arg += t.function.arguments; } });
+                    },
+                    fine: st => ({ t: st.testo, calls: Object.keys(st.k).map(i => ({ id: st.k[i].id || ('call_' + i), n: st.k[i].n, a: aiJson(st.k[i].arg) })) })
+                }),
+                gemini: (d, c) => ({
+                    url: d.base + '/models/' + encodeURIComponent(c.modello) + ':streamGenerateContent?alt=sse', corpo: {}, nuovo: () => ({ testo: '', calls: [] }),
+                    evento(e, st) {
+                        if (e.error) throw new Error(e.error.message || 'errore nel flusso');
+                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {} }); });
+                    },
+                    fine: st => ({ t: st.testo, calls: st.calls })
+                })
+            };
+            async function aiLeggiFlusso(risp, fl, onTesto, arma) {
+                const rd = risp.body.getReader(), dec = new TextDecoder(), st = fl.nuovo(); let buf = '';
+                const elabora = blocco => {
+                    const dati = blocco.split(/\r?\n/).filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('');
+                    if (!dati || dati === '[DONE]') return;
+                    let ev; try { ev = JSON.parse(dati); } catch (e) { return; }
+                    const prima = st.testo.length; fl.evento(ev, st);
+                    if (st.testo.length !== prima) onTesto(st.testo);
+                };
+                for (;;) {
+                    const { done, value } = await rd.read();
+                    if (done) break;
+                    arma(); buf += dec.decode(value, { stream: true });
+                    let i; while ((i = buf.search(/\r?\n\r?\n/)) >= 0) { const bl = buf.slice(0, i); buf = buf.slice(i).replace(/^\r?\n\r?\n/, ''); elabora(bl); }
+                }
+                if (buf.trim()) elabora(buf);
+                return fl.fine(st);
+            }
             // Invio di una richiesta già costruita (url, headers, corpo) con tempo massimo e messaggi d'errore
             // in italiano. Lo usano la chat (aiChiama) e la lettura dei fogli di campo (072b).
-            async function aiPostaRichiesta(d, r, ms) {
+            async function aiPostaRichiesta(d, r, ms, onTesto) {
                 const ctl = new AbortController();
-                const timer = setTimeout(() => ctl.abort(), ms || 60000);
+                let timer = 0; const arma = () => { clearTimeout(timer); timer = setTimeout(() => ctl.abort(), ms || 60000); }; arma();
+                const fl = onTesto && r.flusso && typeof TextDecoder === 'function' ? r.flusso : null;
                 try {
-                    const risp = await fetch(r.url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, r.headers), body: JSON.stringify(r.corpo), signal: ctl.signal });
+                    const risp = await fetch(fl && fl.url ? fl.url : r.url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, r.headers), body: JSON.stringify(fl ? Object.assign({}, r.corpo, fl.corpo) : r.corpo), signal: ctl.signal });
                     if (!risp.ok) {
                         let det = ''; try { const j = await risp.json(); det = (j.error && (j.error.message || j.error)) || ''; } catch (e) { /* corpo non JSON */ }
                         const m = risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso'
@@ -444,6 +500,7 @@
                             : 'errore ' + risp.status;
                         throw new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
                     }
+                    if (fl && risp.body && risp.body.getReader && /event-stream/i.test((risp.headers && risp.headers.get && risp.headers.get('content-type')) || '')) return await aiLeggiFlusso(risp, fl, onTesto, arma);
                     return r.leggi(await risp.json());
                 } catch (e) {
                     if (e.name === 'AbortError') throw new Error('nessuna risposta entro ' + Math.round((ms || 60000) / 1000) + ' secondi');
@@ -451,18 +508,19 @@
                     throw e;
                 } finally { clearTimeout(timer); }
             }
-            async function aiChiama(id, crono) {
-                const d = aiDef(id), c = aiConf(id);
-                return aiPostaRichiesta(d, AI_ADATTATORI[d.tipo](d, c, crono), 60000);
+            async function aiChiama(id, crono, onTesto) {
+                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, crono);
+                if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
+                return aiPostaRichiesta(d, r, 60000, onTesto);
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
-            async function aiChiamaConFallback(crono, avvisa) {
+            async function aiChiamaConFallback(crono, avvisa, onTesto, azzera) {
                 const pronti = aiProntiInOrdine();
                 if (!pronti.length) throw new Error('Nessun provider configurato. Aprilo da Impostazioni › Assistente IA › Provider e chiavi API.');
                 const errori = [];
                 for (const id of pronti) {
-                    try { const r = await aiChiama(id, crono); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
-                    catch (e) { errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
+                    try { const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
+                    catch (e) { if (azzera) azzera(); errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
                 }
                 throw new Error('Nessun provider ha risposto.\n' + errori.join('\n'));
             }
@@ -590,9 +648,14 @@
                 let spinto = false;
                 try {
                     for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
-                        const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t));
+                        attesa.style.display = ''; aiChat.appendChild(attesa); let vivo = null;
+                        const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t), tutto => {
+                            if (!vivo) { vivo = aiEl('div', 'ai-msg ia'); aiChat.insertBefore(vivo, attesa); attesa.style.display = 'none'; }
+                            vivo.textContent = ''; vivo.appendChild(aiFormatta(tutto)); aiChat.scrollTop = aiChat.scrollHeight;
+                        }, () => { if (vivo) { vivo.remove(); vivo = null; attesa.style.display = ''; } });
                         aiCrono.push({ r: 'a', t: r.t, calls: r.calls });
-                        if (r.t) aiMsg('ia', r.t);
+                        if (vivo) { vivo.textContent = ''; vivo.appendChild(aiFormatta(r.t)); if (aiChatAtt) { aiChatAtt.vista.push(['ia', r.t]); aiSalvaChat(); } }
+                        else if (r.t) aiMsg('ia', r.t);
                         if (!r.calls.length) {
                             if (!spinto && aiDaIstruzioni(r.t)) { spinto = true; aiCrono.push({ r: 'u', t: 'Non dirmi come fare: fallo tu adesso con gli strumenti (esegui_comando, vai_a, leggi_schermata, clicca, compila_campo) e poi dimmi in una frase cosa hai fatto.' }); continue; }
                             break;
@@ -688,16 +751,17 @@
                 const tx = aiBTargetX(), w = aiBolla.offsetWidth || 52, ridotto = aiRidotto();
                 let tr = 'translate3d(' + aiB.ox.toFixed(1) + 'px,' + aiB.oy.toFixed(1) + 'px,0)', g = 0;
                 if (!ridotto) {
-                    const v = Math.hypot(aiB.vx, aiB.vy), st = Math.min(0.32, v / 3200), a = Math.atan2(aiB.vy, aiB.vx);
+                    const v = Math.hypot(aiB.vx, aiB.vy), st = Math.min(0.4, v / 2600), a = Math.atan2(aiB.vy, aiB.vx);
                     const lungo = (aiB.lato === 's' ? -aiB.ox : aiB.ox) / w; // >0 verso il bordo (nascosta o in rimbalzo contro il muro)
-                    const bordo = Math.max(0, Math.min(1, lungo / AI_NASCOSTA));
-                    g = bordo;
-                    tr += ' scale(' + (1 - 0.1 * bordo).toFixed(3) + ',' + (1 + 0.06 * bordo).toFixed(3) + ')';
+                    // a riposo la bolla resta un cerchio perfetto; si schiaccia solo se rimbalza contro il bordo
+                    const premuto = Math.max(0, Math.min(1, (lungo / AI_NASCOSTA) - 1)), lato = aiB.lato === 's' ? -1 : 1;
+                    g = Math.min(1, premuto * 1.4);
+                    if (premuto > 0.01) tr += ' scale(' + (1 - 0.22 * premuto).toFixed(3) + ',' + (1 + 0.12 * premuto).toFixed(3) + ')';
                     if (st > 0.01) tr += ' rotate(' + a.toFixed(3) + 'rad) scale(' + (1 + st).toFixed(3) + ',' + (1 / (1 + st)).toFixed(3) + ') rotate(' + (-a).toFixed(3) + 'rad)';
                 }
                 aiBolla.style.transform = tr;
                 aiGoo.style.opacity = g.toFixed(2);
-                aiGoo.style.transform = 'scale(' + (0.4 + 0.6 * g).toFixed(2) + ',' + (0.7 + 0.5 * g).toFixed(2) + ')';
+                aiGoo.style.transform = 'scale(' + (0.3 + 0.5 * g).toFixed(2) + ',' + (0.6 + 0.4 * g).toFixed(2) + ')';
                 return tx;
             }
             function aiBTick(t) {
@@ -708,7 +772,7 @@
                     const nx = aiB.px - aiB.lx, ny = aiB.py - aiB.ly, k = Math.min(1, dt * 14);
                     aiB.vx += ((nx - aiB.ox) / dt - aiB.vx) * k; aiB.vy += ((ny - aiB.oy) / dt - aiB.vy) * k; aiB.ox = nx; aiB.oy = ny; vivo = true;
                 } else {
-                    const tx = aiBTargetX(), K = 260, C = 17;
+                    const tx = aiBTargetX(), K = 210, C = 12;
                     aiB.vx += (-K * (aiB.ox - tx) - C * aiB.vx) * dt; aiB.vy += (-K * aiB.oy - C * aiB.vy) * dt;
                     aiB.ox += aiB.vx * dt; aiB.oy += aiB.vy * dt;
                     vivo = Math.abs(aiB.ox - tx) > 0.3 || Math.abs(aiB.oy) > 0.3 || Math.abs(aiB.vx) > 6 || Math.abs(aiB.vy) > 6;

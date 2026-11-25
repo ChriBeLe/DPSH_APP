@@ -34,8 +34,17 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   clic($('aiPannello').querySelector('.ai-piedi button'));
   await attesa(300);
   if (!chiamate.length) console.log('PANNELLO:', $('aiPannello').textContent);
-  const ch = chiamate.filter(u => /chat\/completions|:generateContent/.test(u));
+  const ch = chiamate.filter(u => /chat\/completions|:(stream)?[gG]enerateContent/.test(u));
   t('Groq fallito → provato Gemini', ch[0].includes('groq') && ch[1].includes('generativelanguage'));
+  // risposta a flusso (SSE) in pezzi spezzati a metà: testo che cresce e chiamata di strumento ricomposta
+  const sse = ['data: {"choices":[{"delta":{"content":"Cia"}}]}\n\nda', 'ta: {"choices":[{"delta":{"content":"o","tool_calls":[{"index":0,"id":"c1","function":{"name":"elenco_progetti","arguments":"{\\"a"}}]}}]}\n\ndata: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":1}"}}]}}]}\n\ndata: [DONE]\n\n'];
+  const fl = await app.E(`(async () => { const pezzi = ${JSON.stringify(sse)}; let i = 0, visto = [];
+    const risp = { body: { getReader: () => ({ read: async () => i < pezzi.length ? { done: false, value: new TextEncoder().encode(pezzi[i++]) } : { done: true } }) } };
+    const r = await aiLeggiFlusso(risp, AI_FLUSSI.openai(), x => visto.push(x), () => {});
+    return JSON.stringify({ r, visto }); })()`);
+  const fo = JSON.parse(fl);
+  t('flusso: testo a pezzi ricomposto', fo.r.t === 'Ciao' && fo.visto[0] === 'Cia');
+  t('flusso: chiamata strumento ricomposta', fo.r.calls.length === 1 && fo.r.calls[0].n === 'elenco_progetti' && fo.r.calls[0].a.a === 1);
   const conf = $('aiPannello').querySelector('.ai-conferma');
   t('la creazione chiede conferma', !!conf && !app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   clic(conf.querySelector('.si'));
