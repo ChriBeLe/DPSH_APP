@@ -34,7 +34,7 @@
         .ai-conferma button { flex: 1; padding: 7px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card-hover); color: var(--text-main); font-weight: 600; cursor: pointer; }
         .ai-conferma button.si { background: var(--accent); color: var(--on-solid, #fff); border: none; }
         .ai-piedi { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); }
-        .ai-piedi textarea { flex: 1; resize: none; height: 40px; max-height: 110px; background: var(--bg-sunken); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 10px; font: inherit; font-size: 13px; }
+        .ai-piedi textarea { flex: 1; resize: none; height: 40px; max-height: 168px; background: var(--bg-sunken); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 9px 10px; font: inherit; font-size: 13px; }
         .ai-piedi button { border: none; background: var(--accent); color: var(--on-solid, #fff); border-radius: var(--radius-md); padding: 0 14px; font-weight: 700; cursor: pointer; }
         .ai-piedi button:disabled { opacity: .5; }
         /* procedura guidata */
@@ -123,3 +123,43 @@
         @keyframes aiRespiro { 0%, 100% { scale: 1; } 50% { scale: 1.045; } }
         #aiBolla:active { animation: none; scale: .94; transition: scale .12s ease-out; }
         @media (prefers-reduced-motion: reduce) { #aiBolla.attiva { animation: none; } }
+
+        /* ---- finestra di chat: testi lunghi, allegati, stato in diretta (26/11/2026) ---- */
+        .ai-msg { position: relative; overflow-wrap: anywhere; }
+        .ai-msg .ai-copia { position: absolute; top: 3px; right: 3px; width: 26px; height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: var(--radius-sm); background: transparent; color: inherit; opacity: 0; cursor: pointer; transition: opacity .15s; }
+        .ai-msg:hover .ai-copia, .ai-msg .ai-copia:focus-visible, .ai-msg .ai-copia.ok { opacity: .75; }
+        .ai-msg .ai-copia.ok { color: var(--accent-ink, inherit); }
+        .ai-msg .ai-copia .ico { width: 14px; height: 14px; }
+        @media (pointer: coarse) { .ai-msg .ai-copia { opacity: .5; } }
+        .ai-msg.lungo.chiuso { max-height: 180px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+        .ai-msg .ai-espandi { display: block; margin: 6px auto 0; border: none; background: transparent; color: inherit; text-decoration: underline; font-size: 12px; cursor: pointer; }
+        .ai-msg.lungo.chiuso .ai-espandi { position: absolute; left: 0; right: 0; bottom: 4px; margin: 0 auto; width: max-content; }
+        .ai-chat { overscroll-behavior: contain; scroll-behavior: smooth; }
+        .ai-giu { position: absolute; right: 14px; bottom: 76px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 10px rgba(0,0,0,.3); display: inline-flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transform: translateY(6px); transition: opacity .18s, transform .18s; cursor: pointer; z-index: 2; }
+        .ai-giu.vis { opacity: 1; pointer-events: auto; transform: none; }
+        .ai-giu .ico { width: 16px; height: 16px; }
+        .ai-allegati { display: flex; gap: 6px; padding: 8px 10px 0; overflow-x: auto; border-top: 1px solid var(--border); }
+        .ai-allegati[hidden] { display: none; }
+        .ai-all { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; max-width: 180px; padding: 3px 4px 3px 3px; background: var(--bg-sunken); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 11.5px; animation: aiEntra .16s ease-out; }
+        .ai-all img { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; }
+        .ai-all-ico { width: 34px; height: 34px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+        .ai-all-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ai-all button { border: none; background: transparent; color: var(--text-muted); cursor: pointer; padding: 4px; }
+        .ai-clip { align-self: flex-end; width: 40px; min-width: 40px; height: 40px; padding: 0 !important; background: var(--bg-card-hover) !important; color: var(--text-main) !important; border: 1px solid var(--border) !important; display: inline-flex; align-items: center; justify-content: center; }
+        .ai-clip .ico { width: 18px; height: 18px; }
+        .ai-piedi { align-items: flex-end; }
+        .ai-piedi .ai-invia { height: 40px; }
+        .ai-piedi .ai-invia.stop { background: var(--danger, #d33); }
+        #aiPannello.trascina { outline: 2px dashed var(--accent); outline-offset: -6px; }
+        .ai-msg.attesa { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; align-self: stretch; max-width: 100%; background: var(--bg-sunken); border: 1px solid var(--border); }
+        .ai-sec { margin-left: auto; font-size: 11px; font-variant-numeric: tabular-nums; opacity: .7; }
+        .ai-passi { flex: 1 0 100%; display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: 11.5px; }
+        .ai-passo { animation: aiEntra .16s ease-out; }
+        .ai-passo:not(.fatto):not(.fallito) { animation: aiEntra .16s ease-out, aiLampeggia 1.2s ease-in-out infinite; }
+        .ai-passo.fatto { opacity: .65; } .ai-passo.fallito { color: var(--danger, #d33); }
+        @keyframes aiLampeggia { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+        #aiPannello.occupato .ai-testa::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: aiScorri 1.3s linear infinite; }
+        @keyframes aiScorri { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+        #aiBolla.pensa::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: aiOnda 1.4s ease-out infinite; pointer-events: none; }
+        @keyframes aiOnda { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .ai-passo, .ai-all, #aiPannello.occupato .ai-testa::after, #aiBolla.pensa::before, .ai-giu { animation: none !important; transition: none; } }

@@ -360,11 +360,16 @@
 
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
+
+            // Allegati di un messaggio utente: m.all = [{tipo:'img', mime, b64, nome} | {tipo:'txt', nome, contenuto, tagliato}].
+            // Quando una chat si salva, b64/contenuto/anteprima non vengono scritti (spazio): resta solo il nome.
+            const aiTestoU = m => { let t = m.t || ''; (m.all || []).forEach(a => { if (a.tipo === 'txt') t += '\n\n[Allegato: ' + a.nome + (a.tagliato ? ' (troncato)' : '') + ']\n' + (a.contenuto != null ? a.contenuto : '(contenuto non più disponibile)'); else if (!a.b64) t += '\n\n[Immagine «' + a.nome + '» non più disponibile]'; }); return t; };
+            const aiImg = m => (m.all || []).filter(a => a.tipo === 'img' && a.b64);
             const aiSchema = s => ({ type: 'object', properties: s.p, required: s.req || [] });
             const aiSenzaVuoti = o => Object.keys(o.properties).length ? o : undefined;
             const AI_ADATTATORI = {
                 anthropic(d, c, crono) {
-                    const msgs = crono.map(m => m.r === 'u' ? { role: 'user', content: m.t }
+                    const msgs = crono.map(m => m.r === 'u' ? { role: 'user', content: aiImg(m).length ? aiImg(m).map(a => ({ type: 'image', source: { type: 'base64', media_type: a.mime, data: a.b64 } })).concat([{ type: 'text', text: aiTestoU(m) }]) : aiTestoU(m) }
                         : m.r === 'a' ? { role: 'assistant', content: [].concat(m.t ? [{ type: 'text', text: m.t }] : [], (m.calls || []).map(k => ({ type: 'tool_use', id: k.id, name: k.n, input: k.a || {} }))) }
                         : { role: 'user', content: m.res.map(x => ({ type: 'tool_result', tool_use_id: x.id, content: x.c })) });
                     return {
@@ -376,7 +381,7 @@
                 openai(d, c, crono) {
                     const msgs = [{ role: 'system', content: aiMsgSistema() }];
                     crono.forEach(m => {
-                        if (m.r === 'u') msgs.push({ role: 'user', content: m.t });
+                        if (m.r === 'u') msgs.push({ role: 'user', content: aiImg(m).length ? [{ type: 'text', text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ type: 'image_url', image_url: { url: 'data:' + a.mime + ';base64,' + a.b64 } }))) : aiTestoU(m) });
                         else if (m.r === 'a') msgs.push({ role: 'assistant', content: m.t || null, ...(m.calls && m.calls.length ? { tool_calls: m.calls.map(k => ({ id: k.id, type: 'function', function: { name: k.n, arguments: JSON.stringify(k.a || {}) } })) } : {}) });
                         else m.res.forEach(x => msgs.push({ role: 'tool', tool_call_id: x.id, content: x.c }));
                     });
@@ -392,7 +397,7 @@
                     };
                 },
                 gemini(d, c, crono) {
-                    const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: m.t }] }
+                    const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ inlineData: { mimeType: a.mime, data: a.b64 } }))) }
                         : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => ({ functionCall: { name: k.n, args: k.a || {} } }))) }
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
@@ -487,7 +492,7 @@
             // Invio di una richiesta già costruita (url, headers, corpo) con tempo massimo e messaggi d'errore
             // in italiano. Lo usano la chat (aiChiama) e la lettura dei fogli di campo (072b).
             async function aiPostaRichiesta(d, r, ms, onTesto) {
-                const ctl = new AbortController();
+                const ctl = new AbortController(); aiCtlAtt = ctl;
                 let timer = 0; const arma = () => { clearTimeout(timer); timer = setTimeout(() => ctl.abort(), ms || 60000); }; arma();
                 const fl = onTesto && r.flusso && typeof TextDecoder === 'function' ? r.flusso : null;
                 try {
@@ -503,6 +508,7 @@
                     if (fl && risp.body && risp.body.getReader && /event-stream/i.test((risp.headers && risp.headers.get && risp.headers.get('content-type')) || '')) return await aiLeggiFlusso(risp, fl, onTesto, arma);
                     return r.leggi(await risp.json());
                 } catch (e) {
+                    if (e.name === 'AbortError' && aiFermato) throw new Error('Interrotto da te.');
                     if (e.name === 'AbortError') throw new Error('nessuna risposta entro ' + Math.round((ms || 60000) / 1000) + ' secondi');
                     if (e instanceof TypeError) throw new Error(d.id === 'ollama' ? 'Ollama non raggiungibile: è avviato e ha OLLAMA_ORIGINS="*"?' : 'rete assente o richiesta bloccata');
                     throw e;
@@ -514,13 +520,13 @@
                 return aiPostaRichiesta(d, r, 60000, onTesto);
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
-            async function aiChiamaConFallback(crono, avvisa, onTesto, azzera) {
+            async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {
                 const pronti = aiProntiInOrdine();
                 if (!pronti.length) throw new Error('Nessun provider configurato. Aprilo da Impostazioni › Assistente IA › Provider e chiavi API.');
                 const errori = [];
                 for (const id of pronti) {
-                    try { const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
-                    catch (e) { if (azzera) azzera(); errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
+                    try { if (inizio) inizio(id); const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
+                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
                 }
                 throw new Error('Nessun provider ha risposto.\n' + errori.join('\n'));
             }
@@ -541,9 +547,51 @@
             const aiChat = aiEl('div', 'ai-chat'); aiChat.setAttribute('aria-live', 'polite');
             const aiPiedi = aiEl('div', 'ai-piedi');
             const aiCampo = aiEl('textarea'); aiCampo.placeholder = 'Chiedi o ordina qualcosa…'; aiCampo.rows = 1;
-            const aiInvia = aiEl('button', null, 'Invia');
-            aiPiedi.append(aiCampo, aiInvia);
-            aiPannello.append(aiTesta, aiSub, aiElencoCron, aiChat, aiPiedi);
+            const aiInvia = aiEl('button', 'ai-invia', 'Invia');
+            const aiClip = aiEl('button', 'ai-clip'); aiClip.type = 'button'; aiClip.setAttribute('aria-label', 'Allega un\'immagine o un file di testo'); aiClip.title = 'Allega'; aiClip.innerHTML = '<svg class="ico"><use href="#i-upload"/></svg>';
+            const aiFile = aiEl('input'); aiFile.type = 'file'; aiFile.multiple = true; aiFile.hidden = true; aiFile.accept = 'image/*,.txt,.csv,.tsv,.json,.md,.xml,.kml,.gpx,.log';
+            const aiAllRiga = aiEl('div', 'ai-allegati'); aiAllRiga.hidden = true;
+            const aiGiu = aiEl('button', 'ai-giu'); aiGiu.type = 'button'; aiGiu.setAttribute('aria-label', 'Vai in fondo'); aiGiu.innerHTML = '<svg class="ico"><use href="#i-chevron-down"/></svg>';
+            aiPiedi.append(aiClip, aiCampo, aiInvia, aiFile);
+            aiPannello.append(aiTesta, aiSub, aiElencoCron, aiChat, aiGiu, aiAllRiga, aiPiedi);
+            aiChat.addEventListener('scroll', () => aiGiu.classList.toggle('vis', !aiVicino()));
+            aiGiu.onclick = () => { aiChat.scrollTo ? aiChat.scrollTo({ top: aiChat.scrollHeight, behavior: 'smooth' }) : (aiChat.scrollTop = aiChat.scrollHeight); };
+            // allegati: immagini (rimpicciolite a 1280 px) e file di testo (fino a 60 000 caratteri), max 4 per messaggio
+            let aiAllegati = [];
+            function aiDisegnaAllegati() {
+                aiAllRiga.textContent = ''; aiAllRiga.hidden = !aiAllegati.length;
+                aiAllegati.forEach((a, i) => {
+                    const c = aiEl('div', 'ai-all');
+                    if (a.anteprima) { const im = aiEl('img'); im.src = a.anteprima; im.alt = ''; c.appendChild(im); } else c.appendChild(aiEl('span', 'ai-all-ico', 'TXT'));
+                    const x = aiEl('button', null, '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Togli ' + a.nome); x.onclick = () => { aiAllegati.splice(i, 1); aiDisegnaAllegati(); };
+                    c.append(aiEl('span', 'ai-all-nome', a.nome), x); aiAllRiga.appendChild(c);
+                });
+            }
+            async function aiLeggiAllegato(f) {
+                if (/^image\//.test(f.type)) return new Promise((ok, ko) => {
+                    const url = URL.createObjectURL(f), im = new Image();
+                    im.onload = () => { const sc = Math.min(1, 1280 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(im.width * sc)); cv.height = Math.max(1, Math.round(im.height * sc)); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); const u = cv.toDataURL('image/jpeg', 0.82); ok({ tipo: 'img', mime: 'image/jpeg', b64: u.split(',')[1], nome: f.name || 'immagine', anteprima: u }); };
+                    im.onerror = () => { URL.revokeObjectURL(url); ko(new Error('Non riesco a leggere l\'immagine «' + (f.name || '') + '».')); };
+                    im.src = url;
+                });
+                if (f.size > 3e6) throw new Error('«' + f.name + '» è troppo grande (massimo 3 MB).');
+                const t = await (f.text ? f.text() : new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(f); }));
+                if (t.indexOf('\u0000') >= 0) throw new Error('«' + f.name + '» non è un file di testo.');
+                return { tipo: 'txt', nome: f.name, contenuto: t.slice(0, 60000), tagliato: t.length > 60000 };
+            }
+            async function aiAggiungiFile(files) {
+                for (const f of files) {
+                    if (aiAllegati.length >= 4) { aiMsg('info', 'Al massimo 4 allegati per messaggio.', false); break; }
+                    try { aiAllegati.push(await aiLeggiAllegato(f)); } catch (e) { aiMsg('info', e.message, false); }
+                }
+                aiDisegnaAllegati();
+            }
+            aiClip.onclick = () => aiFile.click();
+            aiFile.onchange = async () => { await aiAggiungiFile([].slice.call(aiFile.files)); aiFile.value = ''; };
+            aiPannello.addEventListener('paste', e => { const fs = [].slice.call((e.clipboardData && e.clipboardData.files) || []).filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); aiAggiungiFile(fs); } });
+            aiPannello.addEventListener('dragover', e => { if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], 'Files') >= 0) { e.preventDefault(); aiPannello.classList.add('trascina'); } });
+            aiPannello.addEventListener('dragleave', e => { if (e.target === aiPannello) aiPannello.classList.remove('trascina'); });
+            aiPannello.addEventListener('drop', e => { aiPannello.classList.remove('trascina'); if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); aiAggiungiFile([].slice.call(e.dataTransfer.files)); } });
             document.body.append(aiBolla, aiPannello);
 
             // CRONOLOGIA PER PROGETTO: le chat si salvano in una voce propria del localStorage (come le chiavi,
@@ -553,8 +601,8 @@
             try { const g = JSON.parse(localStorage.getItem(AI_CRONO_CHIAVE) || 'null'); if (g && typeof g === 'object') aiArchivio = g; } catch (e) { /* voce rovinata: si riparte vuoti */ }
             const aiPidAtt = () => state.currentProjectId || '_';
             const aiNomeProg = pid => pid === '_' ? 'Nessun progetto aperto' : (((state.projects || {})[pid] || {}).name || 'Progetto');
-            function aiScriviArchivio() { try { localStorage.setItem(AI_CRONO_CHIAVE, JSON.stringify(aiArchivio)); } catch (e) { /* spazio pieno: la chat resta solo a schermo */ } }
-            let aiCrono = [], aiOccupato = false, aiChatAtt = null;
+            function aiScriviArchivio() { try { localStorage.setItem(AI_CRONO_CHIAVE, JSON.stringify(aiArchivio, (k, v) => (k === 'b64' || k === 'contenuto' || k === 'anteprima') ? undefined : v)); } catch (e) { /* spazio pieno: la chat resta solo a schermo */ } }
+            let aiCrono = [], aiOccupato = false, aiChatAtt = null, aiFermato = false, aiCtlAtt = null, aiStatoFn = () => {};
             const aiNuovaChat = pid => ({ id: 'c' + Date.now(), pid, titolo: '', ts: Date.now(), vista: [], crono: [] });
             function aiSalvaChat() {
                 if (!aiChatAtt || !aiChatAtt.crono.some(m => m.r === 'u')) return;
@@ -566,15 +614,32 @@
                 lista.unshift(aiChatAtt); lista.length = Math.min(lista.length, AI_MAX_CHAT);
                 aiScriviArchivio();
             }
+
+            const aiVicino = () => aiChat.scrollHeight - aiChat.scrollTop - aiChat.clientHeight < 120;
+            // copia + «Mostra tutto» per i messaggi lunghi
+            function aiRifinisci(m, testo, cls) {
+                m.querySelectorAll('.ai-copia, .ai-espandi').forEach(x => x.remove());
+                if (cls !== 'ia' && cls !== 'utente') return;
+                const b = aiEl('button', 'ai-copia'); b.type = 'button'; b.setAttribute('aria-label', 'Copia il messaggio'); b.title = 'Copia';
+                b.innerHTML = '<svg class="ico"><use href="#i-copy"/></svg>';
+                b.onclick = async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(testo); b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1200); } catch (er) { /* copia negata dal browser */ } };
+                m.appendChild(b);
+                if (testo && testo.length > 900) {
+                    m.classList.add('lungo', 'chiuso');
+                    const t = aiEl('button', 'ai-espandi', 'Mostra tutto'); t.type = 'button';
+                    t.onclick = () => { const c = m.classList.toggle('chiuso'); t.textContent = c ? 'Mostra tutto' : 'Riduci'; };
+                    m.appendChild(t);
+                }
+            }
             function aiMsg(cls, testo, salva) {
-                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); aiChat.appendChild(m); aiChat.scrollTop = aiChat.scrollHeight;
+                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
                 if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
                 return m;
             }
             function aiMostraChat(c) {
                 aiChatAtt = c; aiCrono = c.crono;
                 aiChat.textContent = '';
-                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); });
+                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls); });
                 if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
                 aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
             }
@@ -617,6 +682,7 @@
             }
             aiBtnCron.onclick = () => { if (aiElencoCron.classList.contains('aperto')) aiElencoCron.classList.remove('aperto'); else aiMostraCronologia(); };
             function aiConferma(testo, pericolo) {
+                aiStatoFn('Aspetto la tua conferma…');
                 return new Promise(res => {
                     const testoM = pericolo ? 'ATTENZIONE, ultima conferma: ' + testo : 'L\'assistente vuole: ' + testo;
                     const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo, false);
@@ -638,38 +704,70 @@
             }
             // vero se la risposta spiega all'utente cosa premere invece di farlo (l'assistente deve agire da sé)
             const aiDaIstruzioni = t => /\b(premi|clicca|cliccare|tocca|apri il menu|apri le impostazioni|vai (su|in|nel|alla|a)|seleziona|scegli la voce|puoi (premere|cliccare|aprire))\b/i.test(t || '');
+            // frase breve in italiano su cosa sta facendo l'assistente con un certo strumento
+            function aiEtichetta(n, a) {
+                const s = AI_STRUMENTI.find(x => x.n === n);
+                if (/^leggi_schermata$/.test(n)) return 'Guardo cosa c\'è sullo schermo';
+                if (n === 'clicca') return 'Premo un pulsante';
+                if (n === 'compila_campo') return 'Compilo un campo';
+                if (n === 'vai_a') return 'Apro la schermata' + (a && a.schermata ? ' «' + a.schermata + '»' : '');
+                if (n === 'esegui_comando') return 'Eseguo il comando' + (a && a.etichetta ? ' «' + a.etichetta + '»' : '');
+                if (n === 'elenco_comandi') return 'Cerco i comandi disponibili';
+                if (/^(leggi|elenco|cerca|calcola|mostra)/.test(n)) return 'Leggo i dati (' + n.replace(/_/g, ' ') + ')';
+                return (s && s.ds ? s.ds(a || {}) : 'Uso lo strumento «' + n.replace(/_/g, ' ') + '»');
+            }
             async function aiInviaDomanda() {
+                if (aiOccupato) { aiFermato = true; try { aiCtlAtt && aiCtlAtt.abort(); } catch (e) { /* già finita */ } return; }
                 const testo = aiCampo.value.trim();
-                if (!testo || aiOccupato) return;
+                if (!testo && !aiAllegati.length) return;
                 if (!aiChatAtt) aiSaluto();
-                aiCampo.value = ''; aiCampo.style.height = ''; aiCrono.push({ r: 'u', t: testo }); aiChatAtt.crono = aiCrono; aiMsg('utente', testo);
-                aiOccupato = true; aiInvia.disabled = true;
-                const attesa = aiMsg('attesa info', 'Penso', false); attesa.append(aiEl('span', 'ai-pt')); for (let i = 0; i < 3; i++) attesa.lastChild.appendChild(aiEl('i'));
+                const allegati = aiAllegati.slice(), testoU = testo || 'Guarda gli allegati.';
+                aiCampo.value = ''; aiCampo.style.height = ''; aiAllegati = []; aiDisegnaAllegati();
+                aiCrono.push({ r: 'u', t: testoU, all: allegati.length ? allegati : undefined }); aiChatAtt.crono = aiCrono;
+                aiMsg('utente', testoU + (allegati.length ? '\n📎 ' + allegati.map(a => a.nome).join(', ') : ''));
+                aiOccupato = true; aiFermato = false; aiInvia.textContent = 'Stop'; aiInvia.classList.add('stop'); aiPannello.classList.add('occupato'); aiBolla.classList.add('pensa');
+                // la bolla di attesa dice cosa succede: fase corrente, secondi, passi già fatti
+                const attesa = aiMsg('attesa info', '', false); attesa.setAttribute('role', 'status');
+                const fase = aiEl('span', 'ai-fase', 'Penso'), pt = aiEl('span', 'ai-pt'), sec = aiEl('span', 'ai-sec'), passi = aiEl('div', 'ai-passi');
+                for (let i = 0; i < 3; i++) pt.appendChild(aiEl('i'));
+                attesa.append(fase, pt, sec, passi);
+                const t0 = Date.now(), tick = setInterval(() => { sec.textContent = Math.round((Date.now() - t0) / 1000) + ' s'; }, 1000);
+                const stato = t => { fase.textContent = t; }; aiStatoFn = stato;
+                const passo = t => { const r = aiEl('div', 'ai-passo', t + '…'); passi.appendChild(r); while (passi.children.length > 5) passi.firstChild.remove(); aiChat.scrollTop = aiVicino() ? aiChat.scrollHeight : aiChat.scrollTop; return { ok: () => { r.classList.add('fatto'); r.textContent = '✓ ' + t; }, no: () => { r.classList.add('fallito'); r.textContent = '✕ ' + t; } }; };
                 let spinto = false;
                 try {
-                    for (let giro = 0; giro < AI_MAX_GIRI; giro++) {
-                        attesa.style.display = ''; aiChat.appendChild(attesa); let vivo = null;
+                    for (let giro = 0; giro < AI_MAX_GIRI && !aiFermato; giro++) {
+                        attesa.style.display = ''; aiChat.appendChild(attesa); let vivo = null; stato(giro ? 'Rifletto sul risultato' : 'Penso');
                         const r = await aiChiamaConFallback(aiCrono, t => aiMsg('info', t), tutto => {
-                            if (!vivo) { vivo = aiEl('div', 'ai-msg ia'); aiChat.insertBefore(vivo, attesa); attesa.style.display = 'none'; }
-                            vivo.textContent = ''; vivo.appendChild(aiFormatta(tutto)); aiChat.scrollTop = aiChat.scrollHeight;
-                        }, () => { if (vivo) { vivo.remove(); vivo = null; attesa.style.display = ''; } });
+                            const vic = aiVicino();
+                            if (!vivo) { vivo = aiEl('div', 'ai-msg ia'); aiChat.insertBefore(vivo, attesa); stato('Scrivo la risposta'); }
+                            vivo.textContent = ''; vivo.appendChild(aiFormatta(tutto)); if (vic) aiChat.scrollTop = aiChat.scrollHeight;
+                        }, () => { if (vivo) { vivo.remove(); vivo = null; } }, id => stato('Chiedo a ' + aiDef(id).nome + (aiConf(id).modello ? ' (' + aiConf(id).modello + ')' : '')));
                         aiCrono.push({ r: 'a', t: r.t, calls: r.calls });
-                        if (vivo) { vivo.textContent = ''; vivo.appendChild(aiFormatta(r.t)); if (aiChatAtt) { aiChatAtt.vista.push(['ia', r.t]); aiSalvaChat(); } }
+                        if (vivo) { vivo.textContent = ''; vivo.appendChild(aiFormatta(r.t)); aiRifinisci(vivo, r.t, 'ia'); if (aiChatAtt) { aiChatAtt.vista.push(['ia', r.t]); aiSalvaChat(); } }
                         else if (r.t) aiMsg('ia', r.t);
                         if (!r.calls.length) {
                             if (!spinto && aiDaIstruzioni(r.t)) { spinto = true; aiCrono.push({ r: 'u', t: 'Non dirmi come fare: fallo tu adesso con gli strumenti (esegui_comando, vai_a, leggi_schermata, clicca, compila_campo) e poi dimmi in una frase cosa hai fatto.' }); continue; }
                             break;
                         }
                         const res = [];
-                        for (const k of r.calls) { const o = await aiEseguiStrumento(k); res.push({ id: k.id, n: k.n, c: o.c }); }
+                        for (const k of r.calls) {
+                            if (aiFermato) break;
+                            const ps = passo(aiEtichetta(k.n, k.a)); stato('Lavoro sull\'app');
+                            const o = await aiEseguiStrumento(k); res.push({ id: k.id, n: k.n, c: o.c });
+                            if (/"errore"/.test(o.c)) ps.no(); else ps.ok();
+                        }
+                        if (aiFermato) { aiCrono.push({ r: 't', res: r.calls.map(k => ({ id: k.id, n: k.n, c: (res.find(x => x.id === k.id) || {}).c || JSON.stringify({ errore: 'Interrotto.' }) })) }); break; }
                         aiCrono.push({ r: 't', res });
                         if (giro === AI_MAX_GIRI - 1) aiMsg('info', 'Mi fermo qui: troppi passaggi di fila.');
                     }
-                } catch (e) { aiMsg('errore', e.message); }
-                aiSalvaChat(); attesa.remove(); aiOccupato = false; aiInvia.disabled = false; aiCampo.focus();
+                    if (aiFermato) aiMsg('info', 'Mi sono fermato, come hai chiesto.');
+                } catch (e) { aiMsg(aiFermato ? 'info' : 'errore', e.message); }
+                clearInterval(tick); aiStatoFn = () => {};
+                aiSalvaChat(); attesa.remove(); aiOccupato = false; aiFermato = false; aiCtlAtt = null; aiInvia.textContent = 'Invia'; aiInvia.classList.remove('stop'); aiPannello.classList.remove('occupato'); aiBolla.classList.remove('pensa'); aiCampo.focus();
             }
             aiInvia.onclick = aiInviaDomanda;
-            aiCampo.addEventListener('input', () => { aiCampo.style.height = 'auto'; aiCampo.style.height = Math.min(110, Math.max(40, aiCampo.scrollHeight)) + 'px'; });
+            aiCampo.addEventListener('input', () => { aiCampo.style.height = 'auto'; aiCampo.style.height = Math.min(168, Math.max(40, aiCampo.scrollHeight)) + 'px'; });
             aiCampo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiInviaDomanda(); } });
             aiBtnNuova.onclick = () => { if (!aiOccupato) { aiSaluto(); aiAggiornaTesta(); } };
             const aiApri = su => {

@@ -31,7 +31,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   };
   clic($('aiBolla'));
   $('aiPannello').querySelector('textarea').value = 'Crea un progetto a Bari';
-  clic($('aiPannello').querySelector('.ai-piedi button'));
+  clic($('aiPannello').querySelector('.ai-piedi .ai-invia'));
   await attesa(300);
   if (!chiamate.length) console.log('PANNELLO:', $('aiPannello').textContent);
   const ch = chiamate.filter(u => /chat\/completions|:(stream)?[gG]enerateContent/.test(u));
@@ -45,6 +45,13 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const fo = JSON.parse(fl);
   t('flusso: testo a pezzi ricomposto', fo.r.t === 'Ciao' && fo.visto[0] === 'Cia');
   t('flusso: chiamata strumento ricomposta', fo.r.calls.length === 1 && fo.r.calls[0].n === 'elenco_progetti' && fo.r.calls[0].a.a === 1);
+  // allegati: immagine e testo arrivano ai tre formati; salvata la chat restano solo i nomi
+  const al = JSON.parse(app.E(`(() => { const cr = [{ r: 'u', t: 'ciao', all: [{ tipo: 'img', mime: 'image/jpeg', b64: 'QUJD', nome: 'f.jpg' }, { tipo: 'txt', nome: 'n.txt', contenuto: 'RIGA1' }] }];
+    const o = AI_ADATTATORI.openai(aiDef('groq'), aiConf('groq'), cr).corpo.messages[1].content, a = AI_ADATTATORI.anthropic(aiDef('anthropic'), aiConf('anthropic'), cr).corpo.messages[0].content, g = AI_ADATTATORI.gemini(aiDef('gemini'), aiConf('gemini'), cr).corpo.contents[0].parts;
+    return JSON.stringify({ o, a, g, salva: JSON.stringify(cr, (k, v) => (k === 'b64' || k === 'contenuto') ? undefined : v) }); })()`));
+  t('allegati: openai ha testo e immagine', al.o[0].text.includes('RIGA1') && al.o[1].image_url.url.endsWith('QUJD'));
+  t('allegati: anthropic e gemini', al.a[0].type === 'image' && al.g[1].inlineData.data === 'QUJD');
+  t('allegati: salvando restano solo i nomi', !al.salva.includes('QUJD') && al.salva.includes('f.jpg'));
   const conf = $('aiPannello').querySelector('.ai-conferma');
   t('la creazione chiede conferma', !!conf && !app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   clic(conf.querySelector('.si'));
@@ -62,7 +69,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
       return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [r] } }] }) };
     };
     $('aiPannello').querySelector('textarea').value = 'Mostrami i progetti';
-    clic($('aiPannello').querySelector('.ai-piedi button')); await attesa(400);
+    clic($('aiPannello').querySelector('.ai-piedi .ai-invia')); await attesa(400);
     t('se spiega invece di agire, viene spinto a usare gli strumenti', vistoSpinta && $('aiPannello').textContent.includes('Fatto, ho elencato'));
   }
   // bolla trascinabile: la posizione si salva e un trascinamento non apre il pannello
