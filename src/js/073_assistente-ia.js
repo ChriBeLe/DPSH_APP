@@ -16,7 +16,7 @@
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
                 { id: 'groq', prefisso: 'gsk_', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
-                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
+                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /gpt-oss-120b:free|llama-3\.3-70b.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
                   passi: ['Apri OpenRouter e crea un account.', 'Vai su «Keys» e premi «Create Key».', 'Copia la chiave (inizia con «sk-or-») e incollala qui sotto. I modelli con «:free» nel nome non costano.'] },
                 { id: 'anthropic', prefisso: 'sk-ant-', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
                   passi: ['Apri la console di Anthropic e accedi.', 'In «Billing» aggiungi un po\' di credito (bastano pochi euro).', 'In «API Keys» premi «Create Key», copia la chiave (inizia con «sk-ant-») e incollala qui sotto.'] },
@@ -45,6 +45,7 @@
             const aiConf = id => aiCfg.provider[id] || (aiCfg.provider[id] = {});
             const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
             const aiProntiInOrdine = () => aiCfg.ordine.filter(aiPronto);
+            const aiPausa = {}; // id provider → ora (ms) fino a cui è «in pausa» perché ha finito la quota
             const aiEl = (tag, cls, testo) => { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; };
 
 
@@ -433,7 +434,7 @@
                     if (c.chiave) h.Authorization = 'Bearer ' + c.chiave;
                     return {
                         url: (c.base || d.base).replace(/\/$/, '') + '/chat/completions', headers: h,
-                        corpo: { model: c.modello, messages: msgs, tools: aiStrumentiPer(crono).map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
+                        corpo: { model: c.modello, max_tokens: 1500, messages: msgs, tools: aiStrumentiPer(crono).map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
                         leggi: j => {
                             const m = ((j.choices || [])[0] || {}).message || {};
                             return { t: m.content || '', calls: (m.tool_calls || []).map((k, i) => { let a = {}; try { a = JSON.parse(k.function.arguments || '{}'); } catch (e) { /* argomenti rovinati: strumento senza argomenti */ } return { id: k.id || ('call_' + i), n: k.function.name, a }; }) };
@@ -597,12 +598,16 @@
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
             async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {
-                const pronti = aiProntiInOrdine();
+                let pronti = aiProntiInOrdine();
                 if (!pronti.length) throw new Error('Nessun provider configurato. Aprilo da Impostazioni › Assistente IA › Provider e chiavi API.');
                 const errori = [];
+                // chi ha appena detto «quota finita» salta il turno (non si spreca una richiesta per niente); se sono tutti in pausa si riprova
+                const attivi = pronti.filter(id => !(aiPausa[id] > Date.now()));
+                if (attivi.length && attivi.length < pronti.length) avvisa('In pausa per quota: ' + pronti.filter(id => !attivi.includes(id)).map(id => aiDef(id).nome).join(', ') + '.');
+                if (attivi.length) pronti = attivi;
                 for (const id of pronti) {
                     try { if (inizio) inizio(id); const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
-                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
+                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; if (e.limite && e.attesa > 30) aiPausa[id] = Date.now() + Math.min(e.attesa, 1800) * 1000; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
                 }
                 throw new Error('Nessun provider ha risposto.\n' + errori.join('\n'));
             }
@@ -1113,7 +1118,7 @@
             aiOv.addEventListener('click', e => { if (e.target === aiOv) aiWizChiudi(); });
             function aiWizMostra(nodi) { const w = aiEl('div', 'ai-wiz'); w.setAttribute('role', 'dialog'); w.append(...nodi); aiOv.textContent = ''; aiOv.appendChild(w); aiOv.classList.add('aperto'); }
             function aiWizElenco() {
-                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare basta Gemini, che è gratis.')];
+                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare bastano Gemini e OpenRouter, che hanno modelli gratis. Se uno finisce la quota, passa all\'altro.')];
                 const altri = [];
                 aiCfg.ordine.forEach((id, i) => {
                     const d = aiDef(id), pronto = aiPronto(id);
@@ -1125,7 +1130,7 @@
                     giu.onclick = () => { aiCfg.ordine.splice(i + 1, 0, aiCfg.ordine.splice(i, 1)[0]); aiSalva(); aiWizElenco(); };
                     ap.onclick = () => aiWizProvider(id);
                     riga.append(nome, aiEl('span', 'ai-badge' + (pronto ? '' : ' no'), pronto ? 'pronto' : 'non configurato'), su, giu, ap);
-                    if (pronto || id === 'gemini') n.push(riga); else altri.push(riga);
+                    if (pronto || id === 'gemini' || id === 'openrouter') n.push(riga); else altri.push(riga);
                 });
                 if (altri.length) { const det = aiEl('details', 'ai-altri'); det.appendChild(aiEl('summary', null, 'Altri provider (' + altri.length + ')')); altri.forEach(r => det.appendChild(r)); n.push(det); }
                 const az = aiEl('div', 'ai-azioni'), ok = aiEl('button', 'pri', 'Fatto'); ok.onclick = aiWizChiudi; az.appendChild(ok); n.push(az);
