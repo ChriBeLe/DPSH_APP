@@ -14,7 +14,6 @@
                 for (const ch of m[1]) c = c * 26 + ch.charCodeAt(0) - 64;
                 return { c, r: parseInt(m[2], 10) };
             }
-            function xlsxLettere(c) { let s = ''; while (c > 0) { s = String.fromCharCode(65 + (c - 1) % 26) + s; c = Math.floor((c - 1) / 26); } return s; }
 
             /** Colore con la tinta di Excel (tint da -1 a 1) sulla luminosità HSL. */
             function xlsxApplicaTinta(hex, tint) {

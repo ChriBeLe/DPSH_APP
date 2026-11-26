@@ -565,7 +565,7 @@
                     });
                     saveState();
 
-                    const fullDoc = htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, esportaPdfContext.formato === 'word');
+                    const fullDoc = htmlDocumentoStampa(titolo, pagesHtml, marginiStampa, esportaPdfContext.formato === 'word' || esportaPdfContext.formato === 'pdfa');
 
                     // STAMPA DA IFRAME NASCOSTO, NON PIÙ DALLA SECONDA SCHEDA (segnalato: nella
                     // versione APK "carica ma poi non si apre nessuna pagina secondaria").
@@ -580,8 +580,9 @@
                     // pagina da attraversare, come richiesto.
                     // WORD: lo stesso identico documento, che invece di andare in stampa diventa un
                     // .docx (vedi 071i). Niente controllo di stampa dentro: non si stampa niente.
-                    if (esportaPdfContext.formato === 'word') {
-                        const risultato = await documentoStampaInDocx(fullDoc, {
+                    if (esportaPdfContext.formato === 'word' || esportaPdfContext.formato === 'pdfa') {
+                        const inPdfa = esportaPdfContext.formato === 'pdfa';
+                        const risultato = await (inPdfa ? documentoStampaInPdfA : documentoStampaInDocx)(fullDoc, {
                             qualitaJpeg: qualitaScelta,
                             titolo,
                             onAvanzamento: (testo, quota) => {
@@ -589,12 +590,12 @@
                                 if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = (95 + Math.round(quota * 5)) + '%';
                             }
                         });
-                        scaricaBlobFile(risultato.blob, titolo.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_') + '.docx');
+                        scaricaBlobFile(inPdfa ? new Blob([risultato.bytes], { type: 'application/pdf' }) : risultato.blob, titolo.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_') + (inPdfa ? '.pdf' : '.docx'));
                         if (barraEsportaPdfProgresso) barraEsportaPdfProgresso.style.width = '100%';
                         if (lblEsportaPdfProgressoStato) lblEsportaPdfProgressoStato.textContent = 'Completato';
-                        if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `${risultato.pagine} pagine in Word`;
+                        if (lblEsportaPdfProgressoDettaglio) lblEsportaPdfProgressoDettaglio.textContent = `${risultato.pagine} pagine in ${inPdfa ? 'PDF/A' : 'Word'}`;
                         if (risultato.mancanti > 0) {
-                            await appDialog(`${risultato.mancanti} riquadr${risultato.mancanti === 1 ? 'o' : 'i'} di mappa non si sono scaricati: nel Word quella parte della mappa resta vuota. Se sei senza rete riprova più tardi.`, { title: 'Mappe incomplete' });
+                            await appDialog(`${risultato.mancanti} riquadr${risultato.mancanti === 1 ? 'o' : 'i'} di mappa non si sono scaricati: nel ${inPdfa ? 'PDF/A' : 'Word'} quella parte della mappa resta vuota. Se sei senza rete riprova più tardi.`, { title: 'Mappe incomplete' });
                         }
                         setTimeout(chiudiEsportazionePdfModal, 900);
                         return;

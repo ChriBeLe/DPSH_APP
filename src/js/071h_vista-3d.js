@@ -1923,8 +1923,6 @@
             });
             const gradi = r => r * 180 / Math.PI;
             /** La direzione verso cui si guarda (0 = verso Nord) e il suo nome. */
-            const direzioneVista3d = () => ((Math.round(gradi(vista3d.az)) % 360) + 360) % 360;
-            const nomeDirezione = g => ['Nord', 'Nord-Est', 'Est', 'Sud-Est', 'Sud', 'Sud-Ovest', 'Ovest', 'Nord-Ovest'][Math.round(g / 45) % 8];
             const ZOOM_MIN = 0.1, ZOOM_MAX = 40;
             function sincronizzaCursori3d() {
                 // L'inclinazione si legge tra −90 e 90: oltre, la vista è capovolta e vale come la sua gemella.

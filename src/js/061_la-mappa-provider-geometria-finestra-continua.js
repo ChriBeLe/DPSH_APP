@@ -855,95 +855,11 @@
 
             // PARSER EXIF MULTI-SEGMENTO PER ESTRAZIONE COORDINATE GPS
             function parseExifGps(arrayBuffer) {
-                try {
-                    const view = new DataView(arrayBuffer);
-                    if (view.byteLength < 14) return null;
-                    if (view.getUint16(0, false) !== 0xFFD8) return null;
-
-                    let offset = 2;
-                    const length = view.byteLength;
-
-                    while (offset < length - 4) {
-                        const marker = view.getUint16(offset, false);
-                        if (marker === 0xFFE1) {
-                            const app1Length = view.getUint16(offset + 2, false);
-                            if (view.getUint32(offset + 4, false) === 0x45786966 && view.getUint16(offset + 8, false) === 0x0000) {
-                                const tiffOffset = offset + 10;
-                                const byteOrder = view.getUint16(tiffOffset, false);
-                                let littleEndian = (byteOrder === 0x4949);
-
-                                const firstIfdOffset = view.getUint32(tiffOffset + 4, littleEndian);
-                                if (firstIfdOffset >= 8) {
-                                    function getRational(ptr) {
-                                        const num = view.getUint32(ptr, littleEndian);
-                                        const den = view.getUint32(ptr + 4, littleEndian);
-                                        return den === 0 ? 0 : num / den;
-                                    }
-
-                                    function readGpsIFD(gpsOffset) {
-                                        if (gpsOffset <= 0 || tiffOffset + gpsOffset >= length) return null;
-                                        const entries = view.getUint16(tiffOffset + gpsOffset, littleEndian);
-                                        let lat = null, latRef = 'N', lng = null, lngRef = 'E';
-
-                                        for (let i = 0; i < entries; i++) {
-                                            const entryOffset = tiffOffset + gpsOffset + 2 + (i * 12);
-                                            if (entryOffset + 12 > length) break;
-                                            const tag = view.getUint16(entryOffset, littleEndian);
-                                            const valOffset = view.getUint32(entryOffset + 8, littleEndian);
-
-                                            if (tag === 1) {
-                                                latRef = String.fromCharCode(view.getUint8(entryOffset + 8));
-                                            } else if (tag === 2) {
-                                                const p = tiffOffset + valOffset;
-                                                const deg = getRational(p);
-                                                const min = getRational(p + 8);
-                                                const sec = getRational(p + 16);
-                                                lat = deg + (min / 60) + (sec / 3600);
-                                            } else if (tag === 3) {
-                                                lngRef = String.fromCharCode(view.getUint8(entryOffset + 8));
-                                            } else if (tag === 4) {
-                                                const p = tiffOffset + valOffset;
-                                                const deg = getRational(p);
-                                                const min = getRational(p + 8);
-                                                const sec = getRational(p + 16);
-                                                lng = deg + (min / 60) + (sec / 3600);
-                                            }
-                                        }
-
-                                        if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
-                                            if (latRef === 'S' || latRef === 's') lat = -lat;
-                                            if (lngRef === 'W' || lngRef === 'w') lng = -lng;
-                                            return { lat, lng };
-                                        }
-                                        return null;
-                                    }
-
-                                    const ifd0Entries = view.getUint16(tiffOffset + firstIfdOffset, littleEndian);
-                                    for (let i = 0; i < ifd0Entries; i++) {
-                                        const entryOffset = tiffOffset + firstIfdOffset + 2 + (i * 12);
-                                        if (entryOffset + 12 > length) break;
-                                        const tag = view.getUint16(entryOffset, littleEndian);
-                                        if (tag === 0x8825) {
-                                            const gpsPointer = view.getUint32(entryOffset + 8, littleEndian);
-                                            const gpsRes = readGpsIFD(gpsPointer);
-                                            if (gpsRes) return gpsRes;
-                                        }
-                                    }
-                                }
-                            }
-                            offset += 2 + app1Length;
-                        } else if ((marker & 0xFF00) === 0xFF00 && marker !== 0xFFD8 && marker !== 0xFFD9) {
-                            const segLen = view.getUint16(offset + 2, false);
-                            offset += 2 + segLen;
-                        } else {
-                            break;
-                        }
-                    }
-                } catch (e) { ignoraErrore('readGpsIFD', e); }
-                return null;
+                const r = parseExifData(arrayBuffer);
+                return (r.lat !== null && r.lng !== null) ? { lat: r.lat, lng: r.lng } : null;
             }
 
-            // Versione estesa di parseExifGps: legge anche la data/ora di scatto (DateTimeOriginal),
+            // Estrae le coordinate GPS e legge anche la data/ora di scatto (DateTimeOriginal),
             // necessaria per l'interpolazione lineare delle coordinate mancanti nell'import batch
             // (IDEA 4). Riusa la stessa logica di attraversamento IFD, aggiungendo la lettura
             // dell'Exif SubIFD (tag 0x8769) e del tag ASCII DateTimeOriginal (0x9003).

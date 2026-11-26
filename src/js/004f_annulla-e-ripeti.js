@@ -278,7 +278,6 @@
                 return !document.querySelector('.modal.open, #drawerMenu.open');
             }
             function puoAnnullare() { return cronologia().indietro.length > 0 && cronologiaUsabile(); }
-            function puoRipetere() { return cronologia().avanti.length > 0 && cronologiaUsabile(); }
 
             function annullaAzione() {
                 if (!cronologiaUsabile()) return false;

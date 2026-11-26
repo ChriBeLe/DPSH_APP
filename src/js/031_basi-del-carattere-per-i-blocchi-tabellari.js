@@ -118,7 +118,4 @@
             /** Intervallo di punti realmente raggiungibile per questo blocco, cioè i limiti del
              * moltiplicatore tradotti in punti. Serve al campo numerico per sapere cosa accettare:
              * il range "ragionevole" non è lo stesso per una tabella fitta e per un titolo. */
-            function intervalloPtBlocco(basePt, minScale = 0.6, maxScale = 1.8) {
-                return { minPt: basePt * minScale, maxPt: basePt * maxScale };
-            }
 
