@@ -437,6 +437,16 @@
                 });
             }
 
+            const btnOptExportCompletePdfa = document.getElementById('btnOptExportCompletePdfa');
+            if (btnOptExportCompletePdfa) {
+                btnOptExportCompletePdfa.addEventListener('click', () => {
+                    if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;
+                    closeExportModal();
+                    const projId = exportModalContext.type === 'project' ? exportModalContext.id : state.currentProjectId;
+                    if (projId) apriEsportazionePdfModal({ type: 'project', id: projId, formato: 'pdfa', soloProve: proveDelPerimetroConsegna() });
+                });
+            }
+
             if (btnOptExportCompleteWord) {
                 btnOptExportCompleteWord.addEventListener('click', () => {
                     if (exportModalContext.soloProve && !exportModalContext.soloProve.size) return;

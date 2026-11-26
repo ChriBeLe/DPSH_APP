@@ -131,3 +131,7 @@
                 const id = state.currentProjectId; chiudiScalettaReport();
                 if (id) apriEsportazionePdfModal({ type: 'project', id, formato: 'word' });
             });
+            document.getElementById('btnScalettaPdfa').addEventListener('click', () => {
+                const id = state.currentProjectId; chiudiScalettaReport();
+                if (id) apriEsportazionePdfModal({ type: 'project', id, formato: 'pdfa' });
+            });
