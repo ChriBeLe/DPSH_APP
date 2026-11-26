@@ -71,7 +71,6 @@
             // valore valido per l'attributo colspan e veniva silenziosamente trattato come 1
             // dai browser, restringendo la riga di sezione a una sola colonna invece di tutta
             // la larghezza della tabella.
-            const tsecExp = (colore, padding, colspan) => `style="${bordoExp}padding:${padding};background:#${colore};font-weight:700;" colspan="${colspan}"`;
 
             /** Una sola riga di intestazione: la stringa combinata "Comune/Località/Cliente/Data
              * indagine" + il nome di ogni strato. La vecchia riga sopra ("Tabelle/Parametri - PROVA

@@ -1738,14 +1738,6 @@ ${contenuto}
                     { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
                 );
             }
-            function stopLiveGpsWatch() {
-                if (liveGpsWatchId !== null && navigator.geolocation) {
-                    navigator.geolocation.clearWatch(liveGpsWatchId);
-                    liveGpsWatchId = null;
-                }
-                liveGpsWatch = { lat: null, lng: null, acc: null, alt: null, timestamp: null };
-                updateLiveGpsIndicator();
-            }
             function updateLiveGpsIndicator() {
                 if (typeof updateGpsModalMapLiveDot === 'function') updateGpsModalMapLiveDot();
                 const dot = document.getElementById('liveGpsAccuracyDot');

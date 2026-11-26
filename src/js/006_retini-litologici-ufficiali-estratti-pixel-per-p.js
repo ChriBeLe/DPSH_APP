@@ -84,14 +84,6 @@
                 return `<pattern id="${patternDomId}" width="${tw}" height="${th}" patternUnits="userSpaceOnUse">${inner}</pattern>`;
             }
 
-            function buildPatternOptionsHtml(selectedPattern) {
-                const generici = PATTERN_LIBRARY.map(p => `<option value="${p.id}" ${selectedPattern === p.id ? 'selected' : ''}>${p.icon} ${p.name}</option>`).join('');
-                const retini = RETINI_LITOLOGICI.map(r => {
-                    const value = PREFISSO_RETINO + r.id;
-                    return `<option value="${value}" ${selectedPattern === value ? 'selected' : ''}>${r.label}</option>`;
-                }).join('');
-                return `<optgroup label="Pattern generici">${generici}</optgroup><optgroup label="Retini litologici">${retini}</optgroup>`;
-            }
 
             // Selettore visuale del pattern (sostituisce il <select> testuale nella Gestione
             // Strati): mostra l'anteprima grafica reale — colore + trama — di ogni opzione
