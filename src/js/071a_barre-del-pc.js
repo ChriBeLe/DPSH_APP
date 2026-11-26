@@ -2,6 +2,13 @@
             // aiuto e versione in basso. Solo da 1024 px; sul telefono restano nascoste.
             // Chiamata da switchView, updateUI e renderHomeProjects. Tutto dentro la funzione:
             // switchView gira anche all'avvio, prima che questo pezzo sia valutato.
+            // Riscrive il contenuto solo se è diverso dall'ultimo scritto (e il nodo non è stato svuotato)
+            const ultimoScrittoPc = new WeakMap();
+            function scriviSeCambia(el, html) {
+                if (ultimoScrittoPc.get(el) === html && (html === '' || el.childElementCount > 0)) return;
+                el.innerHTML = html;
+                ultimoScrittoPc.set(el, html);
+            }
             function renderPc() {
                 if (!window.matchMedia('(min-width: 1024px)').matches) return;
                 const vista = (state.uiState && state.uiState.currentView) || 'home';
@@ -14,9 +21,9 @@
                 const percorso = [['home', 'Progetti']];
                 if (proj) percorso.push(['project', nomeProgetto(proj)]);
                 if (proj && vista === 'field' && proj.surveys[state.currentSurveyId]) percorso.push(['field', 'Prova ' + provaNr(proj.surveys[state.currentSurveyId])]);
-                document.getElementById('pcPercorso').innerHTML = percorso.map((p, i) => i === percorso.length - 1
+                scriviSeCambia(document.getElementById('pcPercorso'), percorso.map((p, i) => i === percorso.length - 1
                     ? `<li><span aria-current="page" title="${esc(p[1])}">${esc(p[1])}</span></li>`
-                    : `<li><button type="button" data-vista="${p[0]}" title="${esc(p[1])}">${esc(p[1])}</button></li>`).join('');
+                    : `<li><button type="button" data-vista="${p[0]}" title="${esc(p[1])}">${esc(p[1])}</button></li>`).join(''));
                 document.getElementById('pcBtnConsegna').style.display = proj ? '' : 'none';
                 const btnContatore = document.getElementById('pcBtnContatore');
                 btnContatore.style.display = vista === 'field' ? '' : 'none';
@@ -40,7 +47,7 @@
                     righe.push('<div class="pc-lato-titolo pc-lato-sezione">Strumenti</div>');
                     righe.push(`<button type="button" class="pc-filtro" data-strumento="btnOpenReportTemplatesHome"><svg class="ico"><use href="#i-file"/></svg><span class="pc-voce-nome">Template di report</span></button>`);
                     righe.push(`<button type="button" class="pc-filtro" data-strumento="btnOpenArchiveManagerHome"><svg class="ico"><use href="#i-database"/></svg><span class="pc-voce-nome">Archivio litologico</span></button>`);
-                    document.getElementById('pcLato').innerHTML = righe.join('');
+                    scriviSeCambia(document.getElementById('pcLato'), righe.join(''));
                 } else {
                     // Stesso ordine della Home, scelto col menu «Ordina»: aprire un progetto non lo sposta.
                     righe.push(`<div class="pc-lato-titolo pc-lato-titolo-ordina"><span>Progetti</span>${menuOrdineProgetti('selOrdineProgettiPc')}</div>`);
@@ -92,7 +99,7 @@
                         // In fondo alle prove del progetto aperto, il tasto per aggiungerne una.
                         righe.push(`<button type="button" class="pc-nuova-prova" data-nuova-prova title="Nuova prova in questo progetto"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuova prova</button>`);
                     });
-                    document.getElementById('pcLato').innerHTML = righe.join('');
+                    scriviSeCambia(document.getElementById('pcLato'), righe.join(''));
                 }
 
                 document.getElementById('pcStatoAiuto').textContent = ({

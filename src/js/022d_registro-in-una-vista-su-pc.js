@@ -27,7 +27,7 @@
             }
             (function () {
                 let t = null;
-                const pianifica = () => { clearTimeout(t); t = setTimeout(() => { try { adattaRegistroAllaFinestra(); if (typeof renderChart === 'function' && suPc()) renderChart(); } catch (e) { ignoraErrore('registroUnaVista', e); } }, 60); };
+                const pianifica = () => { clearTimeout(t); t = setTimeout(() => { try { const vf = document.getElementById('viewField'); if (vf && vf.offsetParent === null) return; /* nascosta: updateUI rifà tutto al rientro */ adattaRegistroAllaFinestra(); if (typeof renderChart === 'function' && suPc()) renderChart(); } catch (e) { ignoraErrore('registroUnaVista', e); } }, 60); };
                 window.addEventListener('resize', pianifica);
                 const corpo = document.getElementById('tblIntegratedLogsBody');
                 if (corpo) new MutationObserver(pianifica).observe(corpo, { childList: true });

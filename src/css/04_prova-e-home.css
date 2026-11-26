@@ -439,7 +439,7 @@
         /* ---- La guida rapida della prima volta sul PC ---- */
         .guida-rapida { position: fixed; inset: 0; z-index: 400; }
         .guida-rapida[hidden] { display: none; }
-        .guida-buco { position: fixed; border-radius: var(--radius-md); box-shadow: 0 0 0 9999px rgba(5, 10, 9, 0.62); outline: 2px solid var(--accent); transition: all var(--mov-medio) var(--ease-entra); pointer-events: none; }
+        .guida-buco { position: fixed; border-radius: var(--radius-md); box-shadow: 0 0 0 9999px rgba(5, 10, 9, 0.62); outline: 2px solid var(--accent); transition: top var(--mov-medio) var(--ease-entra), left var(--mov-medio) var(--ease-entra), width var(--mov-medio) var(--ease-entra), height var(--mov-medio) var(--ease-entra); pointer-events: none; }
         .guida-fumetto { position: fixed; width: 340px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-4); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
         .guida-fumetto strong { font-size: var(--fs-campo); }
         .guida-fumetto p { margin: 0; line-height: 1.5; color: var(--text-muted); }

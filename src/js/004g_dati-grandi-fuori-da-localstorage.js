@@ -221,6 +221,7 @@
              * contenuto non è una modifica dell'utente. */
             function avviaRisoluzioneDatiGrandi(dopoCaricamento) {
                 const g = datiGrandi();
+                eseguiNormalizzazioneInSospeso();
                 const precedente = g.risoluzione || Promise.resolve();
                 const questa = precedente.then(async () => {
                     // Il contenuto di ogni progetto com'è ADESSO (con i riferimenti), per riconoscere dopo

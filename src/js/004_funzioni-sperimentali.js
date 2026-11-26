@@ -414,7 +414,35 @@
             }
 
             // Salvataggio Dati in LocalStorage (Alleggerito dal payload foto pesanti per restare nei 5MB)
+            // Salvataggio differito: un solo saveState dopo la fine della transizione
+            let salvataggioInSospeso = null;
+            function annullaSalvataggioInSospeso() {
+                if (salvataggioInSospeso) {
+                    clearTimeout(salvataggioInSospeso.t);
+                    if (salvataggioInSospeso.r && window.cancelIdleCallback) { try { window.cancelIdleCallback(salvataggioInSospeso.r); } catch (e) {} }
+                    salvataggioInSospeso = null;
+                }
+            }
+            function salvaDopoLaTransizione() {
+                if (salvataggioInSospeso) return;
+                let durata = 0;
+                try { durata = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mov-lungo')) || 0; } catch (e) {}
+                const voce = { t: 0, r: 0 };
+                salvataggioInSospeso = voce;
+                voce.t = setTimeout(() => {
+                    const esegui = () => { if (salvataggioInSospeso === voce) saveState(); };
+                    if (window.requestIdleCallback) voce.r = window.requestIdleCallback(esegui, { timeout: 400 });
+                    else esegui();
+                }, durata + 80);
+            }
+            function scaricaSalvataggioInSospeso() {
+                if (salvataggioInSospeso) saveState();
+            }
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') scaricaSalvataggioInSospeso(); });
+            window.addEventListener('pagehide', scaricaSalvataggioInSospeso);
+
             function saveState() {
+                annullaSalvataggioInSospeso();
                 // Niente scrittura mentre i dati salvati non sono ancora stati letti, o non si sono
                 // potuti leggere (vedi caricamentoDati in cima allo script): si conta soltanto, così
                 // chi sblocca sa se c'è qualcosa da salvare.
@@ -422,6 +450,7 @@
                     caricamentoDati.salvataggiEvitati++;
                     return;
                 }
+                eseguiNormalizzazioneInSospeso();
                 try {
                     syncStateToProject();
                     // Data dell'ultima modifica VERA di ogni progetto (Fase 2, pezzo 004e). Un suo

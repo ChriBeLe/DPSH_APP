@@ -107,6 +107,7 @@
             // Carica nello stato attivo la prova selezionata del progetto corrente
             function syncProjectToActiveState(projId, survId) {
                 if (!state.projects || !state.projects[projId]) return;
+                eseguiNormalizzazioneInSospeso();
                 const proj = state.projects[projId];
                 if (!survId || !proj.surveys || !proj.surveys[survId]) {
                     const keys = Object.keys(proj.surveys || {});
@@ -188,7 +189,7 @@
                 state.reportTemplateId = surv.reportTemplateId || null;
                 state.templateImages = surv.templateImages ? JSON.parse(JSON.stringify(surv.templateImages)) : {};
                 // Aprire non è modificare (Fase 2): vedi accettaNormalizzazioneApertura.
-                try { accettaNormalizzazioneApertura(projId); } catch (e) { ignoraErrore('syncProjectToActiveState', e); }
+                normalizzazioneInSospeso = projId; // differita: si esegue prima del prossimo salvataggio o input
             }
 
             // Audio Context per Bip Sonoro (Generato dinamicamente offline)

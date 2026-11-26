@@ -146,6 +146,18 @@
             // Il contenuto di ogni progetto com'era all'ultimo salvataggio (o alla lettura dei dati).
             const contenutiConosciuti = new Map();
 
+            // Normalizzazione d'apertura differita (costa decine di ms): si esegue prima di qualunque
+            // salvataggio, annulla/ripeti o input dell'utente, quindi con lo stesso risultato di prima.
+            let normalizzazioneInSospeso = null;
+            function eseguiNormalizzazioneInSospeso() {
+                if (normalizzazioneInSospeso === null) return;
+                const pid = normalizzazioneInSospeso;
+                normalizzazioneInSospeso = null;
+                try { accettaNormalizzazioneApertura(pid); } catch (e) { ignoraErrore('syncProjectToActiveState', e); }
+            }
+            ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'input', 'change', 'click'].forEach(ev =>
+                document.addEventListener(ev, eseguiNormalizzazioneInSospeso, true));
+
             /** Dentro saveState, dopo syncStateToProject: i progetti il cui contenuto è cambiato
              * rispetto all'ultima volta prendono modificatoIl = adesso. Un progetto mai visto (appena
              * creato, arrivato da un file, ripristinato con Annulla) si registra e basta: la sua data
@@ -193,6 +205,7 @@
 
             /** Dopo la lettura dei dati: tutto ciò che c'è è il punto di partenza, nessuna modifica. */
             function primaContenutiConosciuti() {
+                normalizzazioneInSospeso = null;
                 contenutiConosciuti.clear();
                 Object.keys(state.projects || {}).forEach(accettaContenutoProgetto);
                 if (state.currentProjectId) accettaNormalizzazioneApertura(state.currentProjectId);

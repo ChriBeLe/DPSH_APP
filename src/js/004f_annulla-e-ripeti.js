@@ -281,6 +281,7 @@
 
             function annullaAzione() {
                 if (!cronologiaUsabile()) return false;
+                eseguiNormalizzazioneInSospeso();
                 const c = cronologia();
                 // Quello che non è ancora salvato diventa prima un passo, e si annulla quello.
                 saveState();
@@ -296,6 +297,7 @@
 
             function ripetiAzione() {
                 if (!cronologiaUsabile()) return false;
+                eseguiNormalizzazioneInSospeso();
                 const c = cronologia();
                 const passo = c.avanti.pop();
                 if (!passo) return false;
