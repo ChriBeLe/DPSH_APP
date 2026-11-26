@@ -8,5 +8,5 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 - A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
-- graphify-out/ is not committed (about 13 MB). If `graphify` is installed and graphify-out/graph.json is missing, run `graphify update .` once at the start (about 30 seconds, code only, fully local, no API cost). If `graphify` is not installed, work as usual.
+- graphify-out/ is not committed (about 13 MB). If `graphify` is installed and graphify-out/graph.json is missing, run `graphify update .` once at the start (about 30 seconds, code only, fully local, no API cost). If `graphify` is not installed (new cloud sessions), first run `pip install --quiet graphifyy` (about 10 seconds); if that fails, work as usual.
 - Install graphify with `pip install graphifyy` (the PyPI name has two y). License Apache-2.0, no telemetry.
