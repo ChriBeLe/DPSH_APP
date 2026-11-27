@@ -244,6 +244,49 @@
                     if (a.colpi != null) l.colpi = a.colpi; if (a.note != null) l.note = String(a.note);
                     segnaIntervalloModificato(l, prima); saveState(); updateUI(); return { ok: true };
                 } },
+                // --- tavole 2D e 3D del progetto aperto (registro: nome, blocco, versioni, report) ---
+                { n: 'elenco_tavole', d: 'Elenca le tavole salvate del progetto aperto: id, nome, tipo, versione, se è bloccata (consegnata), se va nel report, se i dati delle prove sono cambiati.', p: {}, run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    const imp = typeof improntaDatiTavole3d === 'function' ? improntaDatiTavole3d() : null;
+                    return registroTavole(pr).map(t => ({ id: t.id, nome: t.nome, tipo: t.tipo, versione: t.versione, versioniPrecedenti: t.versioni.length, bloccata: !!t.bloccata, nelReport: t.inReport !== false, storica: !!t.storica, orfana: !!t.orfana, datiCambiati: !t.storica && imp ? tavolaDatiCambiati(t, imp) : false }));
+                } },
+                { n: 'leggi_tavola', d: 'Legge una tavola salvata con le sue impostazioni (inquadratura, titolo, foglio, pianta).', p: { tavola_id: { type: 'string' } }, req: ['tavola_id'], run: a => {
+                    const t = tavolaPerId(state.projects[state.currentProjectId], a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
+                    return { id: t.id, nome: t.nome, tipo: t.tipo, versione: t.versione, bloccata: !!t.bloccata, nelReport: t.inReport !== false, templateId: t.templateId, impostazioni: t.impostazioni };
+                } },
+                { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
+                  ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
+                    const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
+                    if (t.bloccata) throw new Error('La tavola è bloccata: sbloccala prima.');
+                    if (!String(a.nome).trim()) throw new Error('Nome vuoto.');
+                    t.nome = nomeTavolaLibero(pr, a.nome, t.id); t.aggiornata = Date.now(); saveState(); return { ok: true, nome: t.nome };
+                } },
+                { n: 'blocca_tavola', d: 'Blocca (consegnata, non cambia più) o sblocca una tavola salvata.', p: { tavola_id: { type: 'string' }, bloccata: { type: 'boolean' } }, req: ['tavola_id', 'bloccata'], w: true,
+                  ds: a => `${a.bloccata ? 'Bloccare' : 'Sbloccare'} la tavola ${a.tavola_id}`, run: a => {
+                    const t = bloccaTavola(state.projects[state.currentProjectId], a.tavola_id, !!a.bloccata); if (!t) throw new Error('Tavola non trovata.');
+                    saveState(); return { ok: true };
+                } },
+                { n: 'tavola_nel_report', d: 'Mette una tavola nel report (true) o la toglie (false).', p: { tavola_id: { type: 'string' }, nel_report: { type: 'boolean' } }, req: ['tavola_id', 'nel_report'], w: true,
+                  ds: a => `${a.nel_report ? 'Includere' : 'Escludere'} la tavola ${a.tavola_id} ${a.nel_report ? 'nel' : 'dal'} report`, run: a => {
+                    const t = tavolaPerId(state.projects[state.currentProjectId], a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
+                    if (t.bloccata) throw new Error('La tavola è bloccata: sbloccala prima.');
+                    t.inReport = !!a.nel_report; saveState(); return { ok: true };
+                } },
+                { n: 'duplica_tavola', d: 'Duplica una tavola salvata (stesse impostazioni, nome «… (copia)»).', p: { tavola_id: { type: 'string' } }, req: ['tavola_id'], w: true,
+                  ds: a => `Duplicare la tavola ${a.tavola_id}`, run: a => {
+                    const c = duplicaTavola(state.projects[state.currentProjectId], a.tavola_id); if (!c) throw new Error('Tavola non trovata.');
+                    saveState(); return { ok: true, id: c.id, nome: c.nome };
+                } },
+                { n: 'ordina_tavole', d: 'Riordina le tavole salvate: elenco di id nell\'ordine voluto (quelle non nominate vanno in fondo).', p: { ids: { type: 'array', items: { type: 'string' } } }, req: ['ids'], w: true,
+                  ds: a => `Riordinare le tavole (${(a.ids || []).length} indicate)`, run: a => {
+                    if (!Array.isArray(a.ids)) throw new Error('Serve un elenco di id.');
+                    ordinaTavole(state.projects[state.currentProjectId], a.ids.map(String)); saveState(); return { ok: true };
+                } },
+                { n: 'elimina_tavola', d: 'Elimina una tavola salvata (non quelle bloccate). Usala solo se l\'utente lo chiede in modo esplicito.', p: { tavola_id: { type: 'string' } }, req: ['tavola_id'], w: true,
+                  ds: a => `Eliminare la tavola ${a.tavola_id}`, run: a => {
+                    if (!eliminaTavola(state.projects[state.currentProjectId], a.tavola_id)) throw new Error('Tavola non trovata o bloccata.');
+                    saveState(); return { ok: true };
+                } },
                 // --- strumento, preferenze, progetto, note, GPS ---
                 { n: 'leggi_strumento_e_preferenze', d: 'Legge i dati dello strumento della prova aperta e le preferenze dell\'app.', p: {}, run: () => ({ strumento: state.instrument, passoCm: state.settings.stepCm, operatore: state.settings.operator, vibrazione: !!state.settings.haptic, bip: !!state.settings.audio, schermoAcceso: !!state.settings.wakeLock, tema: state.settings.darkMode ? 'scuro' : 'chiaro', guanti: !!(document.getElementById('chkGloveMode') || {}).checked, tastoRegistra: state.settings.tastoRegistraVisibile !== false }) },
                 { n: 'modifica_strumento', d: 'Cambia un dato dello strumento della prova aperta: pesoMassa, pesoAsta, lunghAsta, cambioAsta, pesoSistema, volata, passo, areaPunta, angoloPunta (numeri positivi).', p: { campo: { type: 'string', enum: ['pesoMassa', 'pesoAsta', 'lunghAsta', 'cambioAsta', 'pesoSistema', 'volata', 'passo', 'areaPunta', 'angoloPunta'] }, valore: { type: 'number' } }, req: ['campo', 'valore'], w: true,
