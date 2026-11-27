@@ -29,6 +29,7 @@
                     voci.push({ id: 's2-' + t.id, tipo: 'sez2d', traccia: t.id, titolo: `Sezione ${t.nome}` });
                 });
                 if (confrOk) voci.push({ id: 'confronto', tipo: 'confronto', titolo: 'Confronto tra prove' });
+                (memE.liberi || []).forEach(l => voci.push({ id: l.id, tipo: 'libero', titolo: l.nome || 'Disegno libero', libero: true }));
                 return voci;
             }
 
@@ -420,6 +421,7 @@
             async function telaVoce3d(voce, d, opz) {
                 if (voce.tipo === 'sez2d') return telaSezione2d(voce, d, opz);
                 if (voce.tipo === 'confronto') return telaConfronto(voce, d, opz);
+                if (voce.tipo === 'libero') return telaLibera(voce, d, opz);
                 const W = opz.W || 1400, H = opz.H || 860;
                 const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
                 const sfE = opz.basemap !== false ? await sfondoEstesoEsportabile3d(d) : null;
@@ -651,9 +653,9 @@
             }
             /** Toglie una vista aggiunta (le pagine di base del modello e delle sezioni non si tolgono: si escludono). */
             function togliVistaAggiunta3d() {
-                const v = tavole3d.voci[tavole3d.scelta]; if (!v || !v.extra || tavolaBloccata3d(v)) return;
+                const v = tavole3d.voci[tavole3d.scelta]; if (!v || !(v.extra || v.libero) || tavolaBloccata3d(v)) return;
                 const mem = memoriaTavole3d();
-                mem.extra = (mem.extra || []).filter(x => x.id !== v.id); delete (mem.regola || {})[v.id];
+                mem.extra = (mem.extra || []).filter(x => x.id !== v.id); mem.liberi = (mem.liberi || []).filter(x => x.id !== v.id); delete (mem.regola || {})[v.id];
                 salvaMemoriaTavole3d(); apriTavole3d(false, true); statoSalvataggioTavole3d();
             }
             /** L'impronta dei dati da cui vengono le tavole: se cambia (nuova prova, sezione spostata) l'editor avvisa. */
@@ -752,7 +754,7 @@
 
             /** Il titolo automatico delle pagine del modello segue la vista scelta coi tasti. */
             /** Le pagine che sono una figura piatta (sezione 2D, confronto): niente inquadratura 3D. */
-            const e2dTavola3d = v => !!v && (v.tipo === 'sez2d' || v.tipo === 'confronto');
+            const e2dTavola3d = v => !!v && (v.tipo === 'sez2d' || v.tipo === 'confronto' || v.tipo === 'libero');
             function aggiornaTitoloVista3d(v) {
                 const r = tavole3d.regola[v.id], vv = r && r.vista;
                 if (v.tipo !== 'iso') return;
@@ -823,6 +825,7 @@
             function disegnaMiniaturaTavola3d(v, el) {
                 const d = datiVista3dCorrenti;
                 if (!d) return;
+                if (v.tipo === 'libero') { el.querySelector('img').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTavolaLibera(liberoPerId(memoriaTavole3d(), v.id))); return; }
                 if (v.tipo === 'confronto') {
                     const sv = svgTavolaConfronto(state.projects[state.currentProjectId], 900, 560, ((memoriaTavole3d().confronto) || {}).grandezza);
                     if (sv) el.querySelector('img').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sv);
@@ -866,7 +869,7 @@
                 if (!v) return;
                 const d = datiVista3dCorrenti, scuro = tavole3d.sfondo === 'scuro';
                 T3('tavole3dNome').textContent = `${tavole3d.scelta + 1} / ${tavole3d.voci.length} · ${v.titolo}${tavolaBloccata3d(v) ? ' · bloccata (consegnata)' : ''}`;
-                { const tv = T3('tavole3dTogliVista'); if (tv) tv.hidden = !v.extra; }
+                { const tv = T3('tavole3dTogliVista'); if (tv) tv.hidden = !(v.extra || v.libero); }
                 { const bb = T3('tavole3dBlocca'); if (bb) { const bl = tavolaBloccata3d(v); bb.setAttribute('aria-pressed', String(bl)); bb.querySelector('span').textContent = bl ? 'Sblocca' : 'Blocca'; } }
                 T3('tavole3dPrima').disabled = tavole3d.scelta === 0;
                 T3('tavole3dDopo').disabled = tavole3d.scelta === tavole3d.voci.length - 1;
@@ -893,7 +896,9 @@
                 T3('tavole3dRegola').classList.toggle('spenta', e2dTavola3d(v));
                 renderProveTavola3d(v);
                 aggiornaTastiVista3d();
+                { const sl = T3('tavole3dLiberoSvg'); if (sl) sl.hidden = true; T3('tavole3dLiberoBarra').hidden = true; }
                 if (v.tipo === 'confronto') { mostraConfronto3d(v, tela, img); return; }
+                if (v.tipo === 'libero') { mostraLibero3d(v, tela, img); return; }
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
@@ -1028,6 +1033,11 @@
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
+            T3('tavole3dAggiungiLibero').addEventListener('click', aggiungiLibero3d);
+            T3('tavole3dLiberoElimina').addEventListener('click', eliminaFormaLibera3d);
+            T3('tavole3dLiberoScala').addEventListener('change', e => impostaScalaLibero3d(e.target.value));
+            T3('tavole3dLiberoColore').addEventListener('input', e => { stato_libero.colore = e.target.value; const v = tavole3d.voci[tavole3d.scelta], lib = v && liberoPerId(memoriaTavole3d(), v.id), f = lib && lib.forme[stato_libero.scelta]; if (f && !tavolaBloccata3d(v)) { f.colore = e.target.value; salvaMemoriaTavole3d(); mostraTavola3d(); } });
+            document.querySelectorAll('#tavole3dLiberoBarra [data-strumento]').forEach(b => b.addEventListener('click', () => { stato_libero.strumento = b.dataset.strumento; document.querySelectorAll('#tavole3dLiberoBarra [data-strumento]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
             T3('tavole3dConfronto').addEventListener('click', commutaConfrontoTavole3d);
             T3('tavole3dConfrontoGrandezza').addEventListener('change', e => grandezzaConfrontoTavole3d(e.target.value));
             T3('tavole3dNomeFile').addEventListener('input', salvaMemoriaTavole3d);

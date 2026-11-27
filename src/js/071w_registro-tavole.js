@@ -82,7 +82,7 @@
                 voci.forEach(v => {
                     visti.add(v.id);
                     const imp = { regola: (mem.regola || {})[v.id] || null, titolo: (mem.titoli || {})[v.id] || null, posizione: (mem.posizioni || {})[v.id] || null,
-                        pianta: (mem.piante || {})[v.id] || null, foglio: mem.foglio || null };
+                        pianta: (mem.piante || {})[v.id] || null, foglio: mem.foglio || null, libero: ((mem.liberi || []).find(x => x.id === v.id)) || undefined };
                     const inReport = !(mem.escluse || []).includes(v.id);
                     let t = reg.find(x => x.voceId === v.id && !x.storica);
                     if (!t) { t = creaTavola(proj, { nome: v.titolo, tipo: v.tipo, impostazioni: imp, datiRef: impronta, voceId: v.id, templateId, miniatura: (miniature || {})[v.id] || null }); t.inReport = inReport; return; }

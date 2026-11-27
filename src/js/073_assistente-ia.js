@@ -274,6 +274,22 @@
                     else delete pr.tavole3d.confronto;
                     saveState(); return { ok: true };
                 } },
+                { n: 'disegno_libero_nelle_tavole', d: 'Crea o sostituisce un disegno libero fra le tavole del progetto (tavola vuota 1400x860, origine in alto a sinistra). forme: elenco di { t: riga|freccia|rettangolo|testo|misura|scala, x1, y1, x2, y2, testo, colore #rrggbb }. misura = quota in metri secondo px_per_m (default 100 px = 1 m); scala = barra lunga «testo» metri. Con disegno_id sostituisce quel disegno.', p: { nome: { type: 'string' }, disegno_id: { type: 'string' }, px_per_m: { type: 'number' }, forme: { type: 'array', items: { type: 'object' } } }, req: ['forme'], w: true,
+                  ds: a => `${a.disegno_id ? 'Aggiornare' : 'Creare'} il disegno libero «${a.nome || 'Disegno libero'}» con ${(a.forme || []).length} forme`, run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    if (!Array.isArray(a.forme) || a.forme.length > 300) throw new Error('Servono al massimo 300 forme.');
+                    const forme = a.forme.map(formaLiberaPulita).filter(Boolean);
+                    if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
+                    const lista = pr.tavole3d.liberi = pr.tavole3d.liberi || [];
+                    let l = a.disegno_id ? lista.find(x => x.id === a.disegno_id) : null;
+                    if (a.disegno_id && !l) throw new Error('Disegno non trovato.');
+                    const reg = registroTavole(pr).find(t => l && t.voceId === l.id && !t.storica);
+                    if (reg && reg.bloccata) throw new Error('La tavola è bloccata: sbloccala prima.');
+                    if (!l) { l = { id: 'libero-' + Date.now().toString(36), nome: 'Disegno libero', forme: [] }; lista.push(l); }
+                    if (a.nome && String(a.nome).trim()) l.nome = String(a.nome).trim().slice(0, 80);
+                    if (a.px_per_m > 0.1) l.pxPerM = a.px_per_m;
+                    l.forme = forme; saveState(); return { ok: true, id: l.id, forme: forme.length };
+                } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
                     const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');

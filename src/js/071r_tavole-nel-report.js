@@ -152,7 +152,7 @@
                         + `<div data-blocco="immagine-libera" style="flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center;"><img src="${tela.toDataURL('image/jpeg', 0.9)}" alt="${esc(titolo)}" style="display:block; width:${wi.toFixed(2)}mm; height:${hi.toFixed(2)}mm;"></div>`
                         + `<div class="tavola-report-piede" style="flex:0 0 ${RIGA}mm; box-sizing:border-box; border-top:0.5pt solid ${col.tenue}; display:flex; justify-content:space-between; align-items:flex-start; padding-top:1.5mm; font-size:8pt; color:${col.tenue};"><span style="flex:1 1 auto; white-space:nowrap;">${esc(proj.name || '')}</span><span style="flex:0 0 22mm; text-align:right; white-space:nowrap;">Tav. ${n}</span></div>`
                         + `</div></div>`;
-                    gruppi[v.tipo === 'sez2d' || v.tipo === 'confronto' ? '2d' : '3d'].push(foglio);
+                    gruppi[v.tipo === 'sez2d' || v.tipo === 'confronto' || v.tipo === 'libero' ? '2d' : '3d'].push(foglio);
                 }
                 if (!n) return null;
                 const sezioni = [];
