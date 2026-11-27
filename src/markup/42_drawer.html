@@ -145,6 +145,26 @@
                 <button class="btn-action menu-x" id="btnDrawerArchivio"><svg class="ico"><use href="#i-database"/></svg> Archivio litologico</button>
             </div>
 
+            <!-- ACCOUNT GOOGLE (versione web): login con Google Identity Services, chiavi API cifrate su Drive e
+                 sincronizzazione dei progetti. Le parti sono in js/077 (login), 078 (chiavi) e 079 (sincronizzazione).
+                 Senza rete, o fuori dalla versione web (APK, Electron), il tasto è spento e l'app funziona come sempre. -->
+            <div class="drawer-section" id="sezioneAccountGoogle">
+                <div class="drawer-section-title"><svg class="ico"><use href="#i-user"/></svg> Account Google</div>
+                <div id="lblGoogleStato" class="menu-did-muto">Non collegato</div>
+                <div id="lblGoogleSpiega" class="menu-did-muto2"></div>
+                <button class="btn-action menu-x" id="btnGoogleAccedi"><svg class="ico"><use href="#i-user"/></svg> Accedi con Google</button>
+                <button class="btn-action menu-x" id="btnGoogleEsci" style="display:none"><svg class="ico"><use href="#i-x"/></svg> Esci da Google</button>
+                <div id="boxGoogleCollegato" style="display:none">
+                    <div id="lblSyncStato" class="menu-did-muto-mt"></div>
+                    <button class="btn-action menu-x" id="btnSyncOra"><svg class="ico"><use href="#i-reset"/></svg> Sincronizza ora</button>
+                    <button class="btn-action menu-x" id="btnChiaviDrive"><svg class="ico"><use href="#i-lock"/></svg> Chiavi API su Drive <span id="lblChiaviDrive" class="menu-x2"></span></button>
+                    <details id="boxSyncRegistro">
+                        <summary class="menu-did-muto2">Ultime sincronizzazioni</summary>
+                        <div id="lblSyncRegistro" class="menu-did-muto2"></div>
+                    </details>
+                </div>
+            </div>
+
             <!-- ASSISTENTE IA (facoltativo, spento di serie). Solo l'interruttore e il tasto dei provider
                  stanno qui; la bolla e le procedure guidate sono costruite da js/073. Le chiavi API non
                  stanno in state: restano in una voce a parte del localStorage, fuori da backup e condivisioni. -->

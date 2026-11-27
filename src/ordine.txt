@@ -214,5 +214,6 @@ js/072b_leggi-foglio-di-campo.js
 js/074_conversione-prove-del-sito-vecchio.js
 js/075_importa-dati-del-sito-vecchio.js
 js/076_aggiornamenti-e-uso-senza-rete.js
+js/077_accesso-google.js
 js/073_assistente-ia.js
 shell/06_fine.html

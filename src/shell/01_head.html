@@ -45,6 +45,6 @@
              Restringerli romperebbe funzioni vere.
          Font e librerie sono incorporati (vedi docs/LIBRERIE_INCORPORATE.md): niente Google Fonts
          né CDN all'avvio. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src * data: blob:; media-src 'self' data: blob:; connect-src * data: blob:; worker-src 'self' blob:; frame-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://unpkg.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; font-src 'self' data:; img-src * data: blob:; media-src 'self' data: blob:; connect-src * data: blob:; worker-src 'self' blob:; frame-src 'self' data: blob: https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 
     <style id="fontIncorporati">
