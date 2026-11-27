@@ -455,7 +455,13 @@
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
                     if (!(Math.abs(a.lat) <= 90 && Math.abs(a.lng) <= 180)) throw new Error('Coordinate non valide.');
                     state.header.lat = a.lat; state.header.lng = a.lng; if (a.quota_m != null) state.header.alt = a.quota_m; saveState(); updateUI(); return { ok: true };
-                } }
+                } },
+                { n: 'importa_dati_sito_vecchio', d: 'Importa nell\'app le prove della vecchia versione del sito (dpsh.netlify.app) che sono ancora nel browser: la prova aperta e l\'archivio. Salta le copie identiche e non cancella niente di vecchio. Dice quante prove sono entrate.', p: {}, w: true,
+                  ds: () => 'Importare i dati della vecchia versione del sito', run: async () => {
+                    const r = await importaDatiSitoVecchio({ chiedi: false });
+                    return { ok: true, prove_importate: r.importate, copie_saltate: r.copie, vuote_saltate: r.vuote, progetti_creati: r.progetti };
+                } },
+                { n: 'controlla_aggiornamenti_app', d: 'Controlla se è uscita una versione nuova dell\'app (versione web). Se c\'è, mostra all\'utente l\'avviso con il tasto Ricarica. Dice anche la versione in uso.', p: {}, run: async () => Object.assign({ versione_app: APP_VERSIONE }, await controllaAggiornamentiApp()) }
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'REGOLA PRINCIPALE: se l\'utente chiede di fare qualcosa, LA FAI TU con gli strumenti. Non dirgli mai di premere, cliccare, aprire un menu, andare su una schermata o compilare un campo: fallo tu e poi riassumi in una frase cosa hai fatto. Chiedi all\'utente solo i dati che mancano davvero. ' +
@@ -472,6 +478,7 @@
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /sito vecchio|vecchia versione|vecchio sito|importa.*(dati|prove)|aggiornament|versione|ricarica|netlify/i, t: ['importa_dati_sito_vecchio', 'controlla_aggiornamenti_app'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
             ];
             function aiStrumentiPer(crono) {

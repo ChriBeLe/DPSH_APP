@@ -147,6 +147,9 @@
             // sovrascrivere silenziosamente i dati già presenti.
             function importProjectsFromJSON(parsed) {
                 if (!state.projects) state.projects = {};
+                // Un file del sito vecchio ("progetto_dpsh.json": generali + strumento + colpi) si converte
+                // prima di tutto nel formato attuale (074) e prosegue come un file di questa app.
+                parsed = fileDelSitoVecchioInProgetti(parsed) || parsed;
                 // Versione dei dati PRIMA di tutto: un file di un'app più nuova si rifiuta qui, prima
                 // che una sola foto o un solo progetto venga scritto (vedi 004b).
                 const versioneFile = versioneFileImportato(parsed);
