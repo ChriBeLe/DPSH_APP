@@ -8,6 +8,18 @@
                 return registroTavole(proj).filter(t => (!tipo || t.tipo === tipo) && (!q || String(t.nome).toLowerCase().includes(q)))
                     .map(t => ({ t, etichette: [t.bloccata && 'bloccata', t.inReport === false && 'fuori dal report', t.storica && 'storica', t.orfana && 'senza pagina', t.templateId && templateTavole(t.templateId) && ('template «' + templateTavole(t.templateId).name + '»'), !t.storica && impronta && tavolaDatiCambiati(t, impronta) && 'dati cambiati'].filter(Boolean) }));
             }
+            /** Un template dalle regole di UNA sola tavola: la sua pagina, il suo foglio, i suoi elementi. */
+            function templateDaTavola(t, nome) {
+                const imp = t.impostazioni || {}, chiave = t.voceId && /^iso-/.test(t.voceId) ? t.voceId : t.tipo;
+                const regole = { foglio: Object.assign({ carta: 'A4', verso: 'o', scritte: 1.3 }, imp.foglio || {}), sfondo: 'chiaro', basemap: false, opacitaFoto: 0.5, pianta: 'sotto', ex: null,
+                    elementi: Object.assign({}, TEMPLATE_TAVOLE_BASE.regole.elementi), sequenza: [chiave],
+                    tipi: { 'iso-n': chiave === 'iso-n', 'iso-e': chiave === 'iso-e', sez3d: chiave === 'sez3d', sez2d: chiave === 'sez2d' } };
+                if (!state.tavoleTemplates) state.tavoleTemplates = {};
+                const id = 'tpl_tav_' + Date.now().toString(36), gia = Object.values(state.tavoleTemplates).find(x => x.name === String(nome).trim());
+                const tp = { id: gia ? gia.id : id, name: String(nome).trim(), regole, aggiornato: Date.now() };
+                state.tavoleTemplates[tp.id] = tp; saveState();
+                return tp;
+            }
             function apriElencoTavole3d() {
                 const bozza = tavole3d.bozza; if (!bozza) return;
                 const P = { tavole3d: bozza }, esc = escapeHtmlDidascalia;
@@ -30,13 +42,14 @@
                             <div style="display:flex;gap:8px;align-items:center">${t.miniatura ? `<img src="${esc(t.miniatura)}" alt="" style="width:64px;height:auto;border-radius:4px;border:1px solid var(--border,#ccc)">` : ''}<div><b>${esc(t.nome)}</b> <span class="t-didascalia">${NOMI_TIPO_TAVOLA[t.tipo] || t.tipo} · versione ${t.versione}${etichette.length ? ' · ' + esc(etichette.join(' · ')) : ''}</span></div></div>
                             <div style="display:flex;flex-wrap:wrap;gap:6px"><button type="button" class="bt" data-az="rinomina">Rinomina</button><button type="button" class="bt" data-az="duplica">Duplica</button>
                             <button type="button" class="bt" data-az="blocca">${t.bloccata ? 'Sblocca' : 'Blocca'}</button><button type="button" class="bt" data-az="report">${t.inReport === false ? 'Metti nel report' : 'Togli dal report'}</button>
-                            <button type="button" class="bt" data-az="elimina">Elimina</button></div></div>`).join('') : '<p class="t-didascalia">Nessuna tavola salvata. Premi «Salva» nella finestra Tavole per crearle.</p>'}</div></div>`;
+                            <button type="button" class="bt" data-az="template">Salva come template</button><button type="button" class="bt" data-az="elimina">Elimina</button></div></div>`).join('') : '<p class="t-didascalia">Nessuna tavola salvata. Premi «Salva» nella finestra Tavole per crearle.</p>'}</div></div>`;
                     ov.querySelector('[data-az="chiudi"]').onclick = chiudi;
                     ov.querySelector('[data-az="cerca"]').oninput = e => { stato.testo = e.target.value; const p = e.target.selectionStart; disegna(); const n = ov.querySelector('[data-az="cerca"]'); n.focus(); n.setSelectionRange(p, p); };
                     ov.querySelector('[data-az="tipo"]').onchange = e => { stato.tipo = e.target.value; disegna(); };
                     ov.querySelectorAll('[data-id]').forEach(r => r.querySelectorAll('button').forEach(b => b.onclick = async () => {
                         const t = tavolaPerId(P, r.dataset.id); if (!t) return;
                         const az = b.dataset.az;
+                        if (az === 'template') { const n = await appPrompt('', t.nome, { title: 'Salva questa tavola come template', label: 'Nome del template', okLabel: 'Salva' }); if (n && n.trim()) { const tp = templateDaTavola(t, n); if (typeof mostraToast === 'function') mostraToast(`Template «${tp.name}» salvato.`); } return; }
                         if (az === 'blocca') bloccaTavola(P, t.id, !t.bloccata);
                         else if (t.bloccata) { if (typeof mostraToast === 'function') mostraToast('La tavola è bloccata: sbloccala prima.'); return; }
                         else if (az === 'rinomina') { const n = await appPrompt('Nuovo nome della tavola', t.nome); if (n && n.trim()) t.nome = nomeTavolaLibero(P, n, t.id); }

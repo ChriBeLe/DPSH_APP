@@ -50,5 +50,8 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('in un altro progetto la sequenza riordina le pagine', JSON.stringify(m2.ordine) === JSON.stringify(['iso-n', 'x3', 'x2', 'iso-e']));
   w.__s = {}; ev("sincronizzaRegistroTavole(__s,[{id:'iso-n',tipo:'iso',titolo:'I'}],{regola:{}},'a',null,'tav_standard')");
   t('la tavola ricorda il template e l\'elenco lo dice', ev("registroTavole(__s)[0].templateId") === 'tav_standard' && /template «Standard/.test(ev("righeElencoTavole(__s)[0].etichette.join('|')")));
+  w.__tt = { impostazioni: { foglio: { carta: 'A3', verso: 'v', scritte: 1.3 } }, voceId: 's2-a', tipo: 'sez2d' };
+  const tp = ev("templateDaTavola(__tt, 'Solo sezione')");
+  t('template da una tavola: una pagina, il suo foglio, e si trova fra i template', tp.regole.foglio.carta === 'A3' && JSON.stringify(tp.regole.sequenza) === '["sez2d"]' && tp.regole.tipi.sez2d === true && tp.regole.tipi.sez3d === false && ev("elencoTemplateTavole().some(x => x.name === 'Solo sezione')"));
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();
