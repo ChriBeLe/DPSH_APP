@@ -23,5 +23,18 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   ev("ordinaTavole(__p,['" + c.id + "'])");
   t('ordina', ev("registroTavole(__p)[0].id") === c.id);
   t('un progetto vecchio senza registro resta vuoto', ev("registroTavole({}).length") === 0);
+  const voci = [{ id: 'iso-n', tipo: 'iso', titolo: 'Iso N' }, { id: 's2-x', tipo: 'sez2d', titolo: 'Sezione X' }], P2 = {};
+  w.__q = P2; w.__v = voci;
+  ev("sincronizzaRegistroTavole(__q,__v,{regola:{'iso-n':{zoom:1}},escluse:['s2-x']},'h1')");
+  t('sync: una tavola per pagina, la esclusa non va nel report', ev("registroTavole(__q).length") === 2 && ev("registroTavole(__q).find(x=>x.voceId==='s2-x').inReport") === false);
+  ev("sincronizzaRegistroTavole(__q,__v,{regola:{'iso-n':{zoom:1}},escluse:['s2-x']},'h1')");
+  t('sync senza cambi: nessuna versione nuova', ev("registroTavole(__q)[0].versione") === 1);
+  ev("sincronizzaRegistroTavole(__q,__v,{regola:{'iso-n':{zoom:2}},escluse:[]},'h2')");
+  t('sync con cambi: versione 2 e dati nuovi', ev("registroTavole(__q)[0].versione") === 2 && ev("registroTavole(__q)[0].datiRef") === 'h2');
+  ev("bloccaTavola(__q,registroTavole(__q)[0].id)");
+  ev("sincronizzaRegistroTavole(__q,__v,{regola:{'iso-n':{zoom:9}},escluse:[]},'h3')");
+  t('sync: la bloccata non cambia', ev("registroTavole(__q)[0].versione") === 2);
+  ev("sincronizzaRegistroTavole(__q,[__v[0]],{regola:{},escluse:[]},'h3')");
+  t('sync: pagina sparita -> orfana', ev("registroTavole(__q).find(x=>x.voceId==='s2-x').orfana") === true);
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

@@ -26,11 +26,11 @@
                 return n;
             }
             /** Crea una tavola nel registro. `impostazioni` = inquadratura, titoli, foglio, opzioni... */
-            function creaTavola(proj, { nome, tipo, impostazioni, templateId, miniatura, datiRef }) {
+            function creaTavola(proj, { nome, tipo, impostazioni, templateId, miniatura, datiRef, voceId }) {
                 if (TIPI_TAVOLA.indexOf(tipo) < 0) throw new Error('Tipo di tavola sconosciuto: ' + tipo);
                 const ora = Date.now();
                 const t = { id: idTavolaNuovo(proj), nome: nomeTavolaLibero(proj, nome), tipo, impostazioni: copiaTavola(impostazioni || {}),
-                    templateId: templateId || null, bloccata: false, inReport: true, miniatura: miniatura || null,
+                    voceId: voceId || null, templateId: templateId || null, bloccata: false, inReport: true, miniatura: miniatura || null,
                     datiRef: datiRef || null, versione: 1, versioni: [], creata: ora, aggiornata: ora };
                 registroTavole(proj).push(t);
                 return t;
@@ -72,3 +72,26 @@
             /** La tavola è ancora vera? Confronta l'impronta dei dati con quella salvata: se è diversa,
              * l'editor avvisa («continua con i vecchi dati» o «duplica e aggiorna»). */
             const tavolaDatiCambiati = (t, impronta) => !!t && t.datiRef !== null && t.datiRef !== undefined && t.datiRef !== impronta;
+
+            /** Allinea il registro alle pagine della finestra «Tavole», al momento di «Salva»: ogni
+             * pagina ha la sua tavola (per voceId) con le sue impostazioni; se cambiano, nasce una
+             * versione nuova. Le bloccate non si toccano; le pagine che non esistono più restano come
+             * «orfane» (i dati sono cambiati: l'utente sceglie se tenerle o aggiornarle). */
+            function sincronizzaRegistroTavole(proj, voci, mem, impronta, miniature) {
+                const reg = registroTavole(proj), visti = new Set();
+                voci.forEach(v => {
+                    visti.add(v.id);
+                    const imp = { regola: (mem.regola || {})[v.id] || null, titolo: (mem.titoli || {})[v.id] || null, posizione: (mem.posizioni || {})[v.id] || null,
+                        pianta: (mem.piante || {})[v.id] || null, foglio: mem.foglio || null };
+                    const inReport = !(mem.escluse || []).includes(v.id);
+                    let t = reg.find(x => x.voceId === v.id);
+                    if (!t) { t = creaTavola(proj, { nome: v.titolo, tipo: v.tipo, impostazioni: imp, datiRef: impronta, voceId: v.id, miniatura: (miniature || {})[v.id] || null }); t.inReport = inReport; return; }
+                    t.orfana = false;
+                    if (t.bloccata) return;
+                    t.inReport = inReport;
+                    if (miniature && miniature[v.id]) t.miniatura = miniature[v.id];
+                    if (JSON.stringify(t.impostazioni) !== JSON.stringify(imp)) salvaTavola(proj, t.id, { impostazioni: imp, datiRef: impronta });
+                });
+                reg.forEach(t => { if (t.voceId && !visti.has(t.voceId)) t.orfana = true; });
+                return reg;
+            }

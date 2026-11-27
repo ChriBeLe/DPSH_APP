@@ -618,6 +618,13 @@
                 statoSalvataggioTavole3d();
                 setTimeout(() => T3('tavole3dTela').focus(), 0);
             }
+            /** L'impronta dei dati da cui vengono le tavole: se cambia (nuova prova, sezione spostata) l'editor avvisa. */
+            function improntaDatiTavole3d() {
+                const d = datiVista3dCorrenti; if (!d) return null;
+                const txt = JSON.stringify([tracceDelProgetto().map(t => [t.id, t.a, t.b]), d.zMin, d.zMax, (d.prove || d.punti || []).length]);
+                let h = 5381; for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
+                return 'h' + (h >>> 0).toString(36);
+            }
             /** Ci sono modifiche non salvate? */
             const tavoleSporche3d = () => !!tavole3d.bozza && JSON.stringify(tavole3d.bozza) !== tavole3d.pulito;
             /** L'indicatore sempre visibile: «Modifiche non salvate» o «Salvato». */
@@ -631,6 +638,7 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !tavole3d.bozza) return false;
                 salvaMemoriaTavole3d();
+                try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), null); } catch (e) { ignoraErrore('registro tavole', e); }
                 proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
                 saveState();
