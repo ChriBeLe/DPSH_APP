@@ -19,6 +19,7 @@
                 const pr = state.projects[state.currentProjectId], memE = (tavole3d.bozza && tavole3d.bozzaProgetto === state.currentProjectId ? tavole3d.bozza : pr && pr.tavole3d) || {};
                 (memE.extra || []).forEach(x => voci.push({ id: x.id, tipo: 'iso', verso: x.verso, extra: true, titolo: `Modello · vista isometrica verso ${{ N: 'Nord', E: 'Est', S: 'Sud', O: 'Ovest' }[x.verso] || 'Nord'}` }));
                 const solido = d && modelloSolido(d);
+                const confrOk = !!memE.confronto && pr && proveConfrontabili(pr).length >= 2;
                 const tracce = tracceDelProgetto().slice().sort((a, b) => {
                     const na = estremiTraccia(a.nome)[0], nb = estremiTraccia(b.nome)[0], ca = /^\d/.test(na), cb = /^\d/.test(nb);
                     return ca === cb ? na.localeCompare(nb, 'it', { numeric: true }) : (ca ? 1 : -1);
@@ -27,6 +28,7 @@
                     if (solido) voci.push({ id: 's3-' + t.id, tipo: 'sez3d', traccia: t.id, titolo: `Sezione 3D ${t.nome}` });
                     voci.push({ id: 's2-' + t.id, tipo: 'sez2d', traccia: t.id, titolo: `Sezione ${t.nome}` });
                 });
+                if (confrOk) voci.push({ id: 'confronto', tipo: 'confronto', titolo: 'Confronto tra prove' });
                 return voci;
             }
 
@@ -417,6 +419,7 @@
             /** La tela di una tavola (3D o 2D), pronta per il PDF o per un'immagine. */
             async function telaVoce3d(voce, d, opz) {
                 if (voce.tipo === 'sez2d') return telaSezione2d(voce, d, opz);
+                if (voce.tipo === 'confronto') return telaConfronto(voce, d, opz);
                 const W = opz.W || 1400, H = opz.H || 860;
                 const sf = opz.basemap !== false ? await sfondoEsportabile3d(d) : null;
                 const sfE = opz.basemap !== false ? await sfondoEstesoEsportabile3d(d) : null;
@@ -533,13 +536,13 @@
             /** Per l'anteprima: la mappa larga attorno, senza permesso di rilettura (basta vederla). */
             const sfondoEstesoAnteprima3d = () => T3('tavole3dBasemap').checked && datiVista3dCorrenti ? mosaicoSfondo3d(datiVista3dCorrenti, MEZZO_ESTESO_3D(datiVista3dCorrenti), 3072, false) : null;
             const tipoTavola3d = v => {
-                const vs = v.tipo === 'sez2d' ? null : versoTavola3d(v), dir = vs === null ? (v.tipo !== 'sez2d' && (tavole3d.regola[v.id] || {}).vista ? ' · pianta' : '') : ' · verso ' + VERSI_3D[vs];
+                const vs = e2dTavola3d(v) ? null : versoTavola3d(v), dir = vs === null ? (v.tipo !== 'sez2d' && (tavole3d.regola[v.id] || {}).vista ? ' · pianta' : '') : ' · verso ' + VERSI_3D[vs];
                 return (v.tipo === 'iso' ? 'Modello 3D' : v.tipo === 'sez3d' ? 'Sezione 3D' : 'Sezione 2D') + dir;
             };
             /** Verso dove guarda una pagina 3D (0 Nord … 3 Ovest; null: pianta o sezione 2D). */
             function versoTavola3d(v) {
                 const d = datiVista3dCorrenti, r = tavole3d.regola[v.id];
-                if (v.tipo === 'sez2d' || !d) return null;
+                if (e2dTavola3d(v) || !d) return null;
                 if (r && r.vista) return r.vista.tipo === 'pianta' ? null : r.vista.verso || 0;
                 const base = vistaBaseVoce3d(v, d);
                 return base ? versoDaAz3d(base.az + ((r && r.dAz) || 0) - (v.tipo === 'iso' ? ISO_TORSIONE_3D : ISO_TORSIONE_3D * 0.8)) : null;
@@ -557,7 +560,7 @@
                 const d = datiVista3dCorrenti, scelta = tavole3d.voci[tavole3d.scelta], partenza = vociEsportazione3d(d).map(v => v.id);
                 const pos = v => partenza.indexOf(v.id);
                 if (come === 'direzione') {
-                    const gruppo = v => { if (v.tipo === 'sez2d') return 10; const vs = versoTavola3d(v); return vs === null ? 5 : vs; };
+                    const gruppo = v => { if (e2dTavola3d(v)) return 10; const vs = versoTavola3d(v); return vs === null ? 5 : vs; };
                     tavole3d.voci.sort((a, b) => gruppo(a) - gruppo(b) || (a.tipo === 'iso' ? 0 : 1) - (b.tipo === 'iso' ? 0 : 1) || pos(a) - pos(b));
                 } else tavole3d.voci.sort((a, b) => pos(a) - pos(b));
                 tavole3d.scelta = Math.max(0, tavole3d.voci.indexOf(scelta));
@@ -611,6 +614,7 @@
                 [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa'], ['tavole3dSpigoli', 'spigoli'], ['tavole3dMesh', 'mesh']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 // Lo sfondo, la mappa di base e l'esagerazione scelti qui (o dal template) l'ultima volta.
                 T3('tavole3dNomeFile').value = mem.nomeFile || '';
+                T3('tavole3dConfrontoGrandezza').value = (mem.confronto || {}).grandezza || 'colpi';
                 const op = mem.opzioni || {};
                 if (op.sfondo) { tavole3d.sfondo = op.sfondo; T3('tavole3dSfondo').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sfondo === op.sfondo))); }
                 if (typeof op.basemap === 'boolean') { T3('tavole3dBasemap').checked = op.basemap; sel.disabled = !op.basemap; }
@@ -747,6 +751,8 @@
             }
 
             /** Il titolo automatico delle pagine del modello segue la vista scelta coi tasti. */
+            /** Le pagine che sono una figura piatta (sezione 2D, confronto): niente inquadratura 3D. */
+            const e2dTavola3d = v => !!v && (v.tipo === 'sez2d' || v.tipo === 'confronto');
             function aggiornaTitoloVista3d(v) {
                 const r = tavole3d.regola[v.id], vv = r && r.vista;
                 if (v.tipo !== 'iso') return;
@@ -778,7 +784,7 @@
              * Nord → Est → Sud → Ovest. Toglie le regolazioni a mano: la vista è esatta. */
             function scegliVistaTavola3d(tipo) {
                 const v = tavole3d.voci[tavole3d.scelta], d = datiVista3dCorrenti;
-                if (!v || v.tipo === 'sez2d' || !d) return;
+                if (!v || e2dTavola3d(v) || !d) return;
                 const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
                 const prima = r.vista, base = vistaBaseVoce3d(v, d);
                 const verso = tipo === 'pianta' ? 0 : prima && prima.tipo === tipo ? ((prima.verso || 0) + 1) % 4
@@ -801,7 +807,7 @@
                         <span class="tavole-pag-nome">${i + 1}. ${esc(titoloTavola3d(v) || v.titolo)}</span>
                         <span class="tavole-pag-sposta"><button type="button" data-sposta-pag="-1" title="Più su" aria-label="Sposta su" ${i === 0 ? 'disabled' : ''}>▲</button><button type="button" data-sposta-pag="1" title="Più giù" aria-label="Sposta giù" ${i === tavole3d.voci.length - 1 ? 'disabled' : ''}>▼</button></span>
                         <span class="tavole-pag-tipo">${tipoTavola3d(v)}</span>
-                        ${v.tipo === 'sez2d' ? '<img alt="">' : '<canvas></canvas>'}</div>`).join('');
+                        ${e2dTavola3d(v) ? '<img alt="">' : '<canvas></canvas>'}</div>`).join('');
                 aggiornaContoTavole3d();
                 // le miniature una alla volta, senza bloccare la finestra
                 let i = 0;
@@ -817,6 +823,11 @@
             function disegnaMiniaturaTavola3d(v, el) {
                 const d = datiVista3dCorrenti;
                 if (!d) return;
+                if (v.tipo === 'confronto') {
+                    const sv = svgTavolaConfronto(state.projects[state.currentProjectId], 900, 560, ((memoriaTavole3d().confronto) || {}).grandezza);
+                    if (sv) el.querySelector('img').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sv);
+                    return;
+                }
                 if (v.tipo === 'sez2d') {
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
                     if (!t) return;
@@ -879,9 +890,10 @@
                 T3('tavole3dNumero').textContent = pos >= 0 ? `${pos + 1} / ${esportate.length}` : 'non esportata';
                 document.querySelectorAll('#tavole3dPagine .tavole-pag').forEach(el => el.classList.toggle('scelta', Number(el.dataset.tavola) === tavole3d.scelta));
                 const tela = T3('tavole3dTela'), img = T3('tavole3dImg');
-                T3('tavole3dRegola').classList.toggle('spenta', v.tipo === 'sez2d');
+                T3('tavole3dRegola').classList.toggle('spenta', e2dTavola3d(v));
                 renderProveTavola3d(v);
                 aggiornaTastiVista3d();
+                if (v.tipo === 'confronto') { mostraConfronto3d(v, tela, img); return; }
                 if (v.tipo === 'sez2d') {
                     tela.hidden = true; img.hidden = false;
                     const t = tracceDelProgetto().find(x => x.id === v.traccia);
@@ -950,7 +962,7 @@
             }
             function regolaTavola3d(modifica) {
                 const v = tavole3d.voci[tavole3d.scelta];
-                if (!v || v.tipo === 'sez2d' || tavolaBloccata3d(v)) return;
+                if (!v || e2dTavola3d(v) || tavolaBloccata3d(v)) return;
                 const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
                 modifica(r);
                 salvaMemoriaTavole3d();
@@ -1016,6 +1028,8 @@
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
+            T3('tavole3dConfronto').addEventListener('click', commutaConfrontoTavole3d);
+            T3('tavole3dConfrontoGrandezza').addEventListener('change', e => grandezzaConfrontoTavole3d(e.target.value));
             T3('tavole3dNomeFile').addEventListener('input', salvaMemoriaTavole3d);
             T3('tavole3dAggiungiVista').addEventListener('click', aggiungiVista3d);
             T3('tavole3dTogliVista').addEventListener('click', togliVistaAggiunta3d);

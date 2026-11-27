@@ -380,6 +380,16 @@ const $ = (app, id) => app.d.getElementById(id);
   t('Aggiungi vista (Sud): una pagina in più, scelta, col suo titolo', app.E('tavole3d.voci.length') === nVoci + 1 && /verso Sud/.test($(app, 'tavole3dFoglioTit').textContent) && !$(app, 'tavole3dTogliVista').hidden);
   clic(app, $(app, 'tavole3dTogliVista'));
   t('Togli vista: torna com\'era, il tasto si nasconde', app.E('tavole3d.voci.length') === nVoci && $(app, 'tavole3dTogliVista').hidden);
+  const nProve = app.E(`proveConfrontabili(${P}).length`);
+  const nV0 = app.E('tavole3d.voci.length');
+  clic(app, $(app, 'tavole3dConfronto'));
+  if (nProve >= 2) {
+    t('Confronto prove: una pagina in più, col suo titolo, che si vede come figura piatta', app.E('tavole3d.voci.length') === nV0 + 1 && /Confronto tra prove/.test($(app, 'tavole3dFoglioTit').textContent) && !$(app, 'tavole3dImg').hidden && $(app, 'tavole3dRegola').classList.contains('spenta'));
+    $(app, 'tavole3dConfrontoGrandezza').value = 'rpd'; $(app, 'tavole3dConfrontoGrandezza').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+    t('Confronto prove: la grandezza (Rpd) si ricorda', app.E('tavole3d.bozza.confronto.grandezza') === 'rpd');
+    clic(app, $(app, 'tavole3dConfronto'));
+    t('Confronto prove: si toglie', app.E('tavole3d.voci.length') === nV0 && !app.E('tavole3d.bozza.confronto'));
+  } else console.log('  (confronto: servono due prove, ne ho ' + nProve + ')');
   clic(app, pagine()[2]);
   clic(app, $(app, 'tavole3dElenco'));
   const elenco = () => [...app.d.querySelectorAll('#tavoleElenco [data-id]')];

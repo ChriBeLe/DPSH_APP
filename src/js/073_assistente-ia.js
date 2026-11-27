@@ -266,6 +266,14 @@
                     const mem = pr.tavole3d || {}, imp = typeof improntaDatiTavole3d === 'function' ? improntaDatiTavole3d() : null, d = datiVista3dCorrenti;
                     return controlloStampaTavole(mem, d ? vociEsportazione3d(d) : [], imp);
                 } },
+                { n: 'confronto_prove_nelle_tavole', d: 'Aggiunge (attivo true) o toglie (false) la pagina «Confronto tra prove» fra le tavole del progetto; grandezza: colpi oppure rpd. Servono almeno due prove con intervalli.', p: { attivo: { type: 'boolean' }, grandezza: { type: 'string', enum: ['colpi', 'rpd'] } }, req: ['attivo'], w: true,
+                  ds: a => a.attivo ? `Aggiungere alle tavole il confronto tra prove (${a.grandezza || 'colpi'})` : 'Togliere dalle tavole il confronto tra prove', run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
+                    if (a.attivo) { if (proveConfrontabili(pr).length < 2) throw new Error('Servono almeno due prove con intervalli.'); pr.tavole3d.confronto = { grandezza: a.grandezza === 'rpd' ? 'rpd' : 'colpi' }; }
+                    else delete pr.tavole3d.confronto;
+                    saveState(); return { ok: true };
+                } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
                     const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
