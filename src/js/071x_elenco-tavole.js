@@ -21,8 +21,12 @@
                 return tp;
             }
             function apriElencoTavole3d() {
-                const bozza = tavole3d.bozza; if (!bozza) return;
-                const P = { tavole3d: bozza }, esc = escapeHtmlDidascalia;
+                // dentro la finestra Tavole si lavora sulla bozza (vale con «Salva»); dalla mappa, sul progetto: si salva subito
+                const proj = state.projects[state.currentProjectId], inFinestra = !!tavole3d.bozza;
+                if (!inFinestra && !proj) return;
+                if (!inFinestra && !proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
+                const P = { tavole3d: inFinestra ? tavole3d.bozza : proj.tavole3d }, esc = escapeHtmlDidascalia;
+                const dopoModifica = () => { if (inFinestra) statoSalvataggioTavole3d(); else { saveState(); if (typeof infoAreaMappa === 'function') infoAreaMappa(); } };
                 let ov = document.getElementById('tavoleElenco');
                 if (!ov) {
                     ov = document.createElement('div'); ov.id = 'tavoleElenco'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Tavole salvate'); ov.setAttribute('aria-modal', 'true');
@@ -33,7 +37,7 @@
                 const stato = { testo: '', tipo: '' };
                 const chiudi = () => { ov.hidden = true; ov.innerHTML = ''; };
                 const disegna = () => {
-                    const righe = righeElencoTavole(P, Object.assign({ impronta: improntaDatiTavole3d() }, stato));
+                    const righe = righeElencoTavole(P, Object.assign({ impronta: inFinestra ? improntaDatiTavole3d() : null }, stato));
                     ov.innerHTML = `<div style="background:var(--bg-card,#fff);color:inherit;border-radius:12px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;padding:14px;gap:10px">
                         <div style="display:flex;gap:8px;align-items:center"><b style="flex:1">Tavole salvate (${registroTavole(P).length})</b><button type="button" class="bt" data-az="chiudi">Chiudi</button></div>
                         <div style="display:flex;gap:8px"><input type="search" class="form-control" data-az="cerca" aria-label="Cerca per nome" placeholder="Cerca per nome" value="${esc(stato.testo)}" style="flex:1">
@@ -52,11 +56,19 @@
                         if (az === 'template') { const n = await appPrompt('', t.nome, { title: 'Salva questa tavola come template', label: 'Nome del template', okLabel: 'Salva' }); if (n && n.trim()) { const tp = templateDaTavola(t, n); if (typeof mostraToast === 'function') mostraToast(`Template «${tp.name}» salvato.`); } return; }
                         if (az === 'blocca') bloccaTavola(P, t.id, !t.bloccata);
                         else if (t.bloccata) { if (typeof mostraToast === 'function') mostraToast('La tavola è bloccata: sbloccala prima.'); return; }
-                        else if (az === 'rinomina') { const n = await appPrompt('Nuovo nome della tavola', t.nome); if (n && n.trim()) t.nome = nomeTavolaLibero(P, n, t.id); }
+                        else if (az === 'rinomina') {
+                            let n = await appPrompt('Nuovo nome della tavola', t.nome);
+                            if (n && n.trim()) {
+                                const libero = nomeTavolaLibero(P, n, t.id);
+                                // nome già preso: si chiede ogni volta (usare il nome col numero, o scegliere un altro)
+                                if (libero !== n.trim() && !(await appConfirm(`Esiste già una tavola «${n.trim()}». Uso «${libero}»?`))) return;
+                                t.nome = libero;
+                            }
+                        }
                         else if (az === 'duplica') duplicaTavola(P, t.id);
                         else if (az === 'report') t.inReport = t.inReport === false;
                         else if (az === 'elimina') { if (await appConfirmDelete(`Eliminare la tavola «${t.nome}»?`)) eliminaTavola(P, t.id); }
-                        statoSalvataggioTavole3d(); disegna();
+                        dopoModifica(); disegna();
                     }));
                 };
                 ov.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); chiudi(); } };
