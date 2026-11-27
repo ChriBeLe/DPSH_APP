@@ -636,6 +636,18 @@
                 let h = 5381; for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
                 return 'h' + (h >>> 0).toString(36);
             }
+            /** La pagina ha una tavola nel registro, bloccata («consegnata»)? Allora non si cambia. */
+            const tavolaBloccata3d = v => !!v && !!tavole3d.bozza && registroTavole({ tavole3d: tavole3d.bozza }).some(t => t.voceId === v.id && !t.storica && t.bloccata);
+            function bloccaTavolaScelta3d() {
+                const v = tavole3d.voci[tavole3d.scelta]; if (!v) return;
+                const P = { tavole3d: tavole3d.bozza };
+                salvaMemoriaTavole3d();
+                if (!registroTavole(P).some(t => t.voceId === v.id && !t.storica)) sincronizzaRegistroTavole(P, [v], tavole3d.bozza, improntaDatiTavole3d(), null);
+                const t = registroTavole(P).find(x => x.voceId === v.id && !x.storica);
+                if (t) t.bloccata = !t.bloccata;
+                statoSalvataggioTavole3d(); mostraTavola3d();
+                if (typeof mostraToast === 'function') mostraToast(t && t.bloccata ? 'Tavola bloccata. Salva per confermare.' : 'Tavola sbloccata. Salva per confermare.');
+            }
             /** Ci sono modifiche non salvate? */
             const tavoleSporche3d = () => !!tavole3d.bozza && JSON.stringify(tavole3d.bozza) !== tavole3d.pulito;
             /** L'indicatore sempre visibile: «Modifiche non salvate» o «Salvato». */
@@ -800,7 +812,8 @@
                 const v = tavole3d.voci[tavole3d.scelta];
                 if (!v) return;
                 const d = datiVista3dCorrenti, scuro = tavole3d.sfondo === 'scuro';
-                T3('tavole3dNome').textContent = `${tavole3d.scelta + 1} / ${tavole3d.voci.length} · ${v.titolo}`;
+                T3('tavole3dNome').textContent = `${tavole3d.scelta + 1} / ${tavole3d.voci.length} · ${v.titolo}${tavolaBloccata3d(v) ? ' · bloccata (consegnata)' : ''}`;
+                { const bb = T3('tavole3dBlocca'); if (bb) { const bl = tavolaBloccata3d(v); bb.setAttribute('aria-pressed', String(bl)); bb.querySelector('span').textContent = bl ? 'Sblocca' : 'Blocca'; } }
                 T3('tavole3dPrima').disabled = tavole3d.scelta === 0;
                 T3('tavole3dDopo').disabled = tavole3d.scelta === tavole3d.voci.length - 1;
                 T3('tavole3dFoglio').classList.toggle('scuro', scuro);
@@ -894,7 +907,7 @@
             }
             function regolaTavola3d(modifica) {
                 const v = tavole3d.voci[tavole3d.scelta];
-                if (!v || v.tipo === 'sez2d') return;
+                if (!v || v.tipo === 'sez2d' || tavolaBloccata3d(v)) return;
                 const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
                 modifica(r);
                 salvaMemoriaTavole3d();
@@ -959,6 +972,7 @@
             // ---- i comandi ----
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
+            T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });
             // Esc chiude solo la finestra delle tavole, non la mappa sotto.

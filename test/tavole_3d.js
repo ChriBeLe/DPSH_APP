@@ -375,6 +375,14 @@ const $ = (app, id) => app.d.getElementById(id);
   t('il progetto NON è cambiato prima di Salva', app.E(`JSON.stringify(${P}.tavole3d.regola)`) === prima);
   clic(app, $(app, 'tavole3dSalva'));
   t('dopo Salva il progetto ha la modifica e lo stato torna «Salvato»', app.E(`JSON.stringify(${P}.tavole3d.regola)`) !== prima && $(app, 'tavole3dStato').dataset.stato === 'salvato');
+  clic(app, $(app, 'tavole3dBlocca'));
+  const bloccata = app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`);
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  t('bloccata: i tasti non cambiano la tavola e il nome lo dice', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) === bloccata && /bloccata/.test($(app, 'tavole3dNome').textContent));
+  clic(app, $(app, 'tavole3dBlocca'));
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  t('sbloccata: si può di nuovo cambiare', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) !== bloccata);
+  clic(app, $(app, 'tavole3dSalva'));
   clic(app, $(app, 'tavole3dChiudi'));
 
   console.log('--- Il PDF ---');
