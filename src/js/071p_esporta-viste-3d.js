@@ -684,7 +684,9 @@
                 try {
                     [...T3('tavole3dPagine').children].forEach((el, i) => {
                         const v = tavole3d.voci[i], c = el.querySelector('canvas');
-                        if (v && c && c.width) { const u = c.toDataURL('image/jpeg', 0.6); if (u && u.length < 40000) out[v.id] = u; }
+                        if (v && c && c.width) { const u = c.toDataURL('image/webp', 0.6); if (u && u.length < 40000) out[v.id] = u; }
+                        const im = el.querySelector('img');
+                        if (v && !c && im && /^data:image\/svg/.test(im.src || '') && im.src.length < 60000) out[v.id] = im.src;
                     });
                 } catch (e) { /* senza miniature l'elenco funziona lo stesso */ }
                 return out;
@@ -704,10 +706,22 @@
                 }
             }
             /** SALVA: la bozza entra nel progetto (e nel registro delle tavole, con la versione). */
-            function salvaTavole3d() {
+            /** Lo stile comune a tutte le pagine: foglio, elementi, sfondo, opzioni (non le inquadrature di una pagina sola). */
+            function firmaStileTavole(mem) {
+                const o = Object.assign({}, (mem && mem.opzioni) || {}); delete o.piante; delete o.posizioni; delete o.W; delete o.H; delete o.reg;
+                return JSON.stringify([mem && mem.foglio, mem && mem.elementi, mem && mem.pianta, mem && mem.opacitaFoto, o]);
+            }
+            async function salvaTavole3d() {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !tavole3d.bozza) return false;
                 salvaMemoriaTavole3d();
+                // lo stile è comune: se è cambiato e ci sono tavole bloccate (consegnate), si dice cosa succede
+                const bloccate = registroTavole({ tavole3d: tavole3d.bozza }).filter(t => t.bloccata && !t.storica);
+                if (bloccate.length && proj.tavole3d && firmaStileTavole(proj.tavole3d) !== firmaStileTavole(tavole3d.bozza) && proj.tavole3d.foglio) {
+                    const r = await appDialog(`Hai cambiato lo stile comune (foglio, scritte, sfondo, legenda…), ma ${bloccate.length === 1 ? 'una tavola è bloccata' : bloccate.length + ' tavole sono bloccate'} (${bloccate.slice(0, 3).map(t => '«' + t.nome + '»').join(', ')}${bloccate.length > 3 ? '…' : ''}). Nel report le bloccate useranno comunque il nuovo stile. Cosa vuoi fare?`,
+                        { confirm: true, okLabel: 'Salva lo stesso', cancelLabel: 'Torna a modificare' });
+                    if (r !== true && !(r && r.ok)) return false;
+                }
                 try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), miniatureTavole3d(), (tavole3d.bozza.templateApplicato || {}).id); } catch (e) { ignoraErrore('registro tavole', e); }
                 proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
@@ -722,7 +736,7 @@
                 if (tavoleSporche3d()) {
                     const r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' });
                     if (r === false || r === undefined || r === null) return;
-                    if (r === true || (r && r.ok)) salvaTavole3d();
+                    if (r === true || (r && r.ok)) { if (!(await salvaTavole3d())) return; }
                 }
                 tavole3d.bozza = null; tavole3d.pulito = null;
                 T3('tavole3d').hidden = true;
@@ -1044,6 +1058,7 @@
             T3('tavole3dAggiungiVista').addEventListener('click', aggiungiVista3d);
             T3('tavole3dTogliVista').addEventListener('click', togliVistaAggiunta3d);
             T3('tavole3dElenco').addEventListener('click', apriElencoTavole3d);
+            document.getElementById('btnElencoTavole').addEventListener('click', apriElencoTavole3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });
             // Esc chiude solo la finestra delle tavole, non la mappa sotto.

@@ -420,6 +420,16 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'tavole3dSalva'));
   clic(app, $(app, 'tavole3dChiudi'));
 
+  console.log('--- Dalla mappa ---');
+  clic(app, $(app, 'btnElencoTavole'));
+  const dalla = [...app.d.querySelectorAll('#tavoleElenco [data-id]')];
+  t('dalla mappa «Tavole salvate» apre l\'elenco anche a finestra chiusa', dalla.length > 0 && !app.d.getElementById('tavoleElenco').hidden);
+  const nMappa = dalla.length;
+  clic(app, dalla[0].querySelector('[data-az="duplica"]'));
+  t('dalla mappa le modifiche valgono subito (si salva da sole)', app.E(`${P}.tavole3d.registro.length`) === nMappa + 1);
+  clic(app, app.d.querySelector('#tavoleElenco [data-az="chiudi"]'));
+  t('lo stile: la firma cambia se cambia il foglio, non se cambia un\'inquadratura', app.E(`firmaStileTavole({ foglio: { carta: 'A4' } }) !== firmaStileTavole({ foglio: { carta: 'A3' } }) && firmaStileTavole({ foglio: { carta: 'A4' }, regola: { a: 1 } }) === firmaStileTavole({ foglio: { carta: 'A4' } })`));
+
   console.log('--- Il PDF ---');
   // Una «JPEG» finta: il PDF la porta così com'è (DCTDecode), basta che la struttura sia giusta.
   app.E(`window.__pdfProva = (async () => {
