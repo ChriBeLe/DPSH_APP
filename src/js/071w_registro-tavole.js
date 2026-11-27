@@ -77,7 +77,7 @@
              * pagina ha la sua tavola (per voceId) con le sue impostazioni; se cambiano, nasce una
              * versione nuova. Le bloccate non si toccano; le pagine che non esistono più restano come
              * «orfane» (i dati sono cambiati: l'utente sceglie se tenerle o aggiornarle). */
-            function sincronizzaRegistroTavole(proj, voci, mem, impronta, miniature) {
+            function sincronizzaRegistroTavole(proj, voci, mem, impronta, miniature, templateId) {
                 const reg = registroTavole(proj), visti = new Set();
                 voci.forEach(v => {
                     visti.add(v.id);
@@ -85,8 +85,9 @@
                         pianta: (mem.piante || {})[v.id] || null, foglio: mem.foglio || null };
                     const inReport = !(mem.escluse || []).includes(v.id);
                     let t = reg.find(x => x.voceId === v.id && !x.storica);
-                    if (!t) { t = creaTavola(proj, { nome: v.titolo, tipo: v.tipo, impostazioni: imp, datiRef: impronta, voceId: v.id, miniatura: (miniature || {})[v.id] || null }); t.inReport = inReport; return; }
+                    if (!t) { t = creaTavola(proj, { nome: v.titolo, tipo: v.tipo, impostazioni: imp, datiRef: impronta, voceId: v.id, templateId, miniatura: (miniature || {})[v.id] || null }); t.inReport = inReport; return; }
                     t.orfana = false;
+                    if (templateId && !t.bloccata) t.templateId = templateId;
                     if (t.bloccata) return;
                     t.inReport = inReport;
                     if (miniature && miniature[v.id]) t.miniatura = miniature[v.id];

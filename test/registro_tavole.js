@@ -48,5 +48,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   w.__reg = reg;
   const m2 = ev("memoriaConTemplate({}, { regole: __reg }, [{ id: 'iso-e', tipo: 'iso' }, { id: 'iso-n', tipo: 'iso' }, { id: 'x3', tipo: 'sez3d' }, { id: 'x2', tipo: 'sez2d' }])");
   t('in un altro progetto la sequenza riordina le pagine', JSON.stringify(m2.ordine) === JSON.stringify(['iso-n', 'x3', 'x2', 'iso-e']));
+  w.__s = {}; ev("sincronizzaRegistroTavole(__s,[{id:'iso-n',tipo:'iso',titolo:'I'}],{regola:{}},'a',null,'tav_standard')");
+  t('la tavola ricorda il template e l\'elenco lo dice', ev("registroTavole(__s)[0].templateId") === 'tav_standard' && /template «Standard/.test(ev("righeElencoTavole(__s)[0].etichette.join('|')")));
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

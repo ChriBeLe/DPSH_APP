@@ -6,7 +6,7 @@
             function righeElencoTavole(proj, { testo = '', tipo = '', impronta = null } = {}) {
                 const q = String(testo || '').trim().toLowerCase();
                 return registroTavole(proj).filter(t => (!tipo || t.tipo === tipo) && (!q || String(t.nome).toLowerCase().includes(q)))
-                    .map(t => ({ t, etichette: [t.bloccata && 'bloccata', t.inReport === false && 'fuori dal report', t.storica && 'storica', t.orfana && 'senza pagina', !t.storica && impronta && tavolaDatiCambiati(t, impronta) && 'dati cambiati'].filter(Boolean) }));
+                    .map(t => ({ t, etichette: [t.bloccata && 'bloccata', t.inReport === false && 'fuori dal report', t.storica && 'storica', t.orfana && 'senza pagina', t.templateId && templateTavole(t.templateId) && ('template «' + templateTavole(t.templateId).name + '»'), !t.storica && impronta && tavolaDatiCambiati(t, impronta) && 'dati cambiati'].filter(Boolean) }));
             }
             function apriElencoTavole3d() {
                 const bozza = tavole3d.bozza; if (!bozza) return;

@@ -566,10 +566,12 @@
                 return (t && t.sotto && t.sotto.trim()) || '';
             };
 
-            function apriTavole3d(soloSezioni) {
+            function apriTavole3d(soloSezioni, daBozza) {
                 const d = datiVista3dCorrenti;
                 if (!d) { appAlert('Per le tavole serve la vista 3D: almeno una prova col GPS e con le letture.'); return; }
-                { const pr = state.projects[state.currentProjectId]; if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
+                // (daBozza: si riapre la stessa finestra con la bozza com'è, senza buttare le modifiche non salvate)
+                const teniBozza = !!daBozza && !!tavole3d.bozza && tavole3d.bozzaProgetto === state.currentProjectId;
+                if (!teniBozza) { const pr = state.projects[state.currentProjectId]; if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
                   tavole3d.bozza = JSON.parse(JSON.stringify(pr.tavole3d)); tavole3d.bozzaProgetto = state.currentProjectId; }
                 const mem = memoriaTavole3d();
                 tavole3d.voci = vociEsportazione3d(d);
@@ -614,7 +616,7 @@
                 renderElencoTavole3d();
                 mostraTavola3d();
                 salvaMemoriaTavole3d();
-                tavole3d.pulito = JSON.stringify(tavole3d.bozza);
+                if (!teniBozza) tavole3d.pulito = JSON.stringify(tavole3d.bozza);
                 statoSalvataggioTavole3d();
                 setTimeout(() => T3('tavole3dTela').focus(), 0);
                 avvisoDatiCambiati3d();
@@ -661,7 +663,7 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !tavole3d.bozza) return false;
                 salvaMemoriaTavole3d();
-                try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), null); } catch (e) { ignoraErrore('registro tavole', e); }
+                try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), null, (tavole3d.bozza.templateApplicato || {}).id); } catch (e) { ignoraErrore('registro tavole', e); }
                 proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
                 saveState();
@@ -1321,7 +1323,8 @@
                 salvaMemoriaTavole3d();
                 const mem = memoriaTavole3d();
                 Object.assign(mem, memoriaConTemplate(mem, t, vociEsportazione3d(d)));
-                apriTavole3d();
+                mem.templateApplicato = { id: t.id, nome: t.name };
+                apriTavole3d(false, true);
                 renderTemplateTavole3d(t.id);
                 mostraToast(`Template «${t.name}» applicato`);
             });
