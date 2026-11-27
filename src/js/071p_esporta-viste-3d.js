@@ -973,6 +973,7 @@
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
+            T3('tavole3dElenco').addEventListener('click', apriElencoTavole3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });
             // Esc chiude solo la finestra delle tavole, non la mappa sotto.
