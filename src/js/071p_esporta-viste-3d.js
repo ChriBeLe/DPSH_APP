@@ -689,6 +689,12 @@
                 const el = T3('tavole3dStato'), sp = tavoleSporche3d();
                 if (el) { el.textContent = sp ? 'Modifiche non salvate' : 'Salvato'; el.dataset.stato = sp ? 'sporco' : 'salvato'; }
                 const b = T3('tavole3dSalva'); if (b) b.disabled = !sp;
+                const ct = T3('tavole3dControllo');
+                if (ct && tavole3d.bozza) {
+                    const c = controlloStampaTavole(Object.assign({}, tavole3d.bozza, { escluse: [...tavole3d.escluse] }), tavole3d.voci, improntaDatiTavole3d());
+                    ct.dataset.stato = c.some(x => x.livello === 'errore') ? 'errore' : c.length ? 'avviso' : 'pronta';
+                    ct.textContent = c.length ? c.map(x => x.testo).join(' ') : 'Pronta per la stampa.';
+                }
             }
             /** SALVA: la bozza entra nel progetto (e nel registro delle tavole, con la versione). */
             function salvaTavole3d() {

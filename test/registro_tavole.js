@@ -53,5 +53,9 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   w.__tt = { impostazioni: { foglio: { carta: 'A3', verso: 'v', scritte: 1.3 } }, voceId: 's2-a', tipo: 'sez2d' };
   const tp = ev("templateDaTavola(__tt, 'Solo sezione')");
   t('template da una tavola: una pagina, il suo foglio, e si trova fra i template', tp.regole.foglio.carta === 'A3' && JSON.stringify(tp.regole.sequenza) === '["sez2d"]' && tp.regole.tipi.sez2d === true && tp.regole.tipi.sez3d === false && ev("elencoTemplateTavole().some(x => x.name === 'Solo sezione')"));
+  w.__m = { escluse: [], titoli: { 'iso-n': { senza: true } }, registro: [{ nome: 'A', datiRef: 'a' }, { nome: 'A', datiRef: 'a' }] };
+  const cs = ev("controlloStampaTavole(__m,[{id:'iso-n',titolo:'Iso N'}],'b')").map(x => x.testo).join('|');
+  t('pronta per la stampa: senza titolo, dati non aggiornati, nomi doppi', /senza titolo/.test(cs) && /non aggiornati/.test(cs) && /Due tavole si chiamano «A»/.test(cs));
+  t('pronta per la stampa: nessuna pagina = errore, tutto in ordine = nessun avviso', ev("controlloStampaTavole({escluse:['x']},[{id:'x'}],'a')[0].livello") === 'errore' && ev("controlloStampaTavole({},[{id:'x',titolo:'X'}],'a').length") === 0);
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

@@ -109,3 +109,18 @@
                     return c;
                 });
             }
+
+            /** «Pronta per la stampa?»: i controlli sulle tavole di un progetto. Ogni voce: { livello: 'errore' | 'avviso', testo }.
+             * `mem` = la memoria delle tavole (bozza o progetto), `voci` = le pagine, `impronta` = i dati di adesso. */
+            function controlloStampaTavole(mem, voci, impronta) {
+                const out = [], esc = new Set((mem && mem.escluse) || []), inReport = (voci || []).filter(v => !esc.has(v.id));
+                if (!inReport.length) out.push({ livello: 'errore', testo: 'Nessuna pagina da stampare.' });
+                inReport.forEach(v => { const t = ((mem && mem.titoli) || {})[v.id]; if (t && t.senza) out.push({ livello: 'avviso', testo: `«${v.titolo}» è senza titolo.` }); });
+                const reg = (mem && mem.registro) || [];
+                reg.filter(t => !t.storica && t.inReport !== false && t.orfana).forEach(t => out.push({ livello: 'avviso', testo: `«${t.nome}» non ha più la sua pagina (dati cambiati).` }));
+                const vecchie = reg.filter(t => !t.storica && !t.orfana && tavolaDatiCambiati(t, impronta));
+                if (vecchie.length) out.push({ livello: 'avviso', testo: `${vecchie.length} ${vecchie.length === 1 ? 'tavola fatta' : 'tavole fatte'} con dati delle prove non aggiornati.` });
+                const nomi = {}; reg.filter(t => !t.storica).forEach(t => { nomi[t.nome] = (nomi[t.nome] || 0) + 1; });
+                Object.keys(nomi).filter(n => nomi[n] > 1).forEach(n => out.push({ livello: 'avviso', testo: `Due tavole si chiamano «${n}».` }));
+                return out;
+            }

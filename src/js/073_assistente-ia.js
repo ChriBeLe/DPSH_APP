@@ -261,6 +261,11 @@
                     if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
                     const id = 'iso-x' + Date.now().toString(36); (pr.tavole3d.extra = pr.tavole3d.extra || []).push({ id, verso: a.verso }); saveState(); return { ok: true, id };
                 } },
+                { n: 'controllo_stampa_tavole', d: 'Controlla se le tavole salvate del progetto sono pronte per la stampa: elenca gli avvisi (dati non aggiornati, nomi doppi, pagine senza titolo...).', p: {}, run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    const mem = pr.tavole3d || {}, imp = typeof improntaDatiTavole3d === 'function' ? improntaDatiTavole3d() : null, d = datiVista3dCorrenti;
+                    return controlloStampaTavole(mem, d ? vociEsportazione3d(d) : [], imp);
+                } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
                     const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
