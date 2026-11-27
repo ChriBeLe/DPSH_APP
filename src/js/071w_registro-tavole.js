@@ -124,3 +124,13 @@
                 Object.keys(nomi).filter(n => nomi[n] > 1).forEach(n => out.push({ livello: 'avviso', testo: `Due tavole si chiamano «${n}».` }));
                 return out;
             }
+
+            /** Il nome del file delle tavole: da un modello con {localita}, {nome}, {committente}, {comune}; si può cambiare. */
+            const MODELLO_NOME_FILE_TAVOLE = 'Tavole_{localita}_{nome}_{committente}';
+            function nomeFileTavole(proj, estensione, modello) {
+                const m = modello || (proj && proj.tavole3d && proj.tavole3d.nomeFile) || MODELLO_NOME_FILE_TAVOLE;
+                const val = k => String((proj && (k === 'nome' ? proj.name : proj[k])) || '').trim();
+                let n = m.replace(/\{(localita|nome|committente|comune)\}/g, (_, k) => val(k));
+                n = n.replace(/[^\w\-À-ÿ]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                return (n || 'Tavole') + (estensione || '');
+            }

@@ -57,5 +57,6 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   const cs = ev("controlloStampaTavole(__m,[{id:'iso-n',titolo:'Iso N'}],'b')").map(x => x.testo).join('|');
   t('pronta per la stampa: senza titolo, dati non aggiornati, nomi doppi', /senza titolo/.test(cs) && /non aggiornati/.test(cs) && /Due tavole si chiamano «A»/.test(cs));
   t('pronta per la stampa: nessuna pagina = errore, tutto in ordine = nessun avviso', ev("controlloStampaTavole({escluse:['x']},[{id:'x'}],'a')[0].livello") === 'errore' && ev("controlloStampaTavole({},[{id:'x',titolo:'X'}],'a').length") === 0);
+  t('nome file: dal progetto, modificabile', ev("nomeFileTavole({name:'Via Roma 3',localita:'Nardò',committente:'Rossi SRL'},'.pdf')") === 'Tavole_Nardò_Via_Roma_3_Rossi_SRL.pdf' && ev("nomeFileTavole({name:'P1'},'.zip','{nome}_finale')") === 'P1_finale.zip');
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

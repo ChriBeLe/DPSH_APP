@@ -610,6 +610,7 @@
                 const el = mem.elementi || {};
                 [['tavole3dLegenda', 'legenda'], ['tavole3dBussola', 'bussola'], ['tavole3dNordTerreno', 'nordTerreno'], ['tavole3dScala', 'scala'], ['tavole3dNordPianta', 'nordPianta'], ['tavole3dFantasma', 'fantasma'], ['tavole3dFotoSopra', 'fotoSopra'], ['tavole3dTagliaMappa', 'tagliaMappa'], ['tavole3dSpigoli', 'spigoli'], ['tavole3dMesh', 'mesh']].forEach(([id, k]) => { if (el[k] !== undefined) T3(id).checked = el[k]; });
                 // Lo sfondo, la mappa di base e l'esagerazione scelti qui (o dal template) l'ultima volta.
+                T3('tavole3dNomeFile').value = mem.nomeFile || '';
                 const op = mem.opzioni || {};
                 if (op.sfondo) { tavole3d.sfondo = op.sfondo; T3('tavole3dSfondo').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sfondo === op.sfondo))); }
                 if (typeof op.basemap === 'boolean') { T3('tavole3dBasemap').checked = op.basemap; sel.disabled = !op.basemap; }
@@ -732,6 +733,7 @@
                 mem.pianta = tavole3d.pianta;
                 mem.piante = JSON.parse(JSON.stringify(tavole3d.piante || {}));
                 mem.opacitaFoto = Number(T3('tavole3dOpacitaFoto').value) / 100;
+                mem.nomeFile = T3('tavole3dNomeFile').value.trim() || undefined;
                 mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked };
                 // Anche le opzioni della finestra: il capitolo Tavole del report (071r) le rifà uguali.
                 if (!T3('tavole3d').hidden) { const o = opzioniTavole3d(); delete o.W; delete o.H; mem.opzioni = JSON.parse(JSON.stringify(o)); }
@@ -973,7 +975,7 @@
                 tavole3d.lavoro = true;
                 const bt = T3('tavole3dEsporta'), lbl = bt.querySelector('span');
                 bt.disabled = true;
-                const nomeFile = (proj.name || 'progetto').replace(/[^\w\-]+/g, '_'), formato = tavole3d.formato;
+                const nomeFile = nomeFileTavole(proj, '', T3('tavole3dNomeFile').value.trim() || null), formato = tavole3d.formato;
                 try {
                     if (T3('tavole3dBasemap').checked) lbl.textContent = 'Scarico la mappa di base…';
                     const pagine = [], file = [];
@@ -994,11 +996,11 @@
                     }
                     if (formato === 'pdf') {
                         const blob = pdfDaTavole3d(pagine, Object.assign(foglioTavole3d(), { sfondo: tavole3d.sfondo, titolo: `Tavole 3D — ${proj.name || ''}` }));
-                        scaricaBlobFile(blob, `Tavole3D_${nomeFile}.pdf`);
+                        scaricaBlobFile(blob, `${nomeFile}.pdf`);
                     } else if (file.length === 1) {
                         scaricaBlobFile(new Blob([file[0].bytes], { type: formato === 'png' ? 'image/png' : 'image/jpeg' }), `${nomeFile}_${file[0].name}`);
                     } else if (file.length) {
-                        scaricaBlobFile(buildZipBlob(file), `Tavole3D_${nomeFile}.zip`);
+                        scaricaBlobFile(buildZipBlob(file), `${nomeFile}.zip`);
                     }
                     mostraToast(formato === 'pdf' ? `PDF con ${pagine.length} ${pagine.length === 1 ? 'tavola' : 'tavole'} pronto.` : `${file.length} ${file.length === 1 ? 'immagine' : 'immagini'} pronte.`);
                 } catch (e) {
@@ -1014,6 +1016,7 @@
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
+            T3('tavole3dNomeFile').addEventListener('input', salvaMemoriaTavole3d);
             T3('tavole3dAggiungiVista').addEventListener('click', aggiungiVista3d);
             T3('tavole3dTogliVista').addEventListener('click', togliVistaAggiunta3d);
             T3('tavole3dElenco').addEventListener('click', apriElencoTavole3d);
