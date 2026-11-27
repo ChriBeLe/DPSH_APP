@@ -412,6 +412,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const voceXref = s.slice(xref).split('\n').slice(3, 4)[0];
   t('(l\'indice dei byte è giusto: punta agli oggetti)', s.slice(xref, xref + 4) === 'xref' && s.slice(Number(voceXref.slice(0, 10)), Number(voceXref.slice(0, 10)) + 7) === '1 0 obj');
 
+  if (app.errori.length) console.log('ERRORI:', app.errori.slice(0, 3).map(e => String(e && e.stack || e).slice(0, 300)).join(' | '));
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`${ok} ok, ${ko} KO`);

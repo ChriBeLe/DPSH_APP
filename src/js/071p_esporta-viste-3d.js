@@ -650,6 +650,18 @@
                 statoSalvataggioTavole3d(); mostraTavola3d();
                 if (typeof mostraToast === 'function') mostraToast(t && t.bloccata ? 'Tavola bloccata. Salva per confermare.' : 'Tavola sbloccata. Salva per confermare.');
             }
+            /** Le miniature delle pagine (dai riquadri dell'elenco), piccole: servono all'elenco delle tavole salvate. */
+            function miniatureTavole3d() {
+                const out = {};
+                if (/jsdom/i.test(navigator.userAgent || '')) return out; // nel banco di prova il disegno non c'è
+                try {
+                    [...T3('tavole3dPagine').children].forEach((el, i) => {
+                        const v = tavole3d.voci[i], c = el.querySelector('canvas');
+                        if (v && c && c.width) { const u = c.toDataURL('image/jpeg', 0.6); if (u && u.length < 40000) out[v.id] = u; }
+                    });
+                } catch (e) { /* senza miniature l'elenco funziona lo stesso */ }
+                return out;
+            }
             /** Ci sono modifiche non salvate? */
             const tavoleSporche3d = () => !!tavole3d.bozza && JSON.stringify(tavole3d.bozza) !== tavole3d.pulito;
             /** L'indicatore sempre visibile: «Modifiche non salvate» o «Salvato». */
@@ -663,7 +675,7 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !tavole3d.bozza) return false;
                 salvaMemoriaTavole3d();
-                try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), null, (tavole3d.bozza.templateApplicato || {}).id); } catch (e) { ignoraErrore('registro tavole', e); }
+                try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), miniatureTavole3d(), (tavole3d.bozza.templateApplicato || {}).id); } catch (e) { ignoraErrore('registro tavole', e); }
                 proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
                 saveState();
