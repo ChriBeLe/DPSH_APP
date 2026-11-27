@@ -475,6 +475,12 @@
                   ds: () => 'Salvare su Drive le chiavi API, cifrate (la frase la scrive l\'utente)', run: async () => chiaviFlusso('salva') },
                 { n: 'recupera_chiavi_da_drive', d: 'Recupera da Drive le chiavi API cifrate e le mette su questo dispositivo (se sono diverse, l\'utente sceglie quali tenere). La frase la scrive l\'utente nella finestra: tu non la vedi. Non puoi leggere né mostrare le chiavi.', p: {}, w: true,
                   ds: () => 'Recuperare da Drive le chiavi API (la frase la scrive l\'utente)', run: async () => chiaviFlusso('recupera') },
+                { n: 'stato_sincronizzazione', d: 'Dice se l\'app è collegata a Google, lo stato della sincronizzazione dei progetti su Drive (ultima volta, conflitti, cose da decidere) e le ultime voci del registro. Non mostra mai le chiavi API.', p: {}, run: () => {
+                    const v = syncLeggi();
+                    return { disponibile: googleAmmesso(), collegato: googleCollegato(), account: (googleSegno() || {}).email || null, stato: syncTestoStato() || 'Non collegato', ultima_sincronizzazione: v.ultima || null, conflitti: sync.pendenti.conflitti, da_decidere: sync.pendenti.decisioni, chiavi_su_drive_sbloccate: !!chiavi.sessione, registro: v.registro.slice(0, 8).map(r => ({ quando: r.t, cosa: r.cosa, perche: r.perche })) };
+                } },
+                { n: 'sincronizza_ora', d: 'Sincronizza ora i progetti con Drive (serve il login e la rete). Carica i cambiamenti di qui, scarica quelli nuovi e sostituisce quelli cambiati solo su Drive (prima una copia automatica). Non cancella mai niente: conflitti ed eliminazioni li decide l\'utente in una finestra con anteprima.', p: {}, w: true,
+                  ds: () => 'Sincronizzare ora i progetti con Drive', run: async () => { const r = await sincronizza({ auto: false }); return { ok: r.ok, esito: r.esito }; } },
                 { n: 'controlla_aggiornamenti_app', d: 'Controlla se è uscita una versione nuova dell\'app (versione web). Se c\'è, mostra all\'utente l\'avviso con il tasto Ricarica. Dice anche la versione in uso.', p: {}, run: async () => Object.assign({ versione_app: APP_VERSIONE }, await controllaAggiornamentiApp()) }
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
@@ -494,7 +500,7 @@
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
                 { re: /sito vecchio|vecchia versione|vecchio sito|importa.*(dati|prove)|aggiornament|versione|ricarica|netlify/i, t: ['importa_dati_sito_vecchio', 'controlla_aggiornamenti_app'] },
-                { re: /google|drive|sincroniz|chiav|account|cloud|accedi|login|esci/i, t: ['accedi_google', 'esci_google', 'salva_chiavi_su_drive', 'recupera_chiavi_da_drive'] },
+                { re: /google|drive|sincroniz|chiav|account|cloud|accedi|login|esci/i, t: ['accedi_google', 'esci_google', 'stato_sincronizzazione', 'sincronizza_ora', 'salva_chiavi_su_drive', 'recupera_chiavi_da_drive'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
             ];
             function aiStrumentiPer(crono) {

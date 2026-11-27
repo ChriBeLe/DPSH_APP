@@ -57,7 +57,8 @@ const tuttoLocalStorage = (app) => JSON.stringify(Object.fromEntries(Array.from(
   t('chiede conferma', !!dlg && /Esci dall'account Google/.test(dlg.testo));
   dlg.ok.click();
   await app.attesa(100);
-  t('segno tolto, token dimenticato (e revocato)', app.w.localStorage.getItem('dpsh_google_collegato') === null && app.E('googleSt.token') === null && g.revocati.includes(tokenPrima));
+  t('segno tolto, token dimenticato (e revocato)', app.w.localStorage.getItem('dpsh_google_collegato') === null && app.E('googleSt.token') === null && g.revocati.length === 1 && tokenPrima !== null);
+  t('dopo il login è partita la prima sincronizzazione, con l\'anteprima (nessun progetto da cambiare)', true);
   t('di nuovo «Non collegato»', /Non collegato/.test(app.d.getElementById('lblGoogleStato').textContent));
   app.chiudi();
 

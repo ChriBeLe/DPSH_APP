@@ -217,5 +217,6 @@ js/076_aggiornamenti-e-uso-senza-rete.js
 js/077_accesso-google.js
 js/077a_drive-rest.js
 js/078_chiavi-cifrate-su-drive.js
+js/079_sincronizzazione-drive.js
 js/073_assistente-ia.js
 shell/06_fine.html
