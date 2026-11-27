@@ -731,12 +731,15 @@
                 return true;
             }
             async function chiudiTavole3d() {
-                if (tavole3d.lavoro) return;
+                if (tavole3d.lavoro || tavole3d.chiudendo) return; // (un solo avviso alla volta: Esc ripetuto non ne impila altri)
                 salvaMemoriaTavole3d();
                 if (tavoleSporche3d()) {
-                    const r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' });
+                    tavole3d.chiudendo = true;
+                    let r;
+                    try { r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' }); }
+                    finally { tavole3d.chiudendo = false; }
                     if (r === false || r === undefined || r === null) return;
-                    if (r === true || (r && r.ok)) { if (!(await salvaTavole3d())) return; }
+                    if (r === true || (r && r.ok)) { tavole3d.chiudendo = true; let salvata = false; try { salvata = await salvaTavole3d(); } finally { tavole3d.chiudendo = false; } if (!salvata) return; }
                 }
                 tavole3d.bozza = null; tavole3d.pulito = null;
                 T3('tavole3d').hidden = true;
