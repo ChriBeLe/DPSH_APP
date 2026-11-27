@@ -126,7 +126,19 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('aggiungi_intervalli scrive 3 intervalli', r.aggiunti === 3 && app.E('state.logs.length') === 3);
   t('leggi_prova legge i colpi', app.E(`AI_STRUMENTI.find(x=>x.n==='leggi_prova').run({}).colpiPerIntervallo.length`) === 3);
   t('imposta_falda', (app.E(`AI_STRUMENTI.find(x=>x.n==='imposta_falda').run({da:'2.5',a:'3'}); state.header.faldaDa`)) === '2.5');
-  t('si eliminano solo intervalli e strati, mai prove o progetti', JSON.stringify(app.E('AI_STRUMENTI.map(s=>s.n)').filter(n => /elimin|cancell|delete/i.test(n)).sort()) === '["elimina_intervalli","elimina_strato"]');
+  t('si eliminano solo intervalli e strati, mai prove o progetti', JSON.stringify(app.E('AI_STRUMENTI.map(s=>s.n)').filter(n => /elimin|cancell|delete/i.test(n)).sort()) === '["elimina_intervalli","elimina_strato","elimina_tavola"]');
+  t('disegno libero: l\'assistente lo crea con forme ripulite e lo aggiorna', app.E(`(() => { const T = AI_STRUMENTI.find(x => x.n === 'disegno_libero_nelle_tavole'), pr = state.projects[state.currentProjectId];
+    const r = T.run({ nome: 'Schema', forme: [{ t: 'riga', x1: 0, y1: 0, x2: 100, y2: 0 }, { t: 'boh' }, { t: 'misura', x1: 0, y1: 10, x2: 200, y2: 10 }], px_per_m: 100 });
+    const ok1 = r.forme === 2 && pr.tavole3d.liberi.length === 1; T.run({ disegno_id: r.id, forme: [] });
+    return ok1 && pr.tavole3d.liberi[0].forme.length === 0 && pr.tavole3d.liberi[0].nome === 'Schema'; })()`) === true);
+  t('le tavole: l\'assistente le elenca, rinomina, blocca, duplica, ordina ed elimina', app.E(`(() => { const T = n => AI_STRUMENTI.find(x => x.n === n), pr = state.projects[state.currentProjectId];
+    const a = creaTavola(pr, { nome: 'Iso Nord', tipo: 'iso' }), b = T('duplica_tavola').run({ tavola_id: a.id });
+    if (T('elenco_tavole').run({}).length !== 2) return false;
+    T('rinomina_tavola').run({ tavola_id: a.id, nome: 'Prima' }); T('blocca_tavola').run({ tavola_id: a.id, bloccata: true });
+    let bloccoOk = false; try { T('rinomina_tavola').run({ tavola_id: a.id, nome: 'X' }); } catch (e) { bloccoOk = true; }
+    T('tavola_nel_report').run({ tavola_id: b.id, nel_report: false }); T('ordina_tavole').run({ ids: [b.id] });
+    const ok = bloccoOk && T('leggi_tavola').run({ tavola_id: a.id }).nome === 'Prima' && registroTavole(pr)[0].id === b.id && registroTavole(pr)[0].inReport === false;
+    T('elimina_tavola').run({ tavola_id: b.id }); return ok && T('elenco_tavole').run({}).length === 1; })()`) === true);
   // elenco modelli scaricato dal provider
   w.fetch = async (url) => ({ ok: true, status: 200, json: async () => url.includes('generativelanguage')
     ? { models: [{ name: 'models/gemini-x-flash', displayName: 'Gemini X Flash', supportedGenerationMethods: ['generateContent'] }, { name: 'models/text-embedding-1', supportedGenerationMethods: ['embedContent'] }] }

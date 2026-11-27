@@ -28,8 +28,8 @@
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return;
                 const n = proveFisiche(proveConCoordinate(proj)).length, t = (proj.sezioniTracciate || []).length;
-                const nd = (proj.disegni || []).length;
-                document.getElementById('lblAreaMappaInfo').textContent = `${n} ${n === 1 ? 'prova' : 'prove'} · ${t} ${t === 1 ? 'sezione' : 'sezioni'}` + (nd ? ` · ${nd} ${nd === 1 ? 'disegno' : 'disegni'}` : '');
+                const nd = (proj.disegni || []).length, nt = ((proj.tavole3d && proj.tavole3d.registro) || []).filter(x => !x.storica).length;
+                document.getElementById('lblAreaMappaInfo').textContent = `${n} ${n === 1 ? 'prova' : 'prove'} · ${t} ${t === 1 ? 'sezione' : 'sezioni'}` + (nd ? ` · ${nd} ${nd === 1 ? 'disegno' : 'disegni'}` : '') + (nt ? ` · ${nt} ${nt === 1 ? 'tavola' : 'tavole'}` : '');
             }
             function coordinateAreaMappa(lat, lng, quota) {
                 document.getElementById('lblAreaMappaCoord').textContent = Number.isFinite(lat)

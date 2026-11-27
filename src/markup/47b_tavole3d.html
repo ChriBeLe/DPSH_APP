@@ -80,6 +80,7 @@
                                     <button type="button" class="bt bt-tenue" id="tavole3dApplicaTemplate" title="Pagine, foglio, scritte, mappa di base ed elementi come nel template; le inquadrature fatte a mano restano">Applica</button></div>
                                 <span class="tavole-titolo-azioni"><button type="button" class="btn-link" id="tavole3dSalvaTemplate" title="Salva queste impostazioni (non le inquadrature di questo progetto) per usarle in altri progetti e nel report completo">Salva come template…</button>
                                     <button type="button" class="btn-link" id="tavole3dEliminaTemplate">Elimina</button></span></div>
+                            <label class="tavole-campo" for="tavole3dNomeFile"><span>Nome del file</span><input type="text" id="tavole3dNomeFile" class="form-control" placeholder="Tavole_{localita}_{nome}_{committente}" title="Puoi usare {localita}, {nome}, {committente}, {comune}"></label>
                             <div class="tavole-campo"><span>Formato</span>
                                 <div class="tavole-scelte" id="tavole3dFormato" role="radiogroup">
                                     <button type="button" data-formato="pdf" aria-pressed="true">PDF unico</button>
@@ -147,7 +148,29 @@
                 <div class="tavole-comandi-piede">
                     <p class="t-didascalia" id="tavole3dRiepilogo"></p>
                     <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
+                    <p class="t-didascalia" id="tavole3dControllo" role="status" aria-live="polite"></p>
+                    <div id="tavole3dLiberoBarra" class="tavole-azioni" hidden role="toolbar" aria-label="Strumenti del disegno libero">
+                        <button type="button" class="bt" data-strumento="seleziona" aria-pressed="true">Seleziona</button>
+                        <button type="button" class="bt" data-strumento="riga" aria-pressed="false">Riga</button>
+                        <button type="button" class="bt" data-strumento="freccia" aria-pressed="false">Freccia</button>
+                        <button type="button" class="bt" data-strumento="rettangolo" aria-pressed="false">Rettangolo</button>
+                        <button type="button" class="bt" data-strumento="testo" aria-pressed="false">Testo</button>
+                        <button type="button" class="bt" data-strumento="misura" aria-pressed="false" title="Quota: la lunghezza in metri, secondo la scala">Quota</button>
+                        <button type="button" class="bt" data-strumento="scala" aria-pressed="false" title="Barra della scala (5 m)">Scala</button>
+                        <label class="t-didascalia">px per metro <input type="number" id="tavole3dLiberoScala" min="1" step="1" value="100" style="width:5em" class="form-control"></label>
+                        <input type="color" id="tavole3dLiberoColore" value="#111827" aria-label="Colore">
+                        <button type="button" class="bt" id="tavole3dLiberoElimina">Elimina forma</button></div>
                     <div class="tavole-azioni">
+                        <span id="tavole3dStato" class="t-didascalia" role="status" aria-live="polite" data-stato="salvato">Salvato</span>
+                        <select id="tavole3dVersoNuova" class="form-control" aria-label="Verso della nuova vista"><option value="N">Nord</option><option value="E">Est</option><option value="S" selected>Sud</option><option value="O">Ovest</option></select>
+                        <button type="button" class="bt" id="tavole3dAggiungiVista" title="Aggiunge una vista del modello, verso il lato scelto"><span>Aggiungi vista</span></button>
+                        <button type="button" class="bt" id="tavole3dTogliVista" hidden title="Toglie questa vista aggiunta"><span>Togli vista</span></button>
+                        <button type="button" class="bt" id="tavole3dAggiungiLibero" title="Aggiunge una tavola vuota dove disegnare righe, frecce, rettangoli e testi"><span>Disegno libero</span></button>
+                        <button type="button" class="bt" id="tavole3dConfronto" title="Aggiunge o toglie la pagina «Confronto tra prove»"><span>Confronto prove</span></button>
+                        <select id="tavole3dConfrontoGrandezza" class="form-control" aria-label="Grandezza del confronto"><option value="colpi">Colpi</option><option value="rpd">Rpd</option></select>
+                        <button type="button" class="bt" id="tavole3dElenco" title="Tutte le tavole salvate del progetto: cerca, filtra, rinomina, duplica"><span>Tavole salvate</span></button>
+                        <button type="button" class="bt" id="tavole3dBlocca" aria-pressed="false" title="Blocca questa tavola come consegnata: non cambia finché non la sblocchi"><svg class="ico"><use href="#i-lock"/></svg><span>Blocca</span></button>
+                        <button type="button" class="bt" id="tavole3dSalva" disabled><svg class="ico"><use href="#i-check"/></svg><span>Salva</span></button>
                         <button type="button" class="bt" id="tavole3dAnnulla">Chiudi</button>
                         <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
                     </div>

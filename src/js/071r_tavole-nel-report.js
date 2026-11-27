@@ -21,6 +21,8 @@
                 return [TEMPLATE_TAVOLE_BASE].concat(Object.values(state.tavoleTemplates || {}).sort((a, b) => String(a.name).localeCompare(String(b.name))));
             }
             const templateTavole = id => elencoTemplateTavole().find(t => t.id === id) || null;
+            /** La «chiave» di una pagina nella sequenza di un template: le isometriche per verso, le sezioni per tipo. */
+            const chiaveSequenzaTavola = v => v.tipo === 'iso' ? v.id : v.tipo;
             /** Una pagina rientra fra quelle che il template vuole? */
             const tipoNelTemplate = (tipi, v) => v.tipo === 'iso' ? (tipi || {})[v.id] !== false : (tipi || {})[v.tipo] !== false;
             /** La memoria delle tavole di un progetto con le regole di un template sopra: le
@@ -33,6 +35,12 @@
                 m.pianta = r.pianta || 'sotto';
                 m.opacitaFoto = r.opacitaFoto || 0.5;
                 m.escluse = (voci || []).filter(v => !tipoNelTemplate(r.tipi, v)).map(v => v.id);
+                // la SEQUENZA del template (quali angolazioni e tavole, in che ordine): per tipo, vale in ogni progetto
+                if (Array.isArray(r.sequenza) && r.sequenza.length && voci) {
+                    const libere = voci.slice(), ord = [];
+                    r.sequenza.forEach(k => { const i = libere.findIndex(v => chiaveSequenzaTavola(v) === k); if (i >= 0) ord.push(libere.splice(i, 1)[0].id); });
+                    m.ordine = ord.concat(libere.map(v => v.id));
+                }
                 m.opzioni = Object.assign({}, mem.opzioni || {}, {
                     sfondo: r.sfondo || 'chiaro', basemap: !!r.basemap, legenda: el.legenda, nordTerreno: el.nordTerreno, fantasma: el.fantasma,
                     fotoSopra: !!r.basemap && el.fotoSopra, spigoli: el.spigoli, mesh: el.mesh, tagliaMappa: el.tagliaMappa, opacitaFoto: m.opacitaFoto,
@@ -43,9 +51,12 @@
             }
             /** Le regole della finestra «Tavole» com'è adesso, per salvarle come template. */
             function regoleDallaMemoria(mem, voci) {
+                const perId = {}; (voci || []).forEach(v => { perId[v.id] = v; });
+                const sequenza = Array.isArray(mem.ordine) ? mem.ordine.filter(id => perId[id] && !(mem.escluse || []).includes(id)).map(id => chiaveSequenzaTavola(perId[id])) : null;
                 const o = mem.opzioni || {}, esc = new Set(mem.escluse || []);
                 const presente = tipo => { const vv = voci.filter(v => v.tipo === tipo); return !vv.length || vv.some(v => !esc.has(v.id)); };
                 return {
+                    sequenza,
                     foglio: Object.assign({ carta: 'A4', verso: 'o', scritte: 1.3 }, mem.foglio || {}), sfondo: o.sfondo || 'chiaro', basemap: !!o.basemap,
                     opacitaFoto: mem.opacitaFoto || o.opacitaFoto || 0.5, pianta: mem.pianta || 'sotto', ex: o.ex || null,
                     elementi: Object.assign({}, TEMPLATE_TAVOLE_BASE.regole.elementi, mem.elementi || {}),
@@ -141,7 +152,7 @@
                         + `<div data-blocco="immagine-libera" style="flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center;"><img src="${tela.toDataURL('image/jpeg', 0.9)}" alt="${esc(titolo)}" style="display:block; width:${wi.toFixed(2)}mm; height:${hi.toFixed(2)}mm;"></div>`
                         + `<div class="tavola-report-piede" style="flex:0 0 ${RIGA}mm; box-sizing:border-box; border-top:0.5pt solid ${col.tenue}; display:flex; justify-content:space-between; align-items:flex-start; padding-top:1.5mm; font-size:8pt; color:${col.tenue};"><span style="flex:1 1 auto; white-space:nowrap;">${esc(proj.name || '')}</span><span style="flex:0 0 22mm; text-align:right; white-space:nowrap;">Tav. ${n}</span></div>`
                         + `</div></div>`;
-                    gruppi[v.tipo === 'sez2d' ? '2d' : '3d'].push(foglio);
+                    gruppi[v.tipo === 'sez2d' || v.tipo === 'confronto' || v.tipo === 'libero' ? '2d' : '3d'].push(foglio);
                 }
                 if (!n) return null;
                 const sezioni = [];

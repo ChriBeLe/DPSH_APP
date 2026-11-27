@@ -178,10 +178,10 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, pagine()[2]);
   clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
   clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="zoom+"]'));
-  const r = app.E(`${P}.tavole3d.regola[tavole3d.voci[2].id]`);
+  const r = app.E(`tavole3d.bozza.regola[tavole3d.voci[2].id]`);
   t('i tasti girano e avvicinano la pagina scelta, e il progetto se lo ricorda', r && Math.abs(r.dAz + 15 * Math.PI / 180) < 1e-9 && Math.abs(r.zoom - 1.15) < 1e-9);
   clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="reset"]'));
-  t('«Inquadra» la rimette com\'era', app.E(`JSON.stringify(${P}.tavole3d.regola[tavole3d.voci[2].id])`) === JSON.stringify({ dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 }));
+  t('«Inquadra» la rimette com\'era', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) === JSON.stringify({ dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 }));
   const chk = pagine()[1].querySelector('input');
   clic(app, chk);
   t('tolta la spunta: la pagina non si esporta (e lo dice il conto)', $(app, 'tavole3dConta').textContent === `${voci.length - 1} di ${voci.length}` && pagine()[1].classList.contains('esclusa'));
@@ -205,10 +205,10 @@ const $ = (app, id) => app.d.getElementById(id);
   $(app, 'tavole3dTitolo').value = 'Il modello del sottosuolo';
   $(app, 'tavole3dTitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   t('si riscrive: cambia sul foglio e nell\'elenco, e il progetto se lo ricorda', $(app, 'tavole3dFoglioTit').textContent === 'Il modello del sottosuolo' && /Il modello del sottosuolo/.test(pagine()[0].textContent)
-    && app.E(`${P}.tavole3d.titoli[tavole3d.voci[0].id].testo`) === 'Il modello del sottosuolo');
+    && app.E(`tavole3d.bozza.titoli[tavole3d.voci[0].id].testo`) === 'Il modello del sottosuolo');
   $(app, 'tavole3dSottotitolo').value = 'Scavi Cerignola';
   $(app, 'tavole3dSottotitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
-  t('il sottotitolo lo scrivi tu: compare sotto il titolo', !$(app, 'tavole3dFoglioSotto').hidden && $(app, 'tavole3dFoglioSotto').textContent === 'Scavi Cerignola' && app.E(`${P}.tavole3d.titoli[tavole3d.voci[0].id].sotto`) === 'Scavi Cerignola');
+  t('il sottotitolo lo scrivi tu: compare sotto il titolo', !$(app, 'tavole3dFoglioSotto').hidden && $(app, 'tavole3dFoglioSotto').textContent === 'Scavi Cerignola' && app.E(`tavole3d.bozza.titoli[tavole3d.voci[0].id].sotto`) === 'Scavi Cerignola');
   $(app, 'tavole3dSottotitolo').value = '';
   $(app, 'tavole3dSottotitolo').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   t('(cancellato, sparisce)', $(app, 'tavole3dFoglioSotto').hidden);
@@ -228,7 +228,7 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, $(app, 'tavole3dVerso').querySelector('[data-verso="v"]'));
   clic(app, $(app, 'tavole3dScritte').querySelector('[data-scritte="2"]'));
   t('dalla finestra: A3 verticale, scritte molto grandi; il riepilogo lo dice e il progetto lo ricorda', /pagine A3 verticali/.test($(app, 'tavole3dRiepilogo').textContent)
-    && JSON.stringify(app.E(`${P}.tavole3d.foglio`)) === JSON.stringify({ carta: 'A3', verso: 'v', scritte: 2 }));
+    && JSON.stringify(app.E(`tavole3d.bozza.foglio`)) === JSON.stringify({ carta: 'A3', verso: 'v', scritte: 2 }));
   clic(app, $(app, 'tavole3dCarta').querySelector('[data-carta="A4"]'));
   clic(app, $(app, 'tavole3dVerso').querySelector('[data-verso="o"]'));
   // Gli elementi della tavola: si spengono e si trascinano.
@@ -237,7 +237,7 @@ const $ = (app, id) => app.d.getElementById(id);
   t('di base nella tavola: legenda, bussola, scala, freccia sul terreno', conta('vista3d-legenda') > 0 && conta('vista3d-nord') > 0 && conta('vista3d-scala') > 0 && conta('vista3d-nord-terreno') > 0);
   ['tavole3dBussola', 'tavole3dScala', 'tavole3dNordTerreno', 'tavole3dLegenda'].forEach(id => { $(app, id).checked = false; $(app, id).dispatchEvent(new app.w.Event('change', { bubbles: true })); });
   t('ognuno si spegne con la sua spunta (e il progetto se lo ricorda)', conta('vista3d-legenda') === 0 && conta('vista3d-nord') === 0 && conta('vista3d-scala') === 0 && conta('vista3d-nord-terreno') === 0
-    && JSON.stringify(app.E(`${P}.tavole3d.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false }));
+    && JSON.stringify(app.E(`tavole3d.bozza.elementi`)) === JSON.stringify({ legenda: false, bussola: false, nordTerreno: false, scala: false, nordPianta: true, fantasma: true, fotoSopra: false, tagliaMappa: false, spigoli: true, mesh: false }));
   // La pianta della sezione 2D si regola col mouse sull'anteprima (per ogni sezione): trascinare sposta la
   // foto, la rotella avvicina, il bordo esterno cambia l'altezza, doppio clic la rimette com'era.
   const tr0 = app.E('tracceDelProgetto()[0].id'), cp = $(app, 'tavole3dPianta');
@@ -247,7 +247,7 @@ const $ = (app, id) => app.d.getElementById(id);
   pe('pointerdown', 500, 100); pe('pointermove', 540, 80); pe('pointerup', 540, 80);
   const dopoTrascina = JSON.parse(JSON.stringify(app.E(`tavole3d.piante[${JSON.stringify(tr0)}]`)));
   t('trascinando la foto si sposta (40 px a destra = 20 m indietro lungo la traccia, 20 px su = 10 m) e il progetto se lo ricorda', Math.abs(dopoTrascina.ds + 20) < 1e-9 && Math.abs(dopoTrascina.dn + 10) < 1e-9
-    && app.E(`${P}.tavole3d.piante[${JSON.stringify(tr0)}].ds`) === dopoTrascina.ds);
+    && app.E(`tavole3d.bozza.piante[${JSON.stringify(tr0)}].ds`) === dopoTrascina.ds);
   cp.dispatchEvent(new app.w.WheelEvent('wheel', { bubbles: true, cancelable: true, clientX: 500, clientY: 100, deltaY: -100 }));
   t('la rotella avvicina, attorno al punto sotto il mouse (al centro: il centro non si sposta)', Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].zoom`) - 1.15) < 1e-9 && Math.abs(app.E(`tavole3d.piante[${JSON.stringify(tr0)}].ds`) - dopoTrascina.ds) < 1e-9);
   pe('pointerdown', 500, 196); pe('pointermove', 500, 296); pe('pointerup', 500, 296);
@@ -282,7 +282,7 @@ const $ = (app, id) => app.d.getElementById(id);
   trascina(leg0.x + leg0.w / 2, leg0.y + leg0.h / 2, -400, 200);
   const leg1 = app.E('tavole3d.ultima.sc.legenda');
   t(`la legenda si trascina dove vuoi (da ${Math.round(leg0.x)},${Math.round(leg0.y)} a ${Math.round(leg1.x)},${Math.round(leg1.y)}), la vista non gira`, Math.abs(leg1.x - (leg0.x - 400)) < 2 && Math.abs(leg1.y - (leg0.y + 200)) < 2
-    && !(app.E(`(${P}.tavole3d.regola[tavole3d.voci[0].id] || {}).dAz`)) && Array.isArray(app.E(`${P}.tavole3d.posizioni.legenda`)));
+    && !(app.E(`(tavole3d.bozza.regola[tavole3d.voci[0].id] || {}).dAz`)) && Array.isArray(app.E(`tavole3d.bozza.posizioni.legenda`)));
   const bu0 = app.E('tavole3d.ultima.sc.elementi.bussola');
   trascina((bu0.x0 + bu0.x1) / 2, (bu0.y0 + bu0.y1) / 2, -300, -250);
   const bu1 = app.E('tavole3d.ultima.sc.elementi.bussola');
@@ -295,10 +295,10 @@ const $ = (app, id) => app.d.getElementById(id);
   trascina((nt0.x0 + nt0.x1) / 2, (nt0.y0 + nt0.y1) / 2, 120, 40);
   const nt1 = app.E('tavole3d.ultima.sc.elementi.nordTerreno');
   t('e la freccia sul terreno (resta stesa sul terreno, nel punto nuovo: solo su questa pagina)', Math.abs((nt1.x0 + nt1.x1) / 2 - (nt0.x0 + nt0.x1) / 2 - 120) < 25 && Math.abs((nt1.y0 + nt1.y1) / 2 - (nt0.y0 + nt0.y1) / 2 - 40) < 25
-    && Array.isArray(app.E(`${P}.tavole3d.regola[tavole3d.voci[0].id].nordTerreno`)));
+    && Array.isArray(app.E(`tavole3d.bozza.regola[tavole3d.voci[0].id].nordTerreno`)));
   clic(app, $(app, 'tavole3dRiposiziona'));
   const leg2 = app.E('tavole3d.ultima.sc.legenda');
-  t('«Rimettili al loro posto»', Math.abs(leg2.x - leg0.x) < 2 && Math.abs(leg2.y - leg0.y) < 2 && JSON.stringify(app.E(`${P}.tavole3d.posizioni`)) === '{}' && !app.E(`${P}.tavole3d.regola[tavole3d.voci[0].id].nordTerreno`));
+  t('«Rimettili al loro posto»', Math.abs(leg2.x - leg0.x) < 2 && Math.abs(leg2.y - leg0.y) < 2 && JSON.stringify(app.E(`tavole3d.bozza.posizioni`)) === '{}' && !app.E(`tavole3d.bozza.regola[tavole3d.voci[0].id].nordTerreno`));
   // I tasti di vista: isometrica (che gira Nord → Est → Sud → Ovest), trasversale, pianta; mai dal basso.
   clic(app, pagine()[0]);
   const tasto = tipo => $(app, 'tavole3dRegola').querySelector(`[data-vista="${tipo}"]`);
@@ -325,11 +325,12 @@ const $ = (app, id) => app.d.getElementById(id);
   // L'ordine delle pagine.
   const ordine = () => app.E('tavole3d.voci.map(v => v.titolo)');
   clic(app, pagine()[1].querySelector('[data-sposta-pag="-1"]'));
-  t('la freccia ▲ sposta su la pagina', ordine()[0] === voci[1] && ordine()[1] === voci[0] && app.E(`${P}.tavole3d.ordine[0]`) === app.E('tavole3d.voci[0].id'));
+  t('la freccia ▲ sposta su la pagina', ordine()[0] === voci[1] && ordine()[1] === voci[0] && app.E(`tavole3d.bozza.ordine[0]`) === app.E('tavole3d.voci[0].id'));
   clic(app, $(app, 'tavole3dOrdinaDirezione'));
   const perDir = ordine();
   t(`«Per direzione»: ${perDir.join(' · ')}`, JSON.stringify(perDir) === JSON.stringify(['Modello · vista isometrica verso Nord', "Sezione 3D 1-1'", "Sezione 3D 2-2'", 'Modello · vista isometrica verso Est', "Sezione 3D A-A'", "Sezione 3D B-B'", "Sezione A-A'", "Sezione B-B'", "Sezione 1-1'", "Sezione 2-2'"]));
   t('(nell\'elenco ogni pagina 3D dice dove guarda)', /verso Nord/.test(pagine()[1].textContent) && /verso Est/.test(pagine()[4].textContent));
+  clic(app, $(app, 'tavole3dSalva'));
   clic(app, $(app, 'tavole3dChiudi'));
   clic(app, $(app, 'btnTavole3d'));
   await attesa(30);
@@ -355,11 +356,68 @@ const $ = (app, id) => app.d.getElementById(id);
   $(app, 'tavole3dFascia').value = '25'; $(app, 'tavole3dFascia').dispatchEvent(new app.w.Event('input', { bubbles: true }));
   clic(app, pagine()[0]);
   t('(sulle pagine 3D la scelta delle prove non c\'è)', $(app, 'tavole3dProveBox').hidden);
+  clic(app, $(app, 'tavole3dSalva'));
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude le tavole, non la mappa del progetto sotto', $(app, 'tavole3d').hidden && $(app, 'modalVista3d').classList.contains('open'));
   clic(app, $(app, 'btnPdfSezioni3d'));
   await attesa(30);
   t('dalla scheda Sezioni «Tavole 2D e 3D…» apre la finestra sulla prima sezione', !$(app, 'tavole3d').hidden && /Sezione 3D A-A'/.test($(app, 'tavole3dFoglioTit').textContent));
+  clic(app, $(app, 'tavole3dChiudi'));
+
+  console.log('--- Salvataggio esplicito ---');
+  // Solo «Salva» scrive nel progetto: prima una modifica resta nella bozza.
+  clic(app, $(app, 'btnTavole3d')); await attesa(30);
+  const prima = app.E(`JSON.stringify(${P}.tavole3d.regola)`);
+  t('aperta e non toccata: «Salvato», tasto Salva spento', $(app, 'tavole3dStato').dataset.stato === 'salvato' && $(app, 'tavole3dSalva').disabled);
+  clic(app, pagine()[2]);
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  t('dopo una modifica: «Modifiche non salvate», Salva acceso', $(app, 'tavole3dStato').dataset.stato === 'sporco' && !$(app, 'tavole3dSalva').disabled);
+  t('il progetto NON è cambiato prima di Salva', app.E(`JSON.stringify(${P}.tavole3d.regola)`) === prima);
+  clic(app, $(app, 'tavole3dSalva'));
+  t('dopo Salva il progetto ha la modifica e lo stato torna «Salvato»', app.E(`JSON.stringify(${P}.tavole3d.regola)`) !== prima && $(app, 'tavole3dStato').dataset.stato === 'salvato');
+  const nVoci = app.E('tavole3d.voci.length');
+  $(app, 'tavole3dVersoNuova').value = 'S'; clic(app, $(app, 'tavole3dAggiungiVista'));
+  t('Aggiungi vista (Sud): una pagina in più, scelta, col suo titolo', app.E('tavole3d.voci.length') === nVoci + 1 && /verso Sud/.test($(app, 'tavole3dFoglioTit').textContent) && !$(app, 'tavole3dTogliVista').hidden);
+  clic(app, $(app, 'tavole3dTogliVista'));
+  t('Togli vista: torna com\'era, il tasto si nasconde', app.E('tavole3d.voci.length') === nVoci && $(app, 'tavole3dTogliVista').hidden);
+  const nProve = app.E(`proveConfrontabili(${P}).length`);
+  const nV0 = app.E('tavole3d.voci.length');
+  clic(app, $(app, 'tavole3dConfronto'));
+  if (nProve >= 2) {
+    t('Confronto prove: una pagina in più, col suo titolo, che si vede come figura piatta', app.E('tavole3d.voci.length') === nV0 + 1 && /Confronto tra prove/.test($(app, 'tavole3dFoglioTit').textContent) && !$(app, 'tavole3dImg').hidden && $(app, 'tavole3dRegola').classList.contains('spenta'));
+    $(app, 'tavole3dConfrontoGrandezza').value = 'rpd'; $(app, 'tavole3dConfrontoGrandezza').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+    t('Confronto prove: la grandezza (Rpd) si ricorda', app.E('tavole3d.bozza.confronto.grandezza') === 'rpd');
+    clic(app, $(app, 'tavole3dConfronto'));
+    t('Confronto prove: si toglie', app.E('tavole3d.voci.length') === nV0 && !app.E('tavole3d.bozza.confronto'));
+  } else console.log('  (confronto: servono due prove, ne ho ' + nProve + ')');
+  clic(app, $(app, 'tavole3dAggiungiLibero'));
+  t('Disegno libero: una pagina in più, il suo titolo, la barra degli strumenti', app.E('tavole3d.voci.length') >= nV0 + 1 && /Disegno libero/.test($(app, 'tavole3dFoglioTit').textContent) && !$(app, 'tavole3dLiberoBarra').hidden && !!$(app, 'tavole3dLiberoSvg'));
+  app.E(`(() => { const l = tavole3d.bozza.liberi[0]; l.forme.push(formaLiberaPulita({ t: 'misura', x1: 100, y1: 100, x2: 600, y2: 100 }), formaLiberaPulita({ t: 'testo', x1: 50, y1: 50, testo: 'Pozzo <1>' }), formaLiberaPulita({ t: 'freccia', x1: 0, y1: 0, x2: 50, y2: 50, colore: 'rosso' })); salvaMemoriaTavole3d(); mostraTavola3d(); })()`);
+  const svgL = $(app, 'tavole3dLiberoSvg').innerHTML;
+  t('Disegno libero: la quota è in metri secondo la scala (500 px = 5,00 m), il testo è protetto', /5,00 m/.test(svgL) && /Pozzo &lt;1&gt;/.test(svgL) && !/Pozzo <1>/.test(svgL));
+  $(app, 'tavole3dLiberoScala').value = '50'; $(app, 'tavole3dLiberoScala').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('Disegno libero: cambiando la scala (50 px = 1 m) la quota si ricalcola, il colore sbagliato torna nero', /10,00 m/.test($(app, 'tavole3dLiberoSvg').innerHTML) && app.E('tavole3d.bozza.liberi[0].forme[2].colore') === '#111827');
+  clic(app, $(app, 'tavole3dTogliVista'));
+  t('Disegno libero: si toglie', app.E('(tavole3d.bozza.liberi || []).length') === 0);
+  clic(app, pagine()[2]);
+  clic(app, $(app, 'tavole3dElenco'));
+  const elenco = () => [...app.d.querySelectorAll('#tavoleElenco [data-id]')];
+  t('«Tavole salvate» elenca le tavole del progetto', elenco().length > 0 && /Tavole salvate/.test(app.d.getElementById('tavoleElenco').textContent));
+  const nPrima = elenco().length;
+  clic(app, elenco()[0].querySelector('[data-az="duplica"]'));
+  t('Duplica: una tavola in più, e la finestra dice che ci sono modifiche', elenco().length === nPrima + 1 && $(app, 'tavole3dStato').dataset.stato === 'sporco');
+  const q = app.d.querySelector('#tavoleElenco [data-az="tipo"]'); q.value = 'iso'; q.dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  t('il filtro per tipo tiene solo le isometriche', elenco().length > 0 && elenco().every(r => /Isometrica/.test(r.textContent)));
+  clic(app, app.d.querySelector('#tavoleElenco [data-az="chiudi"]'));
+  t('Chiudi nasconde l\'elenco', app.d.getElementById('tavoleElenco').hidden);
+  clic(app, $(app, 'tavole3dBlocca'));
+  const bloccata = app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`);
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  t('bloccata: i tasti non cambiano la tavola e il nome lo dice', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) === bloccata && /bloccata/.test($(app, 'tavole3dNome').textContent));
+  clic(app, $(app, 'tavole3dBlocca'));
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  t('sbloccata: si può di nuovo cambiare', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) !== bloccata);
+  clic(app, $(app, 'tavole3dSalva'));
   clic(app, $(app, 'tavole3dChiudi'));
 
   console.log('--- Il PDF ---');
@@ -379,6 +437,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const voceXref = s.slice(xref).split('\n').slice(3, 4)[0];
   t('(l\'indice dei byte è giusto: punta agli oggetti)', s.slice(xref, xref + 4) === 'xref' && s.slice(Number(voceXref.slice(0, 10)), Number(voceXref.slice(0, 10)) + 7) === '1 0 obj');
 
+  if (app.errori.length) console.log('ERRORI:', app.errori.slice(0, 3).map(e => String(e && e.stack || e).slice(0, 300)).join(' | '));
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`${ok} ok, ${ko} KO`);
