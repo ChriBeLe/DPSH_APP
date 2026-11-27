@@ -513,6 +513,8 @@
             function memoriaTavole3d() {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) return { regola: {}, escluse: [] };
+                // Con la finestra aperta si lavora su una BOZZA: nel progetto entra solo con «Salva».
+                if (tavole3d.bozza && tavole3d.bozzaProgetto === state.currentProjectId) return tavole3d.bozza;
                 if (!proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
                 return proj.tavole3d;
             }
@@ -567,6 +569,8 @@
             function apriTavole3d(soloSezioni) {
                 const d = datiVista3dCorrenti;
                 if (!d) { appAlert('Per le tavole serve la vista 3D: almeno una prova col GPS e con le letture.'); return; }
+                { const pr = state.projects[state.currentProjectId]; if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
+                  tavole3d.bozza = JSON.parse(JSON.stringify(pr.tavole3d)); tavole3d.bozzaProgetto = state.currentProjectId; }
                 const mem = memoriaTavole3d();
                 tavole3d.voci = vociEsportazione3d(d);
                 // l'ordine scelto l'ultima volta (le pagine nuove in fondo, nel loro ordine)
@@ -609,14 +613,42 @@
                 T3('tavole3d').hidden = false;
                 renderElencoTavole3d();
                 mostraTavola3d();
+                salvaMemoriaTavole3d();
+                tavole3d.pulito = JSON.stringify(tavole3d.bozza);
+                statoSalvataggioTavole3d();
                 setTimeout(() => T3('tavole3dTela').focus(), 0);
             }
-            function chiudiTavole3d() {
+            /** Ci sono modifiche non salvate? */
+            const tavoleSporche3d = () => !!tavole3d.bozza && JSON.stringify(tavole3d.bozza) !== tavole3d.pulito;
+            /** L'indicatore sempre visibile: «Modifiche non salvate» o «Salvato». */
+            function statoSalvataggioTavole3d() {
+                const el = T3('tavole3dStato'), sp = tavoleSporche3d();
+                if (el) { el.textContent = sp ? 'Modifiche non salvate' : 'Salvato'; el.dataset.stato = sp ? 'sporco' : 'salvato'; }
+                const b = T3('tavole3dSalva'); if (b) b.disabled = !sp;
+            }
+            /** SALVA: la bozza entra nel progetto (e nel registro delle tavole, con la versione). */
+            function salvaTavole3d() {
+                const proj = state.projects[state.currentProjectId];
+                if (!proj || !tavole3d.bozza) return false;
+                salvaMemoriaTavole3d();
+                proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
+                tavole3d.pulito = JSON.stringify(tavole3d.bozza);
+                saveState();
+                statoSalvataggioTavole3d();
+                if (typeof mostraToast === 'function') mostraToast('Tavole salvate.');
+                return true;
+            }
+            async function chiudiTavole3d() {
                 if (tavole3d.lavoro) return;
                 salvaMemoriaTavole3d();
+                if (tavoleSporche3d()) {
+                    const r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' });
+                    if (r === false || r === undefined || r === null) return;
+                    if (r === true || (r && r.ok)) salvaTavole3d();
+                }
+                tavole3d.bozza = null; tavole3d.pulito = null;
                 T3('tavole3d').hidden = true;
                 clearTimeout(tavole3d.attesa);
-                saveState();
             }
             function salvaMemoriaTavole3d() {
                 const mem = memoriaTavole3d();
@@ -632,6 +664,7 @@
                 mem.elementi = { legenda: T3('tavole3dLegenda').checked, bussola: T3('tavole3dBussola').checked, nordTerreno: T3('tavole3dNordTerreno').checked, scala: T3('tavole3dScala').checked, nordPianta: T3('tavole3dNordPianta').checked, fantasma: T3('tavole3dFantasma').checked, fotoSopra: T3('tavole3dFotoSopra').checked, tagliaMappa: T3('tavole3dTagliaMappa').checked, spigoli: T3('tavole3dSpigoli').checked, mesh: T3('tavole3dMesh').checked };
                 // Anche le opzioni della finestra: il capitolo Tavole del report (071r) le rifà uguali.
                 if (!T3('tavole3d').hidden) { const o = opzioniTavole3d(); delete o.W; delete o.H; mem.opzioni = JSON.parse(JSON.stringify(o)); }
+                statoSalvataggioTavole3d();
             }
             /** Il titolo di una pagina: quello scritto dall'utente, se no l'automatico; null = senza titolo. */
             function titoloTavola3d(v) {
@@ -906,6 +939,7 @@
 
             // ---- i comandi ----
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
+            T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });
             // Esc chiude solo la finestra delle tavole, non la mappa sotto.
