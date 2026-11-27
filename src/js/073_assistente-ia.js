@@ -12,11 +12,11 @@
             // acceso questo pezzo non fa nessuna richiesta di rete.
             const AI_CHIAVE = 'DPSH_AI_V1';
             const AI_PROVIDER = [
-                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
+                { id: 'gemini', prefisso: 'AIza', nome: 'Google Gemini', tipo: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', pref: /2\.5-flash(?!.*(lite|image|tts))/, costo: 'Gratis (con limiti giornalieri)', url: 'https://aistudio.google.com/apikey',
                   passi: ['Apri la pagina di Google AI Studio e accedi col tuo account Google.', 'Premi «Create API key» e scegli un progetto (va bene quello proposto).', 'Copia la chiave (inizia con «AIza») e incollala qui sotto.'] },
                 { id: 'groq', prefisso: 'gsk_', nome: 'Groq', tipo: 'openai', base: 'https://api.groq.com/openai/v1', pref: /llama-3\.3|70b|llama/, costo: 'Gratis (con limiti), molto veloce', url: 'https://console.groq.com/keys',
                   passi: ['Apri la console di Groq e registrati (basta un account Google).', 'Vai su «API Keys» e premi «Create API Key».', 'Copia la chiave (inizia con «gsk_») e incollala qui sotto.'] },
-                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /llama-3\.3.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
+                { id: 'openrouter', prefisso: 'sk-or-', nome: 'OpenRouter', tipo: 'openai', base: 'https://openrouter.ai/api/v1', pref: /gpt-oss-120b:free|llama-3\.3-70b.*:free|:free/, costo: 'Modelli gratuiti e a pagamento con una sola chiave', url: 'https://openrouter.ai/keys',
                   passi: ['Apri OpenRouter e crea un account.', 'Vai su «Keys» e premi «Create Key».', 'Copia la chiave (inizia con «sk-or-») e incollala qui sotto. I modelli con «:free» nel nome non costano.'] },
                 { id: 'anthropic', prefisso: 'sk-ant-', nome: 'Anthropic (Claude)', tipo: 'anthropic', base: 'https://api.anthropic.com/v1', pref: /sonnet/, costo: 'A pagamento (credito prepagato)', url: 'https://console.anthropic.com/settings/keys',
                   passi: ['Apri la console di Anthropic e accedi.', 'In «Billing» aggiungi un po\' di credito (bastano pochi euro).', 'In «API Keys» premi «Create Key», copia la chiave (inizia con «sk-ant-») e incollala qui sotto.'] },
@@ -45,6 +45,7 @@
             const aiConf = id => aiCfg.provider[id] || (aiCfg.provider[id] = {});
             const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
             const aiProntiInOrdine = () => aiCfg.ordine.filter(aiPronto);
+            const aiPausa = {}; // id provider → ora (ms) fino a cui è «in pausa» perché ha finito la quota
             const aiEl = (tag, cls, testo) => { const e = document.createElement(tag); if (cls) e.className = cls; if (testo != null) e.textContent = testo; return e; };
 
 
@@ -144,8 +145,9 @@
                     if (!state.currentProjectId) throw new Error('Apri prima un progetto.');
                     openNewSurveyModal(); return { ok: true, provaId: state.currentSurveyId };
                 } },
-                { n: 'aggiungi_intervalli', d: 'Aggiunge in coda alla prova aperta gli intervalli di colpi indicati (un numero per intervallo, in ordine di profondità).', p: { colpi: { type: 'array', items: { type: 'integer' } }, prova_id: { type: 'string' } }, req: ['colpi'], w: true,
+                { n: 'aggiungi_intervalli', d: 'Aggiunge in coda alla prova aperta gli intervalli di colpi indicati (un numero per intervallo, in ordine di profondità). Chiamala UNA SOLA VOLTA con TUTTI i numeri nell\'array colpi, per esempio {"colpi":[3,4,5,7,9]}: non un intervallo per chiamata.', p: { colpi: { type: 'array', items: { type: 'integer' } }, prova_id: { type: 'string' } }, req: ['colpi'], w: true,
                   ds: a => `Aggiungere ${(a.colpi || []).length} intervalli alla prova aperta: ${(a.colpi || []).slice(0, 12).join(', ')}${(a.colpi || []).length > 12 ? '…' : ''}`, run: a => {
+                    if (typeof a.colpi === 'string') a.colpi = (a.colpi.match(/\d+/g) || []).map(Number);
                     if (!Array.isArray(a.colpi) || !a.colpi.length || a.colpi.some(n => !Number.isInteger(n) || n < 0 || n > 999)) throw new Error('I colpi devono essere numeri interi tra 0 e 999.');
                     if (a.prova_id) aiAttiva(null, a.prova_id);
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
@@ -219,6 +221,31 @@
                     if (a.colore != null && !/^#[0-9a-f]{6}$/i.test(a.colore)) throw new Error('Il colore deve essere #rrggbb.');
                     const st = { id: 'strato_' + Date.now(), name: String(a.nome).trim() || 'Nuovo strato', color: a.colore || '#94a3b8', behavior: a.comportamento || 'granulare' };
                     state.strati.push(st); saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList(); return { ok: true, id: st.id };
+                } },
+                { n: 'crea_stratigrafia', d: 'Crea in UNA sola volta tutta la stratigrafia della prova aperta: per ogni strato nome, da_m e a_m (metri, in ordine) e, se vuoi, colore (#rrggbb) e comportamento. Aggiunge gli strati e li assegna agli intervalli già inseriti. Chiamala UNA volta con tutti gli strati.',
+                  p: { strati: { type: 'array', items: { type: 'object', properties: { nome: { type: 'string' }, da_m: { type: 'number' }, a_m: { type: 'number' }, colore: { type: 'string' }, comportamento: { type: 'string', enum: ['granulare', 'coesivo'] } }, required: ['nome', 'da_m', 'a_m'] } }, autocompila: { type: 'boolean', description: 'compila anche i parametri avanzati consigliati' } }, req: ['strati'], w: true,
+                  ds: a => `Creare ${(a.strati || []).length} strati: ` + (a.strati || []).slice(0, 10).map(x => `«${x.nome}» ${x.da_m}-${x.a_m} m`).join(', ') + ((a.strati || []).length > 10 ? '…' : '') + (a.autocompila ? ', con parametri avanzati automatici' : ''), run: a => {
+                    if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
+                    if (!Array.isArray(a.strati) || !a.strati.length) throw new Error('Serve l\'elenco degli strati.');
+                    a.strati.forEach(x => {
+                        if (!x || !String(x.nome || '').trim()) throw new Error('Ogni strato vuole un nome.');
+                        if (!(Number(x.a_m) > Number(x.da_m)) || Number(x.da_m) < 0) throw new Error('Profondità non valide per «' + x.nome + '»: serve a_m maggiore di da_m.');
+                        if (x.colore != null && !/^#[0-9a-f]{6}$/i.test(x.colore)) throw new Error('Il colore di «' + x.nome + '» deve essere #rrggbb.');
+                        if (x.comportamento != null && !['granulare', 'coesivo'].includes(x.comportamento)) throw new Error('Comportamento non valido per «' + x.nome + '».');
+                    });
+                    const tav = ['#d4a373', '#8d6e63', '#a1887f', '#90a4ae', '#b0bec5', '#c5a880', '#7e8f6a', '#9aa5b1'];
+                    let assegnati = 0, creati = 0; const vuoti = [];
+                    a.strati.forEach((x, i) => {
+                        const nome = String(x.nome).trim();
+                        let st = state.strati.find(y => String(y.name).trim().toLowerCase() === nome.toLowerCase());
+                        if (!st) { st = { id: 'strato_' + Date.now() + '_' + i, name: nome, color: x.colore || tav[state.strati.length % tav.length], behavior: x.comportamento || 'granulare' }; state.strati.push(st); creati++; }
+                        else { if (x.colore) st.color = x.colore; if (x.comportamento) st.behavior = x.comportamento; }
+                        let n = 0; state.logs.forEach(l => { if (l.end > x.da_m + 1e-6 && l.start < x.a_m - 1e-6) { l.lithology = st.id; l.modificatoIl = new Date().toISOString(); n++; } });
+                        if (!n) vuoti.push(nome); assegnati += n;
+                        if (a.autocompila) { ensureParametriAvanzati(st); autoCompilaStrato(st); }
+                    });
+                    saveState(); updateUI(); if (document.getElementById('modalManageStrati').classList.contains('open')) renderStratiList();
+                    return { ok: true, strati_creati: creati, intervalli_assegnati: assegnati, senza_intervalli: vuoti.length ? vuoti : undefined };
                 } },
                 { n: 'sposta_strato', d: 'Sposta uno strato a una nuova posizione (1 = primo) nell\'elenco della prova aperta.', p: { strato_id: { type: 'string' }, posizione: { type: 'integer' } }, req: ['strato_id', 'posizione'], w: true,
                   ds: a => `Spostare lo strato ${a.strato_id} alla posizione ${a.posizione}`, run: a => {
@@ -313,7 +340,7 @@
                     aiUiMappa = [];
                     Array.from(radice.querySelectorAll('button, input, select, textarea, [role=button], [role=menuitem]')).forEach(e => {
                         if (e.closest('#aiPannello, #aiWizOverlay') || e.type === 'hidden' || !aiVisibile(e)) return;
-                        if (aiUiMappa.length >= 90) return;
+                        if (aiUiMappa.length >= 60) return;
                         const tipo = e.tagName === 'SELECT' ? 'menu' : e.tagName === 'TEXTAREA' ? 'testo' : e.tagName === 'INPUT' ? (e.type === 'checkbox' || e.type === 'radio' ? e.type : 'campo') : 'pulsante';
                         const riga = e.closest('.setting-row, .form-group, .field-row');
                         const lab = [e.getAttribute('aria-label'), e.title, e.textContent, e.placeholder, e.labels && e.labels[0] && e.labels[0].textContent, riga && (riga.querySelector('.setting-label, label') || {}).textContent, e.id].map(x => String(x || '').replace(/\s+/g, ' ').trim()).find(x => x).slice(0, 70) || '';
@@ -354,10 +381,28 @@
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'REGOLA PRINCIPALE: se l\'utente chiede di fare qualcosa, LA FAI TU con gli strumenti. Non dirgli mai di premere, cliccare, aprire un menu, andare su una schermata o compilare un campo: fallo tu e poi riassumi in una frase cosa hai fatto. Chiedi all\'utente solo i dati che mancano davvero. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
-                'Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
+                'Sii veloce: raggruppa il lavoro. Più azioni indipendenti vanno chiamate insieme nello stesso passaggio; gli intervalli con aggiungi_intervalli in una sola chiamata; tutta la stratigrafia con crea_stratigrafia in una sola chiamata. Non fare un passaggio per ogni piccolo dato. Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
                 'Se non c\'è uno strumento diretto per l\'azione: prima prova elenco_comandi/esegui_comando o vai_a; altrimenti usa leggi_schermata, poi clicca e compila_campo, e rileggi la schermata dopo ogni azione (e dopo ogni apertura di finestra) finché il lavoro non è finito. ' +
                 'Se uno strumento dà errore, riprova in un altro modo prima di arrenderti; solo se non è possibile dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
+
+            // Strumenti inviati a ogni richiesta: sempre i generali; i gruppi specifici solo se la conversazione ne parla
+            // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
+            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
+            const AI_GRUPPI = [
+                { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
+                { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
+                { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
+            ];
+            function aiStrumentiPer(crono) {
+                const utenti = crono.filter(m => m.r === 'u').slice(-3).map(m => m.t || '').join(' ');
+                const usati = new Set(); crono.forEach(m => { (m.calls || []).forEach(k => usati.add(k.n)); });
+                const gr = AI_GRUPPI.filter(g => g.re.test(utenti) || g.t.some(n => usati.has(n)));
+                if (!gr.length) return AI_STRUMENTI;
+                const ok = new Set(AI_CORE); gr.forEach(g => g.t.forEach(n => ok.add(n)));
+                return AI_STRUMENTI.filter(x => ok.has(x.n));
+            }
             // --- adattatori dei provider: tutti scambiano la stessa cronologia interna ---
             // cronologia: {r:'u',t} | {r:'a',t,calls:[{id,n,a}]} | {r:'t',res:[{id,n,c}]}
 
@@ -374,7 +419,7 @@
                         : { role: 'user', content: m.res.map(x => ({ type: 'tool_result', tool_use_id: x.id, content: x.c })) });
                     return {
                         url: d.base + '/messages', headers: { 'x-api-key': c.chiave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-                        corpo: { model: c.modello, max_tokens: 1500, system: aiMsgSistema(), messages: msgs, tools: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) })) },
+                        corpo: { model: c.modello, max_tokens: 1500, system: [{ type: 'text', text: aiMsgSistema(), cache_control: { type: 'ephemeral' } }], messages: msgs, tools: (t => { if (t.length) t[t.length - 1].cache_control = { type: 'ephemeral' }; return t; })(aiStrumentiPer(crono).map(s => ({ name: s.n, description: s.d, input_schema: aiSchema(s) }))) },
                         leggi: j => ({ t: (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), calls: (j.content || []).filter(b => b.type === 'tool_use').map(b => ({ id: b.id, n: b.name, a: b.input || {} })) })
                     };
                 },
@@ -389,7 +434,7 @@
                     if (c.chiave) h.Authorization = 'Bearer ' + c.chiave;
                     return {
                         url: (c.base || d.base).replace(/\/$/, '') + '/chat/completions', headers: h,
-                        corpo: { model: c.modello, messages: msgs, tools: AI_STRUMENTI.map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
+                        corpo: { model: c.modello, max_tokens: 1500, messages: msgs, tools: aiStrumentiPer(crono).map(s => ({ type: 'function', function: { name: s.n, description: s.d, parameters: aiSchema(s) } })) },
                         leggi: j => {
                             const m = ((j.choices || [])[0] || {}).message || {};
                             return { t: m.content || '', calls: (m.tool_calls || []).map((k, i) => { let a = {}; try { a = JSON.parse(k.function.arguments || '{}'); } catch (e) { /* argomenti rovinati: strumento senza argomenti */ } return { id: k.id || ('call_' + i), n: k.function.name, a }; }) };
@@ -398,14 +443,14 @@
                 },
                 gemini(d, c, crono) {
                     const contents = crono.map(m => m.r === 'u' ? { role: 'user', parts: [{ text: aiTestoU(m) }].concat(aiImg(m).map(a => ({ inlineData: { mimeType: a.mime, data: a.b64 } }))) }
-                        : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => ({ functionCall: { name: k.n, args: k.a || {} } }))) }
+                        : m.r === 'a' ? { role: 'model', parts: [].concat(m.t ? [{ text: m.t }] : [], (m.calls || []).map(k => Object.assign({ functionCall: { name: k.n, args: k.a || {} } }, k.ts ? { thoughtSignature: k.ts } : /gemini-3/i.test(c.modello || '') ? { thoughtSignature: 'skip_thought_signature_validator' } : {}))) }
                         : { role: 'user', parts: m.res.map(x => ({ functionResponse: { name: x.n, response: { result: x.c } } })) });
                     return {
                         url: d.base + '/models/' + encodeURIComponent(c.modello) + ':generateContent', headers: { 'x-goog-api-key': c.chiave },
-                        corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: AI_STRUMENTI.map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
+                        corpo: { systemInstruction: { parts: [{ text: aiMsgSistema() }] }, contents, tools: [{ functionDeclarations: aiStrumentiPer(crono).map(s => ({ name: s.n, description: s.d, parameters: aiSenzaVuoti(aiSchema(s)) })) }] },
                         leggi: j => {
                             const parti = (((j.candidates || [])[0] || {}).content || {}).parts || [];
-                            return { t: parti.filter(p => p.text).map(p => p.text).join('\n'), calls: parti.filter(p => p.functionCall).map((p, i) => ({ id: 'g' + Date.now() + i, n: p.functionCall.name, a: p.functionCall.args || {} })) };
+                            return { t: parti.filter(p => p.text).map(p => p.text).join('\n'), calls: parti.filter(p => p.functionCall).map((p, i) => ({ id: 'g' + Date.now() + i, n: p.functionCall.name, a: p.functionCall.args || {}, ts: p.thoughtSignature || undefined })) };
                         }
                     };
                 }
@@ -466,7 +511,7 @@
                     url: d.base + '/models/' + encodeURIComponent(c.modello) + ':streamGenerateContent?alt=sse', corpo: {}, nuovo: () => ({ testo: '', calls: [] }),
                     evento(e, st) {
                         if (e.error) throw new Error(e.error.message || 'errore nel flusso');
-                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {} }); });
+                        (((((e.candidates || [])[0] || {}).content) || {}).parts || []).forEach(p => { if (p.text) st.testo += p.text; if (p.functionCall) st.calls.push({ id: 'g' + Date.now() + st.calls.length, n: p.functionCall.name, a: p.functionCall.args || {}, ts: p.thoughtSignature || undefined }); });
                     },
                     fine: st => ({ t: st.testo, calls: st.calls })
                 })
@@ -500,10 +545,16 @@
                     if (!risp.ok) {
                         let det = ''; try { const j = await risp.json(); det = (j.error && (j.error.message || j.error)) || ''; } catch (e) { /* corpo non JSON */ }
                         const m = risp.status === 401 || risp.status === 403 ? 'chiave non valida o senza permesso'
-                            : risp.status === 429 ? 'limite raggiunto o credito esaurito'
+                            : risp.status === 429 ? (/quota|billing|exceeded/i.test(String(det)) ? 'quota del piano finita: aspetta (di solito il giorno dopo) o scegli un altro modello dal menu, per esempio flash-lite' : 'limite raggiunto o credito esaurito')
                             : risp.status === 404 ? 'modello non più disponibile: riapri il provider e scegline un altro dal menu'
                             : 'errore ' + risp.status;
-                        throw new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
+                        const err = new Error(m + (det ? ' — ' + String(det).slice(0, 160) : ''));
+                        if (risp.status === 429) {
+                            let att = parseFloat(risp.headers && risp.headers.get && risp.headers.get('retry-after'));
+                            if (isNaN(att)) { const mm = /(?:in|after|ritenta\w*)\D{0,12}([\d.]+)\s*(ms|s|m)\b/i.exec(String(det)); att = mm ? parseFloat(mm[1]) * ({ ms: 0.001, s: 1, m: 60 })[mm[2].toLowerCase()] : (/quota|billing|exceeded/i.test(String(det)) ? 999 : 8); }
+                            err.limite = true; err.attesa = att;
+                        }
+                        throw err;
                     }
                     if (fl && risp.body && risp.body.getReader && /event-stream/i.test((risp.headers && risp.headers.get && risp.headers.get('content-type')) || '')) return await aiLeggiFlusso(risp, fl, onTesto, arma);
                     return r.leggi(await risp.json());
@@ -514,19 +565,49 @@
                     throw e;
                 } finally { clearTimeout(timer); }
             }
+
+            // Prima di ogni richiesta la cronologia si «pota» (la copia salvata non cambia): risultati di strumenti
+            // vecchi accorciati, immagini solo nelle ultime 2 domande, al massimo ~40 voci. Meno testo = meno timeout.
+            const AI_MAX_VOCI = 40, AI_MAX_RIS = 6000, AI_MAX_RIS_VECCHIO = 500;
+            function aiPotaCrono(crono) {
+                let da = 0;
+                if (crono.length > AI_MAX_VOCI) for (let i = crono.length - AI_MAX_VOCI; i < crono.length; i++) if (crono[i].r === 'u') { da = i; break; }
+                const v = crono.slice(da), ultimaT = (() => { for (let i = v.length - 1; i >= 0; i--) if (v[i].r === 't') return i; return -1; })();
+                const conImg = []; v.forEach((m, i) => { if (m.r === 'u' && (m.all || []).some(a => a.tipo === 'img' && a.b64)) conImg.push(i); });
+                const tieni = new Set(conImg.slice(-2));
+                const taglia = (c, lim) => (typeof c === 'string' && c.length > lim) ? c.slice(0, lim) + '…[troncato]' : c;
+                return v.map((m, i) => {
+                    if (m.r === 't') return Object.assign({}, m, { res: m.res.map(x => Object.assign({}, x, { c: taglia(x.c, i === ultimaT ? AI_MAX_RIS : AI_MAX_RIS_VECCHIO) })) });
+                    if (m.r === 'u' && m.all && conImg.includes(i) && !tieni.has(i)) return Object.assign({}, m, { all: m.all.map(a => a.tipo === 'img' ? Object.assign({}, a, { b64: undefined }) : a) });
+                    return m;
+                });
+            }
             async function aiChiama(id, crono, onTesto) {
-                const d = aiDef(id), c = aiConf(id), r = AI_ADATTATORI[d.tipo](d, c, crono);
-                if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
-                return aiPostaRichiesta(d, r, 60000, onTesto);
+                const d = aiDef(id), c = aiConf(id);
+                for (let tent = 0; ; tent++) {
+                    try {
+                        const r = AI_ADATTATORI[d.tipo](d, c, aiPotaCrono(crono));
+                        if (onTesto && AI_FLUSSI[d.tipo]) r.flusso = AI_FLUSSI[d.tipo](d, c);
+                        return await aiPostaRichiesta(d, r, 120000, onTesto);
+                    } catch (e) {
+                        // «troppe richieste»: se l'attesa è breve si aspetta e si riprova, prima di passare al provider dopo
+                        if (!e.limite || tent >= 2 || e.attesa > 30 || aiFermato) throw e;
+                        for (let k = Math.ceil(e.attesa) + 1; k > 0 && !aiFermato; k--) { aiStatoFn('Limite di ' + d.nome + ' raggiunto: riprovo tra ' + k + ' s'); await new Promise(r => setTimeout(r, 1000)); }
+                    }
+                }
             }
             // Un giro di domanda: prova i provider nell'ordine scelto, passando al successivo se uno fallisce.
             async function aiChiamaConFallback(crono, avvisa, onTesto, azzera, inizio) {
-                const pronti = aiProntiInOrdine();
+                let pronti = aiProntiInOrdine();
                 if (!pronti.length) throw new Error('Nessun provider configurato. Aprilo da Impostazioni › Assistente IA › Provider e chiavi API.');
                 const errori = [];
+                // chi ha appena detto «quota finita» salta il turno (non si spreca una richiesta per niente); se sono tutti in pausa si riprova
+                const attivi = pronti.filter(id => !(aiPausa[id] > Date.now()));
+                if (attivi.length && attivi.length < pronti.length) avvisa('In pausa per quota: ' + pronti.filter(id => !attivi.includes(id)).map(id => aiDef(id).nome).join(', ') + '.');
+                if (attivi.length) pronti = attivi;
                 for (const id of pronti) {
                     try { if (inizio) inizio(id); const r = await aiChiama(id, crono, onTesto); if (errori.length) avvisa(`Risponde ${aiDef(id).nome}.`); return r; }
-                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
+                    catch (e) { if (azzera) azzera(); if (aiFermato) throw e; if (e.limite && e.attesa > 30) aiPausa[id] = Date.now() + Math.min(e.attesa, 1800) * 1000; errori.push(aiDef(id).nome + ': ' + e.message); avvisa(`${aiDef(id).nome} non ha funzionato (${e.message}).` + (id !== pronti[pronti.length - 1] ? ' Provo il successivo…' : '')); }
                 }
                 throw new Error('Nessun provider ha risposto.\n' + errori.join('\n'));
             }
@@ -616,14 +697,29 @@
             }
 
             const aiVicino = () => aiChat.scrollHeight - aiChat.scrollTop - aiChat.clientHeight < 120;
-            // copia + «Mostra tutto» per i messaggi lunghi
-            function aiRifinisci(m, testo, cls) {
-                m.querySelectorAll('.ai-copia, .ai-espandi').forEach(x => x.remove());
+            // sotto ogni messaggio: Copia (sempre), Modifica (le tue domande), «Mostra tutto» se è lungo
+            function aiCopiaTesto(t) {
+                if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+                return new Promise((ok, ko) => { const x = document.createElement('textarea'); x.value = t; x.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(x); x.select(); try { document.execCommand('copy') ? ok() : ko(); } catch (e) { ko(e); } x.remove(); });
+            }
+            function aiModifica(m, ci) {
+                if (aiOccupato) return;
+                const e = aiCrono[ci]; if (!e || e.r !== 'u') return;
+                aiCampo.value = e.t === 'Guarda gli allegati.' ? '' : e.t;
+                aiAllegati = (e.all || []).filter(a => a.tipo === 'txt' ? a.contenuto != null : !!a.b64);
+                aiCrono.length = ci;
+                if (aiChatAtt) { const k = aiChatAtt.vista.findIndex(v => v[2] === ci); if (k >= 0) aiChatAtt.vista.length = k; }
+                while (m.nextSibling) m.nextSibling.remove();
+                m.remove(); aiDisegnaAllegati(); aiCampo.dispatchEvent(new Event('input')); aiCampo.focus(); aiSalvaChat();
+            }
+            function aiRifinisci(m, testo, cls, ci) {
+                m.querySelectorAll('.ai-az, .ai-espandi').forEach(x => x.remove());
                 if (cls !== 'ia' && cls !== 'utente') return;
-                const b = aiEl('button', 'ai-copia'); b.type = 'button'; b.setAttribute('aria-label', 'Copia il messaggio'); b.title = 'Copia';
-                b.innerHTML = '<svg class="ico"><use href="#i-copy"/></svg>';
-                b.onclick = async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(testo); b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1200); } catch (er) { /* copia negata dal browser */ } };
-                m.appendChild(b);
+                const az = aiEl('div', 'ai-az');
+                const bt = (et, ic, fn) => { const b = aiEl('button'); b.type = 'button'; b.innerHTML = '<svg class="ico"><use href="#' + ic + '"/></svg>'; b.appendChild(document.createTextNode(et)); b.onclick = fn; az.appendChild(b); };
+                bt('Copia', 'i-copy', async ev => { ev.stopPropagation(); const b = ev.currentTarget; try { await aiCopiaTesto(testo); b.lastChild.textContent = 'Copiato ✓'; } catch (er) { b.lastChild.textContent = 'Non riesco'; } setTimeout(() => { b.lastChild.textContent = 'Copia'; }, 1400); });
+                if (cls === 'utente' && ci != null) bt('Modifica', 'i-edit', () => aiModifica(m, ci));
+                m.appendChild(az);
                 if (testo && testo.length > 900) {
                     m.classList.add('lungo', 'chiuso');
                     const t = aiEl('button', 'ai-espandi', 'Mostra tutto'); t.type = 'button';
@@ -632,14 +728,14 @@
                 }
             }
             function aiMsg(cls, testo, salva) {
-                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
-                if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push([cls, testo]); aiSalvaChat(); }
+                const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : testo); if (cls === 'ia') m.appendChild(aiFormatta(testo)); const vic = aiVicino(); aiChat.appendChild(m); aiRifinisci(m, testo, cls, cls === 'utente' ? aiCrono.length - 1 : null); if (vic || cls === 'utente') aiChat.scrollTop = aiChat.scrollHeight;
+                if (salva !== false && aiChatAtt && cls !== 'attesa') { aiChatAtt.vista.push(cls === 'utente' ? [cls, testo, aiCrono.length - 1] : [cls, testo]); aiSalvaChat(); }
                 return m;
             }
             function aiMostraChat(c) {
                 aiChatAtt = c; aiCrono = c.crono;
                 aiChat.textContent = '';
-                c.vista.forEach(([cls, t]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls); });
+                c.vista.forEach(([cls, t, ci]) => { const m = aiEl('div', 'ai-msg ' + cls, cls === 'ia' ? null : t); if (cls === 'ia') m.appendChild(aiFormatta(t)); aiChat.appendChild(m); aiRifinisci(m, t, cls, ci); });
                 if (!c.vista.length) aiChat.appendChild(aiEl('div', 'ai-msg info', 'Posso leggere i dati di questo progetto, aprire schermate e, con la tua conferma, modificare prove, strati e parametri.'));
                 aiChat.scrollTop = aiChat.scrollHeight; aiElencoCron.classList.remove('aperto');
             }
@@ -687,9 +783,9 @@
                     const testoM = pericolo ? 'ATTENZIONE, ultima conferma: ' + testo : 'L\'assistente vuole: ' + testo;
                     const m = aiMsg(pericolo ? 'errore' : 'azione', pericolo ? 'ATTENZIONE, ultima conferma: ' + testo + '. L\'app fa prima una copia automatica, ma l\'azione non si annulla da qui.' : 'L\'assistente vuole: ' + testo, false);
                     const riga = aiEl('div', 'ai-conferma'), si = aiEl('button', 'si', 'Conferma'), no = aiEl('button', null, 'Annulla');
-                    riga.append(no, si); m.appendChild(riga);
+                    const sempre = aiEl('button', null, 'Sempre in questa chat'); sempre.title = 'Da ora le modifiche normali in questa chat non chiedono conferma. Le eliminazioni la chiedono sempre.'; if (pericolo) riga.append(no, si); else riga.append(no, sempre, si); m.appendChild(riga);
                     const fine = v => { riga.remove(); m.appendChild(aiEl('div', null, v ? '✓ Confermato' : '✕ Annullato')); if (aiChatAtt) { aiChatAtt.vista.push([pericolo ? 'errore' : 'azione', testoM + (v ? ' — ✓ Confermato' : ' — ✕ Annullato')]); aiSalvaChat(); } res(v); };
-                    si.onclick = () => fine(true); no.onclick = () => fine(false);
+                    si.onclick = () => fine(true); no.onclick = () => fine(false); sempre.onclick = () => { if (aiChatAtt) { aiChatAtt.auto = true; aiSalvaChat(); } fine(true); };
                 });
             }
             async function aiEseguiStrumento(k) {
@@ -697,7 +793,9 @@
                 if (!s) return { c: JSON.stringify({ errore: 'Strumento sconosciuto.' }) };
                 const args = (k.a && typeof k.a === 'object') ? k.a : {};
                 const serveConferma = typeof s.w === 'function' ? s.w(args) : !!s.w;
-                if (serveConferma && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
+                if (k.pre === 'no') return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
+                const salta = (k.pre === true || (aiChatAtt && aiChatAtt.auto)) && s.w !== 'doppia';
+                if (serveConferma && !salta && !(await aiConferma(s.ds ? s.ds(args) : s.n))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 if (s.w === 'doppia' && !(await aiConferma(s.ds(args), true))) return { c: JSON.stringify({ errore: 'L\'utente ha annullato l\'azione.' }) };
                 try { const out = await s.run(args); if (serveConferma) aiMsg('info', '✓ ' + (s.ds ? s.ds(args) : s.n)); return { c: JSON.stringify(out === undefined ? { ok: true } : out) }; }
                 catch (e) { return { c: JSON.stringify({ errore: e.message }) }; }
@@ -751,6 +849,13 @@
                             break;
                         }
                         const res = [];
+                        // più modifiche nello stesso passaggio: una conferma sola per tutte
+                        const daConf = r.calls.filter(k => { const sx = AI_STRUMENTI.find(x => x.n === k.n); return sx && (typeof sx.w === 'function' ? sx.w(k.a || {}) : !!sx.w) && sx.w !== 'doppia'; });
+                        if (daConf.length > 1 && !(aiChatAtt && aiChatAtt.auto)) {
+                            const riep = daConf.map(k => { const sx = AI_STRUMENTI.find(x => x.n === k.n); try { return '• ' + (sx.ds ? sx.ds(k.a || {}) : sx.n); } catch (e) { return '• ' + sx.n; } }).join('\n');
+                            const ok = await aiConferma(daConf.length + ' azioni insieme:\n' + riep);
+                            daConf.forEach(k => { k.pre = ok ? true : 'no'; });
+                        }
                         for (const k of r.calls) {
                             if (aiFermato) break;
                             const ps = passo(aiEtichetta(k.n, k.a)); stato('Lavoro sull\'app');
@@ -1013,7 +1118,7 @@
             aiOv.addEventListener('click', e => { if (e.target === aiOv) aiWizChiudi(); });
             function aiWizMostra(nodi) { const w = aiEl('div', 'ai-wiz'); w.setAttribute('role', 'dialog'); w.append(...nodi); aiOv.textContent = ''; aiOv.appendChild(w); aiOv.classList.add('aperto'); }
             function aiWizElenco() {
-                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare basta Gemini, che è gratis.')];
+                const n = [aiEl('h3', null, 'Provider IA'), aiEl('p', null, 'L\'assistente prova i provider dall\'alto in basso: se uno non risponde passa al successivo. Per cominciare bastano Gemini e OpenRouter, che hanno modelli gratis. Se uno finisce la quota, passa all\'altro.')];
                 const altri = [];
                 aiCfg.ordine.forEach((id, i) => {
                     const d = aiDef(id), pronto = aiPronto(id);
@@ -1025,7 +1130,7 @@
                     giu.onclick = () => { aiCfg.ordine.splice(i + 1, 0, aiCfg.ordine.splice(i, 1)[0]); aiSalva(); aiWizElenco(); };
                     ap.onclick = () => aiWizProvider(id);
                     riga.append(nome, aiEl('span', 'ai-badge' + (pronto ? '' : ' no'), pronto ? 'pronto' : 'non configurato'), su, giu, ap);
-                    if (pronto || id === 'gemini') n.push(riga); else altri.push(riga);
+                    if (pronto || id === 'gemini' || id === 'openrouter') n.push(riga); else altri.push(riga);
                 });
                 if (altri.length) { const det = aiEl('details', 'ai-altri'); det.appendChild(aiEl('summary', null, 'Altri provider (' + altri.length + ')')); altri.forEach(r => det.appendChild(r)); n.push(det); }
                 const az = aiEl('div', 'ai-azioni'), ok = aiEl('button', 'pri', 'Fatto'); ok.onclick = aiWizChiudi; az.appendChild(ok); n.push(az);

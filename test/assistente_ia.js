@@ -19,7 +19,7 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   w.fetch = async (url, opz) => {
     chiamate.push(url);
     const corpo = JSON.parse(opz.body);
-    if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota' } }) };
+    if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota, try again in 90s' } }) };
     const ultimo = corpo.contents[corpo.contents.length - 1];
     const eRisultato = ultimo.parts[0].functionResponse;
     if (!eRisultato) {
@@ -52,16 +52,31 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('allegati: openai ha testo e immagine', al.o[0].text.includes('RIGA1') && al.o[1].image_url.url.endsWith('QUJD'));
   t('allegati: anthropic e gemini', al.a[0].type === 'image' && al.g[1].inlineData.data === 'QUJD');
   t('allegati: salvando restano solo i nomi', !al.salva.includes('QUJD') && al.salva.includes('f.jpg'));
+  const po = JSON.parse(app.E(`(() => { const g = 'x'.repeat(9000), cr = []; for (let i = 0; i < 30; i++) cr.push({ r: 'u', t: 'd' + i }, { r: 'a', t: '', calls: [{ id: 'a' + i, n: 'leggi_schermata', a: {} }] }, { r: 't', res: [{ id: 'a' + i, n: 'leggi_schermata', c: g }] });
+    const p = aiPotaCrono(cr); const ts = p.filter(m => m.r === 't'); return JSON.stringify({ n: p.length, orig: cr.length, ultima: ts[ts.length - 1].res[0].c.length, vecchia: ts[0].res[0].c.length, intatto: cr[2].res[0].c.length, inizio: p[0].r }); })()`));
+  t('potatura: cronologia corta e risultati accorciati', po.n <= 42 && po.inizio === 'u' && po.ultima < 6100 && po.vecchia < 600 && po.intatto === 9000);
+  t('openrouter in vista nella procedura guidata', app.E("aiWizElenco(), document.getElementById('aiWizOverlay').querySelector('.ai-wiz').textContent.includes('OpenRouter') && !document.querySelector('#aiWizOverlay details.ai-altri').textContent.includes('OpenRouter')") === true);
+  const ge = JSON.parse(app.E(`(() => { const cr = [{ r: 'u', t: 'x' }, { r: 'a', t: '', calls: [{ id: 'g1', n: 'elenco_progetti', a: {}, ts: 'SIG' }, { id: 'g2', n: 'stato_app', a: {} }] }, { r: 't', res: [{ id: 'g1', n: 'elenco_progetti', c: '[]' }, { id: 'g2', n: 'stato_app', c: '{}' }] }];
+    const c = aiConf('gemini'), v = c.modello; c.modello = 'gemini-3-flash'; const parti = AI_ADATTATORI.gemini(aiDef('gemini'), c, cr).corpo.contents[1].parts; c.modello = v;
+    const lett = AI_ADATTATORI.gemini(aiDef('gemini'), c, cr).leggi({ candidates: [{ content: { parts: [{ functionCall: { name: 'a', args: {} }, thoughtSignature: 'ZZ' }] } }] });
+    return JSON.stringify({ p0: parti[0].thoughtSignature, p1: parti[1].thoughtSignature, ts: lett.calls[0].ts }); })()`));
+  t('gemini 3: thoughtSignature letta e rimandata', ge.p0 === 'SIG' && ge.p1 === 'skip_thought_signature_validator' && ge.ts === 'ZZ');
+  const sg = JSON.parse(app.E(`JSON.stringify({ a: aiStrumentiPer([{ r: 'u', t: 'cambia il colore del tema' }]).map(x => x.n), b: aiStrumentiPer([{ r: 'u', t: 'ok fallo' }]).length, tot: AI_STRUMENTI.length, c: aiStrumentiPer([{ r: 'u', t: 'cambia gli strati' }]).map(x => x.n) })`));
+  t('strumenti: invio ridotto se il tema è chiaro, tutti se non lo è', sg.a.length < sg.tot && sg.a.includes('imposta_preferenza') && !sg.a.includes('elimina_strato') && sg.b === sg.tot && sg.c.includes('modifica_strato') && sg.c.includes('leggi_schermata'));
   const conf = $('aiPannello').querySelector('.ai-conferma');
   t('la creazione chiede conferma', !!conf && !app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   clic(conf.querySelector('.si'));
   await attesa(300);
   t('dopo la conferma il progetto esiste', app.E('Object.values(state.projects).some(p=>p.comune==="Bari")'));
   t('risposta finale mostrata', $('aiPannello').textContent.includes('Fatto.'));
+  const mod = [...$('aiPannello').querySelectorAll('.ai-msg.utente .ai-az button')].find(b => b.textContent.includes('Modifica'));
+  const nUtPrima = $('aiPannello').querySelectorAll('.ai-msg.utente').length;
+  if (mod) clic(mod);
+  t('modifica: il testo torna nel campo e la chat si accorcia', !!mod && $('aiPannello').querySelector('textarea').value !== '' && $('aiPannello').querySelectorAll('.ai-msg.utente').length < nUtPrima);
   // l'assistente che spiega invece di agire viene rimandato a usare gli strumenti
   { let n = 0, vistoSpinta = false;
     w.fetch = async (url, opz) => {
-      if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota' } }) };
+      if (url.includes('groq')) return { ok: false, status: 429, json: async () => ({ error: { message: 'quota, try again in 90s' } }) };
       const corpo = JSON.parse(opz.body); n++;
       const ult = corpo.contents[corpo.contents.length - 1].parts[0];
       if (ult.text && /fallo tu/i.test(ult.text)) vistoSpinta = true;
@@ -138,6 +153,8 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('modifica_strato', app2.E('state.strati[0].name') === 'Sabbia test' && app2.E('state.strati[0].behavior') === 'coesivo');
   T('aggiungi_strato', { nome: 'Nuovo' }); T('sposta_strato', { strato_id: app2.E('state.strati[state.strati.length-1].id'), posizione: 1 });
   t('aggiungi + sposta strato', app2.E('state.strati[0].name') === 'Nuovo');
+  T('crea_stratigrafia', { strati: [{ nome: 'Riporto test', da_m: 0, a_m: 0.3 }, { nome: 'Argilla test', da_m: 0.3, a_m: 99, comportamento: 'coesivo' }] });
+  t('crea_stratigrafia crea tutti gli strati insieme', app2.E("state.strati.some(x => x.name === 'Riporto test') && state.strati.some(x => x.name === 'Argilla test')") === true && (!app2.E('state.logs.length') || app2.E("state.logs.every(l => l.lithology === state.strati.find(x => x.name === 'Argilla test').id || l.lithology === state.strati.find(x => x.name === 'Riporto test').id)") === true));
   const n0 = app2.E('state.logs.length'); if (n0) { T('modifica_intervallo', { numero: 1, colpi: 7, note: 'x' }); t('modifica_intervallo', app2.E('state.logs[0].colpi') === 7); }
   T('modifica_strumento', { campo: 'pesoMassa', valore: 64 }); t('modifica_strumento', app2.E('state.instrument.pesoMassa') === 64);
   T('imposta_preferenza', { nome: 'vibrazione', valore: 'false' }); t('imposta_preferenza', app2.E('state.settings.haptic') === false);

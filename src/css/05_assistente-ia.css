@@ -163,3 +163,12 @@
         #aiBolla.pensa::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: aiOnda 1.4s ease-out infinite; pointer-events: none; }
         @keyframes aiOnda { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { .ai-passo, .ai-all, #aiPannello.occupato .ai-testa::after, #aiBolla.pensa::before, .ai-giu { animation: none !important; transition: none; } }
+
+        /* azioni sotto il messaggio: Copia / Modifica, sempre visibili; il testo si può selezionare a mano */
+        .ai-msg { user-select: text; -webkit-user-select: text; }
+        .ai-az { display: flex; gap: 10px; margin-top: 6px; }
+        .ai-az button { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px; border: none; background: transparent; color: inherit; opacity: .7; font-size: 11.5px; cursor: pointer; border-radius: var(--radius-sm); }
+        .ai-az button:hover, .ai-az button:focus-visible { opacity: 1; background: rgba(127,127,127,.18); }
+        .ai-az .ico { width: 13px; height: 13px; }
+        @media (pointer: coarse) { .ai-az button { min-height: 36px; padding: 4px 8px; } }
+        .ai-msg.lungo.chiuso .ai-az { visibility: hidden; }
