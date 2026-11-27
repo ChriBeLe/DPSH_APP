@@ -146,7 +146,7 @@ function creaGoogleFinto(opz) {
 
   g.installa = (w) => {
     w.fetch = g.fetch;
-    w.crypto = crypto.webcrypto;
+    Object.defineProperty(w, 'crypto', { value: crypto.webcrypto, configurable: true });
     // GIS finto: lo script di Google si «carica» solo se l'app lo mette nella pagina.
     const originale = w.Node.prototype.appendChild;
     w.HTMLHeadElement.prototype.appendChild = function (el) {
