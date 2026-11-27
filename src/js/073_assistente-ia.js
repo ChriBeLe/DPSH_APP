@@ -254,6 +254,13 @@
                     const t = tavolaPerId(state.projects[state.currentProjectId], a.tavola_id); if (!t) throw new Error('Tavola non trovata.');
                     return { id: t.id, nome: t.nome, tipo: t.tipo, versione: t.versione, bloccata: !!t.bloccata, nelReport: t.inReport !== false, templateId: t.templateId, impostazioni: t.impostazioni };
                 } },
+                { n: 'aggiungi_vista_modello', d: 'Aggiunge alle tavole del progetto una vista isometrica del modello 3D verso un lato: N (Nord), E (Est), S (Sud) o O (Ovest). Poi va nel report come le altre.', p: { verso: { type: 'string', enum: ['N', 'E', 'S', 'O'] } }, req: ['verso'], w: true,
+                  ds: a => `Aggiungere alle tavole una vista del modello verso ${a.verso}`, run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    if (!['N', 'E', 'S', 'O'].includes(a.verso)) throw new Error('Il verso è N, E, S oppure O.');
+                    if (!pr.tavole3d) pr.tavole3d = { regola: {}, escluse: [] };
+                    const id = 'iso-x' + Date.now().toString(36); (pr.tavole3d.extra = pr.tavole3d.extra || []).push({ id, verso: a.verso }); saveState(); return { ok: true, id };
+                } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
                     const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');

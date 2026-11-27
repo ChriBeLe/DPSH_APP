@@ -15,6 +15,9 @@
                     { id: 'iso-n', tipo: 'iso', verso: 'N', titolo: 'Modello · vista isometrica verso Nord' },
                     { id: 'iso-e', tipo: 'iso', verso: 'E', titolo: 'Modello · vista isometrica verso Est' }
                 ];
+                // le viste del modello aggiunte dall'utente (Sud, Ovest, o un altro Nord/Est con un'altra inquadratura)
+                const pr = state.projects[state.currentProjectId], memE = (tavole3d.bozza && tavole3d.bozzaProgetto === state.currentProjectId ? tavole3d.bozza : pr && pr.tavole3d) || {};
+                (memE.extra || []).forEach(x => voci.push({ id: x.id, tipo: 'iso', verso: x.verso, extra: true, titolo: `Modello · vista isometrica verso ${{ N: 'Nord', E: 'Est', S: 'Sud', O: 'Ovest' }[x.verso] || 'Nord'}` }));
                 const solido = d && modelloSolido(d);
                 const tracce = tracceDelProgetto().slice().sort((a, b) => {
                     const na = estremiTraccia(a.nome)[0], nb = estremiTraccia(b.nome)[0], ca = /^\d/.test(na), cb = /^\d/.test(nb);
@@ -46,7 +49,7 @@
                 const solido = !!modelloSolido(d);
                 if (voce.tipo === 'iso') {
                     // Verso Nord: si guarda a Nord (az 0), girati di 30° per vedere due facce; verso Est: az 90°.
-                    return { az: (voce.verso === 'E' ? Math.PI / 2 : 0) + ISO_TORSIONE_3D, el: ISO_EL_3D, taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 }, solido, tracce: null };
+                    return { az: ({ N: 0, E: Math.PI / 2, S: Math.PI, O: Math.PI * 1.5 }[voce.verso] || 0) + ISO_TORSIONE_3D, el: ISO_EL_3D, taglio: { dir: null, pos: 0.5, lato: 1, prof: 0 }, solido, tracce: null };
                 }
                 const t = tracceDelProgetto().find(x => x.id === voce.traccia);
                 if (!t) return null;
@@ -631,6 +634,23 @@
                 if (r === true || (r && r.ok)) { duplicaEAggiornaTavole({ tavole3d: tavole3d.bozza }, imp); statoSalvataggioTavole3d(); if (typeof mostraToast === 'function') mostraToast('Layout duplicato con i dati nuovi. Ricorda di salvare.'); }
                 else if (r === false) chiudiTavole3d();
             }
+            /** Aggiunge una vista del modello (verso Nord, Est, Sud o Ovest) come nuova pagina. */
+            function aggiungiVista3d() {
+                const mem = memoriaTavole3d(), verso = T3('tavole3dVersoNuova').value || 'S', id = 'iso-x' + Date.now().toString(36);
+                (mem.extra = mem.extra || []).push({ id, verso });
+                salvaMemoriaTavole3d();
+                apriTavole3d(false, true);
+                const i = tavole3d.voci.findIndex(v => v.id === id);
+                if (i >= 0) { tavole3d.scelta = i; renderElencoTavole3d(); mostraTavola3d(); }
+                statoSalvataggioTavole3d();
+            }
+            /** Toglie una vista aggiunta (le pagine di base del modello e delle sezioni non si tolgono: si escludono). */
+            function togliVistaAggiunta3d() {
+                const v = tavole3d.voci[tavole3d.scelta]; if (!v || !v.extra || tavolaBloccata3d(v)) return;
+                const mem = memoriaTavole3d();
+                mem.extra = (mem.extra || []).filter(x => x.id !== v.id); delete (mem.regola || {})[v.id];
+                salvaMemoriaTavole3d(); apriTavole3d(false, true); statoSalvataggioTavole3d();
+            }
             /** L'impronta dei dati da cui vengono le tavole: se cambia (nuova prova, sezione spostata) l'editor avvisa. */
             function improntaDatiTavole3d() {
                 const d = datiVista3dCorrenti; if (!d) return null;
@@ -722,7 +742,7 @@
             function aggiornaTitoloVista3d(v) {
                 const r = tavole3d.regola[v.id], vv = r && r.vista;
                 if (v.tipo !== 'iso') return;
-                v.titolo = !vv ? (v.verso === 'E' ? 'Modello · vista isometrica verso Est' : 'Modello · vista isometrica verso Nord')
+                v.titolo = !vv ? `Modello · vista isometrica verso ${{ N: 'Nord', E: 'Est', S: 'Sud', O: 'Ovest' }[v.verso] || 'Nord'}`
                     : vv.tipo === 'pianta' ? 'Modello · pianta' : `Modello · vista ${vv.tipo === 'trasv' ? 'trasversale' : 'isometrica'} verso ${VERSI_3D[vv.verso || 0]}`;
             }
             /** Le prove di una sezione 2D (nella finestra delle tavole): quelle vicine alla traccia, con
@@ -827,6 +847,7 @@
                 if (!v) return;
                 const d = datiVista3dCorrenti, scuro = tavole3d.sfondo === 'scuro';
                 T3('tavole3dNome').textContent = `${tavole3d.scelta + 1} / ${tavole3d.voci.length} · ${v.titolo}${tavolaBloccata3d(v) ? ' · bloccata (consegnata)' : ''}`;
+                { const tv = T3('tavole3dTogliVista'); if (tv) tv.hidden = !v.extra; }
                 { const bb = T3('tavole3dBlocca'); if (bb) { const bl = tavolaBloccata3d(v); bb.setAttribute('aria-pressed', String(bl)); bb.querySelector('span').textContent = bl ? 'Sblocca' : 'Blocca'; } }
                 T3('tavole3dPrima').disabled = tavole3d.scelta === 0;
                 T3('tavole3dDopo').disabled = tavole3d.scelta === tavole3d.voci.length - 1;
@@ -987,6 +1008,8 @@
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
+            T3('tavole3dAggiungiVista').addEventListener('click', aggiungiVista3d);
+            T3('tavole3dTogliVista').addEventListener('click', togliVistaAggiunta3d);
             T3('tavole3dElenco').addEventListener('click', apriElencoTavole3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });

@@ -149,6 +149,9 @@
                     <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
                     <div class="tavole-azioni">
                         <span id="tavole3dStato" class="t-didascalia" role="status" aria-live="polite" data-stato="salvato">Salvato</span>
+                        <select id="tavole3dVersoNuova" class="form-control" aria-label="Verso della nuova vista"><option value="N">Nord</option><option value="E">Est</option><option value="S" selected>Sud</option><option value="O">Ovest</option></select>
+                        <button type="button" class="bt" id="tavole3dAggiungiVista" title="Aggiunge una vista del modello, verso il lato scelto"><span>Aggiungi vista</span></button>
+                        <button type="button" class="bt" id="tavole3dTogliVista" hidden title="Toglie questa vista aggiunta"><span>Togli vista</span></button>
                         <button type="button" class="bt" id="tavole3dElenco" title="Tutte le tavole salvate del progetto: cerca, filtra, rinomina, duplica"><span>Tavole salvate</span></button>
                         <button type="button" class="bt" id="tavole3dBlocca" aria-pressed="false" title="Blocca questa tavola come consegnata: non cambia finché non la sblocchi"><svg class="ico"><use href="#i-lock"/></svg><span>Blocca</span></button>
                         <button type="button" class="bt" id="tavole3dSalva" disabled><svg class="ico"><use href="#i-check"/></svg><span>Salva</span></button>
