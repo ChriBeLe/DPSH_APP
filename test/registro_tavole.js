@@ -36,5 +36,11 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('sync: la bloccata non cambia', ev("registroTavole(__q)[0].versione") === 2);
   ev("sincronizzaRegistroTavole(__q,[__v[0]],{regola:{},escluse:[]},'h3')");
   t('sync: pagina sparita -> orfana', ev("registroTavole(__q).find(x=>x.voceId==='s2-x').orfana") === true);
+  w.__r = {}; ev("sincronizzaRegistroTavole(__r,[{id:'iso-n',tipo:'iso',titolo:'Iso N'}],{regola:{}},'a')");
+  t('dati uguali: nulla da aggiornare', ev("tavoleDaAggiornare(__r,'a').length") === 0 && ev("tavoleDaAggiornare(__r,'b').length") === 1);
+  ev("duplicaEAggiornaTavole(__r,'b')");
+  t('duplica e aggiorna: vecchia storica+bloccata, nuova con dati nuovi', ev("registroTavole(__r).length") === 2 && ev("registroTavole(__r)[0].storica && registroTavole(__r)[0].bloccata") === true && ev("registroTavole(__r)[1].datiRef") === 'b' && /aggiornata/.test(ev("registroTavole(__r)[1].nome")));
+  ev("sincronizzaRegistroTavole(__r,[{id:'iso-n',tipo:'iso',titolo:'Iso N'}],{regola:{'iso-n':{zoom:3}}},'b')");
+  t('dopo: il sync lavora sulla nuova, non sulla storica', ev("registroTavole(__r)[1].versione") === 2 && ev("registroTavole(__r)[0].versione") === 1 && ev("registroTavole(__r).length") === 2);
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();

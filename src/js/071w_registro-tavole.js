@@ -84,7 +84,7 @@
                     const imp = { regola: (mem.regola || {})[v.id] || null, titolo: (mem.titoli || {})[v.id] || null, posizione: (mem.posizioni || {})[v.id] || null,
                         pianta: (mem.piante || {})[v.id] || null, foglio: mem.foglio || null };
                     const inReport = !(mem.escluse || []).includes(v.id);
-                    let t = reg.find(x => x.voceId === v.id);
+                    let t = reg.find(x => x.voceId === v.id && !x.storica);
                     if (!t) { t = creaTavola(proj, { nome: v.titolo, tipo: v.tipo, impostazioni: imp, datiRef: impronta, voceId: v.id, miniatura: (miniature || {})[v.id] || null }); t.inReport = inReport; return; }
                     t.orfana = false;
                     if (t.bloccata) return;
@@ -92,6 +92,19 @@
                     if (miniature && miniature[v.id]) t.miniatura = miniature[v.id];
                     if (JSON.stringify(t.impostazioni) !== JSON.stringify(imp)) salvaTavola(proj, t.id, { impostazioni: imp, datiRef: impronta });
                 });
-                reg.forEach(t => { if (t.voceId && !visti.has(t.voceId)) t.orfana = true; });
+                reg.forEach(t => { if (t.voceId && !t.storica && !visti.has(t.voceId)) t.orfana = true; });
                 return reg;
+            }
+
+            /** Le tavole del registro fatte con dati diversi da quelli di adesso (e non bloccate né storiche). */
+            const tavoleDaAggiornare = (proj, impronta) => registroTavole(proj).filter(t => !t.storica && !t.bloccata && !t.orfana && tavolaDatiCambiati(t, impronta));
+            /** «Duplica il layout e aggiorna ai nuovi dati»: la vecchia resta, bloccata e storica (resta traccia);
+             * la nuova ha le stesse impostazioni e l'impronta dei dati di adesso. */
+            function duplicaEAggiornaTavole(proj, impronta) {
+                return tavoleDaAggiornare(proj, impronta).map(t => {
+                    const c = duplicaTavola(proj, t.id, impronta);
+                    c.voceId = t.voceId; c.nome = nomeTavolaLibero(proj, t.nome.replace(/ \((aggiornata|copia)\)$/, '') + ' (aggiornata)');
+                    t.storica = true; t.bloccata = true;
+                    return c;
+                });
             }

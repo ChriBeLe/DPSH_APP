@@ -617,6 +617,17 @@
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
                 statoSalvataggioTavole3d();
                 setTimeout(() => T3('tavole3dTela').focus(), 0);
+                avvisoDatiCambiati3d();
+            }
+            /** I dati delle prove sono cambiati dall'ultimo salvataggio? Si sceglie: continuare con le
+             * tavole come sono, o duplicare il layout e aggiornarlo (le vecchie restano, bloccate). */
+            async function avvisoDatiCambiati3d() {
+                const imp = improntaDatiTavole3d(), da = tavoleDaAggiornare({ tavole3d: tavole3d.bozza }, imp);
+                if (!da.length) return;
+                const r = await appDialog(`I dati delle prove sono cambiati dopo l'ultimo salvataggio di ${da.length} ${da.length === 1 ? 'tavola' : 'tavole'}. Vuoi continuare con i dati non aggiornati, o duplicare il layout e applicare le modifiche delle prove? (Le tavole vecchie restano, bloccate.)`,
+                    { confirm: true, okLabel: 'Duplica e aggiorna', extraLabel: 'Continua senza aggiornare', cancelLabel: 'Chiudi' });
+                if (r === true || (r && r.ok)) { duplicaEAggiornaTavole({ tavole3d: tavole3d.bozza }, imp); statoSalvataggioTavole3d(); if (typeof mostraToast === 'function') mostraToast('Layout duplicato con i dati nuovi. Ricorda di salvare.'); }
+                else if (r === false) chiudiTavole3d();
             }
             /** L'impronta dei dati da cui vengono le tavole: se cambia (nuova prova, sezione spostata) l'editor avvisa. */
             function improntaDatiTavole3d() {
