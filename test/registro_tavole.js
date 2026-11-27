@@ -42,5 +42,11 @@ const t = (n, c) => { if (c) { ok++; console.log('  ok  ' + n); } else { ko++; c
   t('duplica e aggiorna: vecchia storica+bloccata, nuova con dati nuovi', ev("registroTavole(__r).length") === 2 && ev("registroTavole(__r)[0].storica && registroTavole(__r)[0].bloccata") === true && ev("registroTavole(__r)[1].datiRef") === 'b' && /aggiornata/.test(ev("registroTavole(__r)[1].nome")));
   ev("sincronizzaRegistroTavole(__r,[{id:'iso-n',tipo:'iso',titolo:'Iso N'}],{regola:{'iso-n':{zoom:3}}},'b')");
   t('dopo: il sync lavora sulla nuova, non sulla storica', ev("registroTavole(__r)[1].versione") === 2 && ev("registroTavole(__r)[0].versione") === 1 && ev("registroTavole(__r).length") === 2);
+  w.__vv = [{ id: 'iso-n', tipo: 'iso' }, { id: 'iso-e', tipo: 'iso' }, { id: 's3-a', tipo: 'sez3d' }, { id: 's2-a', tipo: 'sez2d' }, { id: 's3-b', tipo: 'sez3d' }, { id: 's2-b', tipo: 'sez2d' }];
+  const reg = ev("regoleDallaMemoria({ ordine: ['iso-n','s3-a','s2-a','iso-e'], escluse: ['s3-b','s2-b'] }, __vv)");
+  t('il template ricorda la sequenza per tipo', JSON.stringify(reg.sequenza) === JSON.stringify(['iso-n', 'sez3d', 'sez2d', 'iso-e']));
+  w.__reg = reg;
+  const m2 = ev("memoriaConTemplate({}, { regole: __reg }, [{ id: 'iso-e', tipo: 'iso' }, { id: 'iso-n', tipo: 'iso' }, { id: 'x3', tipo: 'sez3d' }, { id: 'x2', tipo: 'sez2d' }])");
+  t('in un altro progetto la sequenza riordina le pagine', JSON.stringify(m2.ordine) === JSON.stringify(['iso-n', 'x3', 'x2', 'iso-e']));
   console.log(`\n${ok} ok, ${ko} KO`); process.exit(ko ? 1 : 0);
 })();
