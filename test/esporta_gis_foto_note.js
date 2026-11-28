@@ -29,8 +29,9 @@ r['geomcol'] = {x[0]: [x[1], x[2], x[3]] for x in c.execute('select table_name, 
 r['contents'] = sorted(x[0] for x in c.execute('select table_name from gpkg_contents'))
 r['stili'] = sorted(x[0] for x in c.execute('select f_table_name from layer_styles'))
 def pt(g): return struct.unpack('<2d', g[40+5:40+5+16])
-r['foto'] = [[d, pt(g), nf, desc, pos, fonte, tipo, None if im is None else [len(im), hashlib.md5(im).hexdigest()]] for (d, g, nf, desc, pos, fonte, tipo, im) in c.execute('select prova, geom, nome_file, descrizione, posizione, fonte_gps, tipo_immagine, immagine from foto order by fid')]
-r['note'] = [[p, tp, da, a, tx, pt(g)] for (p, tp, da, a, tx, g) in c.execute('select prova, tipo, da_m, a_m, testo, geom from note order by fid')]
+tab = [x[0] for x in c.execute("select name from sqlite_master where type='table'")]
+r['foto'] = [] if 'foto' not in tab else [[d, pt(g), nf, desc, pos, fonte, tipo, None if im is None else [len(im), hashlib.md5(im).hexdigest()]] for (d, g, nf, desc, pos, fonte, tipo, im) in c.execute('select prova, geom, nome_file, descrizione, posizione, fonte_gps, tipo_immagine, immagine from foto order by fid')]
+r['note'] = [] if 'note' not in tab else [[p, tp, da, a, tx, pt(g)] for (p, tp, da, a, tx, g) in c.execute('select prova, tipo, da_m, a_m, testo, geom from note order by fid')]
 try:
     g = c.execute('select geom from percorso').fetchone()[0]
     n = struct.unpack('<I', g[40+5:40+9])[0]
@@ -118,6 +119,35 @@ const leggi = (byte) => {
   try { await app.E(`(async () => { try { await AI_STRUMENTI.find(x => x.n === 'esporta_gis').run({ formato: 'gpkg', livelli: ['inesistente'] }); return ''; } catch (e) { return e.message; } })()`).then(m => { errore = m; }); } catch (e) { errore = String(e); }
   t('assistente: un livello che non esiste dà un errore chiaro', /sconosciuto/.test(errore));
   t('assistente: le parole «QGIS» o «esporta» portano i due strumenti', app.E(`aiStrumentiPer([{ r: 'u', t: 'esporta per QGIS' }]).map(x => x.n).filter(n => /gis/.test(n)).join()`) === 'elenco_livelli_gis,esporta_gis');
+
+  // ---- foto troppo pesanti: si chiede se comprimerle (limite abbassato a 50 KB per la prova) ----
+  app.E(`FOTO_GIS_BUDGET_BYTE = 50000; comprimiImmagineDataUrl = async (u, q) => { const b = u.split(',')[1]; return 'data:image/jpeg;base64,' + b.slice(0, Math.floor(b.length * q * 0.1 / 4) * 4); }`);
+  const run = (arg) => app.E(`(async () => JSON.stringify(await AI_STRUMENTI.find(x => x.n === 'esporta_gis').run(${JSON.stringify(arg)})))()`).then(JSON.parse);
+  const imm = async (i) => { const r3 = leggi(Buffer.from(await app.scaricati[i].blob.arrayBuffer())); return r3 && r3.foto; };
+  let n2 = app.scaricati.length;
+  const senza = await run({ formato: 'gpkg', livelli: ['foto'] });
+  const F0 = await imm(n2);
+  t('foto oltre il limite, senza risposta: le foto pesanti restano senza immagine e l\'avviso dice di chiedere (comprimi_foto)', senza.ok && senza.avvisi.some(a => /comprimi_foto/.test(a)) && F0 && F0.some(x => x[7] === null) && F0.some(x => x[7]));
+  n2 = app.scaricati.length;
+  const si = await run({ formato: 'gpkg', livelli: ['foto'], comprimi_foto: true });
+  const F1 = await imm(n2);
+  t('con comprimi_foto: tutte le foto hanno l\'immagine, più piccola, e l\'avviso lo dice', si.avvisi.some(a => /compresse/.test(a)) && F1 && F1.length === 3 && F1.every(x => x[7]) && F1.find(x => x[3] === 'Pesante')[7][0] < 70000);
+  n2 = app.scaricati.length;
+  const no = await run({ formato: 'gpkg', livelli: ['foto'], comprimi_foto: false });
+  const F2 = await imm(n2);
+  t('con comprimi_foto false: niente compressione, immagini oltre il limite fuori', F2 && F2.find(x => x[3] === 'Pesante')[7] === null && !no.avvisi.some(a => /compresse/.test(a)));
+  // dalla finestra: chiede, e col «sì» le comprime
+  clic(app, $(app, 'btnGpkgSezioni3d'));
+  clic(app, $(app, 'gisNessuno'));
+  app.d.querySelector('[data-livello-gis="foto"]').checked = true; app.d.querySelector('[data-livello-gis="foto"]').dispatchEvent(new app.w.Event('change', { bubbles: true }));
+  n2 = app.scaricati.length;
+  clic(app, $(app, 'gisEsporta'));
+  await attesa(60);
+  t('dalla finestra: chiede se comprimere le foto (con i MB e il limite)', !!app.dialogo() && /pesano .* MB/.test(app.dialogo().testo) && /Le comprimo/.test(app.dialogo().testo));
+  if (app.dialogo()) clic(app, app.dialogo().ok);
+  await attesa(80);
+  const F3 = app.scaricati.length === n2 + 1 ? await imm(n2) : null;
+  t('dicendo di sì: il file ha tutte le immagini compresse', F3 && F3.every(x => x[7]) && F3.find(x => x[3] === 'Pesante')[7][0] < 70000);
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   console.log(`${ok} ok, ${ko} KO`);

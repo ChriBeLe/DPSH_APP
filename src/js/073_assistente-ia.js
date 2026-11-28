@@ -380,12 +380,12 @@
                     saveState(); updateUI(); return { ok: true };
                 } },
                 { n: 'elenco_livelli_gis', d: 'Elenca i livelli che si possono esportare per i GIS (QGIS, Google Earth) dal progetto aperto: id, nome, quanti elementi ci sono, se si possono esportare nel formato dato (gpkg, kmz o kml). Foto con la posizione, note e percorso solo nel GeoPackage.', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] } }, run: a => livelliGisDisponibili(a.formato || 'gpkg') },
-                { n: 'esporta_gis', d: 'Esporta il progetto aperto per i GIS e scarica il file: gpkg (QGIS, con gli stili; anche foto con la posizione e l\'immagine dentro, note, percorso), kmz o kml (Google Earth). Senza «livelli» mette tutti quelli disponibili; altrimenti un elenco di id (vedi elenco_livelli_gis).', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] }, livelli: { type: 'array', items: { type: 'string' } } }, req: ['formato'],
+                { n: 'esporta_gis', d: 'Esporta il progetto aperto per i GIS e scarica il file: gpkg (QGIS, con gli stili; anche foto con la posizione e l\'immagine dentro, note, percorso), kmz o kml (Google Earth). Senza «livelli» mette tutti quelli disponibili; altrimenti un elenco di id (vedi elenco_livelli_gis). Se le foto pesano più di 40 MB l\'avviso lo dice: chiedi all\'utente se comprimerle e richiama con comprimi_foto true (o false per lasciarle fuori).', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] }, livelli: { type: 'array', items: { type: 'string' } }, comprimi_foto: { type: 'boolean' } }, req: ['formato'],
                   ds: a => `Esportare il progetto in ${String(a.formato).toUpperCase()}`, run: async a => {
                     const disp = livelliGisDisponibili(a.formato), ok = disp.filter(l => l.disponibile).map(l => l.id), scelti = {};
                     const voluti = Array.isArray(a.livelli) && a.livelli.length ? a.livelli.map(String) : ok;
                     voluti.forEach(id => { if (!disp.some(l => l.id === id)) throw new Error('Livello sconosciuto: ' + id); if (ok.includes(id)) scelti[id] = true; });
-                    const f = await produciFileGis(a.formato, scelti);
+                    const f = await produciFileGis(a.formato, scelti, { comprimiFoto: typeof a.comprimi_foto === 'boolean' ? a.comprimi_foto : undefined });
                     scaricaBlobFile(f.blob, f.nome);
                     return { ok: true, file: f.nome, livelli: Object.keys(scelti), avvisi: f.avvisi };
                 } },

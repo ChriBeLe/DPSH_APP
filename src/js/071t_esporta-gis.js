@@ -153,7 +153,7 @@
                 { id: 'percorso', nome: 'Percorso: la linea che unisce le prove, nell\'ordine del progetto', solo: 'gpkg' }
             ];
             /** Il peso massimo delle immagini dentro il GeoPackage: le foto oltre il limite restano fuori (con la loro posizione). */
-            const FOTO_GIS_BUDGET_BYTE = 40e6;
+            let FOTO_GIS_BUDGET_BYTE = 40e6;
             /** Dove sta una foto: la sua posizione (EXIF o GPS dell'app); senza, quella della sua prova. */
             function posizioneFotoGis(p, s) {
                 const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
@@ -194,7 +194,7 @@
                 if (!dataUrlImmagineSicuro(url)) return null;
                 const i = url.indexOf(','), mime = /^data:([^;,]+)/.exec(url)[1], bin = atob(url.slice(i + 1).replace(/\s+/g, '')), out = new Uint8Array(bin.length);
                 for (let k = 0; k < bin.length; k++) out[k] = bin.charCodeAt(k);
-                return { byte: out, mime };
+                return { byte: out, mime, url };
             }
             /** Le immagini delle foto da mettere nel GeoPackage (id → { byte, mime }), dalla memoria o dal database delle foto. */
             async function immaginiFotoGis(proj) {
@@ -203,6 +203,18 @@
                     const url = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : null);
                     const b = byteDaDataUrlGis(url);
                     if (b) mappa.set(p.id, b);
+                }
+                return mappa;
+            }
+            const pesoImmaginiGis = mappa => { let n = 0; mappa.forEach(x => { n += x.byte.length; }); return n; };
+            /** Comprime le immagini a passi (qualità e lato più piccoli) finché stanno nel limite; riparte sempre dall'originale. */
+            async function comprimiImmaginiGis(mappa) {
+                for (const [q, lato] of [[0.75, 1800], [0.6, 1400], [0.5, 1100], [0.4, 800], [0.3, 600]]) {
+                    for (const [id, x] of mappa) {
+                        const nuovo = byteDaDataUrlGis(await comprimiImmagineDataUrl(x.url, q, lato));
+                        if (nuovo && nuovo.byte.length < x.byte.length) mappa.set(id, { ...nuovo, url: x.url });
+                    }
+                    if (pesoImmaginiGis(mappa) <= FOTO_GIS_BUDGET_BYTE) break;
                 }
                 return mappa;
             }
@@ -484,7 +496,7 @@
             /** Le tavole e la vista 3D si fanno dal 3D: se si è nella mappa 2D, ci si passa. */
             function nel3d() { if (areaMappa.modo !== '3d') modoAreaMappa('3d'); }
             /** Il file GIS pronto (senza scaricarlo): { blob, nome, avvisi }. Lo usano la finestra «Esporta» e l'assistente. */
-            async function produciFileGis(formato, scelti) {
+            async function produciFileGis(formato, scelti, opz = {}) {
                 await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
                 const proj = state.projects[state.currentProjectId];
                 if (!proj) throw new Error('Apri prima un progetto.');
@@ -492,8 +504,16 @@
                 if (!Object.values(scelti).some(Boolean)) throw new Error('Scegli almeno un livello da esportare.');
                 const d = datiVista3dCorrenti || datiVista3d(proj), nome = 'DPSH_' + (proj.name || 'progetto').replace(/[^\w\-]+/g, '_');
                 if (formato === 'gpkg') {
-                    const immagini = scelti.foto ? await immaginiFotoGis(proj) : null, byte = geopackageGis(proj, d, scelti, immagini);
-                    return { blob: new Blob([byte], { type: 'application/geopackage+sqlite3' }), nome: nome + '.gpkg', avvisi: byte.avvisi || [] };
+                    const immagini = scelti.foto ? await immaginiFotoGis(proj) : null, avviso = [];
+                    if (immagini && pesoImmaginiGis(immagini) > FOTO_GIS_BUDGET_BYTE) {
+                        // Le foto pesano troppo: si comprimono (se l'utente vuole) fino a farle entrare
+                        const MB = Math.round(pesoImmaginiGis(immagini) / 1e6), limite = Math.round(FOTO_GIS_BUDGET_BYTE / 1e6);
+                        const si = opz.comprimiFoto !== undefined ? opz.comprimiFoto : opz.chiedi ? await opz.chiedi(MB, limite) : false;
+                        if (si) { await comprimiImmaginiGis(immagini); if (pesoImmaginiGis(immagini) <= FOTO_GIS_BUDGET_BYTE) avviso.push('Foto compresse per entrare nel file.'); }
+                        else if (opz.comprimiFoto === undefined && !opz.chiedi) avviso.push(`Le foto pesano ${MB} MB, più di ${limite} MB: per metterle tutte serve comprimerle (comprimi_foto: true).`);
+                    }
+                    const byte = geopackageGis(proj, d, scelti, immagini);
+                    return { blob: new Blob([byte], { type: 'application/geopackage+sqlite3' }), nome: nome + '.gpkg', avvisi: [...avviso, ...(byte.avvisi || [])] };
                 }
                 const kmz = formato === 'kmz', { testo, icone } = documentoKmlGis(proj, scelti, kmz);
                 return kmz ? { blob: buildZipBlob([{ name: 'doc.kml', bytes: new TextEncoder().encode(testo) }, ...icone]), nome: nome + '.kmz', avvisi: [] }
@@ -519,7 +539,7 @@
                 G('gisLivelli').querySelectorAll('[data-livello-gis]').forEach(c => { scelti[c.dataset.livelloGis] = c.checked && !c.disabled; });
                 if (!Object.values(scelti).some(Boolean)) { appAlert('Scegli almeno un livello da esportare.'); return; }
                 try {
-                    const { blob, nome, avvisi } = await produciFileGis(f, scelti);
+                    const { blob, nome, avvisi } = await produciFileGis(f, scelti, { chiedi: (MB, lim) => appConfirm(`Le foto pesano ${MB} MB, più del limite di ${lim} MB.\n\nLe comprimo fino a farle entrare nel file? Se dici no, le foto oltre il limite restano senza immagine (ci sono posizione e dati).`) });
                     scaricaBlobFile(blob, nome);
                     G('esportaGis').hidden = true;
                     if (avvisi.length) mostraToast(avvisi.join(' '));
