@@ -20,6 +20,7 @@
                 state.tavoleTemplates[tp.id] = tp; saveState();
                 return tp;
             }
+            let chiudiElencoTavole = null; // chiude l'elenco aperto (e toglie il suo ascolto di Esc)
             function apriElencoTavole3d() {
                 // dentro la finestra Tavole si lavora sulla bozza (vale con «Salva»); dalla mappa, sul progetto: si salva subito
                 const proj = state.projects[state.currentProjectId], inFinestra = !!tavole3d.bozza;
@@ -27,15 +28,23 @@
                 if (!inFinestra && !proj.tavole3d) proj.tavole3d = { regola: {}, escluse: [] };
                 const P = { tavole3d: inFinestra ? tavole3d.bozza : proj.tavole3d }, esc = escapeHtmlDidascalia;
                 const dopoModifica = () => { if (inFinestra) statoSalvataggioTavole3d(); else { saveState(); if (typeof infoAreaMappa === 'function') infoAreaMappa(); } };
-                let ov = document.getElementById('tavoleElenco');
-                if (!ov) {
-                    ov = document.createElement('div'); ov.id = 'tavoleElenco'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Tavole salvate'); ov.setAttribute('aria-modal', 'true');
-                    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px';
-                    document.body.appendChild(ov);
-                }
-                ov.hidden = false;
+                // ogni volta un pannello nuovo, tolto dalla pagina alla chiusura: un `hidden` non basta
+                // (lo stile `display:flex` lo batte e lo strato resterebbe sopra lo schermo, bloccando tutto)
+                if (chiudiElencoTavole) chiudiElencoTavole();
+                const vecchio = document.getElementById('tavoleElenco'); if (vecchio) vecchio.remove();
+                const ov = document.createElement('div'); ov.id = 'tavoleElenco'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Tavole salvate'); ov.setAttribute('aria-modal', 'true');
+                ov.style.cssText = 'position:fixed;inset:0;z-index:380;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px';
+                document.body.appendChild(ov);
+                const attivo = document.activeElement;
                 const stato = { testo: '', tipo: '' };
-                const chiudi = () => { ov.hidden = true; ov.innerHTML = ''; };
+                const suEsc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); chiudi(); } };
+                const chiudi = () => {
+                    document.removeEventListener('keydown', suEsc, true);
+                    ov.remove(); chiudiElencoTavole = null;
+                    if (attivo && attivo.focus && document.contains(attivo)) { try { attivo.focus(); } catch (e) { /* niente */ } }
+                };
+                document.addEventListener('keydown', suEsc, true); chiudiElencoTavole = chiudi;
+                ov.addEventListener('mousedown', e => { if (e.target === ov) chiudi(); });
                 const disegna = () => {
                     const righe = righeElencoTavole(P, Object.assign({ impronta: inFinestra ? improntaDatiTavole3d() : null }, stato));
                     ov.innerHTML = `<div style="background:var(--bg-card,#fff);color:inherit;border-radius:12px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;padding:14px;gap:10px">
@@ -71,7 +80,6 @@
                         dopoModifica(); disegna();
                     }));
                 };
-                ov.onkeydown = e => { if (e.key === 'Escape') { e.stopPropagation(); chiudi(); } };
                 disegna();
                 const c = ov.querySelector('[data-az="cerca"]'); if (c) c.focus();
             }

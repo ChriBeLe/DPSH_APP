@@ -1,10 +1,21 @@
-    <!-- LE TAVOLE DEL 3D DA ESPORTARE (come l'anteprima delle tavole di HyperGram 6.0b): una finestra al
-         centro dello schermo, sopra la mappa del progetto. A sinistra le pagine (spunta = si esporta;
-         Tutte / Nessuna), al centro la pagina scelta, che si gira, si inclina, si avvicina e si sposta
-         col mouse, a destra i comandi dell'esportazione (PDF unico o immagini, sfondo, mappa di base,
-         legenda). La riempie il 071p. -->
+    <!-- LA SCHERMATA DELLE TAVOLE (a tutto schermo): in alto la barra con lo stato del salvataggio e le azioni
+         (Tavole salvate, Blocca, Salva, Esporta); a sinistra le pagine con «Aggiungi pagina»; al centro il foglio,
+         con sotto la barra dell'inquadratura e, per il disegno libero, la sua barra degli strumenti; a destra il
+         pannello a schede (Pagina, Foglio e file, Scena, Elementi). Gli id sono quelli di sempre: il 071p li usa. -->
     <div id="tavole3d" class="tavole-anteprima" hidden>
-        <div class="tavole-finestra" role="dialog" aria-modal="true" aria-label="Esporta le tavole del 3D">
+        <div class="tavole-finestra" role="dialog" aria-modal="true" aria-label="Tavole del progetto">
+            <header class="tavole-barra">
+                <button type="button" class="chiudi-x tavole-barra-x" id="tavole3dChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+                <div class="tavole-barra-titolo"><b>Tavole</b><span id="tavole3dProgetto"></span></div>
+                <span id="tavole3dStato" class="tavole-stato" role="status" aria-live="polite" data-stato="salvato">Salvato</span>
+                <div class="tavole-barra-azioni">
+                    <button type="button" class="bt bt-tenue" id="tavole3dElenco" title="Tutte le tavole salvate del progetto: cerca, filtra, rinomina, duplica"><span>Tavole salvate</span></button>
+                    <button type="button" class="bt bt-tenue" id="tavole3dBlocca" aria-pressed="false" title="Blocca questa tavola come consegnata: non cambia finché non la sblocchi"><svg class="ico"><use href="#i-lock"/></svg><span>Blocca</span></button>
+                    <button type="button" class="bt" id="tavole3dSalva" disabled><svg class="ico"><use href="#i-check"/></svg><span>Salva</span></button>
+                    <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
+                    <button hidden type="button" class="bt" id="tavole3dAnnulla">Chiudi</button>
+                </div>
+            </header>
             <nav class="tavole-elenco" aria-label="Pagine">
                 <div class="tavole-elenco-testa"><span>Pagine <b id="tavole3dConta"></b></span>
                     <button type="button" id="tavole3dTutte" class="btn-link" title="Esporta tutte le pagine">Tutte</button>
@@ -12,7 +23,15 @@
                 <div class="tavole-elenco-ordine"><span>Ordine</span>
                     <button type="button" id="tavole3dOrdinaDirezione" class="btn-link" title="Prima il modello e le sezioni 3D verso Nord, poi verso Est (Sud, Ovest), poi le sezioni 2D">Per direzione</button>
                     <button type="button" id="tavole3dOrdinaPartenza" class="btn-link" title="Il modello, poi per ogni sezione la 3D e la 2D">Di partenza</button></div>
+                
                 <div id="tavole3dPagine" class="tavole-pagine"></div>
+                <div class="tavole-aggiungi" role="group" aria-label="Aggiungi una pagina">
+                    <span class="tavole-aggiungi-titolo">Aggiungi pagina</span>
+                    <div class="tavole-aggiungi-riga"><select id="tavole3dVersoNuova" class="form-control" aria-label="Verso della nuova vista"><option value="N">Nord</option><option value="E">Est</option><option value="S" selected>Sud</option><option value="O">Ovest</option></select><button type="button" class="bt" id="tavole3dAggiungiVista" title="Aggiunge una vista del modello, verso il lato scelto"><span>Aggiungi vista</span></button></div>
+                    <div class="tavole-aggiungi-riga"><button type="button" class="bt" id="tavole3dConfronto" title="Aggiunge o toglie la pagina «Confronto tra prove»"><span>Confronto prove</span></button><select id="tavole3dConfrontoGrandezza" class="form-control" aria-label="Grandezza del confronto"><option value="colpi">Colpi</option><option value="rpd">Rpd</option></select></div>
+                    <button type="button" class="bt" id="tavole3dAggiungiLibero" title="Aggiunge una tavola vuota dove disegnare righe, frecce, rettangoli e testi"><span>Disegno libero</span></button>
+                    <button type="button" class="bt tavole-togli" id="tavole3dTogliVista" hidden title="Toglie questa vista aggiunta"><span>Togli vista</span></button>
+                </div>
             </nav>
             <div class="tavole-pagina">
                 <div class="tavole-pagina-testa">
@@ -20,11 +39,25 @@
                     <span id="tavole3dNome"></span>
                     <button type="button" id="tavole3dDopo" class="tavole-passo" title="Tavola successiva" aria-label="Tavola successiva"><svg class="ico tavole-gira"><use href="#i-back"/></svg></button>
                 </div>
+                
+                <div id="tavole3dLiberoBarra" class="tavole-azioni" hidden role="toolbar" aria-label="Strumenti del disegno libero">
+                        <button type="button" class="bt" data-strumento="seleziona" aria-pressed="true">Seleziona</button>
+                        <button type="button" class="bt" data-strumento="riga" aria-pressed="false">Riga</button>
+                        <button type="button" class="bt" data-strumento="freccia" aria-pressed="false">Freccia</button>
+                        <button type="button" class="bt" data-strumento="rettangolo" aria-pressed="false">Rettangolo</button>
+                        <button type="button" class="bt" data-strumento="testo" aria-pressed="false">Testo</button>
+                        <button type="button" class="bt" data-strumento="misura" aria-pressed="false" title="Quota: la lunghezza in metri, secondo la scala">Quota</button>
+                        <button type="button" class="bt" data-strumento="scala" aria-pressed="false" title="Barra della scala (5 m)">Scala</button>
+                        <label class="t-didascalia">px per metro <input type="number" id="tavole3dLiberoScala" min="1" step="1" value="100" style="width:5em" class="form-control"></label>
+                        <input type="color" id="tavole3dLiberoColore" value="#111827" aria-label="Colore">
+                        <button type="button" class="bt" id="tavole3dLiberoElimina">Elimina forma</button></div>
+
                 <div class="tavole-foglio-box"><div id="tavole3dFoglio" class="tavole-foglio">
                     <div class="tavole-foglio-tit"><b id="tavole3dFoglioTit"></b><span id="tavole3dFoglioSotto"></span></div>
                     <div class="tavole-foglio-fig"><canvas id="tavole3dTela" tabindex="0" aria-label="Anteprima della tavola: trascina per girare, tasto destro per spostare, rotella per avvicinare"></canvas><img id="tavole3dImg" alt="" hidden><canvas id="tavole3dPianta" class="tavole-pianta" aria-label="Ubicazione della sezione sulla mappa" hidden></canvas><span class="tavole-pianta-maniglia" data-dir="-1,-1" style="cursor: nwse-resize" title="Trascina per cambiare larghezza e altezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="0,-1" style="cursor: ns-resize" title="Trascina per cambiare l'altezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="1,-1" style="cursor: nesw-resize" title="Trascina per cambiare larghezza e altezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="-1,0" style="cursor: ew-resize" title="Trascina per cambiare la larghezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="1,0" style="cursor: ew-resize" title="Trascina per cambiare la larghezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="-1,1" style="cursor: nesw-resize" title="Trascina per cambiare larghezza e altezza della pianta" hidden></span><span class="tavole-pianta-maniglia" data-dir="0,1" style="cursor: ns-resize" title="Trascina per cambiare l'altezza della pianta" hidden></span><span id="tavole3dPiantaManiglia" class="tavole-pianta-maniglia" data-dir="1,1" style="cursor: nwse-resize" title="Trascina per cambiare larghezza e altezza della pianta" hidden></span></div>
                     <div class="tavole-foglio-piede"><span id="tavole3dPiede"></span><span id="tavole3dNumero"></span></div>
                 </div></div>
+                
                 <div class="tavole-regola" id="tavole3dRegola">
                     <span class="tavole-viste" role="group" aria-label="Vista della tavola">
                         <button type="button" class="tavole-rbt tavole-rbt-testo" data-vista="iso" title="Isometrica; premendo ancora: verso Nord, Est, Sud, Ovest">Isometrica<b data-verso-vista="iso"></b></button>
@@ -41,14 +74,14 @@
                     <span class="tavole-aiuto" id="tavole3dAiuto">Trascina per girare · tasto destro o Maiusc per spostare · rotella per avvicinare · doppio clic: di nuovo inquadrata</span>
                 </div>
             </div>
-            <!-- I COMANDI, A GRUPPI (come la barra dell'editor del template): prima quello che vale per
-                 la pagina scelta, poi il foglio e il file, poi cosa si vede nella figura. Ogni gruppo si
-                 chiude e se lo ricorda; Esporta resta sempre in fondo, a portata. Gli id sono quelli di
-                 prima: il 071p non cambia. -->
-            <aside class="tavole-comandi" aria-label="Esportazione">
-                <div class="tavole-comandi-testa"><b>Esporta le tavole</b>
-                    <button type="button" class="chiudi-x" id="tavole3dChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button></div>
-                <div class="tavole-comandi-corpo">
+            <aside class="tavole-comandi" aria-label="Impostazioni delle tavole">
+                <div class="tavole-schede" role="tablist" aria-label="Impostazioni">
+                    <button type="button" role="tab" class="tavole-scheda" data-scheda="pagina" aria-selected="true">Pagina</button>
+                    <button type="button" role="tab" class="tavole-scheda" data-scheda="foglio" aria-selected="false">Foglio</button>
+                    <button type="button" role="tab" class="tavole-scheda" data-scheda="scena" aria-selected="false">Scena</button>
+                    <button type="button" role="tab" class="tavole-scheda" data-scheda="elementi" aria-selected="false">Elementi</button>
+                </div>
+                <div class="tavole-comandi-corpo" role="tabpanel">
                     <details class="tavole-gruppo" data-tavole-gruppo="pagina" open>
                         <summary><span>Questa pagina</span><svg class="ico tavole-gruppo-freccia"><use href="#i-chevron-down"/></svg></summary>
                         <div class="tavole-gruppo-corpo">
@@ -144,36 +177,12 @@
                             <span class="t-didascalia">Legenda, bussola, scala e freccia sul terreno si trascinano nell'anteprima. <button type="button" class="btn-link" id="tavole3dRiposiziona">Rimettili al loro posto</button></span>
                         </div>
                     </details>
+
                 </div>
                 <div class="tavole-comandi-piede">
                     <p class="t-didascalia" id="tavole3dRiepilogo"></p>
                     <p class="t-didascalia tavole-avviso" id="tavole3dAvviso" hidden></p>
-                    <p class="t-didascalia" id="tavole3dControllo" role="status" aria-live="polite"></p>
-                    <div id="tavole3dLiberoBarra" class="tavole-azioni" hidden role="toolbar" aria-label="Strumenti del disegno libero">
-                        <button type="button" class="bt" data-strumento="seleziona" aria-pressed="true">Seleziona</button>
-                        <button type="button" class="bt" data-strumento="riga" aria-pressed="false">Riga</button>
-                        <button type="button" class="bt" data-strumento="freccia" aria-pressed="false">Freccia</button>
-                        <button type="button" class="bt" data-strumento="rettangolo" aria-pressed="false">Rettangolo</button>
-                        <button type="button" class="bt" data-strumento="testo" aria-pressed="false">Testo</button>
-                        <button type="button" class="bt" data-strumento="misura" aria-pressed="false" title="Quota: la lunghezza in metri, secondo la scala">Quota</button>
-                        <button type="button" class="bt" data-strumento="scala" aria-pressed="false" title="Barra della scala (5 m)">Scala</button>
-                        <label class="t-didascalia">px per metro <input type="number" id="tavole3dLiberoScala" min="1" step="1" value="100" style="width:5em" class="form-control"></label>
-                        <input type="color" id="tavole3dLiberoColore" value="#111827" aria-label="Colore">
-                        <button type="button" class="bt" id="tavole3dLiberoElimina">Elimina forma</button></div>
-                    <div class="tavole-azioni">
-                        <span id="tavole3dStato" class="t-didascalia" role="status" aria-live="polite" data-stato="salvato">Salvato</span>
-                        <select id="tavole3dVersoNuova" class="form-control" aria-label="Verso della nuova vista"><option value="N">Nord</option><option value="E">Est</option><option value="S" selected>Sud</option><option value="O">Ovest</option></select>
-                        <button type="button" class="bt" id="tavole3dAggiungiVista" title="Aggiunge una vista del modello, verso il lato scelto"><span>Aggiungi vista</span></button>
-                        <button type="button" class="bt" id="tavole3dTogliVista" hidden title="Toglie questa vista aggiunta"><span>Togli vista</span></button>
-                        <button type="button" class="bt" id="tavole3dAggiungiLibero" title="Aggiunge una tavola vuota dove disegnare righe, frecce, rettangoli e testi"><span>Disegno libero</span></button>
-                        <button type="button" class="bt" id="tavole3dConfronto" title="Aggiunge o toglie la pagina «Confronto tra prove»"><span>Confronto prove</span></button>
-                        <select id="tavole3dConfrontoGrandezza" class="form-control" aria-label="Grandezza del confronto"><option value="colpi">Colpi</option><option value="rpd">Rpd</option></select>
-                        <button type="button" class="bt" id="tavole3dElenco" title="Tutte le tavole salvate del progetto: cerca, filtra, rinomina, duplica"><span>Tavole salvate</span></button>
-                        <button type="button" class="bt" id="tavole3dBlocca" aria-pressed="false" title="Blocca questa tavola come consegnata: non cambia finché non la sblocchi"><svg class="ico"><use href="#i-lock"/></svg><span>Blocca</span></button>
-                        <button type="button" class="bt" id="tavole3dSalva" disabled><svg class="ico"><use href="#i-check"/></svg><span>Salva</span></button>
-                        <button type="button" class="bt" id="tavole3dAnnulla">Chiudi</button>
-                        <button type="button" class="bt bt-principale" id="tavole3dEsporta"><svg class="ico"><use href="#i-download"/></svg><span>Esporta</span></button>
-                    </div>
+                    <p class="tavole-controllo" id="tavole3dControllo" role="status" aria-live="polite"></p>
                 </div>
             </aside>
         </div>

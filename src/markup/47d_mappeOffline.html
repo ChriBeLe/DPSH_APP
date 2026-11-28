@@ -1,0 +1,37 @@
+    <!-- MAPPE OFFLINE: si scarica una zona (di solito pochi ettari) prima di andare dove non c'è segnale;
+         le tessere restano in IndexedDB e la mappa 2D e il terreno del 3D le usano da sole. Si apre dal
+         pannello Comandi della mappa. La riempie il 071za. -->
+    <div id="mappeOffline" class="trova-dtm" hidden>
+        <div class="trova-dtm-finestra" role="dialog" aria-modal="true" aria-labelledby="moTitolo">
+            <div class="trova-dtm-testa">
+                <span id="moTitolo">Mappe offline</span>
+                <button type="button" class="chiudi-x" id="moChiudi" title="Chiudi (Esc)" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+            </div>
+            <div class="trova-dtm-corpo">
+                <div id="moEsito" role="status" aria-live="polite"></div>
+                <section class="mo-modulo" aria-label="Scarica una zona">
+                    <h3 class="trova-dtm-gruppo">Scarica una zona</h3>
+                    <label class="mo-campo">Nome <input type="text" id="moNome" class="form-control" maxlength="60"></label>
+                    <label class="mo-campo">Mappa <select id="moFonte" class="form-control"></select></label>
+                    <label class="mo-campo">Zona <select id="moZona" class="form-control"><option value="prove">Attorno alle prove del progetto</option><option value="vista">Quello che vedo sulla mappa</option></select></label>
+                    <label class="mo-campo" id="moMargineRiga">Margine attorno alle prove (m) <input type="number" id="moMargine" class="form-control" value="300" min="0" max="5000" step="50"></label>
+                    <div class="mo-campo mo-zoom">Dettaglio (zoom)
+                        <span><select id="moZoomDa" class="form-control" aria-label="Zoom minimo"><option>13</option><option>14</option><option selected>15</option><option>16</option><option>17</option><option>18</option></select>
+                        a <select id="moZoomA" class="form-control" aria-label="Zoom massimo"><option>16</option><option>17</option><option>18</option><option selected>19</option><option>20</option></select></span>
+                    </div>
+                    <p id="moConto" class="t-didascalia"></p>
+                    <div id="moAvanzamento" hidden><progress id="moBarra" value="0" max="1"></progress> <span id="moTesto" class="t-didascalia"></span></div>
+                    <div class="trova-dtm-filtri">
+                        <button type="button" class="bt bt-principale" id="moScarica"><svg class="ico"><use href="#i-download"/></svg>Scarica</button>
+                        <button type="button" class="bt" id="moAnnulla" hidden>Annulla</button>
+                    </div>
+                </section>
+                <section aria-label="Aree salvate">
+                    <h3 class="trova-dtm-gruppo">Aree salvate su questo dispositivo</h3>
+                    <div class="trova-dtm-filtri"><button type="button" class="bt" id="moImporta" title="Una mappa a tessere (GeoPackage, EPSG:3857) fatta in QGIS o esportata da qui"><svg class="ico"><use href="#i-upload"/></svg>Importa GeoPackage</button>
+                    <input type="file" id="moFile" accept=".gpkg,application/geopackage+sqlite3" hidden></div>
+                    <div id="moAree" class="trova-dtm-fonti"></div>
+                </section>
+            </div>
+        </div>
+    </div>

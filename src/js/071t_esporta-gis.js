@@ -147,8 +147,77 @@
                 { id: 'punti', nome: 'Punti disegnati' },
                 { id: 'poligoni', nome: 'Poligoni disegnati (e perimetro del modello)' },
                 { id: 'modello3d', nome: 'Modello 3D: gli strati come superfici 3D', solo: 'gpkg' },
-                { id: 'colonne3d', nome: 'Colonne delle prove in 3D (gli strati di ogni prova)', solo: 'gpkg' }
+                { id: 'colonne3d', nome: 'Colonne delle prove in 3D (gli strati di ogni prova)', solo: 'gpkg' },
+                { id: 'foto', nome: 'Foto con la posizione (l\'immagine è dentro il file)', solo: 'gpkg' },
+                { id: 'note', nome: 'Note: degli intervalli e del progetto', solo: 'gpkg' },
+                { id: 'percorso', nome: 'Percorso: la linea che unisce le prove, nell\'ordine del progetto', solo: 'gpkg' }
             ];
+            /** Il peso massimo delle immagini dentro il GeoPackage: le foto oltre il limite restano fuori (con la loro posizione). */
+            let FOTO_GIS_BUDGET_BYTE = 40e6;
+            /** Dove sta una foto: la sua posizione (EXIF o GPS dell'app); senza, quella della sua prova. */
+            function posizioneFotoGis(p, s) {
+                const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+                if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng, da: 'foto' };
+                const h = (s && s.header) || {}, la = parseFloat(h.lat), ln = parseFloat(h.lng);
+                return Number.isFinite(la) && Number.isFinite(ln) ? { lat: la, lng: ln, da: 'prova' } : null;
+            }
+            /** Le foto del progetto che si possono mettere sulla mappa: { p, s, pos } (una foto sola anche se è in due interpretazioni). */
+            function fotoPosizionateGis(proj) {
+                const viste = new Set(), out = [];
+                proveInOrdine(proj).forEach(s => (s.photos || []).forEach(p => {
+                    if (!p || !p.id || viste.has(p.id)) return;
+                    viste.add(p.id);
+                    const pos = posizioneFotoGis(p, s);
+                    if (pos) out.push({ p, s, pos });
+                }));
+                return out;
+            }
+            /** Le note da mettere sulla mappa: quelle degli intervalli (sulla loro prova, da-a in metri) e quella del progetto (al centro delle prove). */
+            function noteGis(proj) {
+                const out = [], prove = proveFisiche(proveConCoordinate(proj));
+                prove.forEach(s => (s.logs || []).forEach(l => {
+                    const testo = String(l.note || '').trim();
+                    if (testo) out.push({ lng: parseFloat(s.header.lng), lat: parseFloat(s.header.lat), prova: nomeDpsh(s), tipo: 'intervallo', da: l.start, a: l.end, testo });
+                }));
+                const html = proj.notes && proj.notes.html, testo = html ? noteHtmlToPlainText(html).trim() : '';
+                if (testo && prove.length) {
+                    const lat = prove.reduce((m, s) => m + parseFloat(s.header.lat), 0) / prove.length, lng = prove.reduce((m, s) => m + parseFloat(s.header.lng), 0) / prove.length;
+                    out.push({ lng, lat, prova: null, tipo: 'progetto', da: null, a: null, testo });
+                }
+                return out;
+            }
+            /** Le prove con le coordinate, nell'ordine del progetto (per il percorso). */
+            const proveDelPercorsoGis = proj => { const ok = new Set(proveFisiche(proveConCoordinate(proj)).map(s => s.id)); return proveInOrdine(proj).filter(s => ok.has(s.id)); };
+            const distanzaGeoGis = (a, b) => { const R = 6371008.8, r = x => x * Math.PI / 180, h = Math.sin(r(b[1] - a[1]) / 2) ** 2 + Math.cos(r(a[1])) * Math.cos(r(b[1])) * Math.sin(r(b[0] - a[0]) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+            /** L'immagine di un data URL come byte (null se non è un'immagine ammessa). */
+            function byteDaDataUrlGis(url) {
+                if (!dataUrlImmagineSicuro(url)) return null;
+                const i = url.indexOf(','), mime = /^data:([^;,]+)/.exec(url)[1], bin = atob(url.slice(i + 1).replace(/\s+/g, '')), out = new Uint8Array(bin.length);
+                for (let k = 0; k < bin.length; k++) out[k] = bin.charCodeAt(k);
+                return { byte: out, mime, url };
+            }
+            /** Le immagini delle foto da mettere nel GeoPackage (id → { byte, mime }), dalla memoria o dal database delle foto. */
+            async function immaginiFotoGis(proj) {
+                const mappa = new Map();
+                for (const { p } of fotoPosizionateGis(proj)) {
+                    const url = p.dataUrl || photoMemoryCache[p.id] || (typeof getPhotoFromIDB === 'function' ? await getPhotoFromIDB(p.id) : null);
+                    const b = byteDaDataUrlGis(url);
+                    if (b) mappa.set(p.id, b);
+                }
+                return mappa;
+            }
+            const pesoImmaginiGis = mappa => { let n = 0; mappa.forEach(x => { n += x.byte.length; }); return n; };
+            /** Comprime le immagini a passi (qualità e lato più piccoli) finché stanno nel limite; riparte sempre dall'originale. */
+            async function comprimiImmaginiGis(mappa) {
+                for (const [q, lato] of [[0.75, 1800], [0.6, 1400], [0.5, 1100], [0.4, 800], [0.3, 600]]) {
+                    for (const [id, x] of mappa) {
+                        const nuovo = byteDaDataUrlGis(await comprimiImmagineDataUrl(x.url, q, lato));
+                        if (nuovo && nuovo.byte.length < x.byte.length) mappa.set(id, { ...nuovo, url: x.url });
+                    }
+                    if (pesoImmaginiGis(mappa) <= FOTO_GIS_BUDGET_BYTE) break;
+                }
+                return mappa;
+            }
             function contaLivelloGis(proj, d, id) {
                 if (id === 'prove') return proveFisiche(proveConCoordinate(proj)).length;
                 if (id === 'sezioni') return (proj.sezioniTracciate || []).length;
@@ -156,6 +225,9 @@
                 if (id === 'poligoni') return (proj.disegni || []).filter(x => x.tipo === 'poligono').length;
                 if (id === 'modello3d') { const so = d && modelloSolido(d); return so ? so.strati.length : 0; }
                 if (id === 'colonne3d') return d ? d.prove.length : 0;
+                if (id === 'foto') return fotoPosizionateGis(proj).length;
+                if (id === 'note') return noteGis(proj).length;
+                if (id === 'percorso') return proveDelPercorsoGis(proj).length >= 2 ? 1 : 0;
                 return 0;
             }
             const zonaUtmProgetto = proj => { const s = proveFisiche(proveConCoordinate(proj))[0] || (proj.disegni || [])[0]; const lng = s ? parseFloat(s.header ? s.header.lng : s.punti[0].lng) : 15; return Math.floor((lng + 180) / 6) + 1; };
@@ -184,7 +256,8 @@
             }
 
             /** IL GEOPACKAGE dei livelli scelti, con gli stili (layer_styles) che QGIS apre da sé. */
-            function geopackageGis(proj, d, scelti) {
+            function geopackageGis(proj, d, scelti, immagini) {
+                const avvisi = []; immagini = immagini || new Map();
                 const ora = new Date().toISOString().replace(/\.(\d{3})\d*Z$/, '.$1Z'), progetto = proj.name || proj.comune || '';
                 const zona = zonaUtmProgetto(proj), srsUtm = 32600 + zona, L = vista3d.etichette;
                 const layer = []; // { nome, descr, geom, z, srs, campi, righe: [{ geom, pp, valori }], qml }
@@ -250,6 +323,37 @@
                     layer.push({ nome: 'prove_colonne_3d', descr: 'Colonne delle prove in 3D (strati) — ' + progetto, geom: 'LINESTRING', z: 1, srs: srsUtm, campi: 'prova TEXT, strato TEXT, colore TEXT, da_m REAL, a_m REAL, progetto TEXT', righe,
                         qml: documentoQml({ renderer: `<renderer-v2 type="nullSymbol"/>`, renderer3d: renderer3dQml(voci, 'linea') }) });
                 }
+                if (scelti.foto) {
+                    const ff = fotoPosizionateGis(proj);
+                    if (ff.length) {
+                        let usato = 0, fuori = 0;
+                        layer.push({ nome: 'foto', descr: 'Foto con la posizione — ' + progetto, geom: 'POINT', srs: 4326, campi: 'prova TEXT, nome_file TEXT, descrizione TEXT, scattata_il TEXT, quota_m REAL, posizione TEXT, fonte_gps TEXT, tipo_immagine TEXT, immagine BLOB, progetto TEXT',
+                            righe: ff.map(({ p, s, pos }) => {
+                                const im = immagini.get(p.id), alt = parseFloat(p.alt);
+                                let blob = null, mime = null;
+                                if (im) { if (usato + im.byte.length <= FOTO_GIS_BUDGET_BYTE) { usato += im.byte.length; blob = im.byte; mime = im.mime; } else fuori++; }
+                                return riga(wkbPunto([pos.lng, pos.lat]), [[pos.lng, pos.lat]], [nomeDpsh(s), p.nomeFile || null, p.nota || null, p.scattataIl || p.timestamp || null,
+                                    Number.isFinite(alt) ? realeSqlite(+alt.toFixed(2)) : null, pos.da === 'foto' ? 'della foto' : 'della prova', p.hasExifGps ? 'EXIF' : (p.gpsSource || null), mime, blob, progetto]);
+                            }),
+                            qml: documentoQml({ renderer: `<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0" referencescale="-1"><symbols>${simboloPuntoQml('0', { simbolo: 'quadrato', colore: '#7c3aed', contorno: '#ffffff', spessore: 1.5, dimensione: 0.75 })}</symbols></renderer-v2>` }) });
+                        if (fuori) avvisi.push(`${fuori} foto senza l'immagine nel file (troppo pesante): ci sono solo la posizione e i dati.`);
+                    }
+                }
+                if (scelti.note) {
+                    const nn = noteGis(proj);
+                    if (nn.length) layer.push({ nome: 'note', descr: 'Note degli intervalli e del progetto — ' + progetto, geom: 'POINT', srs: 4326, campi: 'prova TEXT, tipo TEXT, da_m REAL, a_m REAL, testo TEXT, progetto TEXT',
+                        righe: nn.map(n => riga(wkbPunto([n.lng, n.lat]), [[n.lng, n.lat]], [n.prova, n.tipo, Number.isFinite(n.da) ? realeSqlite(+n.da.toFixed(2)) : null, Number.isFinite(n.a) ? realeSqlite(+n.a.toFixed(2)) : null, n.testo, progetto])),
+                        qml: documentoQml({ renderer: `<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0" referencescale="-1"><symbols>${simboloPuntoQml('0', { simbolo: 'cerchio', colore: '#facc15', contorno: '#111827', spessore: 1.2, dimensione: 0.6 })}</symbols></renderer-v2>` }) });
+                }
+                if (scelti.percorso) {
+                    const pp = proveDelPercorsoGis(proj).map(s => [parseFloat(s.header.lng), parseFloat(s.header.lat)]);
+                    if (pp.length >= 2) {
+                        const lung = pp.reduce((m, q, i) => m + (i ? distanzaGeoGis(pp[i - 1], q) : 0), 0);
+                        layer.push({ nome: 'percorso', descr: 'Percorso tra le prove, nell\'ordine del progetto — ' + progetto, geom: 'LINESTRING', srs: 4326, campi: 'nome TEXT, prove INTEGER, lunghezza_m REAL, progetto TEXT',
+                            righe: [riga(wkbLinea(pp), pp, ['Percorso ' + progetto, pp.length, realeSqlite(+lung.toFixed(1)), progetto])],
+                            qml: documentoQml({ renderer: `<renderer-v2 type="singleSymbol" forceraster="0" symbollevels="0" enableorderby="0" referencescale="-1"><symbols>${simboloLineaQml('0', { colore: '#2563eb', spessore: 3, tratto: 'tratteggiato' })}</symbols></renderer-v2>` }) });
+                    }
+                }
                 if (!layer.length) throw new Error('Non c\'è niente da esportare nei livelli scelti.');
                 // le tabelle del GeoPackage
                 const usaUtm = layer.some(l => l.srs === srsUtm);
@@ -271,7 +375,9 @@
                     { nome: 'layer_styles', sql: 'CREATE TABLE layer_styles (id INTEGER PRIMARY KEY, f_table_catalog TEXT(256), f_table_schema TEXT(256), f_table_name TEXT(256), f_geometry_column TEXT(256), styleName TEXT(30), styleQML TEXT, styleSLD TEXT, useAsDefault BOOLEAN, description TEXT, owner TEXT(30), ui TEXT(30), update_time DATETIME)',
                         righe: layer.map((l, i) => ({ rowid: i + 1, valori: [null, '', '', l.nome, 'geom', l.nome, l.qml, '', 1, 'Stile DPSH Field Collector', '', null, ora] })) }
                 ];
-                return fileSqlite(tabelle);
+                const file = fileSqlite(tabelle);
+                file.avvisi = avvisi;
+                return file;
             }
 
             // ---- KML e KMZ ----
@@ -360,7 +466,7 @@
                 if (!proj) return;
                 const mem = proj.esportaGis || {};
                 gisStato.formato = typeof formato === 'string' ? formato : mem.formato || 'gpkg';
-                gisStato.scelti = Object.assign({ prove: true, sezioni: true, punti: true, poligoni: true, modello3d: true, colonne3d: true }, mem.scelti || {});
+                gisStato.scelti = Object.assign({ prove: true, sezioni: true, punti: true, poligoni: true, modello3d: true, colonne3d: true, foto: true, note: true, percorso: true }, mem.scelti || {});
                 renderEsportaGis();
                 G('esportaGis').hidden = false;
             }
@@ -389,9 +495,39 @@
             }
             /** Le tavole e la vista 3D si fanno dal 3D: se si è nella mappa 2D, ci si passa. */
             function nel3d() { if (areaMappa.modo !== '3d') modoAreaMappa('3d'); }
-            async function esportaGis() {
+            /** Il file GIS pronto (senza scaricarlo): { blob, nome, avvisi }. Lo usano la finestra «Esporta» e l'assistente. */
+            async function produciFileGis(formato, scelti, opz = {}) {
                 await attendiDatiGrandi(); // dati grandi (004g): niente file con «dpsh-grande:» al posto dell'immagine
-                const proj = state.projects[state.currentProjectId], d = datiVista3dCorrenti || datiVista3d(proj), f = gisStato.formato;
+                const proj = state.projects[state.currentProjectId];
+                if (!proj) throw new Error('Apri prima un progetto.');
+                if (!FORMATI_GIS.includes(formato)) throw new Error('Il formato è gpkg, kmz oppure kml.');
+                if (!Object.values(scelti).some(Boolean)) throw new Error('Scegli almeno un livello da esportare.');
+                const d = datiVista3dCorrenti || datiVista3d(proj), nome = 'DPSH_' + (proj.name || 'progetto').replace(/[^\w\-]+/g, '_');
+                if (formato === 'gpkg') {
+                    const immagini = scelti.foto ? await immaginiFotoGis(proj) : null, avviso = [];
+                    if (immagini && pesoImmaginiGis(immagini) > FOTO_GIS_BUDGET_BYTE) {
+                        // Le foto pesano troppo: si comprimono (se l'utente vuole) fino a farle entrare
+                        const MB = Math.round(pesoImmaginiGis(immagini) / 1e6), limite = Math.round(FOTO_GIS_BUDGET_BYTE / 1e6);
+                        const si = opz.comprimiFoto !== undefined ? opz.comprimiFoto : opz.chiedi ? await opz.chiedi(MB, limite) : false;
+                        if (si) { await comprimiImmaginiGis(immagini); if (pesoImmaginiGis(immagini) <= FOTO_GIS_BUDGET_BYTE) avviso.push('Foto compresse per entrare nel file.'); }
+                        else if (opz.comprimiFoto === undefined && !opz.chiedi) avviso.push(`Le foto pesano ${MB} MB, più di ${limite} MB: per metterle tutte serve comprimerle (comprimi_foto: true).`);
+                    }
+                    const byte = geopackageGis(proj, d, scelti, immagini);
+                    return { blob: new Blob([byte], { type: 'application/geopackage+sqlite3' }), nome: nome + '.gpkg', avvisi: [...avviso, ...(byte.avvisi || [])] };
+                }
+                const kmz = formato === 'kmz', { testo, icone } = documentoKmlGis(proj, scelti, kmz);
+                return kmz ? { blob: buildZipBlob([{ name: 'doc.kml', bytes: new TextEncoder().encode(testo) }, ...icone]), nome: nome + '.kmz', avvisi: [] }
+                    : { blob: new Blob([testo], { type: 'application/vnd.google-earth.kml+xml' }), nome: nome + '.kml', avvisi: [] };
+            }
+            /** I livelli che si possono esportare ora nel formato dato: [{ id, nome, n, disponibile }]. */
+            function livelliGisDisponibili(formato) {
+                const proj = state.projects[state.currentProjectId];
+                if (!proj) throw new Error('Apri prima un progetto.');
+                const d = datiVista3dCorrenti || datiVista3d(proj);
+                return LIVELLI_GIS.map(l => { const n = contaLivelloGis(proj, d, l.id); return { id: l.id, nome: l.nome, n, disponibile: n > 0 && (!l.solo || l.solo === formato) }; });
+            }
+            async function esportaGis() {
+                const f = gisStato.formato;
                 if (!FORMATI_GIS.includes(f)) {
                     G('esportaGis').hidden = true;
                     if (f === 'tavole') { nel3d(); apriTavole3d(false); }
@@ -402,15 +538,11 @@
                 const scelti = {};
                 G('gisLivelli').querySelectorAll('[data-livello-gis]').forEach(c => { scelti[c.dataset.livelloGis] = c.checked && !c.disabled; });
                 if (!Object.values(scelti).some(Boolean)) { appAlert('Scegli almeno un livello da esportare.'); return; }
-                const nome = 'DPSH_' + (proj.name || 'progetto').replace(/[^\w\-]+/g, '_');
                 try {
-                    if (gisStato.formato === 'gpkg') scaricaBlobFile(new Blob([geopackageGis(proj, d, scelti)], { type: 'application/geopackage+sqlite3' }), nome + '.gpkg');
-                    else {
-                        const kmz = gisStato.formato === 'kmz', { testo, icone } = documentoKmlGis(proj, scelti, kmz);
-                        if (kmz) scaricaBlobFile(buildZipBlob([{ name: 'doc.kml', bytes: new TextEncoder().encode(testo) }, ...icone]), nome + '.kmz');
-                        else scaricaBlobFile(new Blob([testo], { type: 'application/vnd.google-earth.kml+xml' }), nome + '.kml');
-                    }
+                    const { blob, nome, avvisi } = await produciFileGis(f, scelti, { chiedi: (MB, lim) => appConfirm(`Le foto pesano ${MB} MB, più del limite di ${lim} MB.\n\nLe comprimo fino a farle entrare nel file? Se dici no, le foto oltre il limite restano senza immagine (ci sono posizione e dati).`) });
+                    scaricaBlobFile(blob, nome);
                     G('esportaGis').hidden = true;
+                    if (avvisi.length) mostraToast(avvisi.join(' '));
                 } catch (e) { appAlert(e.message || String(e)); }
             }
             G('btnGpkgSezioni3d').addEventListener('click', () => apriEsportaGis('gpkg'));

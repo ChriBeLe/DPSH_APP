@@ -141,6 +141,20 @@
                     }
                     return esito;
                 } },
+                { n: 'avvisi_dati', d: 'Elenca gli avvisi sui dati strani (passo, aste, strumento, βt, falda) di una prova o di tutto un progetto. Solo lettura: non cambia niente. Senza id usa la prova aperta.', p: { progetto_id: { type: 'string' }, prova_id: { type: 'string' }, tutto_il_progetto: { type: 'boolean' } }, run: a => {
+                    const p = (state.projects || {})[a.progetto_id || state.currentProjectId];
+                    if (!p) throw new Error('Progetto non trovato.');
+                    if (state.uiState && state.uiState.currentView === 'field' && p.id === state.currentProjectId) syncStateToProject();
+                    if (a.tutto_il_progetto) return avvisiDatiProgetto(p);
+                    const sid = a.prova_id || state.currentSurveyId;
+                    if (!p.surveys || !p.surveys[sid]) throw new Error('Prova non trovata.');
+                    return { survId: sid, avvisi: avvisiDatiProva(p.surveys[sid]) };
+                } },
+                { n: 'riepilogo_giornata', d: 'Riepilogo di una giornata di lavoro in tutti i progetti: prove, intervalli, metri, colpi, foto, orari, avvisi. giorno = AAAA-MM-GG (senza: oggi). Solo lettura.', p: { giorno: { type: 'string' } }, run: a => {
+                    if (state.uiState && state.uiState.currentView === 'field') syncStateToProject();
+                    const r = riepilogoGiornata(state, a.giorno);
+                    return Object.assign({ testo: testoRiepilogoGiornata(r) }, r);
+                } },
                 { n: 'elenco_comandi', d: 'Elenca i comandi dell\'app disponibili adesso, da usare con esegui_comando.', p: {}, run: () => comandiPc().filter(c => c[4] && c[3]).map(c => c[1]) },
                 { n: 'vai_a', d: 'Apre una schermata: home (progetti), project (scheda del progetto) o field (la prova). Con progetto_id/prova_id apre quelli.', p: { vista: { type: 'string', enum: ['home', 'project', 'field'] }, progetto_id: { type: 'string' }, prova_id: { type: 'string' } }, req: ['vista'], run: a => {
                     if (a.progetto_id) aiAttiva(a.progetto_id, a.prova_id);
@@ -292,6 +306,30 @@
                     if (a.colpi != null) l.colpi = a.colpi; if (a.note != null) l.note = String(a.note);
                     segnaIntervalloModificato(l, prima); saveState(); updateUI(); return { ok: true };
                 } },
+                // --- mappa 2D: isoipse e ombreggiatura calcolate dal DTM del progetto aperto ---
+                { n: 'leggi_isoipse_ombreggiatura', d: 'Legge le scelte della mappa 2D su isoipse (curve di livello) e ombreggiatura del rilievo, e se il progetto aperto ha il DTM (senza, non si possono accendere).', p: {}, run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Nessun progetto aperto.');
+                    const imp = impostazioniMappa2d(), dtm = pr.dtm;
+                    return { haDtm: !!dtm, isoipse: { accese: imp.isoipse.on, passo_m: imp.isoipse.passo || 'automatico', passoUsato_m: dtm ? passoIsoipse(dtm, imp.isoipse.passo) : null, opacita: imp.isoipse.op },
+                        ombreggiatura: { accesa: imp.ombra.on, luce_azimut: imp.ombra.az, luce_altezza: imp.ombra.alt, esagerazione: imp.ombra.es, opacita: imp.ombra.op } };
+                } },
+                { n: 'imposta_isoipse_ombreggiatura', d: 'Accende o spegne le isoipse e l\'ombreggiatura del rilievo sulla mappa 2D del progetto aperto, e ne cambia le scelte. Si calcolano dal DTM del progetto (anche senza rete); serve il DTM. Passare solo i campi da cambiare. passo_m: distanza tra le curve in metri (0 = automatica). luce_azimut: da dove viene la luce, gradi dal Nord (315 = Nord-Ovest). esagerazione: rilievo accentuato da 0,5 a 5.', p: { isoipse: { type: 'boolean' }, passo_m: { type: 'number' }, isoipse_opacita: { type: 'number' }, ombreggiatura: { type: 'boolean' }, luce_azimut: { type: 'number' }, luce_altezza: { type: 'number' }, esagerazione: { type: 'number' }, ombreggiatura_opacita: { type: 'number' } }, w: true,
+                  ds: a => 'Mappa 2D: ' + [a.isoipse != null && (a.isoipse ? 'accendere le isoipse' : 'spegnere le isoipse'), a.passo_m != null && `isoipse ogni ${a.passo_m || 'auto'} m`, a.ombreggiatura != null && (a.ombreggiatura ? 'accendere l\'ombreggiatura' : 'spegnere l\'ombreggiatura'), a.luce_azimut != null && `luce da ${a.luce_azimut}°`, a.luce_altezza != null && `luce a ${a.luce_altezza}°`, a.esagerazione != null && `rilievo ×${a.esagerazione}`].filter(Boolean).join(', '), run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Nessun progetto aperto.');
+                    const imp = impostazioniMappa2d();
+                    if ((a.isoipse || a.ombreggiatura) && !pr.dtm) throw new Error('Il progetto non ha il DTM: si aggiunge dalla schermata del progetto, in «Terreno e sezioni».');
+                    const nu = (v, nome) => { if (!Number.isFinite(v)) throw new Error(nome + ' non valido.'); return v; };
+                    if (a.isoipse != null) imp.isoipse.on = !!a.isoipse;
+                    if (a.passo_m != null) imp.isoipse.passo = Math.max(0, Math.min(1000, nu(a.passo_m, 'Il passo')));
+                    if (a.isoipse_opacita != null) imp.isoipse.op = Math.max(0.1, Math.min(1, nu(a.isoipse_opacita, 'L\'opacità')));
+                    if (a.ombreggiatura != null) imp.ombra.on = !!a.ombreggiatura;
+                    if (a.luce_azimut != null) imp.ombra.az = ((nu(a.luce_azimut, 'L\'azimut') % 360) + 360) % 360;
+                    if (a.luce_altezza != null) imp.ombra.alt = Math.max(5, Math.min(85, nu(a.luce_altezza, 'L\'altezza')));
+                    if (a.esagerazione != null) imp.ombra.es = Math.max(0.5, Math.min(5, nu(a.esagerazione, 'L\'esagerazione')));
+                    if (a.ombreggiatura_opacita != null) imp.ombra.op = Math.max(0.1, Math.min(1, nu(a.ombreggiatura_opacita, 'L\'opacità')));
+                    saveState(); aggiornaLivelli2d(); if (typeof renderLivelli3d === 'function') renderLivelli3d();
+                    return { ok: true, isoipseAccese: imp.isoipse.on, ombreggiaturaAccesa: imp.ombra.on, nota: 'Si vedono nella mappa 2D del progetto.' };
+                } },
                 // --- tavole 2D e 3D del progetto aperto (registro: nome, blocco, versioni, report) ---
                 { n: 'elenco_tavole', d: 'Elenca le tavole salvate del progetto aperto: id, nome, tipo, versione, se è bloccata (consegnata), se va nel report, se i dati delle prove sono cambiati.', p: {}, run: () => {
                     const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
@@ -337,6 +375,30 @@
                     if (a.nome && String(a.nome).trim()) l.nome = String(a.nome).trim().slice(0, 80);
                     if (a.px_per_m > 0.1) l.pxPerM = a.px_per_m;
                     l.forme = forme; saveState(); return { ok: true, id: l.id, forme: forme.length };
+                } },
+                { n: 'mappe_offline_elenco', d: 'Elenca le aree di mappa salvate per l\'uso senza segnale, scaricate o importate da GeoPackage (id, nome, mappa, zoom, tessere, MB) e le mappe che si possono scaricare (id e zoom massimo).', p: {}, run: async () => ({
+                    aree: (await moAree()).map(a => ({ id: a.id, nome: a.nome, mappa: a.fonteNome, zoomDa: a.zmin, zoomA: a.zmax, tessere: a.n, importata: !!a.importata, nonScaricate: a.errori, mb: +((a.byte || 0) / 1048576).toFixed(1), data: a.data })),
+                    mappeScaricabili: moFonti().filter(f => f.ok).map(f => ({ id: f.id, nome: f.nome, zoomMax: f.zoomMax })) }) },
+                { n: 'mappe_offline_scarica', d: 'Scarica e salva una zona di mappa per usarla offline (pochi ettari, poche decine di tessere). zona: prove = attorno alle prove del progetto aperto con margine_m (default 300); vista = quello che si vede sulla mappa 2D aperta. mappa = id da mappe_offline_elenco (default esri-satellite; Google non si può). zoom_da default 15, zoom_a default 19. Max 6000 tessere.',
+                  p: { nome: { type: 'string' }, mappa: { type: 'string' }, zona: { type: 'string', enum: ['prove', 'vista'] }, margine_m: { type: 'number' }, zoom_da: { type: 'number' }, zoom_a: { type: 'number' } }, w: true,
+                  ds: a => `Scaricare la mappa offline «${a.nome || 'Area'}» (${a.zona === 'vista' ? 'zona visibile' : 'attorno alle prove'}, zoom ${a.zoom_da || 15}–${a.zoom_a || 19})`, run: async a => {
+                    const proj = state.projects[state.currentProjectId];
+                    const riquadro = a.zona === 'vista' ? moRiquadroVista() : (proj ? moRiquadroProve(proj, a.margine_m == null ? MO_MARGINE_M : a.margine_m) : null);
+                    if (!riquadro) throw new Error(a.zona === 'vista' ? 'Apri prima la mappa 2D del progetto.' : 'Apri un progetto con almeno una prova con le coordinate GPS.');
+                    const e = await moScaricaDaFinestra({ nome: a.nome || (proj && proj.name) || 'Area', fonteId: a.mappa || 'esri-satellite', riquadro, zmin: a.zoom_da || 15, zmax: a.zoom_a || 19, conferma: false });
+                    if (e.errore) throw new Error(e.errore);
+                    return { ok: true, area_id: e.area.id, tessere: e.area.n, nonScaricate: e.area.errori };
+                } },
+                { n: 'mappe_offline_usa', d: 'Mostra un\'area importata da GeoPackage come mappa di base della mappa 2D e ci inquadra. area_id da mappe_offline_elenco (importata: true). L\'importazione del file la fa l\'utente dalla finestra «Mappe offline» (esegui_comando «Mappe offline»): serve scegliere il file.', p: { area_id: { type: 'string' } }, req: ['area_id'], w: true,
+                  ds: a => `Usare la mappa offline ${a.area_id} come mappa di base`, run: async a => {
+                    const area = (await moAree()).find(x => x.id === a.area_id && x.importata); if (!area) throw new Error('Area importata non trovata.');
+                    const m = mappaProgetto.mappa; if (!m || !areaMappaAperta() || areaMappa.modo !== 'mappa') throw new Error('Apri prima la mappa 2D del progetto.');
+                    mappeOffline.importate = (await moAree()).filter(x => x.importata); sfondoMappaProgetto(area.fonte); renderLivelli3d(); const r = area.riquadro; m.fitBounds([[r.sud, r.ovest], [r.nord, r.est]]); return { ok: true };
+                } },
+                { n: 'mappe_offline_geopackage', d: 'Scarica un\'area di mappa offline come GeoPackage di tessere (.gpkg) da aprire in QGIS. area_id da mappe_offline_elenco.', p: { area_id: { type: 'string' } }, req: ['area_id'], w: true,
+                  ds: a => `Esportare l'area offline ${a.area_id} in GeoPackage`, run: async a => {
+                    const area = (await moAree()).find(x => x.id === a.area_id); if (!area) throw new Error('Area non trovata.');
+                    scaricaBlobFile(new Blob([await moGeopackage(area)], { type: 'application/geopackage+sqlite3' }), 'DPSH_mappa_' + moNomeFile(area.nome) + '.gpkg'); return { ok: true };
                 } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
@@ -399,6 +461,16 @@
                     if (a.campo === 'localita') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header && (sv.header.localita || '') === vecchiaLoc) sv.header.localita = String(a.valore); }); if ((state.header.localita || '') === vecchiaLoc) state.header.localita = String(a.valore); }
                     if (a.campo === 'comune' || a.campo === 'committente') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[a.campo] = String(a.valore); }); state.header[a.campo] = String(a.valore); }
                     saveState(); updateUI(); return { ok: true };
+                } },
+                { n: 'elenco_livelli_gis', d: 'Elenca i livelli che si possono esportare per i GIS (QGIS, Google Earth) dal progetto aperto: id, nome, quanti elementi ci sono, se si possono esportare nel formato dato (gpkg, kmz o kml). Foto con la posizione, note e percorso solo nel GeoPackage.', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] } }, run: a => livelliGisDisponibili(a.formato || 'gpkg') },
+                { n: 'esporta_gis', d: 'Esporta il progetto aperto per i GIS e scarica il file: gpkg (QGIS, con gli stili; anche foto con la posizione e l\'immagine dentro, note, percorso), kmz o kml (Google Earth). Senza «livelli» mette tutti quelli disponibili; altrimenti un elenco di id (vedi elenco_livelli_gis). Se le foto pesano più di 40 MB l\'avviso lo dice: chiedi all\'utente se comprimerle e richiama con comprimi_foto true (o false per lasciarle fuori).', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] }, livelli: { type: 'array', items: { type: 'string' } }, comprimi_foto: { type: 'boolean' } }, req: ['formato'],
+                  ds: a => `Esportare il progetto in ${String(a.formato).toUpperCase()}`, run: async a => {
+                    const disp = livelliGisDisponibili(a.formato), ok = disp.filter(l => l.disponibile).map(l => l.id), scelti = {};
+                    const voluti = Array.isArray(a.livelli) && a.livelli.length ? a.livelli.map(String) : ok;
+                    voluti.forEach(id => { if (!disp.some(l => l.id === id)) throw new Error('Livello sconosciuto: ' + id); if (ok.includes(id)) scelti[id] = true; });
+                    const f = await produciFileGis(a.formato, scelti, { comprimiFoto: typeof a.comprimi_foto === 'boolean' ? a.comprimi_foto : undefined });
+                    scaricaBlobFile(f.blob, f.nome);
+                    return { ok: true, file: f.nome, livelli: Object.keys(scelti), avvisi: f.avvisi };
                 } },
                 { n: 'leggi_note_progetto', d: 'Legge il testo delle note del progetto aperto.', p: {}, run: () => { const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.'); return { testo: pr.notes && pr.notes.html ? noteHtmlToPlainText(pr.notes.html).slice(0, 6000) : '' }; } },
                 { n: 'aggiungi_nota_progetto', d: 'Aggiunge un paragrafo in fondo alle note del progetto aperto.', p: { testo: { type: 'string' } }, req: ['testo'], w: true,
@@ -488,13 +560,15 @@
 
             // Strumenti inviati a ogni richiesta: sempre i generali; i gruppi specifici solo se la conversazione ne parla
             // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
-            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
+            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'avvisi_dati', 'riepilogo_giornata', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
             const AI_GRUPPI = [
+                { re: /isoips|curve di livello|ombreggi|rilievo|hillshade|mappa 2d|mappa del progetto|dtm/i, t: ['leggi_isoipse_ombreggiatura', 'imposta_isoipse_ombreggiatura'] },
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
                 { re: /bussola|orienta|nord/i, t: ['bussola_telefono'] },
                 { re: /\bqr\b|codic[ei] qr|inquadr|passa.*(telefono|pc)|trasferi/i, t: ['qr_progetto'] },
+                { re: /gis|qgis|geopackage|gpkg|kml|kmz|google earth|esport/i, t: ['elenco_livelli_gis', 'esporta_gis'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
             ];
             function aiStrumentiPer(crono) {
