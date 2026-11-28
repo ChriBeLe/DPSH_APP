@@ -379,6 +379,16 @@
                     if (a.campo === 'comune' || a.campo === 'committente') { Object.values(pr.surveys || {}).forEach(sv => { if (sv && sv.header) sv.header[a.campo] = String(a.valore); }); state.header[a.campo] = String(a.valore); }
                     saveState(); updateUI(); return { ok: true };
                 } },
+                { n: 'elenco_livelli_gis', d: 'Elenca i livelli che si possono esportare per i GIS (QGIS, Google Earth) dal progetto aperto: id, nome, quanti elementi ci sono, se si possono esportare nel formato dato (gpkg, kmz o kml). Foto con la posizione, note e percorso solo nel GeoPackage.', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] } }, run: a => livelliGisDisponibili(a.formato || 'gpkg') },
+                { n: 'esporta_gis', d: 'Esporta il progetto aperto per i GIS e scarica il file: gpkg (QGIS, con gli stili; anche foto con la posizione e l\'immagine dentro, note, percorso), kmz o kml (Google Earth). Senza «livelli» mette tutti quelli disponibili; altrimenti un elenco di id (vedi elenco_livelli_gis). Se le foto pesano più di 40 MB l\'avviso lo dice: chiedi all\'utente se comprimerle e richiama con comprimi_foto true (o false per lasciarle fuori).', p: { formato: { type: 'string', enum: ['gpkg', 'kmz', 'kml'] }, livelli: { type: 'array', items: { type: 'string' } }, comprimi_foto: { type: 'boolean' } }, req: ['formato'],
+                  ds: a => `Esportare il progetto in ${String(a.formato).toUpperCase()}`, run: async a => {
+                    const disp = livelliGisDisponibili(a.formato), ok = disp.filter(l => l.disponibile).map(l => l.id), scelti = {};
+                    const voluti = Array.isArray(a.livelli) && a.livelli.length ? a.livelli.map(String) : ok;
+                    voluti.forEach(id => { if (!disp.some(l => l.id === id)) throw new Error('Livello sconosciuto: ' + id); if (ok.includes(id)) scelti[id] = true; });
+                    const f = await produciFileGis(a.formato, scelti, { comprimiFoto: typeof a.comprimi_foto === 'boolean' ? a.comprimi_foto : undefined });
+                    scaricaBlobFile(f.blob, f.nome);
+                    return { ok: true, file: f.nome, livelli: Object.keys(scelti), avvisi: f.avvisi };
+                } },
                 { n: 'leggi_note_progetto', d: 'Legge il testo delle note del progetto aperto.', p: {}, run: () => { const pr = (state.projects || {})[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.'); return { testo: pr.notes && pr.notes.html ? noteHtmlToPlainText(pr.notes.html).slice(0, 6000) : '' }; } },
                 { n: 'aggiungi_nota_progetto', d: 'Aggiunge un paragrafo in fondo alle note del progetto aperto.', p: { testo: { type: 'string' } }, req: ['testo'], w: true,
                   ds: a => `Aggiungere alle note del progetto: «${String(a.testo).slice(0, 80)}»`, run: a => {
@@ -472,6 +482,7 @@
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /gis|qgis|geopackage|gpkg|kml|kmz|google earth|esport/i, t: ['elenco_livelli_gis', 'esporta_gis'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
             ];
             function aiStrumentiPer(crono) {
