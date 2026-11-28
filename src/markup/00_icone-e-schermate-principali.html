@@ -257,12 +257,17 @@
                     </label>
                     <!-- «Ordina»: lo riempie renderHomeProjects con menuOrdineProgetti. -->
                     <span id="homeOrdineProgetti"></span>
+                    <!-- Le tre viste: Anteprime | Elenco | Mappa (pezzo 071za, renderSchedeVistaHome). -->
+                    <div id="homeVistaProgetti" class="schede-prova schede-vista-home" role="tablist" aria-label="Vista dei progetti"></div>
                 </div>
                 <div id="filtroStatoProgetti" class="pillole"></div>
             </div>
 
             <!-- LISTA DEI PROGETTI: la riempie renderHomeProjects -->
             <div id="homeProjectsContainer" class="home-progetti"></div>
+            <!-- LA VISTA «MAPPA»: un segnaposto per progetto; sotto, i progetti senza GPS (071za). -->
+            <div id="homeMappaProgetti" class="home-mappa" style="display: none;"></div>
+            <div id="homeMappaNota" class="home-mappa-nota" style="display: none;"></div>
         </div>
 
         <!-- LA SCHERMATA PROGETTO (Fase 5, prototipo «Schermata progetto»). Ci si arriva dalla prova
