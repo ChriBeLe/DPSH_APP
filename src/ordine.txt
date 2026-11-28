@@ -186,6 +186,7 @@ js/071i2_pdfa-dal-documento-di-stampa.js
 js/071j_sezioni-tracciate.js
 js/071k_geopackage.js
 js/071l_mappa-progetto.js
+js/071l2_isoipse-ombreggiatura.js
 js/071m_area-mappa.js
 js/071n_disegni.js
 js/071o_stili-livelli.js
@@ -212,5 +213,6 @@ js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
 js/072a_foto-in-ingresso-orienta-e-comprimi.js
 js/072b_leggi-foglio-di-campo.js
+js/072c_avvisi-e-riepilogo-giornata.js
 js/073_assistente-ia.js
 shell/06_fine.html

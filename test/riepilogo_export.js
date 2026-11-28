@@ -11,7 +11,8 @@ function corpo(nome){
   if(i<0) throw new Error('non trovata: '+nome);
   for(let k=i+1;k<righe.length;k++) if(righe[k]==='            }') return righe.slice(i,k+1).join('\n');
 }
-const api=new Function(corpo('avvisiPrimaExport')+'\nreturn { avvisiPrimaExport };')();
+// Gli avvisi sui dati (072c) hanno la loro suite: qui si prova solo il resto.
+const api=new Function('avvisiDatiProva', corpo('avvisiPrimaExport')+'\nreturn { avvisiPrimaExport };')(() => []);
 let ok=0,ko=0; const t=(n,c)=>{ if(c){ok++;console.log('  ok  '+n);} else {ko++;console.log('  KO  '+n);} };
 const copia = o => JSON.parse(JSON.stringify(o));
 

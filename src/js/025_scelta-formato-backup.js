@@ -118,6 +118,7 @@
                         if (vuoto(h.lat) || vuoto(h.lng) || !isFinite(parseFloat(h.lat)) || !isFinite(parseFloat(h.lng))) avvisi.push({ tipo: 'gps', testo: 'Coordinate GPS mancanti' });
                         if (!(s.photos && s.photos.length)) avvisi.push({ tipo: 'foto', testo: 'Nessuna foto' });
                         if (vuoto(h.faldaDa)) avvisi.push({ tipo: 'falda', testo: 'Falda non impostata: nel report comparirà «non rilevata»' });
+                        avvisiDatiProva(s).forEach(a => avvisi.push({ tipo: 'dati', testo: a.testo }));
                         const mancanti = [['committente', 'committente'], ['localita', 'località'], ['date', 'data']]
                             .filter(([campo]) => vuoto(h[campo])).map(([, nome]) => nome);
                         if (mancanti.length) avvisi.push({ tipo: 'intestazione', testo: 'Intestazione senza ' + mancanti.join(', ') });
