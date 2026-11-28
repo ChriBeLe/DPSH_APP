@@ -107,7 +107,7 @@
             const aiUiVietato = id => { const e = aiUiMappa[id], l = ((aiUiSchede[id] || {}).etichetta || '') + ' ' + (e && e.id || ''); return /elimin|cancell|azzer|rimuov|svuot|reset|pulisci|sostitu|cestin|trash|esci/i.test(l); };
             const aiUiSicuro = id => /^(apri|chiudi|indietro|avanti|annulla|mostra|nascondi|cerca|vai|scheda|impostazioni|espandi|comprimi|ok|ho capito)\b/i.test(((aiUiSchede[id] || {}).etichetta || '').trim()) && (aiUiSchede[id] || {}).tipo === 'pulsante';
             const AI_STRUMENTI = [
-                { n: 'stato_app', d: 'Dice in che schermata si è e quale progetto e prova sono aperti.', p: {}, run: () => ({ vista: (state.uiState || {}).currentView, progettoId: state.currentProjectId || null, provaId: state.currentSurveyId || null, progetti: Object.keys(state.projects || {}).length }) },
+                { n: 'stato_app', d: 'Dice in che schermata si è e quale progetto e prova sono aperti.', p: {}, run: () => ({ vista: (state.uiState || {}).currentView, vistaHome: typeof vistaHomeScelta === 'function' ? vistaHomeScelta() : null, progettoId: state.currentProjectId || null, provaId: state.currentSurveyId || null, progetti: Object.keys(state.projects || {}).length }) },
                 { n: 'elenco_progetti', d: 'Elenca tutti i progetti con id, nome, comune e numero di prove.', p: {}, run: () => Object.values(state.projects || {}).map(p => ({ id: p.id, nome: p.name, comune: p.comune, committente: p.committente, data: p.date, prove: Object.keys(p.surveys || {}).length })) },
                 { n: 'leggi_progetto', d: 'Legge un progetto e il riepilogo di ognuna delle sue prove. Senza id usa il progetto aperto.', p: { id: { type: 'string', description: 'id del progetto' } }, run: a => {
                     const p = (state.projects || {})[a.id || state.currentProjectId];
@@ -145,6 +145,16 @@
                     const c = comandiPc().find(x => x[3] && x[4] && x[1].toLowerCase() === String(a.etichetta).toLowerCase());
                     if (!c) throw new Error('Comando non disponibile adesso. Usa elenco_comandi.');
                     c[3](); return { ok: true };
+                } },
+                { n: 'vista_home', d: 'Apre la Home dei progetti nella vista scelta: griglia (anteprime con la miniatura dalla mappa), elenco (righe) o mappa (tutti i progetti su una mappa, quelli senza GPS sotto). Torna anche lo stato delle anteprime di ogni progetto.', p: { vista: { type: 'string', enum: ['griglia', 'elenco', 'mappa'] } }, req: ['vista'], run: a => {
+                    if (typeof switchView === 'function') switchView('home');
+                    if (!scegliVistaHome(a.vista)) throw new Error('Vista sconosciuta: usa griglia, elenco o mappa.');
+                    return Object.assign({ ok: true }, statoAnteprimeHome());
+                } },
+                { n: 'anteprime_progetti', d: 'Dice per ogni progetto se ha l\'anteprima dalla mappa, se ha il GPS e dove sta il centro. Con rifai true rifà le anteprime (di un progetto con progetto_id, o di tutti).', p: { rifai: { type: 'boolean' }, progetto_id: { type: 'string' } }, run: a => {
+                    if (a.progetto_id && !(state.projects || {})[a.progetto_id]) throw new Error('Progetto non trovato.');
+                    const accodati = a.rifai ? accodaMiniatureProgetti(a.progetto_id ? [a.progetto_id] : Object.keys(state.projects || {}), true) : 0;
+                    return Object.assign({ accodati }, statoAnteprimeHome());
                 } },
                 { n: 'crea_progetto', d: 'Crea un nuovo progetto con la sua prima prova e lo apre.', p: { comune: { type: 'string' }, nome: { type: 'string' }, committente: { type: 'string' } }, req: ['comune'], w: true,
                   ds: a => `Creare il progetto «${a.nome || a.comune + ' - Cantiere'}» (comune: ${a.comune}${a.committente ? ', committente: ' + a.committente : ''})`, run: a => {
@@ -545,8 +555,9 @@
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /anteprim|miniatur|griglia|elenco|vista|home/i, t: ['vista_home', 'anteprime_progetti'] },
                 { re: /gis|qgis|geopackage|gpkg|kml|kmz|google earth|esport/i, t: ['elenco_livelli_gis', 'esporta_gis'] },
-                { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
+                { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['vista_home', 'anteprime_progetti', 'crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }
             ];
             function aiStrumentiPer(crono) {
                 const utenti = crono.filter(m => m.r === 'u').slice(-3).map(m => m.t || '').join(' ');
