@@ -94,6 +94,29 @@ const $ = (app, id) => app.d.getElementById(id);
   t('contiene le tessere (JPEG)', gp.length > 65536 * 2 && Buffer.from(gp).includes(Buffer.from([0xFF, 0xD8])));
   t('senza tessere non esporta', await app.E(`moGeopackage({ nome: 'x', fonteNome: 'y', chiavi: [] }).then(() => 'ok', e => e.message)`) === 'Nessuna tessera salvata per questa area.');
 
+  const tab = (n) => app.E(`moLeggiGeopackage(new Uint8Array(__gp).buffer)`);
+  app.w.__gp = Array.from(gp);
+  const letto = app.E('moLeggiGeopackage(new Uint8Array(__gp).buffer)');
+  t(`il GeoPackage esportato da qui si rilegge: ${letto.tessere.length} tessere, nome «${letto.nome}»`, letto.tessere.length === area.n && letto.nome === 'Per la mappa');
+  const [zA, xA, yA] = app.E(`moTessereDi(${JSON.stringify(riq)}, 18, 18)[0]`);
+  t('la riga della tessera è quella XYZ (0 in alto), non capovolta', letto.tessere.some(q => q.z === zA && q.x === xA && q.y === yA));
+  const reale = fs.readFileSync(path.join(__dirname, 'dati', 'tessere_qgis.gpkg'));
+  app.w.__reale = new Uint8Array(reale);
+  const lr = app.E('moLeggiGeopackage(__reale.buffer.slice(__reale.byteOffset, __reale.byteOffset + __reale.byteLength))');
+  t(`un GeoPackage fatto da SQLite vero (indici, pagine da 4 KB, tessere con trabocco): ${lr.tessere.length} tessere su zoom 16 e 17`, lr.nome === 'Ortofoto di prova' && lr.tessere.length === 128 && new Set(lr.tessere.map(q => q.z)).size === 2);
+  t('i byte delle tessere con trabocco sono interi (JPEG, ultimi due byte = x e y)', lr.tessere.every(q => q.tipo === 'image/jpeg' && q.dati[q.dati.length - 2] === (q.x & 255) && q.dati[q.dati.length - 1] === (q.y & 255)));
+  t('un file qualunque non è accettato', app.E(`(() => { try { moLeggiGeopackage(new Uint8Array(200).buffer); return ''; } catch (e) { return e.message; } })()`) === 'Non è un file GeoPackage.');
+  const imp = await app.E('moImporta(__reale.buffer.slice(__reale.byteOffset, __reale.byteOffset + __reale.byteLength), "file")');
+  t('importato: diventa un\'area con riquadro vicino a Nardò e una mappa di base', imp.importata && imp.n === 128 && imp.riquadro.sud < 40.197 && imp.riquadro.nord > 40.197 && imp.zmax === 17);
+  await app.E('moAggiornaImportate()');
+  t('compare tra le mappe di base della mappa 2D', app.E(`SFONDI_2D().some(v => v[0] === ${JSON.stringify(imp.fonte)} && /Offline/.test(v[1]))`));
+  const tImp = app.E(`moRendiOffline(__falso, ${JSON.stringify(imp.fonte)}).createTile({ z: ${lr.tessere[0].z}, x: ${lr.tessere[0].x}, y: ${lr.tessere[0].y} }, () => {})`);
+  await attesa(80);
+  t('le sue tessere si leggono dal database', /^blob:test-/.test(tImp.src));
+  await app.E(`moEliminaArea(${JSON.stringify(imp.id)})`);
+  await app.E('moAggiornaImportate()');
+  t('eliminata, sparisce anche dalle mappe di base', !app.E('SFONDI_2D().some(v => /^gpkg:/.test(v[0]))'));
+
   console.log('--- La finestra ---');
   app.E('apriMappeOffline()');
   await attesa(80);
@@ -132,6 +155,7 @@ const $ = (app, id) => app.d.getElementById(id);
   await app.E(`${T('mappe_offline_geopackage')}.run({ area_id: ${JSON.stringify(sc.area_id)} })`);
   t('«mappe_offline_geopackage» esporta', app.scaricati.filter(s => /\.gpkg$/.test(s.nome)).length === 2);
   t('chiedono conferma le due che scaricano', app.E(`${T('mappe_offline_scarica')}.w === true && ${T('mappe_offline_geopackage')}.w === true && !${T('mappe_offline_elenco')}.w`));
+  t('«mappe_offline_usa» c\'è, chiede conferma e senza la mappa aperta lo dice', app.E(`${T('mappe_offline_usa')}.w === true`) && await app.E(`${T('mappe_offline_usa')}.run({ area_id: 'x' }).then(() => '', e => e.message)`) === 'Area importata non trovata.');
   t('nessuno strumento elimina le mappe', !app.E('AI_STRUMENTI.map(s => s.n)').some(n => /mappe_offline.*(elimin|cancell)/.test(n)));
 
   console.log(`\n${ok} ok, ${ko} KO`);

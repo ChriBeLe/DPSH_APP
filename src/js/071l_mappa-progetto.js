@@ -152,8 +152,14 @@
             /** Le mappe di base: i satelliti (Esri, Google), le strade di Google e i WMS (pronti, come la
              * CTR, e i propri, gli stessi dell'immagine sul terreno del 3D). La scelta è ricordata. */
             const SFONDI_2D = () => [['esri-satellite', 'Satellite (Esri)'], ['google-satellite', 'Satellite (Google)'], ['google-strade', 'Strade (Google)']]
-                .concat(wmsDisponibili().map((w, i) => ['wms:' + i, w.nome]));
+                .concat(wmsDisponibili().map((w, i) => ['wms:' + i, w.nome]), mappeOffline.importate.map(a => [a.fonte, 'Offline: ' + a.nome]));
             function livelloSfondo2d(id) {
+                const imp = id.startsWith('gpkg:') && mappeOffline.importate.find(a => a.fonte === id);
+                if (imp) { // GeoPackage importato: solo tessere salvate, dove non ci sono resta vuoto
+                    const l = L.tileLayer('', { minZoom: Math.max(0, imp.zmin - 1), maxNativeZoom: imp.zmax, maxZoom: 22, attribution: 'GeoPackage importato' });
+                    l.getTileUrl = () => 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+                    return moRendiOffline(l, id);
+                }
                 const w = id.startsWith('wms:') && wmsDisponibili()[Number(id.slice(4))];
                 // con le tessere salvate in «Mappe offline» (071za) la mappa si vede anche senza rete
                 if (w) return moRendiOffline(L.tileLayer.wms(w.url, { layers: w.layer || '', format: 'image/png', transparent: false, version: '1.1.1', maxZoom: 20, attribution: w.attribuzione || 'WMS' }), moChiaveWms(w));

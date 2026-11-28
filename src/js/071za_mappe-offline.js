@@ -200,7 +200,7 @@
                 return esito;
             }
 
-            /** L'area come GeoPackage di tessere (EPSG:3857, schema OGC 12-128), da aprire in QGIS. */
+            /** L'area come GeoPackage di tessere (EPSG:3857, schema OGC 12-128), da aprire in QGIS. In un GeoPackage la riga 0 è in alto, come negli XYZ del web. */
             async function moGeopackage(area) {
                 const ora = new Date().toISOString().replace(/\.(\d{3})\d*Z$/, '.$1Z');
                 const righe = [];
@@ -208,7 +208,7 @@
                     const r = await moLeggi(k);
                     if (!r) continue;
                     const { z, x, y } = moDaChiave(k);
-                    righe.push({ rowid: righe.length + 1, valori: [null, z, x, Math.pow(2, z) - 1 - y, new Uint8Array(r.dati)] });
+                    righe.push({ rowid: righe.length + 1, valori: [null, z, x, y, new Uint8Array(r.dati)] });
                 }
                 if (!righe.length) throw new Error('Nessuna tessera salvata per questa area.');
                 const zoom = [...new Set(righe.map(r => r.valori[1]))].sort((a, b) => a - b);
@@ -230,6 +230,124 @@
                     { nome: 'tessere', sql: 'CREATE TABLE tessere (id INTEGER PRIMARY KEY, zoom_level INTEGER NOT NULL, tile_column INTEGER NOT NULL, tile_row INTEGER NOT NULL, tile_data BLOB NOT NULL)', righe }
                 ];
                 return fileSqlite(tabelle);
+            }
+
+
+            // ---- Importare un GeoPackage di tessere (fatto in QGIS o esportato da qui) ----
+            // Un lettore minimo di SQLite: solo le tabelle (alberi B), senza indici né SQL. Basta per
+            // gpkg_contents, gpkg_tile_matrix_set, gpkg_tile_matrix e la tabella delle tessere.
+            // Si accettano solo tessere 256×256 in Web Mercator (EPSG:3857) con la griglia dei servizi web,
+            // quella che QGIS e GDAL scrivono con «GoogleMapsCompatible»: altre griglie darebbero una mappa spostata.
+            function moLeggiSqlite(buf) {
+                const b = new Uint8Array(buf), dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+                if (b.length < 100 || new TextDecoder().decode(b.subarray(0, 15)) !== 'SQLite format 3') throw new Error('Non è un file GeoPackage.');
+                const p0 = dv.getUint16(16), P = p0 === 1 ? 65536 : p0, U = P - b[20], npag = Math.floor(b.length / P);
+                if (dv.getUint32(56) > 1) throw new Error('GeoPackage con testo UTF-16: non lo so leggere.');
+                const X = U - 35, M = Math.floor((U - 12) * 32 / 255) - 23;
+                const pag = n => { if (n < 1 || n > npag) throw new Error('GeoPackage danneggiato.'); return (n - 1) * P; };
+                const varint = (o) => { let v = 0; for (let i = 0; i < 9; i++) { const c = b[o + i]; if (i === 8) return [v * 256 + c, 9]; v = v * 128 + (c & 0x7f); if (!(c & 0x80)) return [v, i + 1]; } };
+                const dec = new TextDecoder();
+                const record = (pl) => {
+                    const [hl, n0] = varint0(pl, 0), tipi = [];
+                    for (let o = n0; o < hl;) { const [t, n] = varint0(pl, o); tipi.push(t); o += n; }
+                    let o = hl; const out = [];
+                    tipi.forEach(t => {
+                        const dvp = new DataView(pl.buffer, pl.byteOffset, pl.byteLength);
+                        if (t === 0) out.push(null);
+                        else if (t >= 1 && t <= 6) { const n = [0, 1, 2, 3, 4, 6, 8][t]; let v = 0; for (let i = 0; i < n; i++) v = v * 256 + pl[o + i]; if (pl[o] & 0x80 && n < 7) v -= Math.pow(256, n); out.push(v); o += n; }
+                        else if (t === 7) { out.push(dvp.getFloat64(o)); o += 8; }
+                        else if (t === 8 || t === 9) out.push(t - 8);
+                        else if (t >= 12) { const n = t % 2 ? (t - 13) / 2 : (t - 12) / 2, d = pl.subarray(o, o + n); out.push(t % 2 ? dec.decode(d) : d); o += n; }
+                        else throw new Error('GeoPackage danneggiato.');
+                    });
+                    return out;
+                };
+                const varint0 = (a, o) => { let v = 0; for (let i = 0; i < 9; i++) { const c = a[o + i]; if (i === 8) return [v * 256 + c, 9]; v = v * 128 + (c & 0x7f); if (!(c & 0x80)) return [v, i + 1]; } };
+                /** Le righe di una tabella: [{ rowid, v: [valori] }]. */
+                const righe = (radice) => {
+                    const out = [], pila = [radice]; let visitate = 0;
+                    while (pila.length) {
+                        if (++visitate > npag + 1) throw new Error('GeoPackage danneggiato.');
+                        const n = pila.pop(), base = pag(n), h = base + (n === 1 ? 100 : 0), tipo = b[h], celle = dv.getUint16(h + 3);
+                        if (tipo === 0x05) {
+                            pila.push(dv.getUint32(h + 8));
+                            for (let i = celle - 1; i >= 0; i--) pila.push(dv.getUint32(base + dv.getUint16(h + 12 + 2 * i)));
+                        } else if (tipo === 0x0d) {
+                            for (let i = 0; i < celle; i++) {
+                                let o = base + dv.getUint16(h + 8 + 2 * i);
+                                const [tot, n1] = varint(o); o += n1; const [rowid, n2] = varint(o); o += n2;
+                                const loc = tot <= X ? tot : (() => { const K = M + ((tot - M) % (U - 4)); return K <= X ? K : M; })();
+                                let pl;
+                                if (loc === tot) pl = b.subarray(o, o + tot);
+                                else {
+                                    pl = new Uint8Array(tot); pl.set(b.subarray(o, o + loc)); let fatto = loc, ov = dv.getUint32(o + loc), giri = 0;
+                                    while (fatto < tot && ov && giri++ <= npag) { const q = pag(ov), k = Math.min(U - 4, tot - fatto); pl.set(b.subarray(q + 4, q + 4 + k), fatto); fatto += k; ov = dv.getUint32(q); }
+                                    if (fatto < tot) throw new Error('GeoPackage danneggiato.');
+                                }
+                                out.push({ rowid, v: record(pl) });
+                            }
+                        } else throw new Error('GeoPackage danneggiato.');
+                    }
+                    return out;
+                };
+                const master = righe(1).filter(r => r.v[0] === 'table').map(r => ({ nome: r.v[1], radice: r.v[3], sql: r.v[4] || '' }));
+                /** Una tabella come elenco di oggetti { colonna: valore }. */
+                return (nome) => {
+                    const m = master.find(x => x.nome === nome);
+                    if (!m) return null;
+                    const corpo = m.sql.slice(m.sql.indexOf('(') + 1, m.sql.lastIndexOf(')')), col = []; let prof = 0, cur = '';
+                    for (const c of corpo) { if (c === '(') prof++; if (c === ')') prof--; if (c === ',' && !prof) { col.push(cur); cur = ''; } else cur += c; }
+                    col.push(cur);
+                    const nomi = col.map(c => c.trim()).filter(c => !/^(constraint|primary|unique|foreign|check)\b/i.test(c)).map(c => c.split(/\s+/)[0].replace(/["`\[\]]/g, ''));
+                    const ipk = col.findIndex(c => /integer\s+primary\s+key/i.test(c));
+                    return righe(m.radice).map(r => { const o = {}; nomi.forEach((n, i) => { o[n] = r.v[i] === null && i === ipk ? r.rowid : r.v[i]; }); return o; });
+                };
+            }
+            /** Le tessere di un GeoPackage: { nome, tessere: [{ z, x, y, tipo, dati }] }. Lancia un errore che spiega perché no. */
+            function moLeggiGeopackage(buf) {
+                const tab = moLeggiSqlite(buf);
+                const contenuti = tab('gpkg_contents'), insiemi = tab('gpkg_tile_matrix_set'), matrici = tab('gpkg_tile_matrix');
+                const c = contenuti && contenuti.find(r => r.data_type === 'tiles');
+                if (!c || !insiemi || !matrici) throw new Error('Questo GeoPackage non contiene una mappa a tessere (solo dati vettoriali?).');
+                const ins = insiemi.find(r => r.table_name === c.table_name);
+                if (!ins || ins.srs_id !== 3857) throw new Error(`Le tessere sono in EPSG:${ins ? ins.srs_id : '?'}: servono in Web Mercator (EPSG:3857). In QGIS: «Genera tessere XYZ (GeoPackage)» o GDAL con TILING_SCHEME=GoogleMapsCompatible.`);
+                if (Math.abs(ins.min_x + MO_MONDO_3857) > 1 || Math.abs(ins.max_x - MO_MONDO_3857) > 1 || Math.abs(ins.min_y + MO_MONDO_3857) > 1 || Math.abs(ins.max_y - MO_MONDO_3857) > 1)
+                    throw new Error('La griglia delle tessere non è quella dei servizi web (tutto il mondo in Web Mercator): la mappa risulterebbe spostata.');
+                const mm = matrici.filter(r => r.table_name === c.table_name);
+                if (!mm.length || mm.some(r => r.tile_width !== 256 || r.tile_height !== 256 || r.matrix_width !== Math.pow(2, r.zoom_level) || r.matrix_height !== Math.pow(2, r.zoom_level)))
+                    throw new Error('Le tessere non sono 256×256 sulla griglia dei servizi web: non le so usare.');
+                const rr = tab(c.table_name) || [], tessere = [];
+                rr.forEach(r => {
+                    const d = r.tile_data;
+                    if (!(d instanceof Uint8Array) || !d.length || !mm.some(m => m.zoom_level === r.zoom_level)) return;
+                    const tipo = d[0] === 0xFF && d[1] === 0xD8 ? 'image/jpeg' : d[0] === 0x89 && d[1] === 0x50 ? 'image/png' : d[0] === 0x52 && d[1] === 0x49 ? 'image/webp' : null;
+                    if (tipo) tessere.push({ z: r.zoom_level, x: r.tile_column, y: r.tile_row, tipo, dati: d });
+                });
+                if (!tessere.length) throw new Error('Il GeoPackage non ha tessere utilizzabili (JPEG, PNG o WebP).');
+                return { nome: c.identifier || c.table_name, tessere };
+            }
+            /** Salva un GeoPackage come area (fonte «gpkg:id»), che diventa una mappa di base della mappa 2D. */
+            async function moImporta(buf, nomeFile) {
+                const g = moLeggiGeopackage(buf);
+                if (g.tessere.length > 20000) throw new Error(`Troppe tessere (${g.tessere.length}): il massimo è 20000.`);
+                const id = Date.now().toString(36), fonte = 'gpkg:' + id, chiavi = [];
+                let byte = 0;
+                try {
+                    for (const t of g.tessere) { const k = moChiave(fonte, t.z, t.x, t.y); await moScrivi(k, t.tipo, t.dati.slice().buffer); chiavi.push(k); byte += t.dati.length; }
+                } catch (e) { await moPotaTessere(chiavi, await moAree(), null); throw new Error('Non riesco a salvare le tessere: ' + (e.message || e)); }
+                const zs = g.tessere.map(t => t.z), zmin = Math.min(...zs), zmax = Math.max(...zs), alto = g.tessere.filter(t => t.z === zmax);
+                const lng = (x, z) => x / Math.pow(2, z) * 360 - 180, lat = (y, z) => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / Math.pow(2, z)))) * 180 / Math.PI;
+                const x0 = Math.min(...alto.map(t => t.x)), x1 = Math.max(...alto.map(t => t.x)) + 1, y0 = Math.min(...alto.map(t => t.y)), y1 = Math.max(...alto.map(t => t.y)) + 1;
+                const area = { id: 'mo-' + id, nome: String(g.nome || nomeFile || 'GeoPackage').slice(0, 60), fonte, fonteChiave: fonte, fonteNome: 'GeoPackage importato', importata: true,
+                    riquadro: { sud: lat(y1, zmax), nord: lat(y0, zmax), ovest: lng(x0, zmax), est: lng(x1, zmax) }, zmin, zmax, n: chiavi.length, errori: 0, byte, data: new Date().toISOString(), chiavi };
+                await moRichiesta('aree', 'readwrite', s => s.put(area));
+                return area;
+            }
+            /** Le aree importate si vedono tra le mappe di base della mappa 2D (SFONDI_2D in 071l). */
+            mappeOffline.importate = [];
+            async function moAggiornaImportate() {
+                mappeOffline.importate = (await moAree()).filter(a => a.importata);
+                if (mappaProgetto.mappa && document.getElementById('selSfondo2d')) sfondoMappaProgetto(mappaProgetto.stile);
             }
 
             // ---- La finestra ----
@@ -262,10 +380,11 @@
                 moRiepilogo();
                 moAggiorna();
                 const aree = await moAree();
+                mappeOffline.importate = aree.filter(a => a.importata);
                 MOE('moAree').innerHTML = aree.length ? aree.map(a => `<div class="mo-area" data-area="${escapeHtmlDidascalia(a.id)}">
                     <div><b>${escapeHtmlDidascalia(a.nome)}</b><br><span class="t-didascalia">${escapeHtmlDidascalia(a.fonteNome)} · zoom ${a.zmin}–${a.zmax} · ${a.n.toLocaleString('it-IT')} tessere · ${moMB(a.byte || a.n * MO_BYTE_MEDI)} · ${new Date(a.data).toLocaleDateString('it-IT')}${a.errori ? ` · ${a.errori} non scaricate` : ''}</span></div>
                     <div class="trova-dtm-filtri">
-                        <button type="button" class="bt" data-mo="vai" title="Porta la mappa su quest'area"><svg class="ico"><use href="#i-map"/></svg>Vai</button>
+                        ${a.importata ? `<button type="button" class="bt" data-mo="usa" title="Mostra questa mappa come mappa di base"><svg class="ico"><use href="#i-layers"/></svg>Usa</button>` : ''}<button type="button" class="bt" data-mo="vai" title="Porta la mappa su quest'area"><svg class="ico"><use href="#i-map"/></svg>Vai</button>
                         <button type="button" class="bt" data-mo="gpkg" title="GeoPackage di tessere, per QGIS"><svg class="ico"><use href="#i-download"/></svg>GeoPackage</button>
                         <button type="button" class="bt" data-mo="elimina"><svg class="ico"><use href="#i-trash"/></svg>Elimina</button>
                     </div></div>`).join('') : '<p class="t-didascalia">Nessuna area salvata. Scarica una zona prima di andare in campo.</p>';
@@ -318,11 +437,28 @@
                     const m = mappaProgetto.mappa;
                     if (!m || !areaMappaAperta() || areaMappa.modo !== 'mappa') { moEsito('Apri prima la mappa 2D del progetto.', true); return; }
                     const r = area.riquadro; m.fitBounds([[r.sud, r.ovest], [r.nord, r.est]]); chiudiMappeOffline();
+                } else if (b.dataset.mo === 'usa') {
+                    const m = mappaProgetto.mappa;
+                    if (!m || !areaMappaAperta() || areaMappa.modo !== 'mappa') { moEsito('Apri prima la mappa 2D del progetto.', true); return; }
+                    sfondoMappaProgetto(area.fonte); renderLivelli3d(); const r = area.riquadro; m.fitBounds([[r.sud, r.ovest], [r.nord, r.est]]); chiudiMappeOffline();
                 } else if (b.dataset.mo === 'gpkg') {
                     try { scaricaBlobFile(new Blob([await moGeopackage(area)], { type: 'application/geopackage+sqlite3' }), 'DPSH_mappa_' + moNomeFile(area.nome) + '.gpkg'); } catch (err) { moEsito(err.message || String(err), true); }
                 } else if (b.dataset.mo === 'elimina') {
                     if (!(await appConfirm(`Eliminare l'area «${area.nome}»? Le tessere salvate si cancellano da questo dispositivo.`))) return;
-                    await moEliminaArea(area.id); moRender();
+                    await moEliminaArea(area.id); await moAggiornaImportate(); moRender();
                 }
             });
+            MOE('moImporta').addEventListener('click', () => MOE('moFile').click());
+            MOE('moFile').addEventListener('change', async () => {
+                const f = MOE('moFile').files[0]; MOE('moFile').value = '';
+                if (!f) return;
+                moEsito('Leggo il GeoPackage…');
+                try {
+                    const area = await moImporta(await f.arrayBuffer(), f.name.replace(/\.gpkg$/i, ''));
+                    await moAggiornaImportate();
+                    moEsito(`Importata «${area.nome}»: ${area.n} tessere (zoom ${area.zmin}–${area.zmax}). Si sceglie tra le mappe di base della mappa 2D, o con «Usa».`);
+                } catch (e) { moEsito(e.message || String(e), true); }
+                moRender();
+            });
+            moAggiornaImportate().catch(() => {});
             MOE('btnMappeOffline').addEventListener('click', apriMappeOffline);
