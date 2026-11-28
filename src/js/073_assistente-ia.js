@@ -271,6 +271,30 @@
                     if (a.colpi != null) l.colpi = a.colpi; if (a.note != null) l.note = String(a.note);
                     segnaIntervalloModificato(l, prima); saveState(); updateUI(); return { ok: true };
                 } },
+                // --- mappa 2D: isoipse e ombreggiatura calcolate dal DTM del progetto aperto ---
+                { n: 'leggi_isoipse_ombreggiatura', d: 'Legge le scelte della mappa 2D su isoipse (curve di livello) e ombreggiatura del rilievo, e se il progetto aperto ha il DTM (senza, non si possono accendere).', p: {}, run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Nessun progetto aperto.');
+                    const imp = impostazioniMappa2d(), dtm = pr.dtm;
+                    return { haDtm: !!dtm, isoipse: { accese: imp.isoipse.on, passo_m: imp.isoipse.passo || 'automatico', passoUsato_m: dtm ? passoIsoipse(dtm, imp.isoipse.passo) : null, opacita: imp.isoipse.op },
+                        ombreggiatura: { accesa: imp.ombra.on, luce_azimut: imp.ombra.az, luce_altezza: imp.ombra.alt, esagerazione: imp.ombra.es, opacita: imp.ombra.op } };
+                } },
+                { n: 'imposta_isoipse_ombreggiatura', d: 'Accende o spegne le isoipse e l\'ombreggiatura del rilievo sulla mappa 2D del progetto aperto, e ne cambia le scelte. Si calcolano dal DTM del progetto (anche senza rete); serve il DTM. Passare solo i campi da cambiare. passo_m: distanza tra le curve in metri (0 = automatica). luce_azimut: da dove viene la luce, gradi dal Nord (315 = Nord-Ovest). esagerazione: rilievo accentuato da 0,5 a 5.', p: { isoipse: { type: 'boolean' }, passo_m: { type: 'number' }, isoipse_opacita: { type: 'number' }, ombreggiatura: { type: 'boolean' }, luce_azimut: { type: 'number' }, luce_altezza: { type: 'number' }, esagerazione: { type: 'number' }, ombreggiatura_opacita: { type: 'number' } }, w: true,
+                  ds: a => 'Mappa 2D: ' + [a.isoipse != null && (a.isoipse ? 'accendere le isoipse' : 'spegnere le isoipse'), a.passo_m != null && `isoipse ogni ${a.passo_m || 'auto'} m`, a.ombreggiatura != null && (a.ombreggiatura ? 'accendere l\'ombreggiatura' : 'spegnere l\'ombreggiatura'), a.luce_azimut != null && `luce da ${a.luce_azimut}°`, a.luce_altezza != null && `luce a ${a.luce_altezza}°`, a.esagerazione != null && `rilievo ×${a.esagerazione}`].filter(Boolean).join(', '), run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Nessun progetto aperto.');
+                    const imp = impostazioniMappa2d();
+                    if ((a.isoipse || a.ombreggiatura) && !pr.dtm) throw new Error('Il progetto non ha il DTM: si aggiunge dalla schermata del progetto, in «Terreno e sezioni».');
+                    const nu = (v, nome) => { if (!Number.isFinite(v)) throw new Error(nome + ' non valido.'); return v; };
+                    if (a.isoipse != null) imp.isoipse.on = !!a.isoipse;
+                    if (a.passo_m != null) imp.isoipse.passo = Math.max(0, Math.min(1000, nu(a.passo_m, 'Il passo')));
+                    if (a.isoipse_opacita != null) imp.isoipse.op = Math.max(0.1, Math.min(1, nu(a.isoipse_opacita, 'L\'opacità')));
+                    if (a.ombreggiatura != null) imp.ombra.on = !!a.ombreggiatura;
+                    if (a.luce_azimut != null) imp.ombra.az = ((nu(a.luce_azimut, 'L\'azimut') % 360) + 360) % 360;
+                    if (a.luce_altezza != null) imp.ombra.alt = Math.max(5, Math.min(85, nu(a.luce_altezza, 'L\'altezza')));
+                    if (a.esagerazione != null) imp.ombra.es = Math.max(0.5, Math.min(5, nu(a.esagerazione, 'L\'esagerazione')));
+                    if (a.ombreggiatura_opacita != null) imp.ombra.op = Math.max(0.1, Math.min(1, nu(a.ombreggiatura_opacita, 'L\'opacità')));
+                    saveState(); aggiornaLivelli2d(); if (typeof renderLivelli3d === 'function') renderLivelli3d();
+                    return { ok: true, isoipseAccese: imp.isoipse.on, ombreggiaturaAccesa: imp.ombra.on, nota: 'Si vedono nella mappa 2D del progetto.' };
+                } },
                 // --- tavole 2D e 3D del progetto aperto (registro: nome, blocco, versioni, report) ---
                 { n: 'elenco_tavole', d: 'Elenca le tavole salvate del progetto aperto: id, nome, tipo, versione, se è bloccata (consegnata), se va nel report, se i dati delle prove sono cambiati.', p: {}, run: () => {
                     const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
@@ -479,6 +503,7 @@
             // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
             const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
             const AI_GRUPPI = [
+                { re: /isoips|curve di livello|ombreggi|rilievo|hillshade|mappa 2d|mappa del progetto|dtm/i, t: ['leggi_isoipse_ombreggiatura', 'imposta_isoipse_ombreggiatura'] },
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
