@@ -365,6 +365,30 @@
                     if (a.px_per_m > 0.1) l.pxPerM = a.px_per_m;
                     l.forme = forme; saveState(); return { ok: true, id: l.id, forme: forme.length };
                 } },
+                { n: 'mappe_offline_elenco', d: 'Elenca le aree di mappa salvate per l\'uso senza segnale, scaricate o importate da GeoPackage (id, nome, mappa, zoom, tessere, MB) e le mappe che si possono scaricare (id e zoom massimo).', p: {}, run: async () => ({
+                    aree: (await moAree()).map(a => ({ id: a.id, nome: a.nome, mappa: a.fonteNome, zoomDa: a.zmin, zoomA: a.zmax, tessere: a.n, importata: !!a.importata, nonScaricate: a.errori, mb: +((a.byte || 0) / 1048576).toFixed(1), data: a.data })),
+                    mappeScaricabili: moFonti().filter(f => f.ok).map(f => ({ id: f.id, nome: f.nome, zoomMax: f.zoomMax })) }) },
+                { n: 'mappe_offline_scarica', d: 'Scarica e salva una zona di mappa per usarla offline (pochi ettari, poche decine di tessere). zona: prove = attorno alle prove del progetto aperto con margine_m (default 300); vista = quello che si vede sulla mappa 2D aperta. mappa = id da mappe_offline_elenco (default esri-satellite; Google non si può). zoom_da default 15, zoom_a default 19. Max 6000 tessere.',
+                  p: { nome: { type: 'string' }, mappa: { type: 'string' }, zona: { type: 'string', enum: ['prove', 'vista'] }, margine_m: { type: 'number' }, zoom_da: { type: 'number' }, zoom_a: { type: 'number' } }, w: true,
+                  ds: a => `Scaricare la mappa offline «${a.nome || 'Area'}» (${a.zona === 'vista' ? 'zona visibile' : 'attorno alle prove'}, zoom ${a.zoom_da || 15}–${a.zoom_a || 19})`, run: async a => {
+                    const proj = state.projects[state.currentProjectId];
+                    const riquadro = a.zona === 'vista' ? moRiquadroVista() : (proj ? moRiquadroProve(proj, a.margine_m == null ? MO_MARGINE_M : a.margine_m) : null);
+                    if (!riquadro) throw new Error(a.zona === 'vista' ? 'Apri prima la mappa 2D del progetto.' : 'Apri un progetto con almeno una prova con le coordinate GPS.');
+                    const e = await moScaricaDaFinestra({ nome: a.nome || (proj && proj.name) || 'Area', fonteId: a.mappa || 'esri-satellite', riquadro, zmin: a.zoom_da || 15, zmax: a.zoom_a || 19, conferma: false });
+                    if (e.errore) throw new Error(e.errore);
+                    return { ok: true, area_id: e.area.id, tessere: e.area.n, nonScaricate: e.area.errori };
+                } },
+                { n: 'mappe_offline_usa', d: 'Mostra un\'area importata da GeoPackage come mappa di base della mappa 2D e ci inquadra. area_id da mappe_offline_elenco (importata: true). L\'importazione del file la fa l\'utente dalla finestra «Mappe offline» (esegui_comando «Mappe offline»): serve scegliere il file.', p: { area_id: { type: 'string' } }, req: ['area_id'], w: true,
+                  ds: a => `Usare la mappa offline ${a.area_id} come mappa di base`, run: async a => {
+                    const area = (await moAree()).find(x => x.id === a.area_id && x.importata); if (!area) throw new Error('Area importata non trovata.');
+                    const m = mappaProgetto.mappa; if (!m || !areaMappaAperta() || areaMappa.modo !== 'mappa') throw new Error('Apri prima la mappa 2D del progetto.');
+                    mappeOffline.importate = (await moAree()).filter(x => x.importata); sfondoMappaProgetto(area.fonte); renderLivelli3d(); const r = area.riquadro; m.fitBounds([[r.sud, r.ovest], [r.nord, r.est]]); return { ok: true };
+                } },
+                { n: 'mappe_offline_geopackage', d: 'Scarica un\'area di mappa offline come GeoPackage di tessere (.gpkg) da aprire in QGIS. area_id da mappe_offline_elenco.', p: { area_id: { type: 'string' } }, req: ['area_id'], w: true,
+                  ds: a => `Esportare l'area offline ${a.area_id} in GeoPackage`, run: async a => {
+                    const area = (await moAree()).find(x => x.id === a.area_id); if (!area) throw new Error('Area non trovata.');
+                    scaricaBlobFile(new Blob([await moGeopackage(area)], { type: 'application/geopackage+sqlite3' }), 'DPSH_mappa_' + moNomeFile(area.nome) + '.gpkg'); return { ok: true };
+                } },
                 { n: 'rinomina_tavola', d: 'Cambia il nome di una tavola salvata (se il nome c\'è già aggiunge un numero).', p: { tavola_id: { type: 'string' }, nome: { type: 'string' } }, req: ['tavola_id', 'nome'], w: true,
                   ds: a => `Rinominare la tavola ${a.tavola_id} in «${a.nome}»`, run: a => {
                     const pr = state.projects[state.currentProjectId], t = tavolaPerId(pr, a.tavola_id); if (!t) throw new Error('Tavola non trovata.');

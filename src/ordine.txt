@@ -65,6 +65,7 @@ markup/47_modalVista3d.html
 markup/47b_tavole3d.html
 markup/47c_esportaGis.html
 markup/47c_trovaDtm.html
+markup/47d_mappeOffline.html
 shell/03b_apre-sheetjs.html
 vendor/xlsx.full.min.js
 shell/03c_chiude-sheetjs-apre-exceljs.html
@@ -206,6 +207,7 @@ js/071w_registro-tavole.js
 js/071x_elenco-tavole.js
 js/071y_tavola-confronto.js
 js/071z_tavola-libera.js
+js/071za_mappe-offline.js
 js/071za_anteprime-progetti-home.js
 js/071s_importa-da-word.js
 js/071v_tasto-destro.js
