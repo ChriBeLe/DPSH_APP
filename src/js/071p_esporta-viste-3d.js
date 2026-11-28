@@ -1381,6 +1381,27 @@
             const fineTrascina3d = () => { if (!tavole3d.trascina) return; tavole3d.trascina = null; tela3dT.classList.remove('trascina'); mostraTavola3d(); aggiornaMiniaturaScelta3d(); };
             tela3dT.addEventListener('pointerup', fineTrascina3d);
             tela3dT.addEventListener('pointercancel', fineTrascina3d);
+            // Sul telefono: un dito gira o sposta un elemento; due dita avvicinano (pizzico) e spostano la vista.
+            const ditaTav = new Map();
+            let pizzicoTav = null;
+            const centroDitaTav = () => { const v = [...ditaTav.values()]; return { x: (v[0].x + v[1].x) / 2, y: (v[0].y + v[1].y) / 2, d: Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1 }; };
+            tela3dT.addEventListener('pointerdown', (e) => {
+                if (e.pointerType !== 'touch') return;
+                ditaTav.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (ditaTav.size === 2) { tavole3d.trascina = null; tela3dT.classList.remove('trascina'); const c = centroDitaTav(); pizzicoTav = { x: c.x, y: c.y, d: c.d }; }
+            });
+            tela3dT.addEventListener('pointermove', (e) => {
+                if (!ditaTav.has(e.pointerId)) return;
+                ditaTav.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (ditaTav.size < 2 || !pizzicoTav) return;
+                const c = centroDitaTav(), k = (tavole3d.ultima && tavole3d.ultima.k) || 1, f = c.d / pizzicoTav.d, ddx = c.x - pizzicoTav.x, ddy = c.y - pizzicoTav.y;
+                pizzicoTav = { x: c.x, y: c.y, d: c.d };
+                regolaTavola3d(r => { r.zoom = Math.max(0.2, Math.min(8, r.zoom * f)); r.dx += ddx / k; r.dy += ddy / k; });
+                ridisegnaTavola3d(true);
+            });
+            const fineDitaTav = (e) => { if (!ditaTav.delete(e.pointerId)) return; if (ditaTav.size < 2 && pizzicoTav) { pizzicoTav = null; mostraTavola3d(); aggiornaMiniaturaScelta3d(); } };
+            tela3dT.addEventListener('pointerup', fineDitaTav);
+            tela3dT.addEventListener('pointercancel', fineDitaTav);
             tela3dT.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 regolaTavola3d(r => { r.zoom = Math.max(0.2, Math.min(8, r.zoom * Math.exp(-e.deltaY * 0.0015))); });
