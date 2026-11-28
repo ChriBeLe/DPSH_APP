@@ -65,6 +65,18 @@ const $ = (app, id) => app.d.getElementById(id);
   dito('pointerup', 1, 100, 100); dito('pointerup', 2, 300, 100);
   app.E('regolaTavola3d(r => { r.zoom = 1; r.dx = 0; r.dy = 0; })');
 
+  console.log('--- Ritaglio, freccia del nord, elenco con anteprima ---');
+  t('il ritaglio della mappa non allarga l\'inquadratura (il blocco sotto al terreno non conta)', app.E(`(() => { const b = ingombroScena3d({ tutte: [{ t: 'poli', cls: 'vista3d-colonna', p: [[0, 0], [100, 0], [100, 50]] }, { t: 'poli', cls: 'vista3d-blocco', p: [[-900, -900], [900, 900], [900, -900]] }] }); return b.x0 === 0 && b.x1 === 100 && b.y1 === 50; })()`));
+  const vN = app.E('tavole3d.voci[0].id');
+  app.E(`tavole3d.scelta = 0; regolaTavola3d(r => { r.nordTerreno = [5, 5]; })`);
+  t('la freccia spostata a mano resta dov\'è', app.E(`!!tavole3d.regola[${JSON.stringify(vN)}].nordTerreno`));
+  app.E('regolaTavola3d(r => { r.dAz += 0.3; })');
+  t('muovendo la camera la freccia del nord torna a seguirla', app.E(`!tavole3d.regola[${JSON.stringify(vN)}].nordTerreno`));
+  app.E(`tavole3d.bozza.registro = tavole3d.bozza.registro || []; tavole3d.bozza.registro.forEach(x => { x.miniatura = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22/%3E'; })`);
+  app.E('apriElencoTavole3d()'); await attesa(10);
+  t('l\'elenco ha la barra di ricerca grande e le schede con anteprima', !!app.d.querySelector('#tavoleElenco .tavole-el-cerca') && app.d.querySelectorAll('#tavoleElenco .tavole-el-scheda').length >= 0);
+  app.E('chiudiElencoTavole()');
+
   console.log('--- Genzano: salvare e rileggere ---');
   t('prima di Salva il progetto non ha tavole salvate', app.E(`!(${P}.tavole3d && ${P}.tavole3d.registro && ${P}.tavole3d.registro.length)`));
   clic(app, $(app, 'tavole3dSalva')); await attesa(30);
@@ -91,6 +103,10 @@ const $ = (app, id) => app.d.getElementById(id);
   t('«Duplica e aggiorna»: le tavole vecchie restano (storiche) e ne nascono di nuove', nDopo > nReg && app.E('registroTavole({ tavole3d: tavole3d.bozza }).some(x => x.storica && x.bloccata)') === true);
   clic(app, $(app, 'tavole3dSalva')); await attesa(30);
   t('dopo Salva l\'elenco mostra anche le nuove', app.E(`${P}.tavole3d.registro.length`) === nDopo);
+  app.E(`tavole3d.bozza.registro.forEach(x => { x.miniatura = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22/%3E'; })`);
+  app.E('apriElencoTavole3d()'); await attesa(10);
+  t('nell\'elenco ogni tavola ha la sua anteprima grande', app.d.querySelectorAll('#tavoleElenco .tavole-el-anteprima img').length === nDopo);
+  app.E('chiudiElencoTavole()');
 
   console.log('--- Genzano: il controllo di stampa ---');
   const msg = $(app, 'tavole3dControllo').textContent;

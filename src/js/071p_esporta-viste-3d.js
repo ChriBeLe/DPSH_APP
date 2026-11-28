@@ -79,7 +79,7 @@
 
             /** Il riquadro che occupano sullo schermo le cose che contano (non il terreno, non la bussola). */
             function ingombroScena3d(sc) {
-                const fuori = new Set(['vista3d-faccia', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-legenda']);
+                const fuori = new Set(['vista3d-faccia', 'vista3d-blocco', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-legenda']);
                 let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
                 const pt = (x, y) => { if (!isFinite(x) || !isFinite(y)) return; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); };
                 sc.tutte.forEach(f => {
@@ -679,18 +679,24 @@
                 statoSalvataggioTavole3d(); mostraTavola3d();
                 if (typeof mostraToast === 'function') mostraToast(t && t.bloccata ? 'Tavola bloccata. Salva per confermare.' : 'Tavola sbloccata. Salva per confermare.');
             }
-            /** Le miniature delle pagine (dai riquadri dell'elenco), piccole: servono all'elenco delle tavole salvate. */
+            /** L'anteprima di una pagina, disegnata apposta (fuori dalla pagina, a `largo` pixel): un'immagine webp
+             * leggera, o l'SVG per i disegni e le sezioni 2D. Null se non si può (nel banco di prova non c'è il disegno). */
+            function miniaturaVoce3d(v, largo) {
+                if (/jsdom/i.test(navigator.userAgent || '') || !v || !datiVista3dCorrenti) return null;
+                try {
+                    const el = document.createElement('div');
+                    el.innerHTML = e2dTavola3d(v) ? '<img alt="">' : '<canvas></canvas>';
+                    disegnaMiniaturaTavola3d(v, el, largo || 360);
+                    const c = el.querySelector('canvas'), im = el.querySelector('img');
+                    if (c && c.width) { const u = c.toDataURL('image/webp', 0.72); return u && u.length < 150000 ? u : null; }
+                    if (im && /^data:image\/svg/.test(im.src || '') && im.src.length < 150000) return im.src;
+                } catch (e) { /* senza anteprima l'elenco funziona lo stesso */ }
+                return null;
+            }
+            /** Le anteprime di tutte le pagine, per l'elenco delle tavole salvate. */
             function miniatureTavole3d() {
                 const out = {};
-                if (/jsdom/i.test(navigator.userAgent || '')) return out; // nel banco di prova il disegno non c'è
-                try {
-                    [...T3('tavole3dPagine').children].forEach((el, i) => {
-                        const v = tavole3d.voci[i], c = el.querySelector('canvas');
-                        if (v && c && c.width) { const u = c.toDataURL('image/webp', 0.6); if (u && u.length < 40000) out[v.id] = u; }
-                        const im = el.querySelector('img');
-                        if (v && !c && im && /^data:image\/svg/.test(im.src || '') && im.src.length < 60000) out[v.id] = im.src;
-                    });
-                } catch (e) { /* senza miniature l'elenco funziona lo stesso */ }
+                tavole3d.voci.forEach(v => { const u = miniaturaVoce3d(v, 360); if (u) out[v.id] = u; });
                 return out;
             }
             /** Ci sono modifiche non salvate? */
@@ -841,7 +847,7 @@
                 };
                 setTimeout(prossima, 30);
             }
-            function disegnaMiniaturaTavola3d(v, el) {
+            function disegnaMiniaturaTavola3d(v, el, largo) {
                 const d = datiVista3dCorrenti;
                 if (!d) return;
                 if (v.tipo === 'libero') { el.querySelector('img').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTavolaLibera(liberoPerId(memoriaTavole3d(), v.id))); return; }
@@ -862,7 +868,7 @@
                 if (!sc) return;
                 if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte, opz.posizioni.legenda);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo];
-                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: 200 / opz.W });
+                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: (largo || 200) / opz.W });
                 tela.style.aspectRatio = `${opz.W} / ${opz.H}`;
                 tela.style.width = ''; tela.style.height = '';
             }
@@ -988,7 +994,10 @@
                 const v = tavole3d.voci[tavole3d.scelta];
                 if (!v || e2dTavola3d(v) || tavolaBloccata3d(v)) return;
                 const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
+                const prima = [r.dAz, r.dEl, r.zoom, r.dx, r.dy].join(), spilla = r.nordTerreno;
                 modifica(r);
+                // la freccia del nord sul terreno segue la camera: se si muove la vista (gira, inclina, zoom, sposta) e non è la freccia stessa che si sta spostando, torna a cercarsi il posto
+                if (r.nordTerreno === spilla && [r.dAz, r.dEl, r.zoom, r.dx, r.dy].join() !== prima) delete r.nordTerreno;
                 salvaMemoriaTavole3d();
             }
             let attesaTavola3d = false;

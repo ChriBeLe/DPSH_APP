@@ -36,7 +36,7 @@
                 ov.style.cssText = 'position:fixed;inset:0;z-index:380;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px';
                 document.body.appendChild(ov);
                 const attivo = document.activeElement;
-                const stato = { testo: '', tipo: '' };
+                const stato = { testo: '', tipo: '', cache: {} };
                 const suEsc = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); chiudi(); } };
                 const chiudi = () => {
                     document.removeEventListener('keydown', suEsc, true);
@@ -46,16 +46,25 @@
                 document.addEventListener('keydown', suEsc, true); chiudiElencoTavole = chiudi;
                 ov.addEventListener('mousedown', e => { if (e.target === ov) chiudi(); });
                 const disegna = () => {
-                    const righe = righeElencoTavole(P, Object.assign({ impronta: inFinestra ? improntaDatiTavole3d() : null }, stato));
-                    ov.innerHTML = `<div style="background:var(--bg-card,#fff);color:inherit;border-radius:12px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;padding:14px;gap:10px">
-                        <div style="display:flex;gap:8px;align-items:center"><b style="flex:1">Tavole salvate (${registroTavole(P).length})</b><button type="button" class="bt" data-az="chiudi">Chiudi</button></div>
-                        <div style="display:flex;gap:8px"><input type="search" class="form-control" data-az="cerca" aria-label="Cerca per nome" placeholder="Cerca per nome" value="${esc(stato.testo)}" style="flex:1">
-                        <select class="form-control" data-az="tipo" aria-label="Filtra per tipo"><option value="">Tutti i tipi</option>${TIPI_TAVOLA.map(k => `<option value="${k}"${stato.tipo === k ? ' selected' : ''}>${NOMI_TIPO_TAVOLA[k]}</option>`).join('')}</select></div>
-                        <div style="overflow:auto;display:flex;flex-direction:column;gap:6px">${righe.length ? righe.map(({ t, etichette }) => `<div style="border:1px solid var(--border,#ccc);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px" data-id="${esc(t.id)}">
-                            <div style="display:flex;gap:8px;align-items:center">${t.miniatura ? `<img src="${esc(t.miniatura)}" alt="" style="width:64px;height:auto;border-radius:4px;border:1px solid var(--border,#ccc)">` : ''}<div><b>${esc(t.nome)}</b> <span class="t-didascalia">${NOMI_TIPO_TAVOLA[t.tipo] || t.tipo} · versione ${t.versione}${etichette.length ? ' · ' + esc(etichette.join(' · ')) : ''}</span></div></div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px"><button type="button" class="bt" data-az="rinomina">Rinomina</button><button type="button" class="bt" data-az="duplica">Duplica</button>
+                    const righe = righeElencoTavole(P, { impronta: inFinestra ? improntaDatiTavole3d() : null, testo: stato.testo, tipo: stato.tipo });
+                    // l'anteprima: quella salvata; se manca (tavole di prima), la si disegna ora dalla pagina corrispondente
+                    const anteprima = t => {
+                        if (t.miniatura) return t.miniatura;
+                        if (!inFinestra) return null;
+                        if (stato.cache[t.id] === undefined) { const v = tavole3d.voci.find(x => x.id === t.voceId); stato.cache[t.id] = (v && miniaturaVoce3d(v, 360)) || null; }
+                        return stato.cache[t.id];
+                    };
+                    const card = ({ t, etichette }) => { const img = anteprima(t); return `<div class="tavole-el-scheda" data-id="${esc(t.id)}">
+                            <div class="tavole-el-anteprima">${img ? `<img src="${esc(img)}" alt="Anteprima di ${esc(t.nome)}">` : `<span>${NOMI_TIPO_TAVOLA[t.tipo] || t.tipo}<small>anteprima non disponibile</small></span>`}</div>
+                            <div class="tavole-el-info"><b>${esc(t.nome)}</b><span class="t-didascalia">${NOMI_TIPO_TAVOLA[t.tipo] || t.tipo} · versione ${t.versione}${etichette.length ? ' · ' + esc(etichette.join(' · ')) : ''}</span></div>
+                            <div class="tavole-el-azioni"><button type="button" class="bt" data-az="rinomina">Rinomina</button><button type="button" class="bt" data-az="duplica">Duplica</button>
                             <button type="button" class="bt" data-az="blocca">${t.bloccata ? 'Sblocca' : 'Blocca'}</button><button type="button" class="bt" data-az="report">${t.inReport === false ? 'Metti nel report' : 'Togli dal report'}</button>
-                            <button type="button" class="bt" data-az="template">Salva come template</button><button type="button" class="bt" data-az="elimina">Elimina</button></div></div>`).join('') : '<p class="t-didascalia">Nessuna tavola salvata. Premi «Salva» nella finestra Tavole per crearle.</p>'}</div></div>`;
+                            <button type="button" class="bt" data-az="template">Salva come template</button><button type="button" class="bt" data-az="elimina">Elimina</button></div></div>`; };
+                    ov.innerHTML = `<div class="tavole-el-finestra">
+                        <div class="tavole-el-testa"><b>Tavole salvate (${registroTavole(P).length})</b><button type="button" class="bt" data-az="chiudi">Chiudi</button></div>
+                        <div class="tavole-el-filtri"><input type="search" class="form-control tavole-el-cerca" data-az="cerca" aria-label="Cerca per nome" placeholder="Cerca una tavola per nome…" value="${esc(stato.testo)}">
+                        <select class="form-control tavole-el-tipo" data-az="tipo" aria-label="Filtra per tipo"><option value="">Tutti i tipi</option>${TIPI_TAVOLA.map(k => `<option value="${k}"${stato.tipo === k ? ' selected' : ''}>${NOMI_TIPO_TAVOLA[k]}</option>`).join('')}</select></div>
+                        <div class="tavole-el-griglia">${righe.length ? righe.map(card).join('') : '<p class="t-didascalia">Nessuna tavola salvata. Premi «Salva» nella finestra Tavole per crearle.</p>'}</div></div>`;
                     ov.querySelector('[data-az="chiudi"]').onclick = chiudi;
                     ov.querySelector('[data-az="cerca"]').oninput = e => { stato.testo = e.target.value; const p = e.target.selectionStart; disegna(); const n = ov.querySelector('[data-az="cerca"]'); n.focus(); n.setSelectionRange(p, p); };
                     ov.querySelector('[data-az="tipo"]').onchange = e => { stato.tipo = e.target.value; disegna(); };
