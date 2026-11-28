@@ -44,6 +44,16 @@ const $ = (app, id) => app.d.getElementById(id);
   app.E(`(() => { const l = tavole3d.bozza.liberi[0]; l.forme.push(formaLiberaPulita({ t: 'misura', x1: 100, y1: 200, x2: 900, y2: 200 }), formaLiberaPulita({ t: 'scala', x1: 100, y1: 700, testo: '5' }), formaLiberaPulita({ t: 'testo', x1: 120, y1: 150, testo: 'Palestra' })); salvaMemoriaTavole3d(); mostraTavola3d(); })()`);
   t('il disegno libero ha la quota in metri (8,00 m su 800 px a 100 px/m)', /8,00 m/.test($(app, 'tavole3dLiberoSvg').innerHTML));
 
+  console.log('--- La schermata a schede ---');
+  const vis = g => !app.d.querySelector(`[data-tavole-gruppo="${g}"]`).hidden;
+  t('all\'apertura: scheda Pagina; Foglio e Scena nascosti', vis('pagina') && !vis('foglio') && !vis('mappa') && !vis('modello') && !vis('elementi'));
+  clic(app, app.d.querySelector('.tavole-scheda[data-scheda="scena"]'));
+  t('scheda Scena: mappa e modello, non il foglio', vis('mappa') && vis('modello') && !vis('pagina') && !vis('foglio'));
+  clic(app, app.d.querySelector('.tavole-scheda[data-scheda="foglio"]'));
+  t('scheda Foglio: aprire il tab mostra il foglio e segna aria-selected', vis('foglio') && app.d.querySelector('.tavole-scheda[data-scheda="foglio"]').getAttribute('aria-selected') === 'true' && app.d.querySelector('[data-tavole-gruppo="foglio"]').open);
+  clic(app, app.d.querySelector('.tavole-scheda[data-scheda="pagina"]'));
+  t('il nome del progetto è nella barra', /GENZANO/.test($(app, 'tavole3dProgetto').textContent));
+
   console.log('--- Genzano: salvare e rileggere ---');
   t('prima di Salva il progetto non ha tavole salvate', app.E(`!(${P}.tavole3d && ${P}.tavole3d.registro && ${P}.tavole3d.registro.length)`));
   clic(app, $(app, 'tavole3dSalva')); await attesa(30);
