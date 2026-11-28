@@ -340,6 +340,73 @@
                     saveState(); aggiornaLivelli2d(); if (typeof renderLivelli3d === 'function') renderLivelli3d();
                     return { ok: true, isoipseAccese: imp.isoipse.on, ombreggiaturaAccesa: imp.ombra.on, nota: 'Si vedono nella mappa 2D del progetto.' };
                 } },
+                // --- DTM: fonti, caricamento, controllo, opzioni; scala leggibile del 3D ---
+                { n: 'fonti_dtm', d: 'Elenca le fonti di DTM per le prove del progetto aperto (nazionali, della regione, quelle aggiunte dall\'utente, OpenTopography). PRIMA DI CARICARE chiedi sempre all\'utente quali informazioni gli servono e quale fonte vuole usare. "campi" sceglie cosa tornare tra: ente, tipi, tecnica, risoluzione, copertura, licenza, sistema, nota, verifica, caricabile, scaricabile, in_uso, ultima, pagina. Senza "campi" tornano solo id, nome, tipi e risoluzione. "tipo": DTM (terreno nudo), DSM (superficie con edifici e alberi) o tutti.', p: { campi: { type: 'array', items: { type: 'string' } }, tipo: { type: 'string', enum: ['tutti', 'DTM', 'DSM'] } }, run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    const luogo = luogoDelleProve(pr); if (!luogo) throw new Error('Nessuna prova del progetto ha il GPS: serve per sapere quali fonti coprono la zona. Si può comunque caricare un DTM da file.');
+                    sincronizzaFontiTue();
+                    const o = opzDtm(), uso = pr.dtm && pr.dtm.fonte, campi = Array.isArray(a.campi) ? a.campi : [];
+                    const tutti = { ente: f => f.ente, tipi: f => f.tipi, tecnica: f => f.tecnica, risoluzione: f => f.risoluzione, copertura: f => f.copertura, licenza: f => f.licenza, sistema: f => f.sistema || null, nota: f => f.nota || null,
+                        verifica: f => VERIFICA_DTM[f.verifica], caricabile: f => !!f.carica, scaricabile: f => !!f.scarica, in_uso: f => !!(uso && uso.indexOf(f.nome) === 0), ultima: f => f.id === o.ultima, pagina: f => f.pagina };
+                    return { regione: luogo.regioni.map(r => REGIONI_ITALIA[r]), provePerGps: luogo.punti.length, fonti: fontiPerLuogo(luogo).filter(({ f }) => !a.tipo || a.tipo === 'tutti' || f.tipi.includes(a.tipo)).map(({ f, gruppo }) => {
+                        const r = { id: f.id, nome: f.nome, tipi: f.tipi, risoluzione: f.risoluzione, gruppo };
+                        campi.forEach(c => { if (tutti[c]) r[c] = tutti[c](f); });
+                        return r;
+                    }), nota: 'Per caricare usa carica_dtm_da_fonte con l\'id scelto dall\'utente.' };
+                } },
+                { n: 'leggi_dtm_progetto', d: 'Dice se il progetto aperto ha un DTM e com\'è: fonte, celle, quote, peso, controllo qualità (buchi, celle fuori posto, pendenza, copertura delle prove) e le opzioni della finestra DTM (anteprima, controllo, copertura, memoria offline, modello OpenTopography; dice solo se la chiave c\'è, mai il valore).', p: {}, run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    const o = opzDtm(), d = pr.dtm, luogo = luogoDelleProve(pr);
+                    return { haDtm: !!d, opzioni: { anteprima: o.anteprima, controlloQualita: o.qualita, proveEriquadroSuAnteprima: o.copertura, memoriaOffline: o.cache, modelloOpenTopography: o.otSet, chiaveOpenTopographyPresente: !!chiaveOt() }, ultimaFonteUsata: o.ultima || null,
+                        dtm: d ? { fonte: d.fonte, caricatoIl: d.caricatoIl, celle: d.nx + '×' + d.ny, celleOriginali_m: d.crs.tipo === 'geo' ? Math.round(d.celleOriginali * 111000) : d.celleOriginali, proveDentro: d.proveDentro, proveConGps: d.proveConGps, controllo: luogo ? qualitaDtm(d, luogo).map(c => c.stato + ': ' + c.testo) : [] } : null };
+                } },
+                { n: 'carica_dtm_da_fonte', d: 'Carica nel progetto aperto il DTM di una fonte (id da fonti_dtm). Chiedi PRIMA all\'utente quale fonte vuole. Usa la memoria offline se c\'è già un ritaglio che copre le prove; senza_memoria:true rilegge dalla rete. Sostituisce l\'eventuale DTM (si può annullare). Non serve per OpenTopography se manca la chiave: la inserisce l\'utente dalla finestra DTM, con la guida in tre passi.', p: { fonte: { type: 'string' }, senza_memoria: { type: 'boolean' } }, req: ['fonte'], w: true,
+                  ds: a => `Caricare il DTM dalla fonte «${a.fonte}»${a.senza_memoria ? ' (dalla rete)' : ''}`, run: async a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    sincronizzaFontiTue();
+                    const f = FONTI_DTM.find(x => x.id === a.fonte); if (!f) throw new Error('Fonte sconosciuta: guarda l\'elenco con fonti_dtm.');
+                    if (!f.carica) throw new Error('Questa fonte non si carica direttamente: l\'utente deve scaricare il file dal sito e usare «Carica da file».');
+                    if (trovaDtm.inCorso) throw new Error('Un altro caricamento DTM è già in corso.');
+                    trovaDtm.projId = state.currentProjectId; trovaDtm.fatto = () => { if (typeof renderTerreno === 'function' && document.getElementById('modalTerreno').classList.contains('open')) renderTerreno(); };
+                    await caricaFonteDtm(f, null, !!a.senza_memoria);
+                    const stato = trovaDtm.prog[f.id] || {}, d = pr.dtm;
+                    if (stato.stato === 'errore' || !d || d.fonte.indexOf(f.nome) !== 0) throw new Error(document.getElementById('trovaDtmEsito').textContent.trim() || 'Caricamento non riuscito.');
+                    return { ok: true, fonte: d.fonte, proveDentro: d.proveDentro, proveConGps: d.proveConGps };
+                } },
+                { n: 'togli_dtm', d: 'Toglie il DTM dal progetto aperto (l\'utente può annullare).', p: {}, w: true, ds: () => 'Togliere il DTM dal progetto', run: () => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr || !pr.dtm) throw new Error('Il progetto non ha un DTM.');
+                    const vecchio = pr.dtm; delete pr.dtm; saveState();
+                    showUndoBanner('DTM tolto dal progetto', () => { pr.dtm = vecchio; saveState(); });
+                    return { ok: true };
+                } },
+                { n: 'imposta_dtm_opzioni', d: 'Cambia le opzioni della finestra DTM: anteprima del terreno, controllo qualità, prove e riquadro sull\'anteprima, memoria offline dei DTM letti (svuota_memoria:true la cancella), modello OpenTopography da usare (COP30, COP90, NASADEM, SRTMGL1, AW3D30). Passare solo i campi da cambiare.', p: { anteprima: { type: 'boolean' }, controllo_qualita: { type: 'boolean' }, copertura: { type: 'boolean' }, memoria_offline: { type: 'boolean' }, svuota_memoria: { type: 'boolean' }, modello_opentopography: { type: 'string', enum: ['COP30', 'COP90', 'NASADEM', 'SRTMGL1', 'AW3D30'] } }, w: true,
+                  ds: a => 'Opzioni DTM: ' + Object.keys(a).join(', '), run: async a => {
+                    const parte = {};
+                    if (a.anteprima != null) parte.anteprima = !!a.anteprima;
+                    if (a.controllo_qualita != null) parte.qualita = !!a.controllo_qualita;
+                    if (a.copertura != null) parte.copertura = !!a.copertura;
+                    if (a.memoria_offline != null) parte.cache = !!a.memoria_offline;
+                    if (a.modello_opentopography) parte.otSet = a.modello_opentopography;
+                    if (Object.keys(parte).length) impostaOpzDtm(parte);
+                    if (a.svuota_memoria) await dtmCache('svuota');
+                    if (trovaDtm.projId && !document.getElementById('trovaDtm').hidden) renderTrovaDtm();
+                    const o = opzDtm();
+                    return { ok: true, anteprima: o.anteprima, controlloQualita: o.qualita, copertura: o.copertura, memoriaOffline: o.cache, modelloOpenTopography: o.otSet };
+                } },
+                { n: 'scala_vista3d', d: 'Legge e cambia come si legge la scala nella vista 3D del progetto aperto, anche senza esagerazione verticale: righello delle profondità (metri veri), scala vera (barre orizzontale e verticale), mini-vista 1:1 (colonne di lato), terreno stretto attorno alle prove, esagerazione verticale (1–30) e "inquadra" (avvicina la vista al corpo indagato). Senza campi dice solo lo stato. Passare solo i campi da cambiare.', p: { righello: { type: 'boolean' }, scala_vera: { type: 'boolean' }, mini_vista: { type: 'boolean' }, terreno_stretto: { type: 'boolean' }, esagerazione: { type: 'number' }, inquadra: { type: 'boolean' } }, w: true,
+                  ds: a => Object.keys(a).length ? 'Vista 3D: ' + [a.righello != null && (a.righello ? 'righello delle profondità' : 'senza righello'), a.scala_vera != null && (a.scala_vera ? 'scala vera' : 'senza scala vera'), a.mini_vista != null && (a.mini_vista ? 'mini-vista 1:1' : 'senza mini-vista'), a.terreno_stretto != null && (a.terreno_stretto ? 'terreno stretto' : 'terreno largo'), a.esagerazione != null && `esagerazione ×${a.esagerazione}`, a.inquadra && 'inquadra le prove'].filter(Boolean).join(', ') : 'Leggere lo stato della scala 3D', run: a => {
+                    const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
+                    if (!datiVista3dCorrenti) datiVista3dCorrenti = datiVista3d(pr);
+                    const L = vista3d.livelli;
+                    if (a.righello != null) L.righello = !!a.righello;
+                    if (a.scala_vera != null) L.scalaVera = !!a.scala_vera;
+                    if (a.mini_vista != null) L.miniVista = !!a.mini_vista;
+                    if (a.terreno_stretto != null && !!a.terreno_stretto !== !!L.terrenoStretto) { L.terrenoStretto = !!a.terreno_stretto; datiVista3dCorrenti = datiVista3d(pr); if (datiVista3dCorrenti) inquadraCorpo3d(); }
+                    if (a.esagerazione != null) { if (!Number.isFinite(a.esagerazione)) throw new Error('Esagerazione non valida.'); const prima = vista3d.ex; vista3d.ex = Math.max(1, Math.min(30, Math.round(a.esagerazione))); if (prima > 1 && vista3d.ex === 1 && datiVista3dCorrenti) inquadraCorpo3d(); }
+                    if (a.inquadra && datiVista3dCorrenti) inquadraCorpo3d();
+                    if (document.getElementById('modalVista3d').classList.contains('open')) { renderLivelli3d(); renderVista3d(); }
+                    return { righello: !!L.righello, scalaVera: !!L.scalaVera, miniVista: !!L.miniVista, terrenoStretto: !!L.terrenoStretto, esagerazione: vista3d.ex, zoom: Math.round(vista3d.zoom * 100) / 100, vistaAperta: document.getElementById('modalVista3d').classList.contains('open') };
+                } },
                 // --- tavole 2D e 3D del progetto aperto (registro: nome, blocco, versioni, report) ---
                 { n: 'elenco_tavole', d: 'Elenca le tavole salvate del progetto aperto: id, nome, tipo, versione, se è bloccata (consegnata), se va nel report, se i dati delle prove sono cambiati.', p: {}, run: () => {
                     const pr = state.projects[state.currentProjectId]; if (!pr) throw new Error('Apri prima un progetto.');
@@ -572,6 +639,7 @@
             // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
             const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'avvisi_dati', 'riepilogo_giornata', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
             const AI_GRUPPI = [
+                { re: /dtm|lidar|copernicus|opentopo|terrarium|quote del terreno|fonte|fonti|esagera|scala|righello|inquadr|mini-?vista|3d/i, t: ['fonti_dtm', 'leggi_dtm_progetto', 'carica_dtm_da_fonte', 'togli_dtm', 'imposta_dtm_opzioni', 'scala_vista3d'] },
                 { re: /isoips|curve di livello|ombreggi|rilievo|hillshade|mappa 2d|mappa del progetto|dtm/i, t: ['leggi_isoipse_ombreggiatura', 'imposta_isoipse_ombreggiatura'] },
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },

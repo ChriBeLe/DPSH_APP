@@ -79,7 +79,7 @@
 
             /** Il riquadro che occupano sullo schermo le cose che contano (non il terreno, non la bussola). */
             function ingombroScena3d(sc) {
-                const fuori = new Set(['vista3d-faccia', 'vista3d-blocco', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-legenda']);
+                const fuori = new Set(['vista3d-faccia', 'vista3d-blocco', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-scala-vera', 'vista3d-minivista', 'vista3d-legenda']);
                 let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
                 const pt = (x, y) => { if (!isFinite(x) || !isFinite(y)) return; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); };
                 sc.tutte.forEach(f => {
