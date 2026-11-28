@@ -40,7 +40,11 @@
                     }
                 }
             } catch (e) { /* voce rovinata: si riparte da zero, l'app non ne risente */ }
-            function aiSalva() { try { localStorage.setItem(AI_CHIAVE, JSON.stringify(aiCfg)); } catch (e) { /* spazio pieno o accesso negato */ } }
+            function aiSalva() {
+                try { localStorage.setItem(AI_CHIAVE, JSON.stringify(aiCfg)); } catch (e) { /* spazio pieno o accesso negato */ }
+                // Con l'account Google e la frase sbloccata, le chiavi cifrate su Drive si tengono allineate (078).
+                try { chiaviCambiate(); } catch (e) { ignoraErrore('ai/chiavi-su-drive', e); }
+            }
             const aiDef = id => AI_PROVIDER.find(p => p.id === id);
             const aiConf = id => aiCfg.provider[id] || (aiCfg.provider[id] = {});
             const aiPronto = id => { const d = aiDef(id), c = aiConf(id); return !!(c.attivo !== false && c.modello && (d.senzaChiave ? c.configurato : c.chiave)); };
@@ -594,7 +598,8 @@
                         const riga = e.closest('.setting-row, .form-group, .field-row');
                         const lab = [e.getAttribute('aria-label'), e.title, e.textContent, e.placeholder, e.labels && e.labels[0] && e.labels[0].textContent, riga && (riga.querySelector('.setting-label, label') || {}).textContent, e.id].map(x => String(x || '').replace(/\s+/g, ' ').trim()).find(x => x).slice(0, 70) || '';
                         const o = { id: aiUiMappa.length, tipo, etichetta: lab };
-                        if (tipo === 'campo' || tipo === 'testo' || tipo === 'menu') o.valore = String(e.value).slice(0, 60);
+                        if (e.type === 'password') o.riservato = true; // chiavi e frasi segrete: l'assistente non le legge mai
+                        else if (tipo === 'campo' || tipo === 'testo' || tipo === 'menu') o.valore = String(e.value).slice(0, 60);
                         if (tipo === 'menu') o.opzioni = Array.from(e.options).slice(0, 15).map(x => x.textContent.trim());
                         if (tipo === 'checkbox' || tipo === 'radio') o.attivo = e.checked;
                         if (e.disabled) o.disabilitato = true;
@@ -613,6 +618,7 @@
                   ds: a => `Scrivere «${String(a.valore).slice(0, 60)}» in «${(aiUiSchede[a.id] || {}).etichetta || a.id}»`, run: a => {
                     const e = aiUiMappa[a.id]; if (!e || !document.contains(e)) throw new Error('Controllo non più presente: richiama leggi_schermata.');
                     if (aiUiVietato(a.id)) throw new Error('Controllo non modificabile da qui.');
+                    if (e.type === 'password') throw new Error('Questo campo è riservato (chiavi e frasi segrete): lo scrive solo l\'utente.');
                     if (e.disabled) throw new Error('Il controllo è disabilitato.');
                     if (e.tagName === 'SELECT') { const o = Array.from(e.options).find(x => x.textContent.trim().toLowerCase() === String(a.valore).trim().toLowerCase() || x.value === a.valore); if (!o) throw new Error('Opzione non trovata.'); e.value = o.value; }
                     else if (e.type === 'checkbox') e.checked = /^(true|si|sì|on|1)$/i.test(a.valore);
@@ -625,13 +631,34 @@
                     if (!state.currentSurveyId) throw new Error('Apri prima una prova.');
                     if (!(Math.abs(a.lat) <= 90 && Math.abs(a.lng) <= 180)) throw new Error('Coordinate non valide.');
                     state.header.lat = a.lat; state.header.lng = a.lng; if (a.quota_m != null) state.header.alt = a.quota_m; saveState(); updateUI(); return { ok: true };
-                } }
+                } },
+                { n: 'importa_dati_sito_vecchio', d: 'Importa nell\'app le prove della vecchia versione del sito (dpsh.netlify.app) che sono ancora nel browser: la prova aperta e l\'archivio. Salta le copie identiche e non cancella niente di vecchio. Dice quante prove sono entrate.', p: {}, w: true,
+                  ds: () => 'Importare i dati della vecchia versione del sito', run: async () => {
+                    const r = await importaDatiSitoVecchio({ chiedi: false });
+                    return { ok: true, prove_importate: r.importate, copie_saltate: r.copie, vuote_saltate: r.vuote, progetti_creati: r.progetti };
+                } },
+                { n: 'accedi_google', d: 'Accede con l\'account Google (versione web, serve rete). Si apre la finestra di Google: sceglie l\'utente. Dopo l\'accesso l\'app può chiedere all\'utente cosa fare con le chiavi API su Drive.', p: {}, w: true,
+                  ds: () => 'Accedere con Google', run: async () => { const r = await googleAccedi(); if (!r.ok) throw new Error(r.motivo); return { ok: true, account: r.utente.email || r.utente.nome || 'collegato' }; } },
+                { n: 'esci_google', d: 'Esce dall\'account Google: la sincronizzazione si ferma e le chiavi su Drive non si aggiornano. I dati sul dispositivo e su Drive restano.', p: {}, w: true,
+                  ds: () => 'Uscire dall\'account Google', run: () => { if (!googleCollegato()) return { ok: true, nota: 'Non era collegato.' }; return googleEsci(); } },
+                { n: 'salva_chiavi_su_drive', d: 'Salva su Drive le chiavi API dell\'assistente, cifrate. La frase segreta la scrive l\'utente nella finestra che si apre: tu non la vedi e non la conosci, non chiederla. Non puoi leggere né mostrare le chiavi.', p: {}, w: true,
+                  ds: () => 'Salvare su Drive le chiavi API, cifrate (la frase la scrive l\'utente)', run: async () => chiaviFlusso('salva') },
+                { n: 'recupera_chiavi_da_drive', d: 'Recupera da Drive le chiavi API cifrate e le mette su questo dispositivo (se sono diverse, l\'utente sceglie quali tenere). La frase la scrive l\'utente nella finestra: tu non la vedi. Non puoi leggere né mostrare le chiavi.', p: {}, w: true,
+                  ds: () => 'Recuperare da Drive le chiavi API (la frase la scrive l\'utente)', run: async () => chiaviFlusso('recupera') },
+                { n: 'stato_sincronizzazione', d: 'Dice se l\'app è collegata a Google, lo stato della sincronizzazione dei progetti su Drive (ultima volta, conflitti, cose da decidere) e le ultime voci del registro. Non mostra mai le chiavi API.', p: {}, run: () => {
+                    const v = syncLeggi();
+                    return { disponibile: googleAmmesso(), collegato: googleCollegato(), account: (googleSegno() || {}).email || null, stato: syncTestoStato() || 'Non collegato', ultima_sincronizzazione: v.ultima || null, conflitti: sync.pendenti.conflitti, da_decidere: sync.pendenti.decisioni, chiavi_su_drive_sbloccate: !!chiavi.sessione, registro: v.registro.slice(0, 8).map(r => ({ quando: r.t, cosa: r.cosa, perche: r.perche })) };
+                } },
+                { n: 'sincronizza_ora', d: 'Sincronizza ora i progetti con Drive (serve il login e la rete). Carica i cambiamenti di qui, scarica quelli nuovi e sostituisce quelli cambiati solo su Drive (prima una copia automatica). Non cancella mai niente: conflitti ed eliminazioni li decide l\'utente in una finestra con anteprima.', p: {}, w: true,
+                  ds: () => 'Sincronizzare ora i progetti con Drive', run: async () => { const r = await sincronizza({ auto: false }); return { ok: r.ok, esito: r.esito }; } },
+                { n: 'controlla_aggiornamenti_app', d: 'Controlla se è uscita una versione nuova dell\'app (versione web). Se c\'è, mostra all\'utente l\'avviso con il tasto Ricarica. Dice anche la versione in uso.', p: {}, run: async () => Object.assign({ versione_app: APP_VERSIONE }, await controllaAggiornamentiApp()) }
             ];
             const aiMsgSistema = () => 'Sei l\'assistente integrato in DPSH, un\'app per prove penetrometriche dinamiche (DPSH) in cantiere. Rispondi sempre in italiano, in modo breve e concreto. ' +
                 'REGOLA PRINCIPALE: se l\'utente chiede di fare qualcosa, LA FAI TU con gli strumenti. Non dirgli mai di premere, cliccare, aprire un menu, andare su una schermata o compilare un campo: fallo tu e poi riassumi in una frase cosa hai fatto. Chiedi all\'utente solo i dati che mancano davvero. ' +
                 'Usa gli strumenti per leggere i dati reali: non inventare mai numeri, profondità o colpi. Profondità in metri, colpi per intervallo di avanzamento. ' +
                 'Sii veloce: raggruppa il lavoro. Più azioni indipendenti vanno chiamate insieme nello stesso passaggio; gli intervalli con aggiungi_intervalli in una sola chiamata; tutta la stratigrafia con crea_stratigrafia in una sola chiamata. Non fare un passaggio per ogni piccolo dato. Per le modifiche chiama lo strumento giusto: l\'app chiede la conferma all\'utente, non chiederla tu a parole. Puoi eliminare solo intervalli e strati, solo su richiesta esplicita, e l\'app chiede due conferme; prove e progetti non si eliminano da qui: spiega che serve farlo a mano scrivendo CANCELLA. Per i parametri avanzati leggi prima gli strati (leggi_strati) e usa gli indici che ti dà. ' +
                 'Se non c\'è uno strumento diretto per l\'azione: prima prova elenco_comandi/esegui_comando o vai_a; altrimenti usa leggi_schermata, poi clicca e compila_campo, e rileggi la schermata dopo ogni azione (e dopo ogni apertura di finestra) finché il lavoro non è finito. ' +
+                'Le chiavi API e le frasi segrete non le vedi mai e non le chiedi: per salvarle o recuperarle usa gli strumenti dedicati, la frase la scrive l\'utente nella finestra. ' +
                 'Se uno strumento dà errore, riprova in un altro modo prima di arrenderti; solo se non è possibile dillo e proponi un\'alternativa. Stato attuale: ' + JSON.stringify(AI_STRUMENTI[0].run());
 
 
@@ -644,6 +671,8 @@
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /sito vecchio|vecchia versione|vecchio sito|importa.*(dati|prove)|aggiornament|versione|ricarica|netlify/i, t: ['importa_dati_sito_vecchio', 'controlla_aggiornamenti_app'] },
+                { re: /google|drive|sincroniz|chiav|account|cloud|accedi|login|esci/i, t: ['accedi_google', 'esci_google', 'stato_sincronizzazione', 'sincronizza_ora', 'salva_chiavi_su_drive', 'recupera_chiavi_da_drive'] },
                 { re: /bussola|orienta|nord/i, t: ['bussola_telefono'] },
                 { re: /\bqr\b|codic[ei] qr|inquadr|passa.*(telefono|pc)|trasferi/i, t: ['qr_progetto'] },
                 { re: /anteprim|miniatur|griglia|elenco|vista|home/i, t: ['vista_home', 'anteprime_progetti'] },

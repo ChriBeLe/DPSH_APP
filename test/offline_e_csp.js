@@ -30,8 +30,11 @@ const html = fs.readFileSync(DIST, 'utf8');
   const csp = {};
   if (m) m[1].split(';').forEach(r => { const p = r.trim().split(/\s+/); if (p[0]) csp[p[0]] = p.slice(1); });
   t('object-src none, base-uri none, form-action none', String(csp['object-src']) === "'none'" && String(csp['base-uri']) === "'none'" && String(csp['form-action']) === "'none'");
-  t('gli script esterni ammessi sono solo unpkg (leaflet-rotate, con impronta)',
-    !!csp['script-src'] && csp['script-src'].filter(v => /^https?:/.test(v)).join() === 'https://unpkg.com');
+  t('gli script esterni ammessi sono solo unpkg (leaflet-rotate, con impronta) e Google Identity Services (login, caricato solo al tocco)',
+    !!csp['script-src'] && csp['script-src'].filter(v => /^https?:/.test(v)).join() === 'https://unpkg.com,https://accounts.google.com');
+  t('Google compare solo per script, frame e stile del login; niente altro',
+    String(csp['frame-src'].filter(v => /^https?:/.test(v))) === 'https://accounts.google.com' && String(csp['style-src'].filter(v => /^https?:/.test(v))) === 'https://accounts.google.com/gsi/style'
+    && !['default-src', 'font-src', 'object-src', 'worker-src', 'media-src'].some(k => (csp[k] || []).some(v => /google/.test(v))));
   t('i font solo dal file', !!csp['font-src'] && csp['font-src'].every(v => v === "'self'" || v === 'data:'));
   t('leaflet-rotate si carica con la sua impronta SRI', /leaflet-rotate@0\.2\.8\/dist\/leaflet-rotate\.js';\s*\n(?:\s*\/\/.*\n)*\s*script\.integrity = 'sha384-[A-Za-z0-9+/=]{64}';/.test(html));
 

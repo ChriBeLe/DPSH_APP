@@ -1,0 +1,28 @@
+# Pubblicazione su Netlify (https://dpsh.netlify.app): il repo è collegato al sito e a ogni push
+# Netlify costruisce l'app e serve la cartella `pubblica/`. Vedi tools/prepara_netlify.py.
+[build]
+  command = "python3 build.py && python3 tools/prepara_netlify.py"
+  publish = "pubblica"
+
+# La pagina e il service worker non devono restare nella cache HTTP: è così che una versione nuova
+# arriva (il service worker poi tiene l'app disponibile senza rete).
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

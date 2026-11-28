@@ -223,5 +223,12 @@ js/072_fase-3-modal-fallback-gps-foto.js
 js/072a_foto-in-ingresso-orienta-e-comprimi.js
 js/072b_leggi-foglio-di-campo.js
 js/072c_avvisi-e-riepilogo-giornata.js
+js/074_conversione-prove-del-sito-vecchio.js
+js/075_importa-dati-del-sito-vecchio.js
+js/076_aggiornamenti-e-uso-senza-rete.js
+js/077_accesso-google.js
+js/077a_drive-rest.js
+js/078_chiavi-cifrate-su-drive.js
+js/079_sincronizzazione-drive.js
 js/073_assistente-ia.js
 shell/06_fine.html

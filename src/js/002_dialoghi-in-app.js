@@ -193,7 +193,7 @@
                                 ? `<select ${comuni}>${opzioni}</select>`
                                 : (f.multiline
                                 ? `<textarea ${comuni} rows="3" placeholder="${escapeHtmlDidascalia(f.placeholder || '')}">${escapeHtmlDidascalia(valore)}</textarea>`
-                                : `<input type="${f.type === 'number' ? 'number' : 'text'}" ${comuni} value="${escapeHtmlDidascalia(valore)}" placeholder="${escapeHtmlDidascalia(f.placeholder || '')}"${f.type === 'number' ? ` min="${f.min != null ? f.min : ''}" max="${f.max != null ? f.max : ''}" step="${f.step != null ? f.step : 1}"` : ''}>`);
+                                : `<input type="${f.type === 'number' ? 'number' : (f.type === 'password' ? 'password' : 'text')}"${f.type === 'password' ? ' autocomplete="new-password" autocapitalize="off" spellcheck="false"' : ''} ${comuni} value="${escapeHtmlDidascalia(valore)}" placeholder="${escapeHtmlDidascalia(f.placeholder || '')}"${f.type === 'number' ? ` min="${f.min != null ? f.min : ''}" max="${f.max != null ? f.max : ''}" step="${f.step != null ? f.step : 1}"` : ''}>`);
                             return `<label style="display:flex; flex-direction:column; gap:5px; font-size:11.5px; font-weight:700; color:var(--text-muted);">${f.label ? escapeHtmlDidascalia(f.label) : ''}${campo}</label>`;
                         }).join('');
                         _appDialog.fields.style.display = 'flex';
