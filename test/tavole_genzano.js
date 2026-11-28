@@ -54,6 +54,17 @@ const $ = (app, id) => app.d.getElementById(id);
   clic(app, app.d.querySelector('.tavole-scheda[data-scheda="pagina"]'));
   t('il nome del progetto è nella barra', /GENZANO/.test($(app, 'tavole3dProgetto').textContent));
 
+  console.log('--- Telefono: due dita ---');
+  const dito = (tipo, id, x, y) => { const ev = new app.w.Event(tipo, { bubbles: true, cancelable: true }); Object.assign(ev, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, button: 0 }); $(app, 'tavole3dTela').dispatchEvent(ev); };
+  app.E('tavole3d.scelta = 0; mostraTavola3d()');
+  const z0 = app.E('(tavole3d.regola[tavole3d.voci[tavole3d.scelta].id] || {zoom: 1}).zoom || 1');
+  dito('pointerdown', 1, 100, 100); dito('pointerdown', 2, 200, 100); dito('pointermove', 2, 300, 100);
+  const z1 = app.E('tavole3d.regola[tavole3d.voci[tavole3d.scelta].id].zoom');
+  t(`il pizzico avvicina la vista (zoom ${z0} → ${Number(z1).toFixed(2)})`, z1 > z0 * 1.5);
+  t('con due dita non si sta trascinando un elemento', app.E('!tavole3d.trascina'));
+  dito('pointerup', 1, 100, 100); dito('pointerup', 2, 300, 100);
+  app.E('regolaTavola3d(r => { r.zoom = 1; r.dx = 0; r.dy = 0; })');
+
   console.log('--- Genzano: salvare e rileggere ---');
   t('prima di Salva il progetto non ha tavole salvate', app.E(`!(${P}.tavole3d && ${P}.tavole3d.registro && ${P}.tavole3d.registro.length)`));
   clic(app, $(app, 'tavole3dSalva')); await attesa(30);
