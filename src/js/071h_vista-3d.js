@@ -529,15 +529,17 @@
                 const g = tela.getContext('2d');
                 for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
                     sf.totali++;
-                    caricaImmagine3d(fornitore.url(z, x, y), img => g.drawImage(img, (x - x0) * 256, (y - y0) * 256), sf);
+                    caricaImmagine3d(fornitore.url(z, x, y), img => g.drawImage(img, (x - x0) * 256, (y - y0) * 256), sf, `${sc.id}|${z}|${x}|${y}`);
                 }
                 return (d._sfondo = sf);
             }
-            function caricaImmagine3d(url, posa, sf) {
+            /** `salvata`: la chiave della tessera in «Mappe offline» (071za), se c'è si usa quella invece della rete. */
+            function caricaImmagine3d(url, posa, sf, salvata) {
                 const img = new Image();
                 img.onload = () => { posa(img); sf.caricate++; if (datiVista3dCorrenti && datiVista3dCorrenti._sfondo === sf) { aggiornaStatoSfondo3d(); ridisegna3d(); } };
                 img.onerror = () => { sf.errori++; if (datiVista3dCorrenti && datiVista3dCorrenti._sfondo === sf) aggiornaStatoSfondo3d(); };
-                img.src = url;
+                if (!salvata) { img.src = url; return; }
+                moTessera(salvata).then(u => { if (u) img.addEventListener('load', () => URL.revokeObjectURL(u), { once: true }); img.src = u || url; });
             }
 
             // La scena: forme già proiettate sullo schermo, dalla più lontana alla più vicina (pezzi),

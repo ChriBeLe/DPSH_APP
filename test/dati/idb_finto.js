@@ -17,7 +17,16 @@
 //   idb._dump('DPSH_PhotoStorageDB')        // { photos: [...], noteImages: [...] }
 //   idb._guasto = { scritture: true }       // da qui in poi ogni transazione readwrite fallisce
 
-function clona(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
+const esBuffer = (x) => Object.prototype.toString.call(x) === '[object ArrayBuffer]';
+function clona(v) {
+    if (v === undefined) return undefined;
+    // i campi ArrayBuffer (le tessere delle mappe offline) si copiano; il resto passa da JSON come sempre
+    const buf = v && typeof v === 'object' ? Object.entries(v).filter(([, x]) => esBuffer(x)) : [];
+    if (!buf.length) return JSON.parse(JSON.stringify(v));
+    const resto = Object.assign({}, v); buf.forEach(([k]) => delete resto[k]);
+    const c = JSON.parse(JSON.stringify(resto)); buf.forEach(([k, x]) => { c[k] = x.slice(0); });
+    return c;
+}
 const dopo = (fn) => setTimeout(fn, 0);
 
 function creaIndexedDB(iniziale) {
