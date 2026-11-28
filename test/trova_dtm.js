@@ -282,6 +282,19 @@ function conRange(app, buf, range) {
   t('e si toglie', !app.d.querySelector('#trovaDtmFonti [data-fonte^="mia-"]'));
   app.E('chiudiTrovaDtm()');
 
+  // ---- L'assistente può usare le funzioni nuove ----
+  const ai = (n, a) => app.E(`AI_STRUMENTI.find(x => x.n === '${n}').run(${JSON.stringify(a || {})})`);
+  const fontiAi = ai('fonti_dtm', { campi: ['licenza', 'risoluzione'], tipo: 'DTM' });
+  t('assistente: elenca le fonti coi soli campi scelti', fontiAi.fonti.length > 0 && fontiAi.fonti.every(f => f.tipi.includes('DTM') && f.licenza !== undefined && f.ente === undefined));
+  const info = ai('leggi_dtm_progetto');
+  t('assistente: legge il DTM e il controllo, senza mai dire la chiave', info.haDtm && info.dtm.controllo.length >= 3 && info.opzioni.chiaveOpenTopographyPresente === true && !/CHIAVE123456/.test(JSON.stringify(info)));
+  const sc = ai('scala_vista3d', { mini_vista: true, righello: false, esagerazione: 4 });
+  t('assistente: cambia mini-vista, righello ed esagerazione del 3D', sc.miniVista === true && sc.righello === false && sc.esagerazione === 4);
+  ai('scala_vista3d', { mini_vista: false, righello: true });
+  const op = await app.E(`AI_STRUMENTI.find(x => x.n === 'imposta_dtm_opzioni').run({ memoria_offline: false, modello_opentopography: 'NASADEM' })`);
+  t('assistente: cambia le opzioni della finestra DTM', op.memoriaOffline === false && op.modelloOpenTopography === 'NASADEM');
+  t('le funzioni nuove chiedono conferma dove scrivono', ['carica_dtm_da_fonte', 'togli_dtm', 'imposta_dtm_opzioni', 'scala_vista3d'].every(n => app.E(`AI_STRUMENTI.find(x => x.n === '${n}').w`) === true));
+
   // ---- Un progetto senza GPS ----
   const idSenza = app.E(`Object.keys(state.projects).find(id => !proveConCoordinate(state.projects[id]).length) || null`);
   if (idSenza) {

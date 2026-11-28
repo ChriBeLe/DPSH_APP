@@ -1284,7 +1284,9 @@
         .fd-azioni .bt { min-height: 32px; padding: 0 10px; font-size: var(--fs-didascalia); }
         .fd-freccia { flex: none; transition: transform var(--mov-medio) var(--ease-inloco); color: var(--text-muted); }
         .fonte-dtm[open] .fd-freccia { transform: rotate(180deg); }
-        .fd-barra { height: 3px; background: transparent; overflow: hidden; }
+        .fonte-dtm > summary { position: relative; }
+        .fd-stato:not(:empty)::before { content: ' · '; }
+        .fd-barra { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: transparent; overflow: hidden; }
         .fd-barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width var(--mov-medio) var(--ease-inloco), background-color var(--mov-breve) var(--ease-inloco); }
         .fonte-dtm[data-stato="carico"] .fd-barra { background: var(--border); }
         .fonte-dtm[data-stato="carico"] .fd-barra i.indef { width: 35%; animation: fdScorre 1.1s var(--ease-inloco) infinite; }

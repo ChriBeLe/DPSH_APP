@@ -1274,7 +1274,7 @@
                 if (L.miniVista && !file) {
                     const vis = d.prove.filter(p => !vista3d.proveNascoste.has(p.s.id));
                     if (vis.length) {
-                        const bw = Math.min(230, Math.round(W * 0.36)), bh = Math.min(150, Math.round(H * 0.34)), x0 = W - bw - 12, y0 = 12, pad = 16;
+                        const bw = Math.min(230, Math.round(W * 0.36)), bh = Math.min(150, Math.round(H * 0.34)), x0 = W - bw - 12, y0 = H - bh - (W < 700 ? 64 : 52), pad = 16;
                         const Xs = p => (p.x - cx) * ca - (p.y - cy) * sa, xs = vis.map(Xs);
                         const xMin = Math.min(...xs), xMax = Math.max(...xs), zTop = Math.max(...vis.map(p => p.z)), zBot = Math.min(...vis.map(p => p.z - p.fondo));
                         const rX = Math.max(xMax - xMin, 4), rZ = Math.max(zTop - zBot, 1), sc = Math.min((bw - 2 * pad) / rX, (bh - 2 * pad - 8) / rZ);
@@ -1282,7 +1282,7 @@
                         sopra.push({ t: 'poli', p: [[x0, y0], [x0 + bw, y0], [x0 + bw, y0 + bh], [x0, y0 + bh]], fill: fondo, fo: 0.92, stroke: 'currentColor', sw: 1, cls: 'vista3d-minivista' });
                         testo(x0 + 6, y0 + 11, `Scala vera 1:1 · ${numeroConVirgola(rZ, 1)} m di profondità`, { size: 10, alone: true, cls: 'vista3d-minivista' });
                         const ord = vis.slice().sort((m, n) => Xs(m) - Xs(n));
-                        if (ord.length > 1) sopra.push({ t: 'poli', p: ord.map(p => [Xp(p), Y(p.z)]), fill: 'none', stroke: '#6b7a4b', sw: 1.5, dash: '4 3', cls: 'vista3d-minivista' });
+                        if (ord.length > 1) sopra.push({ t: 'poli', p: ord.map(p => [Xp(p), Y(p.z)]), fill: 'none', stroke: '#6b7a4b', sw: 1.5, dash: [4, 3], cls: 'vista3d-minivista' });
                         const wc = Math.max(3, Math.min(12, sc * 0.9, bw / (vis.length * 3)));
                         vis.forEach(p => p.fasce.forEach(f => {
                             if (vista3d.stratiNascosti.has(f.nome)) return;

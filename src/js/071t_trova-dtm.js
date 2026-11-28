@@ -799,11 +799,11 @@
                     html += `<details class="fonte-dtm" data-fonte="${f.id}" data-stato="${p.stato || ''}"${trovaDtm.aperte.has(f.id) ? ' open' : ''}>
                         <summary>
                             <span class="fd-pallino ${schedaVerifica[f.verifica]}" title="Informazione ${esc(VERIFICA_DTM[f.verifica])}"></span>
-                            <span class="fd-nome"><strong>${esc(f.nome)}</strong>${f.id === o.ultima ? '<span class="fd-ultima" title="L\'ultima che ha funzionato">★</span>' : ''}${inUso ? '<span class="fd-uso">in uso</span>' : ''}<span class="t-didascalia fd-sotto">${f.tipi.join('/')} · ${esc(f.risoluzione)} · <span class="fd-stato" aria-live="polite">${esc(p.testo || '')}</span></span></span>
+                            <span class="fd-nome"><strong>${esc(f.nome)}</strong>${f.id === o.ultima ? '<span class="fd-ultima" title="L\'ultima che ha funzionato">★</span>' : ''}${inUso ? '<span class="fd-uso">in uso</span>' : ''}<span class="t-didascalia fd-sotto">${f.tipi.join('/')} · ${esc(f.risoluzione)}<span class="fd-stato" aria-live="polite">${esc(p.testo || '')}</span></span></span>
                             <span class="fd-azioni">${caricabile ? `<button type="button" class="bt bt-tenue" data-azione-dtm="carica" title="Carica nel progetto"${trovaDtm.inCorso ? ' disabled' : ''}><svg class="ico"><use href="#i-upload"/></svg><span class="fd-testo-bt">Carica</span></button>` : ''}${scaricabile && !ot ? `<button type="button" class="bt" data-azione-dtm="scarica" title="Scarica il file"><svg class="ico"><use href="#i-download"/></svg><span class="fd-testo-bt">Scarica</span></button>` : ''}</span>
                             <svg class="ico fd-freccia" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                            <div class="fd-barra" role="progressbar" aria-label="Avanzamento"><i></i></div>
                         </summary>
-                        <div class="fd-barra" role="progressbar" aria-label="Avanzamento"><i></i></div>
                         <div class="fd-corpo">
                             <div class="fonte-dtm-etichette"><span>${esc(f.ente)}</span><span>${esc(f.tecnica)}</span><span>${esc(f.copertura)}</span><span>Licenza: ${esc(f.licenza)}</span></div>
                             ${f.nota ? `<p class="t-didascalia">${esc(f.nota)}</p>` : ''}
