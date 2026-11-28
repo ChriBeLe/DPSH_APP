@@ -120,6 +120,20 @@
                     if (!r) throw new Error('Prova non trovata.');
                     return r;
                 } },
+                { n: 'avvisi_dati', d: 'Elenca gli avvisi sui dati strani (passo, aste, strumento, βt, falda) di una prova o di tutto un progetto. Solo lettura: non cambia niente. Senza id usa la prova aperta.', p: { progetto_id: { type: 'string' }, prova_id: { type: 'string' }, tutto_il_progetto: { type: 'boolean' } }, run: a => {
+                    const p = (state.projects || {})[a.progetto_id || state.currentProjectId];
+                    if (!p) throw new Error('Progetto non trovato.');
+                    if (state.uiState && state.uiState.currentView === 'field' && p.id === state.currentProjectId) syncStateToProject();
+                    if (a.tutto_il_progetto) return avvisiDatiProgetto(p);
+                    const sid = a.prova_id || state.currentSurveyId;
+                    if (!p.surveys || !p.surveys[sid]) throw new Error('Prova non trovata.');
+                    return { survId: sid, avvisi: avvisiDatiProva(p.surveys[sid]) };
+                } },
+                { n: 'riepilogo_giornata', d: 'Riepilogo di una giornata di lavoro in tutti i progetti: prove, intervalli, metri, colpi, foto, orari, avvisi. giorno = AAAA-MM-GG (senza: oggi). Solo lettura.', p: { giorno: { type: 'string' } }, run: a => {
+                    if (state.uiState && state.uiState.currentView === 'field') syncStateToProject();
+                    const r = riepilogoGiornata(state, a.giorno);
+                    return Object.assign({ testo: testoRiepilogoGiornata(r) }, r);
+                } },
                 { n: 'elenco_comandi', d: 'Elenca i comandi dell\'app disponibili adesso, da usare con esegui_comando.', p: {}, run: () => comandiPc().filter(c => c[4] && c[3]).map(c => c[1]) },
                 { n: 'vai_a', d: 'Apre una schermata: home (progetti), project (scheda del progetto) o field (la prova). Con progetto_id/prova_id apre quelli.', p: { vista: { type: 'string', enum: ['home', 'project', 'field'] }, progetto_id: { type: 'string' }, prova_id: { type: 'string' } }, req: ['vista'], run: a => {
                     if (a.progetto_id) aiAttiva(a.progetto_id, a.prova_id);
@@ -467,7 +481,7 @@
 
             // Strumenti inviati a ogni richiesta: sempre i generali; i gruppi specifici solo se la conversazione ne parla
             // (o se sono già stati usati). Se nessun gruppo combacia, si inviano tutti. Meno byte = meno limiti e timeout.
-            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
+            const AI_CORE = ['stato_app', 'elenco_progetti', 'leggi_progetto', 'leggi_prova', 'elenco_comandi', 'avvisi_dati', 'riepilogo_giornata', 'vai_a', 'esegui_comando', 'leggi_schermata', 'clicca', 'compila_campo'];
             const AI_GRUPPI = [
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },

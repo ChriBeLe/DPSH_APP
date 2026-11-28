@@ -211,5 +211,6 @@ js/071v_morph-e-schede.js
 js/072_fase-3-modal-fallback-gps-foto.js
 js/072a_foto-in-ingresso-orienta-e-comprimi.js
 js/072b_leggi-foglio-di-campo.js
+js/072c_avvisi-e-riepilogo-giornata.js
 js/073_assistente-ia.js
 shell/06_fine.html
