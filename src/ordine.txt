@@ -215,6 +215,7 @@ js/071x_elenco-tavole.js
 js/071y_tavola-confronto.js
 js/071z_tavola-libera.js
 js/071za_mappe-offline.js
+js/071za_anteprime-progetti-home.js
 js/071s_importa-da-word.js
 js/071v_tasto-destro.js
 js/071v_morph-e-schede.js

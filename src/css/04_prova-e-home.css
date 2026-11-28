@@ -184,6 +184,45 @@
             background: transparent; border: none; color: var(--text-muted); cursor: pointer;
         }
         .card-progetto-altro .ico { width: 20px; height: 20px; }
+        /* ---- Le tre viste della Home (071za): Anteprime | Elenco | Mappa ---- */
+        .schede-vista-home { flex: 0 0 auto; grid-template-columns: repeat(3, 44px); margin-left: auto; }
+        /* Telefono: la ricerca su tutta la riga; sotto «Ordina» a sinistra e le viste a destra. */
+        .home-cerca-riga { flex-wrap: wrap; }
+        .home-cerca-riga .campo-cerca { flex-basis: 100%; }
+        .schede-vista-home button { display: flex; align-items: center; justify-content: center; padding: 0; }
+        .schede-vista-home button[aria-selected="true"] .ico, .schede-vista-home.con-cursore > [aria-selected="true"] { color: var(--on-accent); }
+        .schede-vista-home .ico { width: 20px; height: 20px; }
+        .home-progetti[data-vista="elenco"] .card-progetto-anteprima { display: none; }
+        .home-progetti[data-vista="griglia"] { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr)); gap: var(--sp-3); }
+        .home-progetti[data-vista="griglia"] .card-progetto { position: relative; transition: translate var(--mov-medio) var(--ease-entra), box-shadow var(--mov-medio) var(--ease-entra); }
+        .home-progetti[data-vista="griglia"] .card-progetto-apri { padding: 0 0 var(--sp-3); gap: 4px; }
+        .home-progetti[data-vista="griglia"] .card-progetto-apri > :not(.card-progetto-anteprima) { padding: 0 var(--sp-3); }
+        .home-progetti[data-vista="griglia"] .card-progetto-riga1 { margin-top: var(--sp-2); }
+        .home-progetti[data-vista="griglia"] .card-progetto-riga1 { flex-wrap: wrap; }
+        .home-progetti[data-vista="griglia"] .card-progetto-numeri, .home-progetti[data-vista="griglia"] .card-progetto-data { font-size: var(--fs-didascalia); }
+        .home-progetti[data-vista="griglia"] .card-progetto-altro { position: absolute; right: 2px; top: 2px; width: 48px; min-height: 48px; flex: none; color: #fff; }
+        .home-progetti[data-vista="griglia"] .card-progetto-altro .ico { width: 32px; height: 32px; padding: 6px; box-sizing: border-box; border-radius: 50%; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
+        .card-progetto-anteprima {
+            position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+            aspect-ratio: 16 / 10; width: 100%; overflow: hidden; background: var(--bg-sunken); color: var(--text-muted);
+            font-size: var(--fs-didascalia); border-bottom: 1px solid var(--border);
+        }
+        .card-progetto-anteprima img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; animation: amAnteprimaEntra var(--mov-lungo) var(--ease-entra) both; }
+        .card-progetto-anteprima.in-attesa { background: linear-gradient(100deg, var(--bg-sunken) 30%, var(--bg-card-hover) 50%, var(--bg-sunken) 70%) 0 0 / 300% 100%; animation: amAnteprimaAttesa 1.4s linear infinite; }
+        .card-progetto-anteprima .ico { width: 22px; height: 22px; }
+        @keyframes amAnteprimaEntra { from { opacity: 0; scale: 1.04; } to { opacity: 1; scale: 1; } }
+        @keyframes amAnteprimaAttesa { from { background-position: 100% 0; } to { background-position: 0 0; } }
+        @media (hover: hover) {
+            .home-progetti[data-vista="griglia"] .card-progetto:hover { translate: 0 -2px; box-shadow: var(--shadow-md, var(--shadow-sm)); }
+        }
+        .home-mappa { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-sunken); box-shadow: var(--shadow-sm); animation: amAnteprimaEntra var(--mov-medio) var(--ease-entra) both; }
+        .home-mappa-el { width: 100%; height: min(62vh, 560px); min-height: 280px; }
+        .home-mappa-nota { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-testo); color: var(--text-muted); }
+        .home-mappa-pin span { display: block; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; rotate: -45deg; background: var(--pin, var(--accent)); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); box-sizing: border-box; }
+        .home-mappa-fumetto { display: flex; flex-direction: column; gap: 6px; font-family: inherit; color: var(--text-main); }
+        .home-mappa-fumetto .card-progetto-anteprima { border-radius: var(--radius-md); border: 1px solid var(--border); }
+        .home-mappa-fumetto strong { font-size: var(--fs-campo); }
+        .home-mappa-fumetto span { color: var(--text-muted); }
         .home-vuota { text-align: center; color: var(--text-muted); padding: 32px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: var(--fs-testo); line-height: 1.5; }
         .home-vuota .titolo { font-size: var(--fs-campo); font-weight: 800; color: var(--text-main); margin-bottom: 6px; }
 
@@ -1422,24 +1461,35 @@
             .home-comandi { grid-column: 3; grid-row: 1; display: flex; }
             .home-comandi .bt { min-height: var(--h-bottone); font-size: var(--fs-testo); padding: 0 var(--sp-4); white-space: nowrap; }
             #btnHomeNewProject { order: 1; }
-            #homePromemoriaBackup, #homeProjectsContainer { grid-column: 1 / -1; }
+            #homePromemoriaBackup, #homeProjectsContainer, #homeMappaProgetti, #homeMappaNota { grid-column: 1 / -1; }
             /* I progetti: un elenco a righe, colonne allineate (nome e stato | luogo | numeri | data). */
-            .home-progetti:has(.card-progetto) { gap: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-            .home-progetti .card-progetto { border: none; border-radius: 0; box-shadow: none; background: transparent; }
-            .home-progetti .card-progetto { border-top: 1px solid var(--border); }
+            .home-progetti:not([data-vista="griglia"]):has(.card-progetto) { gap: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto { border: none; border-radius: 0; box-shadow: none; background: transparent; }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto { border-top: 1px solid var(--border); }
             /* Intestazioni e righe: stesse colonne; i 44 px in fondo sono il ⋯. */
-            .home-progetti { --colonne-progetti: minmax(0, 2fr) minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 2fr); }
-            .home-progetti:has(.card-progetto) .progetti-colonne { display: grid; grid-template-columns: var(--colonne-progetti); gap: var(--sp-4); padding: var(--sp-2) calc(44px + var(--sp-2)) var(--sp-2) var(--sp-4); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
+            .home-progetti:not([data-vista="griglia"]) { --colonne-progetti: minmax(0, 2fr) minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 2fr); }
+            .home-progetti:not([data-vista="griglia"]):has(.card-progetto) .progetti-colonne { display: grid; grid-template-columns: var(--colonne-progetti); gap: var(--sp-4); padding: var(--sp-2) calc(44px + var(--sp-2)) var(--sp-2) var(--sp-4); font-size: var(--fs-didascalia); font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; }
             .card-progetto:hover { background: var(--bg-card-hover); }
-            .card-progetto-apri { min-height: 52px; display: grid; grid-template-columns: var(--colonne-progetti); align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
-            .card-progetto-nome { font-size: var(--fs-testo); }
-            .card-progetto-numeri, .card-progetto-data { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .card-progetto-numeri { color: var(--text-muted); }
-            .card-progetto-altro { flex-basis: 44px; width: 44px; min-height: 0; }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto-apri { min-height: 52px; display: grid; grid-template-columns: var(--colonne-progetti); align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto-nome { font-size: var(--fs-testo); }
+            .home-progetti:not([data-vista="griglia"]) :is(.card-progetto-numeri, .card-progetto-data) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto-numeri { color: var(--text-muted); }
+            .home-progetti:not([data-vista="griglia"]) .card-progetto-altro { flex-basis: 44px; width: 44px; min-height: 0; }
+            .home-progetti[data-vista="griglia"] { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-4); }
+            /* Sul PC «Ordina» e le viste stanno in una riga sopra i progetti: la ricerca resta larga in testata. */
+            .schede-vista-home { grid-template-columns: repeat(3, 36px); }
+            .home-ricerca .home-cerca-riga { display: contents; }
+            .home-cerca-riga .campo-cerca { grid-column: 2; grid-row: 1; }
+            #homeOrdineProgetti { grid-column: 1; grid-row: 3; justify-self: start; }
+            #homeVistaProgetti { grid-column: 1 / -1; grid-row: 3; justify-self: end; margin: 0; }
+            #homePromemoriaBackup { grid-row: 2; }
+            #homeProjectsContainer { grid-row: 4; }
+            #homeMappaProgetti { grid-row: 5; }
+            #homeMappaNota { grid-row: 6; }
             /* Sotto i 1280 la data lascia il posto (resta nel menu del tasto destro e nella barra). */
             @media (max-width: 1279px) {
-                .home-progetti { --colonne-progetti: minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1fr); }
-                .card-progetto-data, .progetti-colonne > :nth-child(4) { display: none; }
+                .home-progetti:not([data-vista="griglia"]) { --colonne-progetti: minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1fr); }
+                .home-progetti:not([data-vista="griglia"]) .card-progetto-data, .progetti-colonne > :nth-child(4) { display: none; }
             }
 
             /* ---- Progetto: nome e dati | Riprendi | ⋯; sotto gli strumenti; poi la tabella ---- */
