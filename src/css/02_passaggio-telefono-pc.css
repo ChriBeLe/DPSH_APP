@@ -64,3 +64,24 @@
             .passaggio .colonne { grid-template-columns: minmax(0, 1fr); gap: 12px; }
             .passaggio .bottoni button { flex: 1; min-width: 0; padding: 0 10px; }
         }
+
+        /* ============ CODICI QR (28/11/2026) ============ */
+        .modal.passaggio.qr { max-width: 560px; }
+        .qr-schede { display: flex; gap: 8px; }
+        .qr-schede button { flex: 1; min-height: 44px; }
+        .qr-schede button.premuto { background: var(--accent); color: var(--on-accent); }
+        .qr-scelte { display: flex; flex-direction: column; gap: 6px; }
+        .qr-scelte label { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: var(--fs-testo); color: var(--text-main); }
+        .qr-scelte label input { width: 22px; height: 22px; flex-shrink: 0; }
+        .qr-scelte .sotto { margin-left: 32px; display: flex; flex-direction: column; gap: 2px; }
+        .qr-scelte .peso { margin-left: auto; font-family: var(--font-mono); color: var(--text-muted); }
+        .qr-schermo { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .qr-figura { width: min(100%, 420px, 62vh); aspect-ratio: 1; background: #fff; border-radius: var(--radius-md); padding: 0; overflow: hidden; }
+        .qr-figura svg { width: 100%; height: 100%; display: block; }
+        .qr-contatore { font-family: var(--font-mono); font-size: var(--fs-sezione); font-weight: 700; color: var(--text-main); }
+        .qr-comandi { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .qr-comandi button { min-height: 44px; padding: 0 14px; }
+        .qr-video { width: 100%; max-height: 52vh; background: #000; border-radius: var(--radius-md); object-fit: cover; }
+        .qr-avanzamento { font-size: var(--fs-testo); color: var(--text-main); }
+        .qr-barra { height: 10px; background: var(--bg-sunken); border-radius: 5px; overflow: hidden; }
+        .qr-barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .15s; }
