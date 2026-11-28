@@ -79,7 +79,7 @@
 
             /** Il riquadro che occupano sullo schermo le cose che contano (non il terreno, non la bussola). */
             function ingombroScena3d(sc) {
-                const fuori = new Set(['vista3d-faccia', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-legenda']);
+                const fuori = new Set(['vista3d-faccia', 'vista3d-blocco', 'vista3d-nord', 'vista3d-didascalia', 'vista3d-attribuzione', 'vista3d-nord-terreno', 'vista3d-fantasma', 'vista3d-scala', 'vista3d-scala-vera', 'vista3d-minivista', 'vista3d-legenda']);
                 let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
                 const pt = (x, y) => { if (!isFinite(x) || !isFinite(y)) return; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); };
                 sc.tutte.forEach(f => {
@@ -623,6 +623,8 @@
                 if (op.ex) { T3('tavole3dEsag').value = op.ex; T3('tavole3dEsagCursore').value = op.ex; }
                 renderTemplateTavole3d();
                 T3('tavole3d').hidden = false;
+                { const pn = state.projects[state.currentProjectId]; T3('tavole3dProgetto').textContent = pn && pn.name ? pn.name : ''; }
+                schedaTavole3d('pagina');
                 renderElencoTavole3d();
                 mostraTavola3d();
                 salvaMemoriaTavole3d();
@@ -677,16 +679,24 @@
                 statoSalvataggioTavole3d(); mostraTavola3d();
                 if (typeof mostraToast === 'function') mostraToast(t && t.bloccata ? 'Tavola bloccata. Salva per confermare.' : 'Tavola sbloccata. Salva per confermare.');
             }
-            /** Le miniature delle pagine (dai riquadri dell'elenco), piccole: servono all'elenco delle tavole salvate. */
+            /** L'anteprima di una pagina, disegnata apposta (fuori dalla pagina, a `largo` pixel): un'immagine webp
+             * leggera, o l'SVG per i disegni e le sezioni 2D. Null se non si può (nel banco di prova non c'è il disegno). */
+            function miniaturaVoce3d(v, largo) {
+                if (/jsdom/i.test(navigator.userAgent || '') || !v || !datiVista3dCorrenti) return null;
+                try {
+                    const el = document.createElement('div');
+                    el.innerHTML = e2dTavola3d(v) ? '<img alt="">' : '<canvas></canvas>';
+                    disegnaMiniaturaTavola3d(v, el, largo || 360);
+                    const c = el.querySelector('canvas'), im = el.querySelector('img');
+                    if (c && c.width) { const u = c.toDataURL('image/webp', 0.72); return u && u.length < 150000 ? u : null; }
+                    if (im && /^data:image\/svg/.test(im.src || '') && im.src.length < 150000) return im.src;
+                } catch (e) { /* senza anteprima l'elenco funziona lo stesso */ }
+                return null;
+            }
+            /** Le anteprime di tutte le pagine, per l'elenco delle tavole salvate. */
             function miniatureTavole3d() {
                 const out = {};
-                if (/jsdom/i.test(navigator.userAgent || '')) return out; // nel banco di prova il disegno non c'è
-                try {
-                    [...T3('tavole3dPagine').children].forEach((el, i) => {
-                        const v = tavole3d.voci[i], c = el.querySelector('canvas');
-                        if (v && c && c.width) { const u = c.toDataURL('image/jpeg', 0.6); if (u && u.length < 40000) out[v.id] = u; }
-                    });
-                } catch (e) { /* senza miniature l'elenco funziona lo stesso */ }
+                tavole3d.voci.forEach(v => { const u = miniaturaVoce3d(v, 360); if (u) out[v.id] = u; });
                 return out;
             }
             /** Ci sono modifiche non salvate? */
@@ -704,10 +714,22 @@
                 }
             }
             /** SALVA: la bozza entra nel progetto (e nel registro delle tavole, con la versione). */
-            function salvaTavole3d() {
+            /** Lo stile comune a tutte le pagine: foglio, elementi, sfondo, opzioni (non le inquadrature di una pagina sola). */
+            function firmaStileTavole(mem) {
+                const o = Object.assign({}, (mem && mem.opzioni) || {}); delete o.piante; delete o.posizioni; delete o.W; delete o.H; delete o.reg;
+                return JSON.stringify([mem && mem.foglio, mem && mem.elementi, mem && mem.pianta, mem && mem.opacitaFoto, o]);
+            }
+            async function salvaTavole3d() {
                 const proj = state.projects[state.currentProjectId];
                 if (!proj || !tavole3d.bozza) return false;
                 salvaMemoriaTavole3d();
+                // lo stile è comune: se è cambiato e ci sono tavole bloccate (consegnate), si dice cosa succede
+                const bloccate = registroTavole({ tavole3d: tavole3d.bozza }).filter(t => t.bloccata && !t.storica);
+                if (bloccate.length && proj.tavole3d && firmaStileTavole(proj.tavole3d) !== firmaStileTavole(tavole3d.bozza) && proj.tavole3d.foglio) {
+                    const r = await appDialog(`Hai cambiato lo stile comune (foglio, scritte, sfondo, legenda…), ma ${bloccate.length === 1 ? 'una tavola è bloccata' : bloccate.length + ' tavole sono bloccate'} (${bloccate.slice(0, 3).map(t => '«' + t.nome + '»').join(', ')}${bloccate.length > 3 ? '…' : ''}). Nel report le bloccate useranno comunque il nuovo stile. Cosa vuoi fare?`,
+                        { confirm: true, okLabel: 'Salva lo stesso', cancelLabel: 'Torna a modificare' });
+                    if (r !== true && !(r && r.ok)) return false;
+                }
                 try { sincronizzaRegistroTavole({ tavole3d: tavole3d.bozza }, tavole3d.voci, tavole3d.bozza, improntaDatiTavole3d(), miniatureTavole3d(), (tavole3d.bozza.templateApplicato || {}).id); } catch (e) { ignoraErrore('registro tavole', e); }
                 proj.tavole3d = JSON.parse(JSON.stringify(tavole3d.bozza));
                 tavole3d.pulito = JSON.stringify(tavole3d.bozza);
@@ -717,12 +739,15 @@
                 return true;
             }
             async function chiudiTavole3d() {
-                if (tavole3d.lavoro) return;
+                if (tavole3d.lavoro || tavole3d.chiudendo) return; // (un solo avviso alla volta: Esc ripetuto non ne impila altri)
                 salvaMemoriaTavole3d();
                 if (tavoleSporche3d()) {
-                    const r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' });
+                    tavole3d.chiudendo = true;
+                    let r;
+                    try { r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' }); }
+                    finally { tavole3d.chiudendo = false; }
                     if (r === false || r === undefined || r === null) return;
-                    if (r === true || (r && r.ok)) salvaTavole3d();
+                    if (r === true || (r && r.ok)) { tavole3d.chiudendo = true; let salvata = false; try { salvata = await salvaTavole3d(); } finally { tavole3d.chiudendo = false; } if (!salvata) return; }
                 }
                 tavole3d.bozza = null; tavole3d.pulito = null;
                 T3('tavole3d').hidden = true;
@@ -822,7 +847,7 @@
                 };
                 setTimeout(prossima, 30);
             }
-            function disegnaMiniaturaTavola3d(v, el) {
+            function disegnaMiniaturaTavola3d(v, el, largo) {
                 const d = datiVista3dCorrenti;
                 if (!d) return;
                 if (v.tipo === 'libero') { el.querySelector('img').src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTavolaLibera(liberoPerId(memoriaTavole3d(), v.id))); return; }
@@ -843,7 +868,7 @@
                 if (!sc) return;
                 if (opz.legenda) sc = conLegenda3d(sc, d, opz.scritte, opz.posizioni.legenda);
                 const col = COLORI_ESPORTA_3D[tavole3d.sfondo];
-                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: 200 / opz.W });
+                disegnaScena(tela, sc, { fondo: col.fondo, testo: col.testo, scala: (largo || 200) / opz.W });
                 tela.style.aspectRatio = `${opz.W} / ${opz.H}`;
                 tela.style.width = ''; tela.style.height = '';
             }
@@ -969,7 +994,10 @@
                 const v = tavole3d.voci[tavole3d.scelta];
                 if (!v || e2dTavola3d(v) || tavolaBloccata3d(v)) return;
                 const r = tavole3d.regola[v.id] || (tavole3d.regola[v.id] = { dAz: 0, dEl: 0, zoom: 1, dx: 0, dy: 0 });
+                const prima = [r.dAz, r.dEl, r.zoom, r.dx, r.dy].join(), spilla = r.nordTerreno;
                 modifica(r);
+                // la freccia del nord sul terreno segue la camera: se si muove la vista (gira, inclina, zoom, sposta) e non è la freccia stessa che si sta spostando, torna a cercarsi il posto
+                if (r.nordTerreno === spilla && [r.dAz, r.dEl, r.zoom, r.dx, r.dy].join() !== prima) delete r.nordTerreno;
                 salvaMemoriaTavole3d();
             }
             let attesaTavola3d = false;
@@ -1031,6 +1059,19 @@
 
             // ---- i comandi ----
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
+            // Le schede del pannello a destra: Pagina, Foglio, Scena (mappa e modello), Elementi. Un solo gruppo alla volta, niente scorrimento lungo.
+            const SCHEDE_TAVOLE3D = { pagina: ['pagina'], foglio: ['foglio'], scena: ['mappa', 'modello'], elementi: ['elementi'] };
+            function schedaTavole3d(nome) {
+                const pan = document.querySelector('#tavole3d .tavole-comandi'); if (!pan || !SCHEDE_TAVOLE3D[nome]) return;
+                pan.dataset.scheda = nome;
+                pan.querySelectorAll('.tavole-scheda').forEach(b => { const on = b.dataset.scheda === nome; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+                pan.querySelectorAll('[data-tavole-gruppo]').forEach(g => { const qui = SCHEDE_TAVOLE3D[nome].includes(g.dataset.tavoleGruppo); g.hidden = !qui; if (qui && SCHEDE_TAVOLE3D[nome].length === 1) g.open = true; });
+                const corpo = pan.querySelector('.tavole-comandi-corpo'); if (corpo) corpo.scrollTop = 0;
+            }
+            document.querySelectorAll('#tavole3d .tavole-scheda').forEach(b => {
+                b.addEventListener('click', () => schedaTavole3d(b.dataset.scheda));
+                b.addEventListener('keydown', e => { const l = [...b.parentNode.children], i = l.indexOf(b), k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; e.preventDefault(); const n = l[(i + k + l.length) % l.length]; n.focus(); schedaTavole3d(n.dataset.scheda); });
+            });
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
             T3('tavole3dAggiungiLibero').addEventListener('click', aggiungiLibero3d);
@@ -1044,6 +1085,7 @@
             T3('tavole3dAggiungiVista').addEventListener('click', aggiungiVista3d);
             T3('tavole3dTogliVista').addEventListener('click', togliVistaAggiunta3d);
             T3('tavole3dElenco').addEventListener('click', apriElencoTavole3d);
+            document.getElementById('btnElencoTavole').addEventListener('click', apriElencoTavole3d);
             T3('tavole3dAnnulla').addEventListener('click', chiudiTavole3d);
             T3('tavole3d').addEventListener('mousedown', (e) => { if (e.target === T3('tavole3d')) chiudiTavole3d(); });
             // Esc chiude solo la finestra delle tavole, non la mappa sotto.
@@ -1348,6 +1390,27 @@
             const fineTrascina3d = () => { if (!tavole3d.trascina) return; tavole3d.trascina = null; tela3dT.classList.remove('trascina'); mostraTavola3d(); aggiornaMiniaturaScelta3d(); };
             tela3dT.addEventListener('pointerup', fineTrascina3d);
             tela3dT.addEventListener('pointercancel', fineTrascina3d);
+            // Sul telefono: un dito gira o sposta un elemento; due dita avvicinano (pizzico) e spostano la vista.
+            const ditaTav = new Map();
+            let pizzicoTav = null;
+            const centroDitaTav = () => { const v = [...ditaTav.values()]; return { x: (v[0].x + v[1].x) / 2, y: (v[0].y + v[1].y) / 2, d: Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y) || 1 }; };
+            tela3dT.addEventListener('pointerdown', (e) => {
+                if (e.pointerType !== 'touch') return;
+                ditaTav.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (ditaTav.size === 2) { tavole3d.trascina = null; tela3dT.classList.remove('trascina'); const c = centroDitaTav(); pizzicoTav = { x: c.x, y: c.y, d: c.d }; }
+            });
+            tela3dT.addEventListener('pointermove', (e) => {
+                if (!ditaTav.has(e.pointerId)) return;
+                ditaTav.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (ditaTav.size < 2 || !pizzicoTav) return;
+                const c = centroDitaTav(), k = (tavole3d.ultima && tavole3d.ultima.k) || 1, f = c.d / pizzicoTav.d, ddx = c.x - pizzicoTav.x, ddy = c.y - pizzicoTav.y;
+                pizzicoTav = { x: c.x, y: c.y, d: c.d };
+                regolaTavola3d(r => { r.zoom = Math.max(0.2, Math.min(8, r.zoom * f)); r.dx += ddx / k; r.dy += ddy / k; });
+                ridisegnaTavola3d(true);
+            });
+            const fineDitaTav = (e) => { if (!ditaTav.delete(e.pointerId)) return; if (ditaTav.size < 2 && pizzicoTav) { pizzicoTav = null; mostraTavola3d(); aggiornaMiniaturaScelta3d(); } };
+            tela3dT.addEventListener('pointerup', fineDitaTav);
+            tela3dT.addEventListener('pointercancel', fineDitaTav);
             tela3dT.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 regolaTavola3d(r => { r.zoom = Math.max(0.2, Math.min(8, r.zoom * Math.exp(-e.deltaY * 0.0015))); });

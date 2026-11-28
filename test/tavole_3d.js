@@ -409,7 +409,7 @@ const $ = (app, id) => app.d.getElementById(id);
   const q = app.d.querySelector('#tavoleElenco [data-az="tipo"]'); q.value = 'iso'; q.dispatchEvent(new app.w.Event('change', { bubbles: true }));
   t('il filtro per tipo tiene solo le isometriche', elenco().length > 0 && elenco().every(r => /Isometrica/.test(r.textContent)));
   clic(app, app.d.querySelector('#tavoleElenco [data-az="chiudi"]'));
-  t('Chiudi nasconde l\'elenco', app.d.getElementById('tavoleElenco').hidden);
+  t('Chiudi toglie l\'elenco dalla pagina: niente resta sopra lo schermo', !app.d.getElementById('tavoleElenco'));
   clic(app, $(app, 'tavole3dBlocca'));
   const bloccata = app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`);
   clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
@@ -419,6 +419,43 @@ const $ = (app, id) => app.d.getElementById(id);
   t('sbloccata: si può di nuovo cambiare', app.E(`JSON.stringify(tavole3d.bozza.regola[tavole3d.voci[2].id])`) !== bloccata);
   clic(app, $(app, 'tavole3dSalva'));
   clic(app, $(app, 'tavole3dChiudi'));
+
+  console.log('--- Cosa si vede davvero (stili calcolati) ---');
+  clic(app, $(app, 'btnTavole3d')); await attesa(30);
+  const vis = id => app.w.getComputedStyle($(app, id)).display !== 'none';
+  clic(app, pagine()[0]);
+  t('su una pagina del modello la barra del disegno libero e «Togli vista» NON si vedono', !vis('tavole3dLiberoBarra') && !vis('tavole3dTogliVista'));
+  clic(app, $(app, 'tavole3dAggiungiLibero'));
+  t('su un disegno libero la barra degli strumenti si vede, e «Togli vista»', vis('tavole3dLiberoBarra') && vis('tavole3dTogliVista'));
+  clic(app, $(app, 'tavole3dTogliVista'));
+  clic(app, pagine()[0]);
+  t('l\'elenco sta sopra la finestra Tavole (360) ma sotto i dialoghi (400): così rinomina, conferme e domande si vedono', (() => { clic(app, $(app, 'tavole3dElenco')); const z = Number(app.d.getElementById('tavoleElenco').style.zIndex); app.E('chiudiElencoTavole()'); return z > 360 && z < 400; })());
+  clic(app, $(app, 'tavole3dSalva')); clic(app, $(app, 'tavole3dChiudi')); await attesa(30);
+
+  // Esc ripetuto con modifiche non salvate: un solo avviso, e «Continua a modificare» non chiude
+  clic(app, $(app, 'btnTavole3d')); await attesa(30);
+  clic(app, $(app, 'tavole3dRegola').querySelector('[data-regola="az+"]'));
+  for (let k = 0; k < 3; k++) app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await attesa(30);
+  t('Esc ripetuto con modifiche non salvate: si apre un avviso solo', !!app.dialogo() && /non salvate/.test(app.dialogo().testo));
+  clic(app, app.dialogo().annulla); await attesa(30);
+  t('«Continua a modificare»: la finestra resta aperta e nessun avviso resta a mezz\'aria', !$(app, 'tavole3d').hidden && !app.dialogo());
+  clic(app, $(app, 'tavole3dChiudi')); await attesa(30); clic(app, app.dialogo().extra); await attesa(30);
+  t('«Scarta»: la finestra si chiude e il progetto è com\'era', $(app, 'tavole3d').hidden && !app.dialogo());
+
+  console.log('--- Dalla mappa ---');
+  clic(app, $(app, 'btnElencoTavole'));
+  const dalla = [...app.d.querySelectorAll('#tavoleElenco [data-id]')];
+  t('dalla mappa «Tavole salvate» apre l\'elenco anche a finestra chiusa', dalla.length > 0 && !app.d.getElementById('tavoleElenco').hidden);
+  const nMappa = dalla.length;
+  clic(app, dalla[0].querySelector('[data-az="duplica"]'));
+  t('dalla mappa le modifiche valgono subito (si salva da sole)', app.E(`${P}.tavole3d.registro.length`) === nMappa + 1);
+  clic(app, app.d.querySelector('#tavoleElenco [data-az="chiudi"]'));
+  t('dalla mappa, dopo Chiudi, nessuno strato copre lo schermo', !app.d.getElementById('tavoleElenco'));
+  clic(app, $(app, 'btnElencoTavole'));
+  app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  t('Esc chiude l\'elenco', !app.d.getElementById('tavoleElenco'));
+  t('lo stile: la firma cambia se cambia il foglio, non se cambia un\'inquadratura', app.E(`firmaStileTavole({ foglio: { carta: 'A4' } }) !== firmaStileTavole({ foglio: { carta: 'A3' } }) && firmaStileTavole({ foglio: { carta: 'A4' }, regola: { a: 1 } }) === firmaStileTavole({ foglio: { carta: 'A4' } })`));
 
   console.log('--- Il PDF ---');
   // Una «JPEG» finta: il PDF la porta così com'è (DCTDecode), basta che la struttura sia giusta.

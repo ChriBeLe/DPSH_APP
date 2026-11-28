@@ -532,6 +532,7 @@
                 if (typeof aggiornaConteggiHome === 'function') aggiornaConteggiHome();
                 const boxRicercaProgetti = document.getElementById('homeRicercaProgetti');
                 if (boxRicercaProgetti) boxRicercaProgetti.style.display = projKeys.length === 0 ? 'none' : 'flex';
+                if (typeof preparaVistaHome === 'function' && projKeys.length === 0) preparaVistaHome([]);
                 if (projKeys.length === 0) {
                     // Stato vuoto: «Nuovo progetto» e «Ricevi un progetto» ci sono già una volta sola, in alto.
                     homeProjectsContainer.innerHTML = `
@@ -554,6 +555,8 @@
 
                 renderFiltroStatoProgetti(projKeys);
                 const visibili = progettiVisibiliHome(projKeys, state.projects, ricercaProgettiTesto, filtroStatoProgetti);
+                // Le tre viste (pezzo 071za): Anteprime (griglia con la miniatura dalla mappa), Elenco, Mappa.
+                const vistaHome = typeof preparaVistaHome === 'function' ? preparaVistaHome(visibili) : 'elenco';
                 if (visibili.length === 0) {
                     homeProjectsContainer.innerHTML = `
                         <div class="home-vuota">
@@ -575,6 +578,8 @@
                     return;
                 }
 
+                // Nella vista «Mappa» le card non ci sono: i progetti stanno sulla mappa (homeMappaProgetti).
+                if (vistaHome === 'mappa') return;
                 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
                 // Le intestazioni delle colonne: solo sul PC, dove i progetti sono una tabella.
                 homeProjectsContainer.insertAdjacentHTML('beforeend', '<div class="progetti-colonne" aria-hidden="true"><span>Progetto</span><span>Luogo</span><span>Prove</span><span>Ultima modifica</span></div>');
@@ -600,6 +605,7 @@
                     // linea, ha le azioni di progetto (note comprese).
                     card.innerHTML = `
                         <button type="button" class="card-progetto-apri btn-open-project" data-id="${testoHtml(projId)}" aria-label="Apri ${esc(nome)}">
+                            ${vistaHome === 'griglia' && typeof htmlAnteprimaProgetto === 'function' ? htmlAnteprimaProgetto(projId) : ''}
                             <span class="card-progetto-riga1">
                                 <span class="card-progetto-nome">${esc(nome)}</span>
                                 ${statoProgetto ? `<span class="card-progetto-stato" style="color: ${statoProgetto.colore}; background: ${statoProgetto.sfondo};">${statoProgetto.etichetta}</span>` : ''}

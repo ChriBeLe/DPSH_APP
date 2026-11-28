@@ -279,6 +279,23 @@ const $ = (app, id) => app.d.getElementById(id);
   $(app, 'selSfondo3d').dispatchEvent(new app.w.Event('change'));
   t('«Nessuna» torna ai colori della quota', !app.E('ultimaScena3d.pezzi.some(f => f.sfondo)'));
 
+  // ---- Scala leggibile senza esagerazione: righello, scala vera, mini-vista 1:1, terreno stretto, inquadra ----
+  const n3 = cls => app.E(`ultimaScena3d.tutte.filter(f => f.cls === '${cls}').length`);
+  app.E('vista3d.ex = 3; vista3d.el = 0.7; vista3d.prospettiva = false; renderVista3d()');
+  t('il righello delle profondità è acceso di partenza e mette tacche e numeri', n3('vista3d-righello') > 3);
+  t('la scala vera (barre in metri veri) è accesa di partenza', n3('vista3d-scala-vera') >= 4);
+  app.E('vista3d.livelli.righello = false; vista3d.livelli.scalaVera = false; renderVista3d()');
+  t('righello e scala vera si spengono', n3('vista3d-righello') === 0 && n3('vista3d-scala-vera') === 0);
+  app.E('vista3d.livelli.miniVista = true; renderVista3d()');
+  t('la mini-vista 1:1 disegna il riquadro e le colonne', n3('vista3d-minivista') >= 4);
+  app.E('vista3d.livelli.miniVista = false; vista3d.livelli.righello = true; vista3d.livelli.scalaVera = true; renderVista3d()');
+  const latoLargo = app.E('datiVista3dCorrenti.lato');
+  app.E(`vista3d.livelli.terrenoStretto = true; datiVista3dCorrenti = datiVista3d(state.projects[state.currentProjectId])`);
+  t('«Terreno stretto» ritaglia il terreno attorno alle prove', app.E('datiVista3dCorrenti.lato') < latoLargo);
+  app.E('vista3d.livelli.terrenoStretto = false; datiVista3dCorrenti = datiVista3d(state.projects[state.currentProjectId]); vista3d.zoom = 1; vista3d.centro = [0, 0, 0]; vista3d.ex = 1; inquadraCorpo3d()');
+  await attesa(700);
+  t('«Inquadra le prove» avvicina la vista al corpo indagato anche senza esagerazione', app.E('vista3d.zoom') > 1.5);
+
   t('l\'app non ha dato errori', app.errori.length === 0);
   if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
   app.chiudi();

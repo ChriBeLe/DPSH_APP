@@ -52,3 +52,12 @@ Dal bottone DTM della mappa del progetto (3D) e da «Terreno e sezioni» › «T
 
 ## Test
 `test/terreno_dtm.js`, `test/trova_dtm.js`, `test/sezione.js`, `test/vista_3d.js`. `trova_dtm.js` usa servizi finti: tessere Terrarium fatte nel test (PNG coi cinque filtri), un GeoTIFF «alla Copernicus» servito con Range (`test/dati/dtm/copernicus_N40_E017.tif`, da `genera_copernicus.py`), un WCS 1.0.0. I DTM di prova sono in `test/dati/dtm/`, rigenerabili con `genera_dtm.py`: un piano noto, e l'UTM è verificato con pyproj.
+
+## Novità 28/11/2026: finestra DTM compatta e scala leggibile nel 3D
+- **Finestra «DTM per le prove»:** ogni fonte è una riga stretta (pallino di verifica, nome, tipo, risoluzione, Carica/Scarica) che si apre per i dettagli. Durante il caricamento la riga mostra una barra e il passo («Tessere 3 di 6»); a fine lavoro un lampo verde, in caso di errore «riprova». In alto la scheda del DTM del progetto: anteprima ombreggiata con prove e riquadro, controllo qualità (buchi, celle fuori posto, pendenza, copertura). Anteprima, controllo e memoria offline si spengono da «Altro › Mostra».
+- **Memoria offline dei DTM** (IndexedDB `DPSH_DtmCache`, fuori dai progetti e dai backup): un ritaglio già letto che copre le prove di un altro progetto si riusa senza rete. «Ricarica dalla rete» la salta; «Svuota la memoria offline» la cancella.
+- **OpenTopography (guidato):** account → chiave → incolla; la chiave resta in `localStorage` (`dpsh.dtm.otChiave`), mai nel progetto. Modelli: COP30, COP90, NASADEM, SRTMGL1, AW3D30. Se il browser del PC blocca (CORS) l'errore lo dice.
+- **Fonti WCS tue** (`state.settings.dtmFonti`) e **ultima fonte riuscita** (★, `state.settings.dtm.ultima`).
+- **3D:** livelli nuovi in «Riferimenti» e «Sfondo»: *Righello delle profondità* (metri veri accanto alla prova più profonda), *Scala vera* (barre orizzontale e verticale; la verticale tiene conto di esagerazione e inclinazione), *Mini-vista 1:1* (colonne di lato senza esagerazione), *Terreno stretto attorno alle prove*. «Inquadra» (`inquadraCorpo3d`) avvicina la vista al corpo indagato; scatta da sola quando l'esagerazione scende a ×1.
+- **Assistente:** `fonti_dtm` (campi scelti dall'utente), `leggi_dtm_progetto`, `carica_dtm_da_fonte`, `togli_dtm`, `imposta_dtm_opzioni`, `scala_vista3d`.
+- **Non fatto:** il DTM nel report PDF (escluso da Romeo: serve solo per i diritti); copertura disegnata sulla mappa grande (c'è nell'anteprima della finestra).

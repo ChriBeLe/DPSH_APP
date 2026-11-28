@@ -15,6 +15,7 @@
             <span class="am-spazio"></span>
             <button type="button" class="bt bt-tenue" id="btnCaricaDtm3d" title="Le fonti di DTM per le prove (dove trovarlo, caricarlo o scaricarlo), oppure un file GeoTIFF o ASCII Grid: se ne tiene la parte attorno alle prove"><svg class="ico"><use href="#i-upload"/></svg><span id="lblCaricaDtm3d">Carica un DTM</span></button>
             <button type="button" class="bt bt-principale" id="btnEsportaMappa" title="Esporta: le tavole (PDF o immagini), i dati per i GIS (GeoPackage, KMZ, KML) con gli stili, la vista 3D (SVG, OBJ)"><svg class="ico"><use href="#i-download"/></svg>Esporta…</button>
+            <button type="button" class="bt bt-tenue" id="btnElencoTavole" title="Le tavole salvate del progetto: cerca, filtra, rinomina, duplica, blocca"><svg class="ico"><use href="#i-print"/></svg>Tavole salvate</button>
             <button type="button" class="bt bt-tenue am-solo-3d am-nascosto" id="btnTavole3d" title="Le tavole da esportare insieme: il modello in isometria verso Nord e verso Est, le sezioni 3D e 2D; PDF unico o immagini"><svg class="ico"><use href="#i-print"/></svg>Tavole</button>
             <button type="button" class="bt bt-tenue am-solo-3d am-nascosto" id="btnScaricaVista3d"><svg class="ico"><use href="#i-download"/></svg>SVG</button>
             <button type="button" class="bt bt-tenue am-solo-3d am-nascosto" id="btnScaricaObj3d" title="Terreno, colonne, pannelli e superfici in metri veri, per Blender, MeshLab, QGIS"><svg class="ico"><use href="#i-download"/></svg>OBJ</button>
@@ -64,6 +65,7 @@
                     </div>
                     <div class="am-pnl-corpo">
                     <label class="am-solo-mappa am-sfondo2d" id="sfondoMappaProgetto">Mappa di base <select id="selSfondo2d" class="form-control" aria-label="Mappa di base"></select></label>
+                    <button type="button" class="bt am-solo-mappa" id="btnMappeOffline" title="Salva la mappa di una zona per usarla senza segnale"><svg class="ico"><use href="#i-download"/></svg>Mappe offline</button>
                     <div class="schede-prova vista3d-schede" id="schedeVista3d" role="tablist" aria-label="Comandi della vista 3D">
                         <button type="button" role="tab" data-scheda3d="vista" aria-selected="true">Vista</button>
                         <button type="button" role="tab" data-scheda3d="tagli" aria-selected="false" title="Modello e tagli">Modello<span class="cmd3d-solo-largo"> e tagli</span></button>
@@ -81,6 +83,7 @@
                             <button type="button" class="pillola" data-preset3d="sud">Da Sud</button>
                             <button type="button" class="pillola" data-preset3d="ovest">Da Ovest</button>
                             <button type="button" class="pillola" data-preset3d="sotto">Da sotto</button>
+                            <button type="button" class="pillola" data-preset3d="inquadra" title="Avvicina la vista al corpo indagato, anche senza esagerazione">Inquadra</button>
                         </div>
                         <!-- Una riga per comando: nome, cursore, valore. Il campo visivo vale solo con la
                              prospettiva accesa (spenta: assonometria). -->
