@@ -1,0 +1,46 @@
+    <!-- PASSA CON I CODICI QR (28/11/2026): un progetto piccolo da un telefono a un altro dispositivo senza rete,
+         file o cavo. Si sceglie cosa portare (prove, note, foto piccole); il telefono mostra una sequenza di
+         codici QR, l'altro dispositivo li legge con la fotocamera. Foto grandi e DTM viaggiano con il pacchetto.
+         La riempie 071m3_qr-trasferimento.js. -->
+    <div class="modal-overlay" id="modalQrOverlay"></div>
+    <section class="modal passaggio qr" id="modalQr" role="dialog" aria-modal="true" aria-labelledby="titoloQr">
+        <span class="maniglia" aria-hidden="true"></span>
+        <div class="testata">
+            <div class="c-min">
+                <h2 id="titoloQr">Passa con codici QR</h2>
+                <div class="sottotitolo" id="lblQrNome"></div>
+            </div>
+            <button type="button" class="chiudi" id="btnChiudiQr" aria-label="Chiudi"><svg class="ico"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="qr-schede" role="group" aria-label="Mostra o leggi">
+            <button type="button" class="secondario premuto" id="btnQrSchedaMostra" aria-pressed="true">Mostra</button>
+            <button type="button" class="secondario" id="btnQrSchedaLeggi" aria-pressed="false">Leggi</button>
+        </div>
+        <div id="qrPannelloMostra">
+            <div id="qrScelte" class="qr-scelte"></div>
+            <div class="riquadro" id="qrRiepilogo" aria-live="polite"></div>
+            <button type="button" class="principale" id="btnQrAvvia" disabled><svg class="ico"><use href="#i-camera"/></svg><span>Mostra i codici</span></button>
+            <div id="qrSchermo" class="qr-schermo" hidden>
+                <div class="qr-figura" id="qrFigura" role="img" aria-label="Codice QR in corso"></div>
+                <div class="qr-contatore" id="qrContatore" aria-live="off"></div>
+                <div class="qr-comandi">
+                    <button type="button" class="secondario" id="btnQrPausa">Pausa</button>
+                    <button type="button" class="secondario" id="btnQrPiuLento">Più lento</button>
+                    <button type="button" class="secondario" id="btnQrPiuVeloce">Più veloce</button>
+                    <button type="button" class="secondario" id="btnQrFerma">Ferma</button>
+                </div>
+                <div class="nota">Tieni lo schermo acceso e la luminosità alta. L'altro dispositivo ripete la lettura finché ha tutti i codici: non serve cominciare dal primo.</div>
+            </div>
+        </div>
+        <div id="qrPannelloLeggi" hidden>
+            <video id="qrVideo" class="qr-video" playsinline muted></video>
+            <canvas id="qrTela" hidden></canvas>
+            <div class="qr-avanzamento" id="qrAvanzamento" aria-live="polite">Premi «Avvia la fotocamera» e inquadra i codici.</div>
+            <div class="qr-barra" aria-hidden="true"><i id="qrBarra"></i></div>
+            <div class="riquadro" id="qrEsito" hidden></div>
+            <div class="bottoni">
+                <button type="button" class="secondario" id="btnQrCamera">Avvia la fotocamera</button>
+                <button type="button" class="primario" id="btnQrImporta" disabled>Importa</button>
+            </div>
+        </div>
+    </section>

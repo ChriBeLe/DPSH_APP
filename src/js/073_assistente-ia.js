@@ -120,6 +120,27 @@
                     if (!r) throw new Error('Prova non trovata.');
                     return r;
                 } },
+                { n: 'bussola_telefono', d: 'Bussola vera del telefono sulla mappa 2D: "leggi" dice se è accesa e la direzione in gradi; "accendi" la accende (su iPhone serve un tocco dell\'utente); "spegni" la ferma. Quando è accesa la mappa gira dove guarda l\'utente.', p: { azione: { type: 'string', enum: ['leggi', 'accendi', 'spegni'] } }, req: ['azione'], run: async a => {
+                    if (a.azione === 'accendi') { const r = await accendiBussolaTel(false); return Object.assign(statoBussolaTel(), r); }
+                    if (a.azione === 'spegni') spegniBussolaTel();
+                    return statoBussolaTel();
+                } },
+                { n: 'qr_progetto', d: 'Passa un progetto piccolo da un dispositivo a un altro con una sequenza di codici QR, senza rete. "stima" dice quanti codici e quanto tempo servono; "mostra" apre la finestra e fa partire i codici (poi l\'utente li inquadra con l\'altro dispositivo); "leggi" apre il lettore (la fotocamera la accende l\'utente, serve il suo permesso). Si sceglie cosa portare: prove, note, foto piccole. DTM, tavole e foto grandi NON vanno nei QR (usa il pacchetto Porta sul PC).', p: { azione: { type: 'string', enum: ['stima', 'mostra', 'leggi'] }, progetto_id: { type: 'string' }, prove_ids: { type: 'array', items: { type: 'string' }, description: 'id delle prove da portare; senza = tutte' }, note: { type: 'boolean' }, foto: { type: 'boolean', description: 'foto piccole (pochi KB)' } }, req: ['azione'], run: async a => {
+                    const pid = a.progetto_id || state.currentProjectId;
+                    if (a.azione === 'leggi') { apriQr(null, 'leggi'); return { aperto: true, nota: 'Per leggere serve la fotocamera: la accende l\'utente con «Avvia la fotocamera».' }; }
+                    if (!pid || !state.projects[pid]) throw new Error('Apri o indica un progetto.');
+                    const sc = { prove: a.prove_ids && a.prove_ids.length ? a.prove_ids : null, note: a.note !== false, foto: !!a.foto };
+                    const ora = await qrPreparaProgetto(pid, sc);
+                    const esito = { codici: ora.frames.length, secondiCirca: ora.secondi, byte: ora.byte, fotoPiccole: ora.foto, fotoSenzaImmagine: ora.fotoSenza, nonNeiQr: ora.lasciati };
+                    if (a.azione === 'mostra') {
+                        apriQr(pid, 'mostra');
+                        const f = qrEl('qrScelte');
+                        if (sc.prove) f.querySelectorAll('input[data-prova]').forEach(i => { i.checked = sc.prove.includes(i.dataset.prova); });
+                        const n = qrEl('qrNote'); if (n) n.checked = sc.note; const ft = qrEl('qrFoto'); if (ft) ft.checked = sc.foto;
+                        await qrAggiornaRiepilogo(); await qrAvvia(); esito.inCorso = true;
+                    }
+                    return esito;
+                } },
                 { n: 'avvisi_dati', d: 'Elenca gli avvisi sui dati strani (passo, aste, strumento, βt, falda) di una prova o di tutto un progetto. Solo lettura: non cambia niente. Senza id usa la prova aperta.', p: { progetto_id: { type: 'string' }, prova_id: { type: 'string' }, tutto_il_progetto: { type: 'boolean' } }, run: a => {
                     const p = (state.projects || {})[a.progetto_id || state.currentProjectId];
                     if (!p) throw new Error('Progetto non trovato.');
@@ -555,6 +576,8 @@
                 { re: /strat|parametr|litolog|terren|coesion|angolo|peso|nspt|argill|sabbi|ghiai/i, t: ['crea_stratigrafia', 'leggi_strati', 'scegli_parametro_avanzato', 'autocompila_parametri', 'modifica_strato', 'aggiungi_strato', 'sposta_strato', 'assegna_strato', 'elimina_strato'] },
                 { re: /colp|interval|profond|falda|gps|coordinat|dati della prova|metri/i, t: ['aggiungi_intervalli', 'modifica_intervallo', 'elimina_intervalli', 'imposta_falda', 'imposta_gps', 'modifica_dati_prova'] },
                 { re: /strument|maglio|massa|asta|punta|prefer|impostazion|tema|font|unit/i, t: ['leggi_strumento_e_preferenze', 'modifica_strumento', 'imposta_preferenza'] },
+                { re: /bussola|orienta|nord/i, t: ['bussola_telefono'] },
+                { re: /\bqr\b|codic[ei] qr|inquadr|passa.*(telefono|pc)|trasferi/i, t: ['qr_progetto'] },
                 { re: /anteprim|miniatur|griglia|elenco|vista|home/i, t: ['vista_home', 'anteprime_progetti'] },
                 { re: /gis|qgis|geopackage|gpkg|kml|kmz|google earth|esport/i, t: ['elenco_livelli_gis', 'esporta_gis'] },
                 { re: /progett|nota|note|comune|committente|cre[ao]|nuov/i, t: ['vista_home', 'anteprime_progetti', 'crea_progetto', 'crea_prova', 'modifica_progetto', 'leggi_note_progetto', 'aggiungi_nota_progetto'] }

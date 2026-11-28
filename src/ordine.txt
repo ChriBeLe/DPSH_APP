@@ -65,6 +65,7 @@ markup/47_modalVista3d.html
 markup/47b_tavole3d.html
 markup/47c_esportaGis.html
 markup/47c_trovaDtm.html
+markup/47d_qr.html
 markup/47d_mappeOffline.html
 shell/03b_apre-sheetjs.html
 vendor/xlsx.full.min.js
@@ -73,6 +74,10 @@ vendor/exceljs.min.js
 shell/03d_chiude-exceljs-apre-leaflet.html
 vendor/leaflet.min.js
 shell/03e_chiude-leaflet.html
+shell/03f_apre-qr.html
+vendor/qr-generatore.min.js
+vendor/qr-lettore.min.js
+shell/03g_chiude-qr.html
 shell/04_apre-motore-note.html
 vendor/motore-note.min.js
 shell/04b_chiude-motore-apre-pdfjs.html
@@ -189,6 +194,8 @@ js/071k_geopackage.js
 js/071l_mappa-progetto.js
 js/071l2_isoipse-ombreggiatura.js
 js/071m_area-mappa.js
+js/071m2_bussola-del-telefono.js
+js/071m3_qr-trasferimento.js
 js/071n_disegni.js
 js/071o_stili-livelli.js
 js/071p_esporta-viste-3d.js

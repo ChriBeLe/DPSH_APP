@@ -656,7 +656,7 @@
         .b-tasto { width: 24px; height: 24px; min-height: 0; padding: 0; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--b-testo);
             font: 700 var(--fs-testo)/1 var(--font-sans); cursor: pointer; transition: background 0.12s, color 0.12s, box-shadow 0.12s; }
         .b-tasto:hover:not(:disabled) { background: var(--b-anello-su); }
-        .b-tasto.premuto { background: var(--b-ciano-velo); color: var(--b-ciano); box-shadow: inset 0 0 0 1px var(--b-ciano); }
+        .b-tasto.premuto, .b-tasto.on { background: var(--b-ciano-velo); color: var(--b-ciano); box-shadow: inset 0 0 0 1px var(--b-ciano); }
         .b-tasto:disabled { opacity: 0.3; cursor: default; }
         .b-tasto .ico { width: 14px; height: 14px; margin: 0; }
         .b-ang { position: absolute; width: 22px; height: 22px; background: var(--b-fondo); box-shadow: 0 0 0 1px var(--b-bordo), 0 2px 6px rgba(0, 0, 0, 0.4); }
