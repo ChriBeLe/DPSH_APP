@@ -1149,6 +1149,11 @@
         .fonte-dtm-fogli { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: var(--fs-didascalia); }
         .fonte-dtm-azioni a.bt { text-decoration: none; }
         .trova-dtm-piede { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border); }
+        .mo-modulo { display: flex; flex-direction: column; gap: 8px; }
+        .mo-campo { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-testo); }
+        .mo-zoom span { display: flex; gap: 8px; align-items: center; }
+        .mo-area { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        #moBarra { width: min(320px, 70%); vertical-align: middle; }
         @media (max-width: 600px) {
             .trova-dtm { padding: 0; }
             .trova-dtm-finestra { height: 100%; border-radius: 0; }

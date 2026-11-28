@@ -155,11 +155,12 @@
                 .concat(wmsDisponibili().map((w, i) => ['wms:' + i, w.nome]));
             function livelloSfondo2d(id) {
                 const w = id.startsWith('wms:') && wmsDisponibili()[Number(id.slice(4))];
-                if (w) return L.tileLayer.wms(w.url, { layers: w.layer || '', format: 'image/png', transparent: false, version: '1.1.1', maxZoom: 20, attribution: w.attribuzione || 'WMS' });
+                // con le tessere salvate in «Mappe offline» (071za) la mappa si vede anche senza rete
+                if (w) return moRendiOffline(L.tileLayer.wms(w.url, { layers: w.layer || '', format: 'image/png', transparent: false, version: '1.1.1', maxZoom: 20, attribution: w.attribuzione || 'WMS' }), moChiaveWms(w));
                 const f = SFONDI_3D[id] || SFONDI_3D['esri-satellite'];
                 const l = L.tileLayer('', { maxNativeZoom: f.zoomMax || 19, maxZoom: 20, attribution: f.attribuzione });
                 l.getTileUrl = c => f.url(c.z, c.x, c.y);
-                return l;
+                return moRendiOffline(l, SFONDI_3D[id] ? id : 'esri-satellite');
             }
             function sfondoMappaProgetto(id) {
                 const m = mappaProgetto, voci = SFONDI_2D();

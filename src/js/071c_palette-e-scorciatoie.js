@@ -38,6 +38,7 @@
                     ['Progetto', 'Trova il DTM', '', () => apriTrovaDtm(pid()), conProgetto, 'i-satellite'],
                     ['Progetto', 'Sezione tra le prove', '', apriSezione, conProgetto, 'i-shape-line-h'],
                     ['Progetto', 'Vista 3D del terreno', '', apriVista3d, conProgetto, 'i-stack'],
+                    ['Progetto', 'Mappe offline', '', apriMappeOffline, conProgetto, 'i-download'],
                     ['Progetto', 'Esporta per GIS', '', () => apriEsportaGis(), conProgetto, 'i-pin'],
                     ['Progetto', 'Porta il progetto su un altro dispositivo', '', () => apriPortaProgetto(pid()), conProgetto, 'i-upload'],
                     ['Progetto', 'Cronologia del progetto', '', () => apriCronologia(pid()), conProgetto, 'i-reset'],
