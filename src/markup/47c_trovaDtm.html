@@ -11,6 +11,16 @@
             </div>
             <div class="trova-dtm-corpo">
                 <div id="trovaDtmEsito" role="status" aria-live="polite"></div>
+                <section id="trovaDtmProgetto" class="dtm-progetto" aria-label="Il DTM del progetto" hidden>
+                    <canvas id="trovaDtmAnteprima" class="dtm-anteprima" width="220" height="150" role="img" aria-label="Anteprima ombreggiata del DTM, con le prove in rosso e il riquadro tratteggiato"></canvas>
+                    <div class="dtm-progetto-testo">
+                        <div id="trovaDtmProgettoDati"></div>
+                        <div class="dtm-progetto-azioni">
+                            <button type="button" class="bt" id="trovaDtmRitaglio" title="Il DTM che il progetto ha già, come ASCII Grid"><svg class="ico"><use href="#i-download"/></svg>.asc</button>
+                            <button type="button" class="bt" id="trovaDtmTogli" title="Toglie il DTM dal progetto (si può annullare)"><svg class="ico"><use href="#i-trash"/></svg>Togli</button>
+                        </div>
+                    </div>
+                </section>
                 <section id="trovaDtmLuogo" class="trova-dtm-luogo" aria-label="Dove sono le prove"></section>
                 <div class="trova-dtm-filtri" role="group" aria-label="Tipo di modello">
                     <span class="t-didascalia">Mostra</span>
@@ -23,11 +33,28 @@
             </div>
             <div class="trova-dtm-piede">
                 <button type="button" class="bt bt-principale" id="trovaDtmDaFile" title="GeoTIFF (.tif) o ASCII Grid (.asc) già sul dispositivo"><svg class="ico"><use href="#i-upload"/></svg>Carica da file</button>
-                <button type="button" class="bt" id="trovaDtmCopia" title="Tutte le informazioni di questa finestra, come testo"><svg class="ico"><use href="#i-copy"/></svg>Copia la scheda</button>
-                <button type="button" class="bt" id="trovaDtmScheda"><svg class="ico"><use href="#i-download"/></svg>Scheda (.txt)</button>
-                <button type="button" class="bt" id="trovaDtmArea" title="Le prove e il riquadro da chiedere, da aprire in QGIS o nei visualizzatori dei portali"><svg class="ico"><use href="#i-download"/></svg>Area (GeoJSON)</button>
-                <button type="button" class="bt" id="trovaDtmRitaglio" title="Il DTM che il progetto ha già, come ASCII Grid"><svg class="ico"><use href="#i-download"/></svg>DTM del progetto (.asc)</button>
-                <button type="button" class="bt" id="trovaDtmTogli" title="Toglie il DTM dal progetto (si può annullare)"><svg class="ico"><use href="#i-trash"/></svg>Togli il DTM</button>
+                <details class="dtm-altro"><summary class="bt"><svg class="ico"><use href="#i-more"/></svg>Altro</summary>
+                    <div class="dtm-altro-menu">
+                        <button type="button" class="bt" id="trovaDtmCopia" title="Tutte le informazioni di questa finestra, come testo"><svg class="ico"><use href="#i-copy"/></svg>Copia la scheda</button>
+                        <button type="button" class="bt" id="trovaDtmScheda"><svg class="ico"><use href="#i-download"/></svg>Scheda (.txt)</button>
+                        <button type="button" class="bt" id="trovaDtmArea" title="Le prove e il riquadro da chiedere, da aprire in QGIS o nei visualizzatori dei portali"><svg class="ico"><use href="#i-download"/></svg>Area (GeoJSON)</button>
+                        <details id="trovaDtmNuova" class="dtm-nuova"><summary class="bt">Aggiungi una fonte tua (WCS)</summary>
+                            <label class="fd-campo">Nome<input id="ndNome" type="text" autocomplete="off"></label>
+                            <label class="fd-campo">Indirizzo del servizio WCS<input id="ndUrl" type="url" placeholder="https://…" autocomplete="off"></label>
+                            <label class="fd-campo">Nome del coverage (se lo sai)<input id="ndCoverage" type="text" autocomplete="off"></label>
+                            <label class="fd-campo">Tipo<select id="ndTipo"><option value="DTM">DTM (terreno)</option><option value="DSM">DSM (superficie)</option></select></label>
+                            <label class="fd-campo">Cella in metri<input id="ndPasso" type="number" min="0.5" step="0.5" value="5"></label>
+                            <button type="button" class="bt bt-tenue" id="ndSalva">Salva la fonte</button>
+                        </details>
+                        <fieldset class="dtm-opzioni"><legend>Mostra</legend>
+                            <label><input type="checkbox" id="dtmOpz_anteprima"> Anteprima del terreno</label>
+                            <label><input type="checkbox" id="dtmOpz_qualita"> Controllo qualità</label>
+                            <label><input type="checkbox" id="dtmOpz_copertura"> Prove e riquadro sull'anteprima</label>
+                            <label><input type="checkbox" id="dtmOpz_cache"> Ricorda i DTM letti, per altri progetti vicini</label>
+                        </fieldset>
+                        <button type="button" class="bt" id="dtmSvuotaMemoria">Svuota la memoria offline</button>
+                    </div>
+                </details>
             </div>
         </div>
     </div>

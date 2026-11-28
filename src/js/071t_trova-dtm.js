@@ -29,6 +29,12 @@
                   pagina: 'https://registry.opendata.aws/terrain-tiles/', tessere: 'terrarium', carica: 'terrarium',
                   nota: 'Si carica sempre, anche dal browser del PC: è il ripiego quando le altre fonti non si raggiungono. Le quote vengono da modelli a circa 30 m: buone per la forma del terreno.',
                   verifica: 'provato' },
+                { id: 'opentopography', nome: 'OpenTopography', ente: 'OpenTopography (SDSC, NSF)', ambito: 'IT',
+                  tipi: ['DSM'], tecnica: 'modelli globali da satellite (Copernicus, SRTM, NASADEM, ALOS)', risoluzione: '30–90 m', ris: 30, copertura: 'tutto il mondo',
+                  licenza: 'dipende dal modello scelto (Copernicus: libera con citazione)', crs: 'geo', sistema: 'gradi WGS84, GeoTIFF',
+                  pagina: 'https://opentopography.org/', carica: 'ot',
+                  nota: 'Serve una chiave gratuita personale: l\'app ti guida in tre passi. Se il browser del PC blocca la lettura (CORS), l\'app lo dice.',
+                  verifica: 'catalogo' },
                 { id: 'tinitaly', nome: 'TINITALY 1.1', ente: 'INGV, Istituto Nazionale di Geofisica e Vulcanologia', ambito: 'IT',
                   tipi: ['DTM'], tecnica: 'TIN da curve di livello, punti quotati, GPS e radar', risoluzione: '10 m', ris: 10, copertura: 'tutta Italia',
                   licenza: 'CC BY 4.0 (doi:10.13127/tinitaly/1.1)', crs: 32, sistema: 'UTM 32N WGS84 (EPSG:32632) per tutta Italia, GeoTIFF',
@@ -390,8 +396,11 @@
                 const tessere = tessereTerrarium(luogo.bbox);
                 if (!tessere.length) throw new Error('Le prove sono troppo lontane tra loro per le tessere di quota.');
                 const z = tessere[0].z, quote = new Map();
+                let lette = 0;
+                avanzaDtm(0, `Tessere 0 di ${tessere.length}`);
                 await Promise.all(tessere.map(async t => {
                     const r = await chiediInReteDtm(t.url);
+                    avanzaDtm(++lette / tessere.length * 0.8, `Tessere ${lette} di ${tessere.length}`);
                     if (!r.ok) return; // in mare aperto le tessere mancano: lì niente quote
                     const png = await pixelDaPng(new Uint8Array(await r.arrayBuffer()));
                     const q = new Float32Array(png.w * png.h);
@@ -546,35 +555,215 @@
 
             /** Carica nel progetto il DTM della fonte. Restituisce il ritaglio (non lo salva). */
             async function dtmDaFonte(f, proj, luogo) {
+                if (f.carica === 'ot') {
+                    avanzaDtm(null, 'Chiedo il modello a OpenTopography…');
+                    const s = await sorgenteOpenTopo(luogo);
+                    avanzaDtm(0.85, 'Ritaglio attorno alle prove…');
+                    const o = OT_DATI.find(x => x.id === opzDtm().otSet) || OT_DATI[0];
+                    return ritaglioDaSorgente(s, `${f.nome} · ${o.nome} (${o.info})`, proj);
+                }
                 if (f.carica === 'terrarium') {
                     const s = await sorgenteTerrarium(luogo);
                     return ritaglioDaSorgente(s, `${f.nome} (circa 30 m, tessere z${s.z})`, proj);
                 }
                 if (f.carica === 'cog') {
+                    avanzaDtm(null, 'Leggo le tessere a pezzi…');
                     const s = await sorgenteCopernicus(luogo);
                     return ritaglioDaSorgente(s, `${f.nome} (DSM 30 m) · ${tessereCopernicus(luogo.bbox).map(t => t.nome).join(', ')}`, proj);
                 }
                 if (f.carica === 'wcs') {
+                    avanzaDtm(null, 'Interrogo il servizio WCS…');
                     const s = await sorgenteWcs(f, luogo);
                     return ritaglioDaSorgente(s, `${f.nome} — ${f.ente} (WCS)`, proj);
                 }
                 throw new Error('Questa fonte non si carica direttamente: usa «Apri la pagina».');
             }
 
+            // ---- Opzioni, fonti tue, memoria offline, OpenTopography (guidato) ----
+
+            const OPZ_DTM_BASE = { anteprima: true, qualita: true, copertura: true, cache: true, ultima: '', otSet: 'COP30' };
+            const opzDtm = () => Object.assign({}, OPZ_DTM_BASE, (state.settings && state.settings.dtm) || {});
+            function impostaOpzDtm(parte) {
+                if (!state.settings) state.settings = {};
+                state.settings.dtm = Object.assign({}, state.settings.dtm || {}, parte);
+                saveState();
+            }
+            const OT_DATI = [
+                { id: 'COP30', nome: 'Copernicus GLO-30', info: 'DSM, 30 m, tutto il mondo' },
+                { id: 'COP90', nome: 'Copernicus GLO-90', info: 'DSM, 90 m, più leggero' },
+                { id: 'NASADEM', nome: 'NASADEM', info: 'DSM, 30 m, da SRTM migliorato' },
+                { id: 'SRTMGL1', nome: 'SRTM 1″', info: 'DSM, 30 m' },
+                { id: 'AW3D30', nome: 'ALOS AW3D30', info: 'DSM, 30 m, da satellite giapponese' }
+            ];
+            const chiaveOt = () => { try { return localStorage.getItem('dpsh.dtm.otChiave') || ''; } catch (e) { return ''; } };
+            const salvaChiaveOt = k => { try { if (k) localStorage.setItem('dpsh.dtm.otChiave', k); else localStorage.removeItem('dpsh.dtm.otChiave'); } catch (e) { ignoraErrore('chiaveOt', e); } };
+            function urlOpenTopo(luogo, set, chiave) {
+                const b = luogo.bbox;
+                return `https://portal.opentopography.org/API/globaldem?demtype=${encodeURIComponent(set)}&south=${b.s.toFixed(6)}&north=${b.n.toFixed(6)}&west=${b.o.toFixed(6)}&east=${b.e.toFixed(6)}&outputFormat=GTiff&API_Key=${encodeURIComponent(chiave || 'LA_TUA_CHIAVE')}`;
+            }
+            async function sorgenteOpenTopo(luogo) {
+                const o = opzDtm(), chiave = chiaveOt();
+                if (!chiave) throw new Error('Manca la chiave di OpenTopography: segui i tre passi qui sotto.');
+                const r = await chiediInReteDtm(urlOpenTopo(luogo, o.otSet, chiave));
+                const buf = await r.arrayBuffer();
+                const inizio = new TextDecoder().decode(new Uint8Array(buf, 0, Math.min(300, buf.byteLength)));
+                if (!r.ok || /^\s*[<{]/.test(inizio)) throw new Error(`OpenTopography non ha dato il GeoTIFF (${r.status}): ${inizio.replace(/\s+/g, ' ').slice(0, 120)}. Controlla la chiave.`);
+                const sorg = leggiGeoTiff(buf);
+                if (!sorg.epsg) sorg.epsg = 4326;
+                return sorg;
+            }
+
+            const FONTI_TUE = () => (state.settings && Array.isArray(state.settings.dtmFonti)) ? state.settings.dtmFonti : [];
+            function sincronizzaFontiTue() {
+                for (let k = FONTI_DTM.length - 1; k >= 0; k--) if (FONTI_DTM[k].propria) FONTI_DTM.splice(k, 1);
+                FONTI_TUE().forEach(t => FONTI_DTM.push({
+                    id: t.id, nome: t.nome, ente: 'Fonte aggiunta da te', ambito: 'IT', tipi: [t.tipo === 'DSM' ? 'DSM' : 'DTM'],
+                    tecnica: 'servizio WCS', risoluzione: t.passo + ' m', ris: t.passo, copertura: 'da te', licenza: 'a cura di chi l\'ha aggiunta',
+                    crs: 'naturale', sistema: 'scelto dal servizio', pagina: t.url, carica: 'wcs', scarica: 'wcs',
+                    wcs: { url: t.url, coverage: t.coverage || '', passo: t.passo }, verifica: 'da provare', propria: true,
+                    nota: 'Fonte WCS 1.0.0 che hai aggiunto tu: se non risponde, controlla l\'indirizzo.'
+                }));
+            }
+
+            // La memoria offline: il ritaglio già letto resta sul dispositivo (IndexedDB), così un progetto
+            // vicino lo riusa senza rete. Non entra nei progetti né nei backup. Si svuota dalle opzioni.
+            function dtmCacheApri() {
+                return new Promise(res => {
+                    try {
+                        const r = indexedDB.open('DPSH_DtmCache', 1);
+                        r.onupgradeneeded = () => r.result.createObjectStore('dtm');
+                        r.onsuccess = () => res(r.result);
+                        r.onerror = () => res(null);
+                    } catch (e) { res(null); }
+                });
+            }
+            async function dtmCache(op, chiave, valore) {
+                const db = await dtmCacheApri();
+                if (!db) return null;
+                return new Promise(res => {
+                    try {
+                        const tx = db.transaction('dtm', op === 'leggi' ? 'readonly' : 'readwrite'), st = tx.objectStore('dtm');
+                        const rq = op === 'leggi' ? st.get(chiave) : op === 'scrivi' ? st.put(valore, chiave) : st.clear();
+                        rq.onsuccess = () => res(rq.result === undefined ? null : rq.result);
+                        rq.onerror = () => res(null);
+                    } catch (e) { res(null); }
+                });
+            }
+            const chiaveCacheDtm = f => f.id + (f.carica === 'ot' ? ':' + opzDtm().otSet : '');
+            const bboxDentro = (a, b) => a.s >= b.s && a.n <= b.n && a.o >= b.o && a.e <= b.e;
+
+            // ---- Controllo del DTM caricato e anteprima ----
+
+            /** Controlli sul ritaglio: [{ stato: 'ok'|'avviso'|'info', testo }]. Niente calcolo DPSH: solo il terreno. */
+            function qualitaDtm(dtm, luogo) {
+                const q = quoteDtm(dtm), n = q.length, out = [];
+                const finiti = Array.from(q).filter(isFinite);
+                const vuote = n ? (n - finiti.length) / n : 1;
+                out.push(vuote === 0 ? { stato: 'ok', testo: 'Nessun buco nei dati.' }
+                    : { stato: vuote > 0.05 ? 'avviso' : 'info', testo: `${Math.round(vuote * 1000) / 10}% di celle senza dato${vuote > 0.05 ? ': la sezione e il 3D possono avere vuoti' : ''}.` });
+                const lat = luogo && luogo.bbox ? (luogo.bbox.s + luogo.bbox.n) / 2 : 40;
+                const mx = dtm.crs.tipo === 'geo' ? dtm.dx * 111000 * Math.cos(lat * Math.PI / 180) : dtm.dx, my = dtm.crs.tipo === 'geo' ? dtm.dy * 111000 : dtm.dy;
+                let pMax = 0, picchi = 0;
+                for (let j = 1; j < dtm.ny - 1; j++) for (let i = 1; i < dtm.nx - 1; i++) {
+                    const z = q[j * dtm.nx + i], a = q[j * dtm.nx + i - 1], b = q[j * dtm.nx + i + 1], c = q[(j - 1) * dtm.nx + i], d = q[(j + 1) * dtm.nx + i];
+                    if (![z, a, b, c, d].every(isFinite)) continue;
+                    const s = Math.atan(Math.hypot((b - a) / (2 * mx), (d - c) / (2 * my))) * 180 / Math.PI;
+                    if (s > pMax) pMax = s;
+                    if (Math.abs(z - (a + b + c + d) / 4) > 10) picchi++;
+                }
+                out.push(picchi ? { stato: 'avviso', testo: `${picchi} celle isolate molto diverse dalle vicine (oltre 10 m): possibili errori del modello.` } : { stato: 'ok', testo: 'Nessuna cella fuori posto.' });
+                out.push({ stato: 'info', testo: `Pendenza massima ${Math.round(pMax)}°, dislivello ${numeroConVirgola(Math.max(...finiti) - Math.min(...finiti), 1)} m.` });
+                out.push(dtm.proveDentro >= dtm.proveConGps ? { stato: 'ok', testo: `Copre tutte le prove col GPS (${dtm.proveConGps}).` } : { stato: 'avviso', testo: `Copre ${dtm.proveDentro} prove su ${dtm.proveConGps}: le altre restano senza quota.` });
+                const cella = dtm.crs.tipo === 'geo' ? dtm.celleOriginali * 111000 : dtm.celleOriginali;
+                if (cella > 20) out.push({ stato: 'info', testo: `Celle da ${Math.round(cella)} m: vanno bene per la forma del terreno, non per quote precise.` });
+                if (/DSM/.test(dtm.fonte)) out.push({ stato: 'info', testo: 'È una superficie (DSM): edifici e alberi alzano le quote.' });
+                return out;
+            }
+
+            function disegnaAnteprimaDtm(canvas, dtm, luogo, conCopertura) {
+                const ctx = canvas.getContext && canvas.getContext('2d');
+                if (!ctx) return;
+                const W = canvas.width, H = canvas.height, q = quoteDtm(dtm);
+                const finiti = Array.from(q).filter(isFinite), zMin = Math.min(...finiti), zMax = Math.max(...finiti), dz = Math.max(0.5, zMax - zMin);
+                const img = ctx.createImageData(W, H);
+                for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+                    const i = Math.min(dtm.nx - 1, Math.floor(x / W * dtm.nx)), j = Math.min(dtm.ny - 1, Math.floor(y / H * dtm.ny));
+                    const z = q[j * dtm.nx + i], o = (y * W + x) * 4;
+                    if (!isFinite(z)) { img.data[o + 3] = 0; continue; }
+                    const zo = q[j * dtm.nx + Math.max(0, i - 1)], zs = q[Math.max(0, j - 1) * dtm.nx + i];
+                    const ombra = isFinite(zo) && isFinite(zs) ? Math.max(-0.5, Math.min(0.5, ((z - zo) + (z - zs)) / (dz / 6 + 0.01) * 0.15)) : 0;
+                    const t = (z - zMin) / dz, k = 0.78 + ombra * 0.8;
+                    img.data[o] = Math.min(255, (70 + 150 * t) * k); img.data[o + 1] = Math.min(255, (150 + 60 * (1 - Math.abs(t - 0.4))) * k); img.data[o + 2] = Math.min(255, (110 - 40 * t + 60 * (1 - t)) * k); img.data[o + 3] = 255;
+                }
+                ctx.putImageData(img, 0, 0);
+                if (!conCopertura || !luogo) return;
+                const px = (lat, lng) => { const p = puntoNelCrs(dtm.crs, lat, lng); return [(p.x - dtm.x0) / (dtm.dx * dtm.nx) * W, (dtm.y0 - p.y) / (dtm.dy * dtm.ny) * H]; };
+                const b = luogo.bbox, a1 = px(b.n, b.o), a2 = px(b.s, b.e);
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+                ctx.strokeRect(Math.min(a1[0], a2[0]), Math.min(a1[1], a2[1]), Math.abs(a2[0] - a1[0]), Math.abs(a2[1] - a1[1]));
+                ctx.setLineDash([]);
+                luogo.punti.forEach(p => { const [x, y] = px(p.lat, p.lng); ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 6.3); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.stroke(); });
+            }
+
             // ---- La finestra ----
 
-            const trovaDtm = { projId: null, fatto: null, tipo: 'tutti', inCorso: false };
+            const trovaDtm = { projId: null, fatto: null, tipo: 'tutti', inCorso: null, aperte: new Set(), ok: null, prog: {} };
             const TD = id => document.getElementById(id);
+            let avanzaDtm = () => {};
+
+            /** Aggiorna solo la riga della fonte (barra e testo): niente ridisegno della lista mentre carica. */
+            function aggiornaRigaDtm(id) {
+                const riga = document.querySelector(`#trovaDtmFonti [data-fonte="${id}"]`);
+                if (!riga) return;
+                const p = trovaDtm.prog[id] || {};
+                riga.dataset.stato = p.stato || '';
+                const barra = riga.querySelector('.fd-barra i');
+                if (barra) { barra.className = p.frazione == null ? 'indef' : ''; barra.style.width = p.frazione == null ? '' : Math.round(p.frazione * 100) + '%'; }
+                const t = riga.querySelector('.fd-stato');
+                if (t) t.textContent = p.testo || '';
+            }
+
+            const schedaVerifica = { provato: 'fd-v-ok', catalogo: 'fd-v-med', 'da provare': 'fd-v-no' };
+
+            function guidaOpenTopoHtml(luogo, esc) {
+                const k = chiaveOt(), o = opzDtm();
+                const passo = (n, fatto, titolo, corpo) => `<li class="${fatto ? 'fatto' : ''}"><span class="fd-n">${fatto ? '<svg class="ico"><use href="#i-check"/></svg>' : n}</span><div><strong>${titolo}</strong>${corpo}</div></li>`;
+                return `<ol class="fd-guida">
+                    ${passo(1, !!k, 'Crea l\'account gratuito', '<p class="t-didascalia">Serve una email. Ci vuole un minuto.</p><a class="bt" href="https://portal.opentopography.org/newUser" target="_blank" rel="noopener"><svg class="ico"><use href="#i-link"/></svg>Apri la registrazione</a>')}
+                    ${passo(2, !!k, 'Chiedi la chiave (API key)', '<p class="t-didascalia">Dopo l\'accesso vai su «myOpenTopo» e premi «Request API Key». Poi copiala.</p><a class="bt" href="https://portal.opentopography.org/myopentopo" target="_blank" rel="noopener"><svg class="ico"><use href="#i-link"/></svg>Apri myOpenTopo</a>')}
+                    ${passo(3, !!k, 'Incolla qui la chiave', `<p class="t-didascalia">Resta solo su questo dispositivo: non entra nei progetti né nei backup.</p>
+                        <div class="fd-riga"><input id="dtmOtChiave" type="password" autocomplete="off" spellcheck="false" placeholder="${k ? 'chiave salvata (••••' + esc(k.slice(-4)) + ')' : 'incolla la chiave'}" aria-label="Chiave OpenTopography">
+                        <button type="button" class="bt bt-tenue" data-azione-dtm="otsalva">Salva</button>${k ? '<button type="button" class="bt" data-azione-dtm="otlevachiave">Togli</button>' : ''}</div>`)}
+                </ol>
+                <label class="fd-campo">Quale modello
+                    <select id="dtmOtSet">${OT_DATI.map(d => `<option value="${d.id}"${o.otSet === d.id ? ' selected' : ''}>${esc(d.nome)} — ${esc(d.info)}</option>`).join('')}</select></label>`;
+            }
 
             function renderTrovaDtm(esito) {
                 const proj = state.projects[trovaDtm.projId];
                 const luogo = proj && luogoDelleProve(proj);
-                const esc = escapeHtmlDidascalia;
+                const esc = escapeHtmlDidascalia, o = opzDtm();
+                sincronizzaFontiTue();
                 TD('trovaDtmEsito').innerHTML = esito ? `<div class="riga-avviso${esito.errore ? ' pericolo' : ''}" role="${esito.errore ? 'alert' : 'status'}">${esc(esito.testo)}</div>` : '';
-                TD('trovaDtmRitaglio').hidden = !(proj && proj.dtm);
-                TD('trovaDtmTogli').hidden = !(proj && proj.dtm);
                 ['trovaDtmCopia', 'trovaDtmScheda', 'trovaDtmArea'].forEach(id => { TD(id).disabled = !luogo; });
                 document.querySelectorAll('#trovaDtm [data-tipo-dtm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tipoDtm === trovaDtm.tipo)));
+                ['anteprima', 'qualita', 'copertura', 'cache'].forEach(k => { TD('dtmOpz_' + k).checked = !!o[k]; });
+
+                // La scheda del DTM che il progetto ha già
+                const sez = TD('trovaDtmProgetto'), d = proj && proj.dtm;
+                sez.hidden = !d;
+                if (d) {
+                    const celle = d.crs.tipo === 'geo' ? d.celleOriginali * 111000 : d.celleOriginali;
+                    const kb = Math.round(d.quote.length * 0.75 / 1024);
+                    const cond = !!trovaDtm.ok && trovaDtm.ok === d.caricatoIl;
+                    TD('trovaDtmProgettoDati').innerHTML = `<div class="fd-titolo${cond ? ' fd-ok' : ''}">${cond ? '<svg class="ico fd-spunta"><use href="#i-check"/></svg>' : ''}<strong>${esc(d.fonte)}</strong></div>
+                        <p class="t-didascalia">Celle da ${numeroConVirgola(celle, celle < 10 ? 1 : 0)} m · quote ${numeroConVirgola(d.base, 0)}–${numeroConVirgola(Math.max(...Array.from(quoteDtm(d)).filter(isFinite)), 0)} m · ${kb} KB</p>
+                        ${o.qualita && luogo ? `<ul class="fd-qualita">${qualitaDtm(d, luogo).map(c => `<li class="q-${c.stato}">${esc(c.testo)}</li>`).join('')}</ul>` : ''}
+                        <details class="fd-dettagli"><summary>Tutti i dettagli</summary><dl class="trova-dtm-dati"><dt>Caricato</dt><dd>${esc(String(d.caricatoIl || '').slice(0, 16).replace('T', ' '))}</dd><dt>Sistema</dt><dd>${d.crs.tipo === 'geo' ? 'gradi' : 'UTM ' + d.crs.zona + ' N'}</dd><dt>Celle tenute</dt><dd>${d.nx} × ${d.ny}</dd></dl></details>`;
+                    TD('trovaDtmAnteprima').hidden = !o.anteprima;
+                    if (o.anteprima) disegnaAnteprimaDtm(TD('trovaDtmAnteprima'), d, luogo, o.copertura);
+                }
+
                 if (!luogo) {
                     TD('trovaDtmLuogo').innerHTML = '<p class="t-didascalia">Nessuna prova del progetto ha le coordinate: per cercare il DTM serve il GPS di almeno una prova. Intanto puoi caricare un DTM da file.</p>';
                     TD('trovaDtmFonti').innerHTML = TD('trovaDtmCerca').innerHTML = '';
@@ -584,7 +773,9 @@
                 const prov = luogo.province.map(v => `${v[1]} (${v[0]})`).join(', ');
                 const r = riquadroUtm(luogo.bbox, luogo.zona);
                 TD('trovaDtmLuogo').innerHTML = `
-                    <div class="trova-dtm-dove"><strong>${reg ? esc(reg) : 'Fuori dalle regioni italiane'}</strong>${prov ? `<span>${esc(prov)}</span>` : ''}</div>
+                    <div class="trova-dtm-dove"><strong>${reg ? esc(reg) : 'Fuori dalle regioni italiane'}</strong>${prov ? `<span>${esc(prov)}</span>` : ''}
+                        <span class="t-didascalia">${luogo.punti.length} prove col GPS · riquadro ${metriInteri(r.x1 - r.x0)} × ${metriInteri(r.y1 - r.y0)} m</span></div>
+                    <details class="fd-dettagli"><summary>Coordinate e riquadro</summary>
                     ${luogo.accanto.length ? `<p class="t-didascalia">Vicino al confine con ${esc(luogo.accanto.map(v => `${v[1]} (${REGIONI_ITALIA[v[2]]})`).join(', '))}: ci sono anche le loro fonti.</p>` : ''}
                     <dl class="trova-dtm-dati">
                         <dt>Prove col GPS</dt><dd>${luogo.punti.length} su ${luogo.totaleProve}</dd>
@@ -595,25 +786,38 @@
                     <details class="trova-dtm-prove"><summary>Coordinate delle prove</summary>
                         <table><thead><tr><th>Prova</th><th>Lat</th><th>Lng</th><th>E (UTM ${luogo.zona})</th><th>N</th></tr></thead><tbody>
                         ${luogo.punti.map(p => { const u = utmDaGeo(p.lat, p.lng, luogo.zona); return `<tr><td>${esc(p.nome)}</td><td>${gradi6(p.lat)}</td><td>${gradi6(p.lng)}</td><td>${u.x.toFixed(1)}</td><td>${u.y.toFixed(1)}</td></tr>`; }).join('')}
-                        </tbody></table></details>`;
+                        </tbody></table></details></details>`;
                 const voci = fontiPerLuogo(luogo).filter(({ f }) => trovaDtm.tipo === 'tutti' || f.tipi.includes(trovaDtm.tipo));
                 const titoli = { regione: 'Della regione', accanto: 'Delle regioni accanto', italia: 'Per tutta Italia' };
                 let gruppo = null, html = '';
-                voci.forEach(({ f, gruppo: g }) => {
+                const ordinate = [];
+                ['regione', 'accanto', 'italia'].forEach(g => { const v = voci.filter(x => x.gruppo === g); v.sort((a, b) => (b.f.id === o.ultima) - (a.f.id === o.ultima)); ordinate.push(...v); });
+                ordinate.forEach(({ f, gruppo: g }) => {
                     if (g !== gruppo) { gruppo = g; html += `<h3 class="trova-dtm-gruppo">${titoli[g]}</h3>`; }
-                    const caricabile = !!f.carica, scaricabile = !!f.scarica;
-                    html += `<article class="fonte-dtm" data-fonte="${f.id}">
-                        <div class="fonte-dtm-testa"><strong>${esc(f.nome)}</strong><span class="t-didascalia">${esc(f.ente)}</span></div>
-                        <div class="fonte-dtm-etichette">${f.tipi.map(t => `<span class="fonte-dtm-tipo" title="${t === 'DSM' ? 'Superficie: con edifici e alberi' : 'Terreno nudo'}">${t}</span>`).join('')}<span>${esc(f.risoluzione)}</span><span>${esc(f.tecnica)}</span><span>${esc(f.copertura)}</span><span>Licenza: ${esc(f.licenza)}</span></div>
-                        ${f.nota ? `<p class="t-didascalia">${esc(f.nota)}</p>` : ''}
-                        <dl class="fonte-dtm-fogli">${dettagliFonteDtm(f, luogo).map(d => `<dt>${esc(d.etichetta)}</dt><dd>${d.link ? `<a href="${esc(d.link)}" target="_blank" rel="noopener" download>${esc(d.testo)}</a>` : esc(d.testo)}</dd>`).join('')}</dl>
-                        <div class="fonte-dtm-azioni">
-                            <a class="bt" href="${esc(f.pagina)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-link"/></svg>Apri la pagina</a>
-                            ${caricabile ? `<button type="button" class="bt bt-tenue" data-azione-dtm="carica"><svg class="ico"><use href="#i-upload"/></svg>Carica nel progetto</button>` : ''}
-                            ${scaricabile ? `<button type="button" class="bt" data-azione-dtm="scarica"><svg class="ico"><use href="#i-download"/></svg>Scarica</button>` : ''}
+                    const caricabile = !!f.carica, scaricabile = !!f.scarica, inUso = !!(d && d.fonte && d.fonte.indexOf(f.nome) === 0);
+                    const p = trovaDtm.prog[f.id] || {}, ot = f.carica === 'ot';
+                    html += `<details class="fonte-dtm" data-fonte="${f.id}" data-stato="${p.stato || ''}"${trovaDtm.aperte.has(f.id) ? ' open' : ''}>
+                        <summary>
+                            <span class="fd-pallino ${schedaVerifica[f.verifica]}" title="Informazione ${esc(VERIFICA_DTM[f.verifica])}"></span>
+                            <span class="fd-nome"><strong>${esc(f.nome)}</strong>${f.id === o.ultima ? '<span class="fd-ultima" title="L\'ultima che ha funzionato">★</span>' : ''}${inUso ? '<span class="fd-uso">in uso</span>' : ''}<span class="t-didascalia fd-sotto">${f.tipi.join('/')} · ${esc(f.risoluzione)} · <span class="fd-stato" aria-live="polite">${esc(p.testo || '')}</span></span></span>
+                            <span class="fd-azioni">${caricabile ? `<button type="button" class="bt bt-tenue" data-azione-dtm="carica" title="Carica nel progetto"${trovaDtm.inCorso ? ' disabled' : ''}><svg class="ico"><use href="#i-upload"/></svg><span class="fd-testo-bt">Carica</span></button>` : ''}${scaricabile && !ot ? `<button type="button" class="bt" data-azione-dtm="scarica" title="Scarica il file"><svg class="ico"><use href="#i-download"/></svg><span class="fd-testo-bt">Scarica</span></button>` : ''}</span>
+                            <svg class="ico fd-freccia" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                        </summary>
+                        <div class="fd-barra" role="progressbar" aria-label="Avanzamento"><i></i></div>
+                        <div class="fd-corpo">
+                            <div class="fonte-dtm-etichette"><span>${esc(f.ente)}</span><span>${esc(f.tecnica)}</span><span>${esc(f.copertura)}</span><span>Licenza: ${esc(f.licenza)}</span></div>
+                            ${f.nota ? `<p class="t-didascalia">${esc(f.nota)}</p>` : ''}
+                            ${ot ? guidaOpenTopoHtml(luogo, esc) : ''}
+                            <dl class="fonte-dtm-fogli">${dettagliFonteDtm(f, luogo).map(x => `<dt>${esc(x.etichetta)}</dt><dd>${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener" download>${esc(x.testo)}</a>` : esc(x.testo)}</dd>`).join('')}</dl>
+                            <div class="fonte-dtm-azioni">
+                                <a class="bt" href="${esc(f.pagina)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-link"/></svg>Apri la pagina</a>
+                                ${ot ? '<button type="button" class="bt" data-azione-dtm="otlink">Copia l\'indirizzo di scarico</button>' : ''}
+                                ${caricabile ? '<button type="button" class="bt" data-azione-dtm="ricarica" title="Rifà il caricamento dalla rete, senza la memoria offline">Ricarica dalla rete</button>' : ''}
+                                ${f.propria ? '<button type="button" class="bt bt-pericolo" data-azione-dtm="rimuovi">Togli questa fonte</button>' : ''}
+                            </div>
+                            <p class="t-didascalia fonte-dtm-verifica">Informazione ${esc(VERIFICA_DTM[f.verifica])}${!caricabile ? ' · non si carica direttamente: il portale non dà le quote a un\'altra app' : ''}</p>
                         </div>
-                        <p class="t-didascalia fonte-dtm-verifica">Informazione ${esc(VERIFICA_DTM[f.verifica])}${!caricabile ? ' · non si carica direttamente: il portale non dà le quote a un\'altra app' : ''}</p>
-                    </article>`;
+                    </details>`;
                 });
                 TD('trovaDtmFonti').innerHTML = html || '<p class="t-didascalia">Nessuna fonte di questo tipo.</p>';
                 TD('trovaDtmCerca').innerHTML = '<h3 class="trova-dtm-gruppo">Cerca anche</h3>' + linkCercaDtm(luogo).map(l => `<a class="bt" href="${esc(l.url)}" target="_blank" rel="noopener"><svg class="ico"><use href="#i-search"/></svg>${esc(l.nome)}</a>`).join('');
@@ -629,24 +833,49 @@
             }
             function chiudiTrovaDtm() { TD('trovaDtm').hidden = true; }
 
-            async function caricaFonteDtm(f, bottone) {
+            async function caricaFonteDtm(f, bottone, senzaMemoria) {
                 if (trovaDtm.inCorso) return;
                 const proj = state.projects[trovaDtm.projId], luogo = proj && luogoDelleProve(proj);
                 if (!luogo) return;
-                trovaDtm.inCorso = true;
-                if (bottone) { bottone.disabled = true; bottone.setAttribute('aria-busy', 'true'); }
-                renderTrovaDtm({ testo: `Lettura da ${f.nome}…` });
+                trovaDtm.inCorso = f.id;
+                trovaDtm.aperte.add(f.id);
+                document.querySelectorAll('#trovaDtmFonti [data-azione-dtm="carica"]').forEach(b => { b.disabled = true; });
+                avanzaDtm = (frazione, testo) => { trovaDtm.prog[f.id] = { stato: 'carico', frazione, testo }; aggiornaRigaDtm(f.id); };
+                avanzaDtm(null, 'Avvio…');
+                TD('trovaDtmEsito').innerHTML = '';
                 try {
-                    const nuovo = await dtmDaFonte(f, proj, luogo), vecchio = proj.dtm;
+                    const o = opzDtm();
+                    let nuovo = null;
+                    if (o.cache && !senzaMemoria) {
+                        const c = await dtmCache('leggi', chiaveCacheDtm(f));
+                        if (c && c.bbox && c.dtm && bboxDentro(luogo.bbox, c.bbox)) {
+                            avanzaDtm(null, 'Dalla memoria offline…');
+                            nuovo = Object.assign({}, c.dtm, { caricatoIl: new Date().toISOString() });
+                            nuovo.proveConGps = luogo.punti.length;
+                            nuovo.proveDentro = luogo.punti.filter(p => quotaDtm(nuovo, p.lat, p.lng) !== null).length;
+                        }
+                    }
+                    if (!nuovo) {
+                        nuovo = await dtmDaFonte(f, proj, luogo);
+                        if (o.cache) dtmCache('scrivi', chiaveCacheDtm(f), { bbox: luogo.bbox, dtm: nuovo });
+                    }
+                    const vecchio = proj.dtm;
                     proj.dtm = nuovo;
-                    saveState();
+                    avanzaDtm(1, 'Fatto');
+                    trovaDtm.prog[f.id] = { stato: 'fatto', frazione: 1, testo: 'Caricato' };
+                    trovaDtm.ok = nuovo.caricatoIl;
+                    impostaOpzDtm({ ultima: f.id });
                     trovaDtm.fatto();
+                    trovaDtm.inCorso = null;
                     renderTrovaDtm({ testo: `Caricato: ${f.nome}. ${nuovo.proveDentro < nuovo.proveConGps ? `Copre ${nuovo.proveDentro} prove su ${nuovo.proveConGps} col GPS.` : 'Copre tutte le prove col GPS.'}` });
+                    setTimeout(() => { if (trovaDtm.prog[f.id] && trovaDtm.prog[f.id].stato === 'fatto') { delete trovaDtm.prog[f.id]; aggiornaRigaDtm(f.id); } }, 2600);
                     if (vecchio) showUndoBanner('DTM sostituito', () => { proj.dtm = vecchio; saveState(); trovaDtm.fatto(); if (!TD('trovaDtm').hidden) renderTrovaDtm(); });
                     else mostraToast('DTM caricato');
                 } catch (e) {
+                    trovaDtm.inCorso = null;
+                    trovaDtm.prog[f.id] = { stato: 'errore', frazione: 1, testo: 'Non riuscito · riprova' };
                     renderTrovaDtm({ errore: true, testo: `${f.nome}: ${e.message || e}` });
-                } finally { trovaDtm.inCorso = false; }
+                } finally { trovaDtm.inCorso = null; avanzaDtm = () => {}; }
             }
 
             /** «Scarica»: le tessere Copernicus sono file veri, si scaricano col loro indirizzo; per un WCS
@@ -684,12 +913,46 @@
                 return { proj, luogo, testo: schedaDtmTesto(proj, luogo, fontiPerLuogo(luogo)) };
             };
 
-            TD('trovaDtmFonti').addEventListener('click', (e) => {
+            TD('trovaDtmFonti').addEventListener('click', async (e) => {
                 const b = e.target.closest('[data-azione-dtm]');
                 if (!b) return;
-                const f = FONTI_DTM.find(x => x.id === b.closest('[data-fonte]').dataset.fonte);
-                if (b.dataset.azioneDtm === 'carica') caricaFonteDtm(f, b);
-                else scaricaFonteDtm(f);
+                e.preventDefault(); // i tasti stanno nella riga: non devono aprirla o chiuderla
+                const f = FONTI_DTM.find(x => x.id === b.closest('[data-fonte]').dataset.fonte), az = b.dataset.azioneDtm;
+                if (az === 'carica') caricaFonteDtm(f, b);
+                else if (az === 'ricarica') caricaFonteDtm(f, b, true);
+                else if (az === 'scarica') scaricaFonteDtm(f);
+                else if (az === 'otsalva') {
+                    const v = (TD('dtmOtChiave').value || '').trim();
+                    if (!v) { renderTrovaDtm({ errore: true, testo: 'Incolla prima la chiave nel campo, poi premi Salva.' }); return; }
+                    salvaChiaveOt(v); trovaDtm.aperte.add(f.id);
+                    renderTrovaDtm({ testo: 'Chiave salvata su questo dispositivo. Ora puoi premere «Carica».' });
+                } else if (az === 'otlevachiave') { salvaChiaveOt(''); trovaDtm.aperte.add(f.id); renderTrovaDtm({ testo: 'Chiave tolta da questo dispositivo.' }); }
+                else if (az === 'otlink') {
+                    const luogo = luogoDelleProve(state.projects[trovaDtm.projId]);
+                    const ok = luogo && await copiaTestoDtm(urlOpenTopo(luogo, opzDtm().otSet, chiaveOt()));
+                    mostraToast(ok ? 'Indirizzo copiato (con la tua chiave: non condividerlo)' : 'Non sono riuscito a copiare');
+                } else if (az === 'rimuovi') {
+                    state.settings.dtmFonti = FONTI_TUE().filter(t => t.id !== f.id);
+                    saveState(); renderTrovaDtm({ testo: 'Fonte tolta.' });
+                }
+            });
+            TD('trovaDtmFonti').addEventListener('change', (e) => { if (e.target.id === 'dtmOtSet') impostaOpzDtm({ otSet: e.target.value }); });
+            TD('trovaDtmFonti').addEventListener('toggle', (e) => {
+                const r = e.target.closest && e.target.closest('[data-fonte]');
+                if (r) { if (e.target.open) trovaDtm.aperte.add(r.dataset.fonte); else trovaDtm.aperte.delete(r.dataset.fonte); }
+            }, true);
+            ['anteprima', 'qualita', 'copertura', 'cache'].forEach(k => TD('dtmOpz_' + k).addEventListener('change', (e) => { impostaOpzDtm({ [k]: e.target.checked }); renderTrovaDtm(); }));
+            TD('dtmSvuotaMemoria').addEventListener('click', async () => { await dtmCache('svuota'); mostraToast('Memoria offline dei DTM svuotata'); });
+            TD('ndSalva').addEventListener('click', () => {
+                const nome = TD('ndNome').value.trim(), url = TD('ndUrl').value.trim(), passo = Math.max(0.5, parseFloat(TD('ndPasso').value) || 5);
+                if (!nome || !/^https?:\/\//i.test(url)) { renderTrovaDtm({ errore: true, testo: 'Serve un nome e un indirizzo che inizi con http:// o https://.' }); return; }
+                if (!state.settings) state.settings = {};
+                if (!Array.isArray(state.settings.dtmFonti)) state.settings.dtmFonti = [];
+                state.settings.dtmFonti.push({ id: 'mia-' + Date.now().toString(36), nome, url, tipo: TD('ndTipo').value, passo, coverage: TD('ndCoverage').value.trim() });
+                saveState();
+                ['ndNome', 'ndUrl', 'ndCoverage'].forEach(i => { TD(i).value = ''; });
+                TD('trovaDtmNuova').open = false;
+                renderTrovaDtm({ testo: `Fonte «${nome}» aggiunta: la trovi nell'elenco.` });
             });
             document.querySelectorAll('#trovaDtm [data-tipo-dtm]').forEach(b => b.addEventListener('click', () => { trovaDtm.tipo = b.dataset.tipoDtm; renderTrovaDtm(); }));
             TD('trovaDtmChiudi').addEventListener('click', chiudiTrovaDtm);

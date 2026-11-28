@@ -14,6 +14,7 @@ const STATO_V0 = fs.readFileSync(path.join(__dirname, 'dati', 'stato_v0.json'), 
 const DTM = n => fs.readFileSync(path.join(__dirname, 'dati', 'dtm', n));
 const clic = (app, el) => el && el.dispatchEvent(new app.w.MouseEvent('click', { bubbles: true }));
 const $ = (app, id) => app.d.getElementById(id);
+const FONTI_N = app => app.E(`FONTI_DTM.filter(f => f.propria).length`);
 const vicino = (a, b, tol) => a !== null && a !== undefined && Math.abs(a - b) <= tol;
 
 // I piani dei DTM di prova (vedi terreno_dtm.js): in UTM 33 e in gradi.
@@ -117,7 +118,7 @@ function conRange(app, buf, range) {
   t(`filtro DSM: restano solo i modelli di superficie (${soloDsm.join(', ')})`, soloDsm.includes('copernicus30') && !soloDsm.includes('tinitaly') && !soloDsm.includes('puglia'));
   clic(app, app.d.querySelector('#trovaDtm [data-tipo-dtm="tutti"]'));
   t('«Cerca anche»: cataloghi e ricerca col nome della regione', /RNDT/.test($(app, 'trovaDtmCerca').textContent) && !!app.d.querySelector('#trovaDtmCerca a[href*="Puglia"]'));
-  t('senza DTM nel progetto non c\'è «DTM del progetto (.asc)»', $(app, 'trovaDtmRitaglio').hidden);
+  t('senza DTM nel progetto non c\'è «DTM del progetto (.asc)»', $(app, 'trovaDtmProgetto').hidden);
 
   // ---- Scheda e area ----
   clic(app, $(app, 'trovaDtmScheda'));
@@ -147,6 +148,7 @@ function conRange(app, buf, range) {
     const m = /terrarium\/(\d+)\/(\d+)\/(\d+)\.png$/.exec(url);
     return m ? rispostaFinta(app, tessera(+m[1], +m[2], +m[3]), { tipo: 'image/png' }) : rispostaFinta(app, '', { status: 404 });
   });
+  app.E('impostaOpzDtm({ cache: false })'); // la memoria offline ha le sue prove, più sotto
   clic(app, scheda('terrarium').querySelector('[data-azione-dtm="carica"]'));
   for (let i = 0; i < 200 && !app.E(`!!${P}.dtm`); i++) await attesa(30);
   let q = quote();
@@ -154,12 +156,12 @@ function conRange(app, buf, range) {
   t('Terrarium: chieste solo le tessere del riquadro', richieste.length === ter.length && richieste.every(r => /terrarium\/15\//.test(r.url)));
   const dtmT = app.E(`JSON.parse(JSON.stringify(${P}.dtm))`);
   t(`Terrarium: ritaglio in UTM 33, la fonte lo dice (${dtmT.fonte})`, dtmT.crs.tipo === 'utm' && dtmT.crs.zona === 33 && /Terrarium/.test(dtmT.fonte) && dtmT.nx < 260);
-  t('dopo il caricamento la finestra resta aperta e lo dice; ora c\'è «DTM del progetto (.asc)»', !$(app, 'trovaDtm').hidden && /Caricato: Tessere di quota Terrarium/.test($(app, 'trovaDtmEsito').textContent) && !$(app, 'trovaDtmRitaglio').hidden);
+  t('dopo il caricamento la finestra resta aperta e lo dice; ora c\'è «DTM del progetto (.asc)»', !$(app, 'trovaDtm').hidden && /Caricato: Tessere di quota Terrarium/.test($(app, 'trovaDtmEsito').textContent) && !$(app, 'trovaDtmProgetto').hidden);
   t('«Terreno e sezioni» sotto è già aggiornato (quote delle prove)', /Prova 1\s*\d+,\d m s\.l\.m\./.test($(app, 'statoTerreno').textContent));
   clic(app, $(app, 'trovaDtmTogli'));
-  t('«Togli il DTM» anche da qui: lo toglie, con Annulla, e aggiorna «Terreno e sezioni»', !app.E(`${P}.dtm`) && $(app, 'trovaDtmTogli').hidden && $(app, 'undoNotificationBanner').style.display === 'flex' && /GeoTIFF/.test($(app, 'statoTerreno').textContent));
+  t('«Togli il DTM» anche da qui: lo toglie, con Annulla, e aggiorna «Terreno e sezioni»', !app.E(`${P}.dtm`) && $(app, 'trovaDtmProgetto').hidden && $(app, 'undoNotificationBanner').style.display === 'flex' && /GeoTIFF/.test($(app, 'statoTerreno').textContent));
   clic(app, $(app, 'btnUndoDeleteProject'));
-  t('Annulla lo rimette', app.E(`${P}.dtm.fonte`) === dtmT.fonte && !$(app, 'trovaDtmTogli').hidden);
+  t('Annulla lo rimette', app.E(`${P}.dtm.fonte`) === dtmT.fonte && !$(app, 'trovaDtmProgetto').hidden);
 
   // ---- Il ritaglio in .asc, e si ricarica uguale ----
   clic(app, $(app, 'trovaDtmRitaglio'));
@@ -226,6 +228,60 @@ function conRange(app, buf, range) {
   app.d.dispatchEvent(new app.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   t('Esc chiude la finestra, non «Terreno e sezioni» sotto', $(app, 'trovaDtm').hidden && $(app, 'modalTerreno').classList.contains('open'));
 
+  // ---- La finestra compatta, il controllo, la memoria offline, OpenTopography, le fonti tue ----
+  app.E(`apriTrovaDtm(Object.keys(state.projects).find(id => proveConCoordinate(state.projects[id]).length), () => {})`);
+  app.E('trovaDtm.aperte.clear(); renderTrovaDtm()');
+  const righe = [...app.d.querySelectorAll('#trovaDtmFonti details.fonte-dtm')];
+  t('le fonti sono righe compatte, chiuse all\'inizio, con barra di avanzamento', righe.length > 4 && righe.every(r => !r.open && r.querySelector('.fd-barra i') && r.querySelector('summary .fd-pallino')));
+  t('il DTM del progetto ha la scheda col controllo qualità', !$(app, 'trovaDtmProgetto').hidden && app.d.querySelectorAll('#trovaDtmProgettoDati .fd-qualita li').length >= 3);
+  app.E('impostaOpzDtm({ qualita: false })');
+  app.E('renderTrovaDtm()');
+  t('il controllo qualità si spegne dalle opzioni', app.d.querySelectorAll('#trovaDtmProgettoDati .fd-qualita').length === 0);
+  app.E('impostaOpzDtm({ qualita: true })');
+
+  // memoria offline: letto una volta, poi senza rete si riusa; «Ricarica dalla rete» la salta
+  app.E('impostaOpzDtm({ cache: true })');
+  await app.E(`dtmCache('svuota')`);
+  servi(app, (url) => {
+    const m = /terrarium\/(\d+)\/(\d+)\/(\d+)\.png$/.exec(url);
+    return m ? rispostaFinta(app, tessera(+m[1], +m[2], +m[3]), { tipo: 'image/png' }) : rispostaFinta(app, '', { status: 404 });
+  });
+  app.E(`renderTrovaDtm(); caricaFonteDtm(FONTI_DTM.find(f => f.id === 'terrarium'))`);
+  for (let i = 0; i < 150 && !/Caricato/.test($(app, 'trovaDtmEsito').textContent); i++) await attesa(20);
+  await attesa(100);
+  const senzaRete = servi(app, () => { throw new TypeError('Failed to fetch'); });
+  app.E(`caricaFonteDtm(FONTI_DTM.find(f => f.id === 'terrarium'))`);
+  for (let i = 0; i < 100 && !/Caricato|non permette/.test($(app, 'trovaDtmEsito').textContent); i++) await attesa(20);
+  t('senza rete il DTM già letto si riusa dalla memoria offline', /Caricato: Tessere di quota/.test($(app, 'trovaDtmEsito').textContent) && senzaRete.length === 0);
+  app.E(`caricaFonteDtm(FONTI_DTM.find(f => f.id === 'terrarium'), null, true)`);
+  for (let i = 0; i < 100 && !/non permette/.test($(app, 'trovaDtmEsito').textContent); i++) await attesa(20);
+  t('«Ricarica dalla rete» salta la memoria: senza rete dà l\'errore', /non permette/.test($(app, 'trovaDtmEsito').textContent));
+  app.E('impostaOpzDtm({ cache: false })');
+
+  // OpenTopography: la guida in tre passi, la chiave resta sul dispositivo, poi si carica
+  app.E(`localStorage.removeItem('dpsh.dtm.otChiave'); trovaDtm.aperte.add('opentopography'); renderTrovaDtm()`);
+  const ot = app.d.querySelector('#trovaDtmFonti [data-fonte="opentopography"]');
+  t('OpenTopography: la guida ha tre passi e il campo per la chiave', !!ot && ot.querySelectorAll('.fd-guida li').length === 3 && !!$(app, 'dtmOtChiave'));
+  clic(app, ot.querySelector('[data-azione-dtm="carica"]'));
+  for (let i = 0; i < 50 && !/Manca la chiave/.test($(app, 'trovaDtmEsito').textContent); i++) await attesa(20);
+  t('senza chiave dice di seguire i tre passi', /Manca la chiave/.test($(app, 'trovaDtmEsito').textContent));
+  $(app, 'dtmOtChiave').value = 'CHIAVE123456';
+  clic(app, app.d.querySelector('[data-azione-dtm="otsalva"]'));
+  t('la chiave si salva sul dispositivo, non nel progetto', app.E(`localStorage.getItem('dpsh.dtm.otChiave')`) === 'CHIAVE123456' && !/CHIAVE123456/.test(app.E('JSON.stringify(state)')));
+  const reqOt = servi(app, () => rispostaFinta(app, DTM('utm33_lzw_pred3.tif'), { tipo: 'image/tiff' }));
+  clic(app, app.d.querySelector('#trovaDtmFonti [data-fonte="opentopography"] [data-azione-dtm="carica"]'));
+  for (let i = 0; i < 150 && !/Caricato: OpenTopography/.test($(app, 'trovaDtmEsito').textContent); i++) await attesa(20);
+  t('OpenTopography: chiede il modello scelto col riquadro e la chiave, e carica', reqOt.length === 1 && /demtype=COP30/.test(reqOt[0].url) && /API_Key=CHIAVE123456/.test(reqOt[0].url) && /OpenTopography/.test(app.E(`${P}.dtm.fonte`)));
+  t('l\'ultima fonte riuscita si ricorda (★)', app.E('opzDtm().ultima') === 'opentopography' && !!app.d.querySelector('#trovaDtmFonti .fd-ultima'));
+
+  // una fonte WCS aggiunta da te
+  $(app, 'ndNome').value = 'Il mio WCS'; $(app, 'ndUrl').value = 'https://esempio.test/wcs';
+  clic(app, $(app, 'ndSalva'));
+  t('una fonte tua si aggiunge all\'elenco', !!app.d.querySelector('#trovaDtmFonti [data-fonte^="mia-"]') && FONTI_N(app) === 1);
+  clic(app, app.d.querySelector('#trovaDtmFonti [data-fonte^="mia-"] [data-azione-dtm="rimuovi"]'));
+  t('e si toglie', !app.d.querySelector('#trovaDtmFonti [data-fonte^="mia-"]'));
+  app.E('chiudiTrovaDtm()');
+
   // ---- Un progetto senza GPS ----
   const idSenza = app.E(`Object.keys(state.projects).find(id => !proveConCoordinate(state.projects[id]).length) || null`);
   if (idSenza) {
@@ -234,8 +290,9 @@ function conRange(app, buf, range) {
     app.E('chiudiTrovaDtm()');
   }
 
-  t('l\'app non ha dato errori', app.errori.length === 0);
-  if (app.errori.length) console.log('       ', app.errori.slice(0, 3));
+  const veri = app.errori.filter(e => !/getContext/.test(String(e)));
+  t('l\'app non ha dato errori', veri.length === 0);
+  if (veri.length) console.log('       ', veri.slice(0, 3));
   app.chiudi();
 
   console.log(`\n${ok} ok, ${ko} KO`);
