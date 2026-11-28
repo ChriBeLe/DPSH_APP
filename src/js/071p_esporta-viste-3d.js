@@ -623,6 +623,8 @@
                 if (op.ex) { T3('tavole3dEsag').value = op.ex; T3('tavole3dEsagCursore').value = op.ex; }
                 renderTemplateTavole3d();
                 T3('tavole3d').hidden = false;
+                { const pn = state.projects[state.currentProjectId]; T3('tavole3dProgetto').textContent = pn && pn.name ? pn.name : ''; }
+                schedaTavole3d('pagina');
                 renderElencoTavole3d();
                 mostraTavola3d();
                 salvaMemoriaTavole3d();
@@ -731,12 +733,15 @@
                 return true;
             }
             async function chiudiTavole3d() {
-                if (tavole3d.lavoro) return;
+                if (tavole3d.lavoro || tavole3d.chiudendo) return; // (un solo avviso alla volta: Esc ripetuto non ne impila altri)
                 salvaMemoriaTavole3d();
                 if (tavoleSporche3d()) {
-                    const r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' });
+                    tavole3d.chiudendo = true;
+                    let r;
+                    try { r = await appDialog('Hai modifiche alle tavole non salvate.', { confirm: true, okLabel: 'Salva', extraLabel: 'Scarta', cancelLabel: 'Continua a modificare' }); }
+                    finally { tavole3d.chiudendo = false; }
                     if (r === false || r === undefined || r === null) return;
-                    if (r === true || (r && r.ok)) { if (!(await salvaTavole3d())) return; }
+                    if (r === true || (r && r.ok)) { tavole3d.chiudendo = true; let salvata = false; try { salvata = await salvaTavole3d(); } finally { tavole3d.chiudendo = false; } if (!salvata) return; }
                 }
                 tavole3d.bozza = null; tavole3d.pulito = null;
                 T3('tavole3d').hidden = true;
@@ -1045,6 +1050,19 @@
 
             // ---- i comandi ----
             T3('tavole3dChiudi').addEventListener('click', chiudiTavole3d);
+            // Le schede del pannello a destra: Pagina, Foglio, Scena (mappa e modello), Elementi. Un solo gruppo alla volta, niente scorrimento lungo.
+            const SCHEDE_TAVOLE3D = { pagina: ['pagina'], foglio: ['foglio'], scena: ['mappa', 'modello'], elementi: ['elementi'] };
+            function schedaTavole3d(nome) {
+                const pan = document.querySelector('#tavole3d .tavole-comandi'); if (!pan || !SCHEDE_TAVOLE3D[nome]) return;
+                pan.dataset.scheda = nome;
+                pan.querySelectorAll('.tavole-scheda').forEach(b => { const on = b.dataset.scheda === nome; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+                pan.querySelectorAll('[data-tavole-gruppo]').forEach(g => { const qui = SCHEDE_TAVOLE3D[nome].includes(g.dataset.tavoleGruppo); g.hidden = !qui; if (qui && SCHEDE_TAVOLE3D[nome].length === 1) g.open = true; });
+                const corpo = pan.querySelector('.tavole-comandi-corpo'); if (corpo) corpo.scrollTop = 0;
+            }
+            document.querySelectorAll('#tavole3d .tavole-scheda').forEach(b => {
+                b.addEventListener('click', () => schedaTavole3d(b.dataset.scheda));
+                b.addEventListener('keydown', e => { const l = [...b.parentNode.children], i = l.indexOf(b), k = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!k) return; e.preventDefault(); const n = l[(i + k + l.length) % l.length]; n.focus(); schedaTavole3d(n.dataset.scheda); });
+            });
             T3('tavole3dSalva').addEventListener('click', salvaTavole3d);
             T3('tavole3dBlocca').addEventListener('click', bloccaTavolaScelta3d);
             T3('tavole3dAggiungiLibero').addEventListener('click', aggiungiLibero3d);

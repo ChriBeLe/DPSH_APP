@@ -1704,7 +1704,14 @@
                     const op = vista3d.opacita['sf-base'] ?? 1;
                     return [gruppi[0], gruppi.find(g => g.id === 'sezioni'), gruppi.find(g => g.id === 'disegni'), { id: 'sfondo2d', nome: 'Sfondo', righe: [{ chiave: 'sf-base', sfondo2d: true, attr: 'data-sfondo2d="base"', acceso: !mappaProgetto.sfondoSpento,
                         simbolo: ico(/strade|wms/.test(mappaProgetto.stile) ? 'map' : 'satellite'), nome: (SFONDI_2D().find(x => x[0] === mappaProgetto.stile) || ['', 'Satellite (Esri)'])[1], conta: Math.round(op * 100) + '%',
-                        titolo: 'Mappa di base: tasto destro per cambiarla' }] }].filter(g => g.righe.length);
+                        titolo: 'Mappa di base: tasto destro per cambiarla' },
+                        ...(() => {
+                            const imp = impostazioniMappa2d(), dtm = !!(state.projects[state.currentProjectId] || {}).dtm, senza = dtm ? '' : ' (servono le quote del terreno: DTM)';
+                            return [{ chiave: 'sf-ombra', liv2d: 'ombra', attr: 'data-liv2d="ombra"', acceso: imp.ombra.on, simbolo: ico('layers'), nome: 'Ombreggiatura del rilievo', conta: Math.round(imp.ombra.op * 100) + '%',
+                                titolo: 'Il rilievo in luce e ombra, calcolato dal DTM; tasto destro: direzione della luce e opacità' + senza },
+                            { chiave: 'sf-isoipse', liv2d: 'isoipse', attr: 'data-liv2d="isoipse"', acceso: imp.isoipse.on, simbolo: ico('layers'), nome: 'Isoipse (curve di livello)', conta: imp.isoipse.passo ? numeroConVirgola(imp.isoipse.passo, imp.isoipse.passo % 1 ? 2 : 0) + ' m' : 'auto',
+                                titolo: 'Le curve di livello calcolate dal DTM; tasto destro: distanza tra le curve' + senza }];
+                        })()] }].filter(g => g.righe.length);
                 }
                 return gruppi.filter(g => g.righe.length);
             }
@@ -1789,6 +1796,7 @@
                 else if (r.disegno) vista3d.disegniNascosti[on ? 'delete' : 'add'](r.disegno);
                 else if (r.solidoStrato !== undefined) vista3d.stratiSolidoNascosti[on ? 'delete' : 'add'](r.solidoStrato);
                 else if (r.giacitura !== undefined) { vista3d.giacitureNascoste[on ? 'delete' : 'add'](r.giacitura); if (on) vista3d.livelli.giaciture = true; }
+                else if (r.liv2d) { if (!livello2dAcceso(r.liv2d, on)) setTimeout(renderLivelli3d); }
                 else if (r.sfondo2d) sfondo2dAcceso(on);
                 else {
                     if (r.livello === 'solido' && on && !vista3d.livelli.solido) accendiSolido3d();
@@ -1832,8 +1840,27 @@
                     renderVista3d();
                 }]));
             }
+            /** Il tasto destro sulle righe «Ombreggiatura» e «Isoipse» della mappa 2D. */
+            function menuLivello2d(e, r, x, y) {
+                const imp = impostazioniMappa2d(), q = imp[r.liv2d];
+                const rifai = () => { saveState(); aggiornaLivelli2d(); renderLivelli3d(); };
+                const scelte = (titolo, voci) => setTimeout(() => menuQui(x, y, titolo, voci));
+                const num = v => numeroConVirgola(v, v % 1 ? 2 : 0);
+                const opacita = ['Opacità…', 'i-eye', Math.round(q.op * 100) + '%', () => scelte('Opacità · ' + r.nome, [1, 0.8, 0.6, 0.4, 0.2].map(v =>
+                    [Math.round(v * 100) + '%', Math.abs(v - q.op) < 0.01 ? 'i-check' : 'i-eye', '', () => { q.op = v; rifai(); }]))];
+                if (r.liv2d === 'isoipse') {
+                    apriMenuContesto(e, r.nome, [['Distanza tra le curve…', 'i-layers', q.passo ? num(q.passo) + ' m' : 'automatica', () => scelte('Distanza tra le curve',
+                        [0].concat(PASSI_ISOIPSE.filter(p => p >= 0.5 && p <= 50)).map(p => [p ? num(p) + ' m' : 'Automatica', p === q.passo ? 'i-check' : 'i-layers', '', () => { q.passo = p; rifai(); }]))], opacita]);
+                    return;
+                }
+                apriMenuContesto(e, r.nome, [['Luce da…', 'i-layers', (LUCI_OMBRA.find(l => l[1] === q.az) || ['', q.az + '°'])[0].replace(' (di norma)', ''), () => scelte('Luce da',
+                    LUCI_OMBRA.map(([nome, az]) => [nome, az === q.az ? 'i-check' : 'i-layers', '', () => { q.az = az; rifai(); }]))],
+                ['Rilievo accentuato…', 'i-layers', '×' + num(q.es), () => scelte('Rilievo accentuato', [1, 2, 3, 5].map(v => ['×' + v, v === q.es ? 'i-check' : 'i-layers', '', () => { q.es = v; rifai(); }]))],
+                opacita]);
+            }
             function menuLivello3d(e, r) {
                 const x = e.clientX, y = e.clientY;
+                if (r.liv2d) { menuLivello2d(e, r, x, y); return; }
                 const opacita = ['Opacità…', 'i-eye', Math.round((vista3d.opacita[r.chiave] ?? 1) * 100) + '%', () => setTimeout(() => menuOpacita3d(r, x, y))];
                 if (r.sfondo2d) {
                     apriMenuContesto(e, r.nome, [['Cambia mappa di base…', 'i-map', '', () => setTimeout(() => menuQui(x, y, 'Mappa di base',
@@ -1896,7 +1923,7 @@
                 });
                 albero.addEventListener('dblclick', (e) => {
                     const r = riga(e);
-                    if (r && !e.target.matches('input, button') && !r.sfondo2d) inquadraLivello3d(r);
+                    if (r && !e.target.matches('input, button') && !r.sfondo2d && !r.liv2d) inquadraLivello3d(r);
                 });
                 albero.addEventListener('contextmenu', (e) => {
                     // sul gruppo (Prove, Sezioni, Disegnati): lo stile del gruppo, per tutti i suoi elementi

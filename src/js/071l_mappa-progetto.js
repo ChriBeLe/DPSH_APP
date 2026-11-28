@@ -208,6 +208,7 @@
                 }
                 m.progetto = state.currentProjectId;
                 sfondoMappaProgetto((state.settings && state.settings.sfondo2d) || m.stile);
+                aggiornaLivelli2d(); // isoipse e ombreggiatura dal DTM del progetto, se accese
                 // Dopo che la scena si è mostrata: Leaflet misura il riquadro.
                 setTimeout(() => {
                     m.mappa.invalidateSize();

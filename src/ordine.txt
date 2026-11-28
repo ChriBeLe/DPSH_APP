@@ -187,6 +187,7 @@ js/071i2_pdfa-dal-documento-di-stampa.js
 js/071j_sezioni-tracciate.js
 js/071k_geopackage.js
 js/071l_mappa-progetto.js
+js/071l2_isoipse-ombreggiatura.js
 js/071m_area-mappa.js
 js/071n_disegni.js
 js/071o_stili-livelli.js
