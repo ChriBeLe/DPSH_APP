@@ -15,7 +15,7 @@
             // piano orizzontale), le posizioni vengono dal GPS in UTM.
 
             const vista3d = { az: -0.6, el: 0.62, ex: 5, zoom: 1, centro: [0, 0, 0], prospettiva: false, fov: 45, trascina: null, mosso: 0, opacitaFoto: 0.5,
-                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false, tagliaMappa: false, spigoli: true },
+                livelli: { terreno: true, colonne: true, pannelli: true, superfici: true, giaciture: false, falda: true, misure: true, distanze: false, sezioni: true, immagine: true, solido: false, mesh: false, fantasma: true, nordTerreno: true, fotoSopra: false, tagliaMappa: false, spigoli: true, righello: true, scalaVera: true, miniVista: false, terrenoStretto: false },
                 // Le etichette, come in HyperGram, non sono livelli: le accende il tasto «T» del livello
                 // (per prove e sezioni, uno solo per tutto il gruppo).
                 etichette: { prove: true, sezioni: true, disegni: true, giaciture: false, misure: true, falda: false },
@@ -83,7 +83,9 @@
                 // del modello scelto dall'utente, anche attorno a quello.
                 const perimetro = puntiPerimetroModello(proj).map(g => { const p = puntoNelCrs(dtm.crs, g.lat, g.lng); return locale(p.x, p.y); });
                 const spread = Math.max(10, ...provePos.map(p => Math.hypot(p.x, p.y)), ...perimetro.map(p => Math.hypot(p[0], p[1])));
-                const raggio = provePos.length ? spread + Math.max(20, 0.35 * spread) : Infinity;
+                // «Terreno stretto»: il terreno si ferma poco oltre le prove, così il modello occupa la scena anche senza esagerazione.
+                const stretto = !!(vista3d.livelli && vista3d.livelli.terrenoStretto);
+                const raggio = provePos.length ? spread + (stretto ? Math.max(6, 0.12 * spread) : Math.max(20, 0.35 * spread)) : Infinity;
                 const cella = Math.min(dtm.dx * kx, dtm.dy * ky);
                 const griglia = (quanti) => {
                     const g = Math.max(1, Math.ceil(Math.min(Math.max(dtm.nx, dtm.ny), 2 * raggio / cella) / quanti));
@@ -1222,6 +1224,73 @@
                     for (let n = 0; n < 4; n++) sopra.push({ t: 'poli', p: [[sx0 + lp * n / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0], [sx0 + lp * (n + 1) / 4, sy0 + hb], [sx0 + lp * n / 4, sy0 + hb]], fill: n % 2 ? fondo : 'currentColor', fo: 1, stroke: 'currentColor', sw: 0.8, cls: 'vista3d-scala' });
                     [[0, '0'], [lp / 2, numeroConVirgola(metri / 2, metri / 2 < 10 && metri % 2 ? 1 : 0)], [lp, numeroConVirgola(metri, 0) + ' m']].forEach(([x, s2], n) => testo(sx0 + x, sy0 - 5, s2, { size: 11, anchor: n === 2 ? 'start' : 'middle', alone: true, cls: 'vista3d-scala' }));
                 }
+                // IL RIGHELLO DELLE PROFONDITÀ: accanto alla prova più profonda, in metri veri (non
+                // esagerati): così la scala della profondità si legge anche con l'esagerazione.
+                if (L.righello && d.prove.length) {
+                    const pr = d.prove.filter(p => !vista3d.proveNascoste.has(p.s.id)).reduce((a, b) => (!a || b.fondo > a.fondo) ? b : a, null);
+                    if (pr && pr.fondo > 0) {
+                        const a = P(pr.x, pr.y, pr.z), b = P(pr.x, pr.y, pr.z - pr.fondo), pxm = Math.hypot(a[0] - b[0], a[1] - b[1]) / pr.fondo;
+                        if (pxm > 1.2) {
+                            const dx = 26, passoR = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].find(v => v * pxm >= 20) || 50;
+                            sopra.push({ t: 'linea', x1: a[0] + dx, y1: a[1], x2: b[0] + dx, y2: b[1], stroke: 'currentColor', sw: 1.4, cls: 'vista3d-righello' });
+                            for (let q = 0, n = 0; q <= pr.fondo + 1e-9 && n < 200; q += passoR, n++) {
+                                const [qx, qy] = P(pr.x, pr.y, pr.z - q);
+                                sopra.push({ t: 'linea', x1: qx + dx - 4, y1: qy, x2: qx + dx + 4, y2: qy, stroke: 'currentColor', sw: 1.2, cls: 'vista3d-righello' });
+                                testo(qx + dx + 8, qy + 4, numeroConVirgola(Math.round(q * 100) / 100, passoR < 1 ? 1 : 0) + ' m', { size: 10, alone: true, cls: 'vista3d-righello' });
+                            }
+                            testo(a[0] + dx, a[1] - 8, 'profondità vera', { size: 10, anchor: 'middle', alone: true, cls: 'vista3d-righello' });
+                        }
+                    }
+                }
+                // LA SCALA VERA: due barre in metri veri. L'orizzontale vale al centro della figura; la
+                // verticale tiene conto dell'esagerazione e dell'inclinazione (sparisce quando si guarda
+                // dall'alto). Nel file si aggiunge alla scala grafica solo se c'è esagerazione.
+                if (L.scalaVera && k > 0 && !vista3d.prospettiva) {
+                    const hv = k * ex * Math.abs(ce);
+                    const metriV = hv > 0.5 && Math.abs(ce) > 0.2 ? massimoTondo(50 / hv) : 0;
+                    if (file) {
+                        if (ex > 1 && metriV && EL.scala !== false) {
+                            const lpH = massimoTondo(150 / k) * k, sx0 = POS.scala ? POS.scala[0] * W : 24, sy0 = (POS.scala ? POS.scala[1] * H : H - 44) + 6, lv = metriV * hv, x = sx0 + lpH + 64;
+                            sopra.push({ t: 'linea', x1: x, y1: sy0, x2: x, y2: sy0 - lv, stroke: 'currentColor', sw: 2, cls: 'vista3d-scala-vera' });
+                            [sy0, sy0 - lv].forEach(y => sopra.push({ t: 'linea', x1: x - 4, y1: y, x2: x + 4, y2: y, stroke: 'currentColor', sw: 1.2, cls: 'vista3d-scala-vera' }));
+                            testo(x + 8, sy0 - lv / 2 + 4, numeroConVirgola(metriV, metriV < 1 ? 1 : 0) + ' m vero', { size: 11, alone: true, cls: 'vista3d-scala-vera' });
+                            testo(x + 8, sy0 - lv / 2 + 17, `(esagerato ×${ex})`, { size: 10, alone: true, cls: 'vista3d-scala-vera' });
+                        }
+                    } else {
+                        const ox = 24, oy = H - (W < 700 ? 74 : 56), mH = massimoTondo(110 / k), lpH = mH * k;
+                        sopra.push({ t: 'linea', x1: ox, y1: oy, x2: ox + lpH, y2: oy, stroke: 'currentColor', sw: 2, cls: 'vista3d-scala-vera' });
+                        [ox, ox + lpH].forEach(x => sopra.push({ t: 'linea', x1: x, y1: oy - 4, x2: x, y2: oy + 4, stroke: 'currentColor', sw: 1.2, cls: 'vista3d-scala-vera' }));
+                        testo(ox + lpH + 8, oy + 4, numeroConVirgola(mH, mH < 1 ? 1 : 0) + ' m in orizzontale', { size: 11, alone: true, cls: 'vista3d-scala-vera' });
+                        if (metriV) {
+                            const lv = metriV * hv;
+                            sopra.push({ t: 'linea', x1: ox, y1: oy - 10, x2: ox, y2: oy - 10 - lv, stroke: 'currentColor', sw: 2, cls: 'vista3d-scala-vera' });
+                            [oy - 10, oy - 10 - lv].forEach(y => sopra.push({ t: 'linea', x1: ox - 4, y1: y, x2: ox + 4, y2: y, stroke: 'currentColor', sw: 1.2, cls: 'vista3d-scala-vera' }));
+                            testo(ox + 8, oy - 10 - lv / 2 + 4, numeroConVirgola(metriV, metriV < 1 ? 1 : 0) + ' m in verticale' + (ex > 1 ? ` (vero; la figura è ×${ex})` : ''), { size: 11, alone: true, cls: 'vista3d-scala-vera' });
+                        }
+                    }
+                }
+                // LA MINI-VISTA 1:1: le colonne viste di lato, senza esagerazione, in un riquadro: con
+                // l'esagerazione accesa si vede com'è davvero il corpo indagato.
+                if (L.miniVista && !file) {
+                    const vis = d.prove.filter(p => !vista3d.proveNascoste.has(p.s.id));
+                    if (vis.length) {
+                        const bw = Math.min(230, Math.round(W * 0.36)), bh = Math.min(150, Math.round(H * 0.34)), x0 = W - bw - 12, y0 = 12, pad = 16;
+                        const Xs = p => (p.x - cx) * ca - (p.y - cy) * sa, xs = vis.map(Xs);
+                        const xMin = Math.min(...xs), xMax = Math.max(...xs), zTop = Math.max(...vis.map(p => p.z)), zBot = Math.min(...vis.map(p => p.z - p.fondo));
+                        const rX = Math.max(xMax - xMin, 4), rZ = Math.max(zTop - zBot, 1), sc = Math.min((bw - 2 * pad) / rX, (bh - 2 * pad - 8) / rZ);
+                        const topY = y0 + 10 + (bh - 10 - rZ * sc) / 2, mx = x0 + bw / 2 - (xMin + xMax) / 2 * sc, Y = z => topY + (zTop - z) * sc, Xp = p => mx + Xs(p) * sc;
+                        sopra.push({ t: 'poli', p: [[x0, y0], [x0 + bw, y0], [x0 + bw, y0 + bh], [x0, y0 + bh]], fill: fondo, fo: 0.92, stroke: 'currentColor', sw: 1, cls: 'vista3d-minivista' });
+                        testo(x0 + 6, y0 + 11, `Scala vera 1:1 · ${numeroConVirgola(rZ, 1)} m di profondità`, { size: 10, alone: true, cls: 'vista3d-minivista' });
+                        const ord = vis.slice().sort((m, n) => Xs(m) - Xs(n));
+                        if (ord.length > 1) sopra.push({ t: 'poli', p: ord.map(p => [Xp(p), Y(p.z)]), fill: 'none', stroke: '#6b7a4b', sw: 1.5, dash: '4 3', cls: 'vista3d-minivista' });
+                        const wc = Math.max(3, Math.min(12, sc * 0.9, bw / (vis.length * 3)));
+                        vis.forEach(p => p.fasce.forEach(f => {
+                            if (vista3d.stratiNascosti.has(f.nome)) return;
+                            const xa = Xp(p) - wc / 2, xb = xa + wc, ya = Y(p.z - f.da), yb = Y(p.z - f.a);
+                            sopra.push({ t: 'poli', p: [[xa, ya], [xb, ya], [xb, yb], [xa, yb]], fill: f.colore, fo: 1, stroke: 'rgba(0,0,0,0.5)', sw: 0.6, cls: 'vista3d-minivista' });
+                        }));
+                    }
+                }
                 // La riga delle quote e dell'esagerazione: a schermo, per chi lavora; non nel disegno
                 // scaricato, che va in una tavola.
                 if (!file) {
@@ -1247,7 +1316,7 @@
 
             const LIVELLO_DEL_PEZZO = { 'vista3d-faccia': 'terreno', 'vista3d-solido': 'solido', 'vista3d-pannello': 'pannelli', 'vista3d-superficie': 'superfici',
                 'vista3d-giacitura': 'giaciture', 'vista3d-giacitura-segno': 'giaciture', 'vista3d-falda': 'falda', 'vista3d-falda-segno': 'falda', 'vista3d-falda-nome': 'falda',
-                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno', 'vista3d-foto-sopra': 'fotoSopra', 'vista3d-spigolo': 'spigoli' };
+                'vista3d-misure': 'misure', 'vista3d-distanza': 'distanze', 'vista3d-fantasma': 'fantasma', 'vista3d-nord-terreno': 'nordTerreno', 'vista3d-foto-sopra': 'fotoSopra', 'vista3d-spigolo': 'spigoli', 'vista3d-righello': 'righello', 'vista3d-scala-vera': 'scalaVera', 'vista3d-minivista': 'miniVista' };
             /** La scena in SVG: per il file scaricato (e per i test). */
             function svgDaScena(sc) {
                 const esc = escapeHtmlDidascalia, n = v => (+v).toFixed(1);
@@ -1685,7 +1754,10 @@
                         simbolo: sw('aree', `background:${st.colore}; border-color:${st.colore}`), nome: st.nome, conta: '', titolo: 'Lo strato nel corpo solido' })) },
                     { id: 'riferimenti', nome: 'Riferimenti', righe: [
                         liv('misure', ico('ruler'), 'Asta delle quote', 'L\'asta graduata attaccata al modello; «T»: i numeri', E.misure),
-                        liv('distanze', ico('ruler'), 'Distanze tra le prove', 'I metri tra una prova e l\'altra') ] },
+                        liv('distanze', ico('ruler'), 'Distanze tra le prove', 'I metri tra una prova e l\'altra'),
+                        liv('righello', ico('ruler'), 'Righello delle profondità', 'Accanto alla prova più profonda: la profondità in metri veri, anche con l\'esagerazione'),
+                        liv('scalaVera', ico('ruler'), 'Scala vera (orizzontale e verticale)', 'Due barre in metri veri: la verticale resta giusta anche con l\'esagerazione'),
+                        liv('miniVista', ico('layers'), 'Mini-vista in scala 1:1', 'Le colonne viste di lato, senza esagerazione, in un riquadro') ] },
                     { id: 'sezioni', nome: 'Sezioni', righe: tracceDelProgetto().map(t => ({ chiave: 't:' + t.id, traccia: t.id, attr: `data-traccia3d="${t.id}"`, acceso: !vista3d.tracceNascoste.has(t.id),
                         simbolo: sw('linee', 'background:#dc2626'), nome: t.nome, conta: '', titolo: 'La traccia della sezione' })), etichette: E.sezioni },
                     // I disegni dell'utente (strumenti Punto e Poligono): uno per riga.
@@ -1697,7 +1769,8 @@
                         liv('terreno', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), d && d.senzaDtm ? 'Piano campagna' : 'Terreno (DTM)'),
                         liv('immagine', ico('satellite'), 'Immagine sul terreno', 'Quella scelta nella scheda «Immagine»'),
                         liv('fotoSopra', ico('satellite'), 'Foto sopra il modello', 'L\'immagine anche sopra il corpo solido (e la parte che resta di una sezione), trasparente: sotto si vede il modello'),
-                        liv('nordTerreno', ico('arrow-up'), 'Freccia del Nord sul terreno', 'Stesa sul terreno, nell\'angolo più vicino') ] }
+                        liv('nordTerreno', ico('arrow-up'), 'Freccia del Nord sul terreno', 'Stesa sul terreno, nell\'angolo più vicino'),
+                        liv('terrenoStretto', sw('aree', 'background:#a3a36b; border-color:#6b7a4b'), 'Terreno stretto attorno alle prove', 'Ritaglia il terreno poco oltre le prove: il modello riempie la scena') ] }
                 ];
                 // Nel modo Mappa: le prove, le sezioni e la mappa di base (tasto destro per cambiarla).
                 if (areaMappa.modo === 'mappa') {
@@ -1801,6 +1874,7 @@
                 else {
                     if (r.livello === 'solido' && on && !vista3d.livelli.solido) accendiSolido3d();
                     vista3d.livelli[r.livello] = on;
+                    if (r.livello === 'terrenoStretto') { datiVista3dCorrenti = datiVista3d(state.projects[state.currentProjectId]); setTimeout(() => inquadraCorpo3d()); }
                 }
             }
             function etichetteLivello3d(r) {
@@ -1992,6 +2066,19 @@
                 if (!durata) { passo(t0); return; }
                 animazione3d = requestAnimationFrame(passo);
             }
+            /** Inquadra il corpo indagato (le colonne, con la loro profondità e l'esagerazione): lo zoom è quello
+             * che le fa stare nella scena, per leggere i livelli anche quando il modello è piccolo. */
+            function inquadraCorpo3d() {
+                const d = datiVista3dCorrenti;
+                if (!d || !d.prove.length) { vaiAVista3d({ centro: [0, 0, 0], zoom: 1.4 }); return; }
+                const xs = d.prove.map(p => p.x), ys = d.prove.map(p => p.y), ex = vista3d.ex;
+                const zTop = Math.max(...d.prove.map(p => p.z)), zBot = Math.min(...d.prove.map(p => p.z - p.fondo)), zRif = (d.zMin + d.zMax) / 2;
+                const bx = (Math.min(...xs) + Math.max(...xs)) / 2, by = (Math.min(...ys) + Math.max(...ys)) / 2, zMid = (zTop + zBot) / 2;
+                const rh = Math.max(3, Math.hypot((Math.max(...xs) - Math.min(...xs)) / 2, (Math.max(...ys) - Math.min(...ys)) / 2)), rv = Math.max(0.5, (zTop - zBot) / 2);
+                const Rb = Math.hypot(rh, rv * ex), profMax = Math.max(0, ...d.prove.map(p => p.fondo));
+                const R = Math.hypot(d.lato / 2 * Math.SQRT2, Math.max(d.zMax - zRif, zRif - d.zMin + profMax) * ex) || 1;
+                vaiAVista3d({ centro: [bx, by, zMid - zRif], zoom: Math.max(0.1, Math.min(40, 0.9 * R / Rb)) });
+            }
             const VISTE_PRONTE_3D = {
                 alto: { az: 0, el: Math.PI / 2 },
                 iso: { az: Math.PI / 4, el: Math.atan(1 / Math.SQRT2), prospettiva: false },  // isometrica vera: 35,26° e 45°
@@ -2002,6 +2089,7 @@
             document.getElementById('presetVista3d').addEventListener('click', (e) => {
                 const b = e.target.closest('[data-preset3d]');
                 if (!b) return;
+                if (b.dataset.preset3d === 'inquadra') { inquadraCorpo3d(); return; }
                 const v = VISTE_PRONTE_3D[b.dataset.preset3d];
                 if (v.prospettiva !== undefined) vista3d.prospettiva = v.prospettiva;
                 vaiAVista3d({ az: v.az, el: v.el });
@@ -2176,7 +2264,7 @@
                 const azTraccia = {
                     zoom: f => { vista3d.zoom = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, f); },
                     incl: f => { vista3d.el = (INCL_3D[0] + f * (INCL_3D[1] - INCL_3D[0])) * Math.PI / 180; },
-                    esag: f => { vista3d.ex = Math.round(1 + f * 29); }
+                    esag: f => { const prima = vista3d.ex; vista3d.ex = Math.round(1 + f * 29); if (prima > 1 && vista3d.ex === 1) inquadraCorpo3d(); }
                 };
                 div.querySelectorAll('[data-trac]').forEach(tr => tr.addEventListener('pointerdown', e => {
                     if (e.button !== 0) return;
@@ -2301,7 +2389,7 @@
                     if (t.has('giu')) vista3d.el = Math.max(INCL_3D[0], el - 1 * v) * Math.PI / 180;
                     // l'esagerazione va a scatti interi: uno ogni sei fotogrammi
                     if (f % 6 === 0 && t.has('esagpiu')) vista3d.ex = Math.min(30, vista3d.ex + 1);
-                    if (f % 6 === 0 && t.has('esagmeno')) vista3d.ex = Math.max(1, vista3d.ex - 1);
+                    if (f % 6 === 0 && t.has('esagmeno')) { const prima = vista3d.ex; vista3d.ex = Math.max(1, vista3d.ex - 1); if (prima > 1 && vista3d.ex === 1) inquadraCorpo3d(); }
                     renderVista3d(true);
                     requestAnimationFrame(passo);
                 };
